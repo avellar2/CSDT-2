@@ -1,0 +1,754 @@
+[
+  {
+    "name": "Centro Integrado de Educação Pública 330 Brizolao Municipalizado Maria da Gloria Correa Lemos",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-330-brizolao-municipalizado-maria-da-gloria-correa-lemos-33101094"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública 338-escola Municipalizada Celia Rabelo",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-338-escola-municipalizada-celia-rabelo-33099782"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao 319 Oduvaldo Viana Filho",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-319-oduvaldo-viana-filho-33101680"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 097 Carlos Chagas",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-municipalizado-097-carlos-chagas-33048290"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 120 Monteiro Lobato",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-municipalizado-120-monteiro-lobato-33049670"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 220 Yolanda Borges",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-municipalizado-220-yolanda-borges-33099251"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 227 Procopio Ferreira",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-municipalizado-227-procopio-ferreira-33103496"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 318 - Paulo Mendes Campos",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-municipalizado-318-paulo-mendes-campos-33099260"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 328 Marie Curie",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-municipalizado-328-marie-curie-33104999"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 405 Ministro Santiago Dantas",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-municipalizado-405-ministro-santiago-dantas-33097070"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 407 Neusa Goulart Brizola",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-brizolao-municipalizado-407-neusa-goulart-brizola-33099170"
+  },
+  {
+    "name": "Centro Integrado de Educação Pública Municipalizado Brizolao 015 Henrique de S Filho Henfil",
+    "url": "https://escolas.com.br/centro-integrado-de-educacao-publica-municipalizado-brizolao-015-henrique-de-s-filho-henfil-33050406"
+  },
+  {
+    "name": "Creche - Escola Municipal Benizio José da Silva",
+    "url": "https://escolas.com.br/creche-escola-municipal-benizio-jose-da-silva-33139741"
+  },
+  {
+    "name": "Creche Centro de Atendimento A Infancia Caxiense - Amapa",
+    "url": "https://escolas.com.br/creche-centro-de-atendimento-a-infancia-caxiense-amapa-33144133"
+  },
+  {
+    "name": "Creche Centro de Atendimento A Infancia Caxiense de Campos Eliseos",
+    "url": "https://escolas.com.br/creche-centro-de-atendimento-a-infancia-caxiense-de-campos-eliseos-33158193"
+  },
+  {
+    "name": "Creche Centro de Atendimento A Infancia Caxiense de Xerem",
+    "url": "https://escolas.com.br/creche-centro-de-atendimento-a-infancia-caxiense-de-xerem-33151725"
+  },
+  {
+    "name": "Creche Centro de Atendimento A Infancia Caxiense Jd Gramacho",
+    "url": "https://escolas.com.br/creche-centro-de-atendimento-a-infancia-caxiense-jd-gramacho-33151733"
+  },
+  {
+    "name": "Creche Centro de Atendimento A Infancia Caxiense Parque Muisa",
+    "url": "https://escolas.com.br/creche-centro-de-atendimento-a-infancia-caxiense-parque-muisa-33151709"
+  },
+  {
+    "name": "Creche Com São Sebastiao",
+    "url": "https://escolas.com.br/creche-com-sao-sebastiao-33048592"
+  },
+  {
+    "name": "Creche e Centro de Atendimento A Infancia Caxiense -jd Anhanga",
+    "url": "https://escolas.com.br/creche-e-centro-de-atendimento-a-infancia-caxiense-jd-anhanga-33151741"
+  },
+  {
+    "name": "Creche e Centro de Atendimento A Infancia Caxiense Olavo Bilac",
+    "url": "https://escolas.com.br/creche-e-centro-de-atendimento-a-infancia-caxiense-olavo-bilac-33151717"
+  },
+  {
+    "name": "Creche e Escola Municipal Dona Leda Granja Victer",
+    "url": "https://escolas.com.br/creche-e-escola-municipal-dona-leda-granja-victer-33190070"
+  },
+  {
+    "name": "Creche e Pre Escola Profa Armanda A Alberto",
+    "url": "https://escolas.com.br/creche-e-pre-escola-profa-armanda-a-alberto-33050465"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Irma Arnalda da Silva Neves",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-irma-arnalda-da-silva-neves-33445265"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Abne Marques de Abreu",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-abne-marques-de-abreu-33445257"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Deputado José Carlos Coutinho",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-deputado-jose-carlos-coutinho-33196303"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Graciesse Luiza Silva Lourenco",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-graciesse-luiza-silva-lourenco-33447284"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Iracy Moreira Theodoro",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-iracy-moreira-theodoro-33221413"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Maria José da Conceicao",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-maria-jose-da-conceicao-33221227"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Pequeno Guerreiro",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-pequeno-guerreiro-33195714"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Professora Maria Lucia Andrade Ribeiro",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-professora-maria-lucia-andrade-ribeiro-33158487"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Professora Marilia da Silva Siqueira",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-professora-marilia-da-silva-siqueira-33221405"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Severina dos Ramos da Silva",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-severina-dos-ramos-da-silva-33446237"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Teresa de Lisieux",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-teresa-de-lisieux-33158479"
+  },
+  {
+    "name": "Creche e Pre Escola Municipal Ubaldina Alves da Silva",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-ubaldina-alves-da-silva-33442339"
+  },
+  {
+    "name": "Creche e Pre-escola Municipal José Ataide da Silva",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-jose-ataide-da-silva-33195684"
+  },
+  {
+    "name": "Creche e Pre-escola Municipal Professora Rosalita da Silva Netto",
+    "url": "https://escolas.com.br/creche-e-pre-escola-municipal-professora-rosalita-da-silva-netto-33191905"
+  },
+  {
+    "name": "Creche Escola Municipal Poetisa Cecilia Meireles",
+    "url": "https://escolas.com.br/creche-escola-municipal-poetisa-cecilia-meireles-33094845"
+  },
+  {
+    "name": "Creche Laura Menezes de Freitas Lima",
+    "url": "https://escolas.com.br/creche-laura-menezes-de-freitas-lima-33048614"
+  },
+  {
+    "name": "Creche Municipal Ayrton Senna",
+    "url": "https://escolas.com.br/creche-municipal-ayrton-senna-33130183"
+  },
+  {
+    "name": "Creche Municipal Monsenhor Librelotto",
+    "url": "https://escolas.com.br/creche-municipal-monsenhor-librelotto-33050473"
+  },
+  {
+    "name": "Creche Municipal Parteira Odete",
+    "url": "https://escolas.com.br/creche-municipal-parteira-odete-33153604"
+  },
+  {
+    "name": "Creche Municipal Professor João de Oliveira",
+    "url": "https://escolas.com.br/creche-municipal-professor-joao-de-oliveira-33048606"
+  },
+  {
+    "name": "Creche Municipal Profª Jesuina de Fatima de Andrade",
+    "url": "https://escolas.com.br/creche-municipal-prof-jesuina-de-fatima-de-andrade-33139750"
+  },
+  {
+    "name": "Creche Municipal Profª Rosa Angelica Fonseca de Oliveira",
+    "url": "https://escolas.com.br/creche-municipal-prof-rosa-angelica-fonseca-de-oliveira-33444250"
+  },
+  {
+    "name": "Creche Municipal Professora Laura D Aquino Longo",
+    "url": "https://escolas.com.br/creche-municipal-professora-laura-d-aquino-longo-33153590"
+  },
+  {
+    "name": "Creche Municipal Vereador José Carlos Theodoro",
+    "url": "https://escolas.com.br/creche-municipal-vereador-jose-carlos-theodoro-33144095"
+  },
+  {
+    "name": "Creche Pre Escola Municipal Elisa Mathias de Araujo",
+    "url": "https://escolas.com.br/creche-pre-escola-municipal-elisa-mathias-de-araujo-33446229"
+  },
+  {
+    "name": "Creche Pre Escola Municipal Professora Dalva Lazaroni de Moraes",
+    "url": "https://escolas.com.br/creche-pre-escola-municipal-professora-dalva-lazaroni-de-moraes-33195730"
+  },
+  {
+    "name": "Creche Pre-escola Municipal Jornalista Susana Naspolini",
+    "url": "https://escolas.com.br/creche-pre-escola-municipal-jornalista-susana-naspolini-33195676"
+  },
+  {
+    "name": "Creche-escola Municipal Bairro Tabuleiro",
+    "url": "https://escolas.com.br/creche-escola-municipal-bairro-tabuleiro-33051038"
+  },
+  {
+    "name": "Creche-escola Municipal Dr Alvaro Alberto",
+    "url": "https://escolas.com.br/creche-escola-municipal-dr-alvaro-alberto-33049106"
+  },
+  {
+    "name": "Creche-escola Municipal Gandur Assed",
+    "url": "https://escolas.com.br/creche-escola-municipal-gandur-assed-33221600"
+  },
+  {
+    "name": "Creche-escola Municipal Professor Maria Anger Dias Guarino",
+    "url": "https://escolas.com.br/creche-escola-municipal-professor-maria-anger-dias-guarino-33094837"
+  },
+  {
+    "name": "E e M Marechal Mascarenhas de Moraes",
+    "url": "https://escolas.com.br/e-e-m-marechal-mascarenhas-de-moraes-33050007"
+  },
+  {
+    "name": "E e M Professora Maria de Araujo da Silva",
+    "url": "https://escolas.com.br/e-e-m-professora-maria-de-araujo-da-silva-33050562"
+  },
+  {
+    "name": "E e Municipalizada Castro Alves",
+    "url": "https://escolas.com.br/e-e-municipalizada-castro-alves-33048851"
+  },
+  {
+    "name": "Escola Municipal 7 de Setembro",
+    "url": "https://escolas.com.br/escola-municipal-7-de-setembro-33050066"
+  },
+  {
+    "name": "Escola Municipal Albert Sabin",
+    "url": "https://escolas.com.br/escola-municipal-albert-sabin-33049041"
+  },
+  {
+    "name": "Escola Municipal Alberto Santos Dumont",
+    "url": "https://escolas.com.br/escola-municipal-alberto-santos-dumont-33049939"
+  },
+  {
+    "name": "Escola Municipal Aline Goncalves de Lima",
+    "url": "https://escolas.com.br/escola-municipal-aline-goncalves-de-lima-33151750"
+  },
+  {
+    "name": "Escola Municipal Almirante Tamandare",
+    "url": "https://escolas.com.br/escola-municipal-almirante-tamandare-33050589"
+  },
+  {
+    "name": "Escola Municipal Alto da Boa Vista",
+    "url": "https://escolas.com.br/escola-municipal-alto-da-boa-vista-33049050"
+  },
+  {
+    "name": "Escola Municipal Ana Nery",
+    "url": "https://escolas.com.br/escola-municipal-ana-nery-33049068"
+  },
+  {
+    "name": "Escola Municipal Anisio Spinola Teixeira",
+    "url": "https://escolas.com.br/escola-municipal-anisio-spinola-teixeira-33135231"
+  },
+  {
+    "name": "Escola Municipal Anton Dworsak",
+    "url": "https://escolas.com.br/escola-municipal-anton-dworsak-33050074"
+  },
+  {
+    "name": "Escola Municipal Barão da Taquara",
+    "url": "https://escolas.com.br/escola-municipal-barao-da-taquara-33050597"
+  },
+  {
+    "name": "Escola Municipal Barão do Amapa",
+    "url": "https://escolas.com.br/escola-municipal-barao-do-amapa-33050872"
+  },
+  {
+    "name": "Escola Municipal Barro Branco",
+    "url": "https://escolas.com.br/escola-municipal-barro-branco-33050600"
+  },
+  {
+    "name": "Escola Municipal Bom Retiro",
+    "url": "https://escolas.com.br/escola-municipal-bom-retiro-33050090"
+  },
+  {
+    "name": "Escola Municipal Brasil Italia",
+    "url": "https://escolas.com.br/escola-municipal-brasil-italia-33117985"
+  },
+  {
+    "name": "Escola Municipal Brasilia",
+    "url": "https://escolas.com.br/escola-municipal-brasilia-33050880"
+  },
+  {
+    "name": "Escola Municipal Capitao Fuzileiro Naval Eduardo Gomes de Oliveira",
+    "url": "https://escolas.com.br/escola-municipal-capitao-fuzileiro-naval-eduardo-gomes-de-oliveira-33050619"
+  },
+  {
+    "name": "Escola Municipal Carlos Drummond de Andrade",
+    "url": "https://escolas.com.br/escola-municipal-carlos-drummond-de-andrade-33135258"
+  },
+  {
+    "name": "Escola Municipal Carlota Machado",
+    "url": "https://escolas.com.br/escola-municipal-carlota-machado-33049084"
+  },
+  {
+    "name": "Escola Municipal Castro Alves",
+    "url": "https://escolas.com.br/escola-municipal-castro-alves-33050899"
+  },
+  {
+    "name": "Escola Municipal Cora Coralina",
+    "url": "https://escolas.com.br/escola-municipal-cora-coralina-33146829"
+  },
+  {
+    "name": "Escola Municipal Coracao de Jesus",
+    "url": "https://escolas.com.br/escola-municipal-coracao-de-jesus-33050902"
+  },
+  {
+    "name": "Escola Municipal Coronel Eliseu",
+    "url": "https://escolas.com.br/escola-municipal-coronel-eliseu-33050104"
+  },
+  {
+    "name": "Escola Municipal Darcy Ribeiro",
+    "url": "https://escolas.com.br/escola-municipal-darcy-ribeiro-33126879"
+  },
+  {
+    "name": "Escola Municipal Darcy Vargas",
+    "url": "https://escolas.com.br/escola-municipal-darcy-vargas-33049092"
+  },
+  {
+    "name": "Escola Municipal Dr Ely Combat",
+    "url": "https://escolas.com.br/escola-municipal-dr-ely-combat-33135240"
+  },
+  {
+    "name": "Escola Municipal Dr Gastao Reis",
+    "url": "https://escolas.com.br/escola-municipal-dr-gastao-reis-33049114"
+  },
+  {
+    "name": "Escola Municipal Dr Manoel Reis",
+    "url": "https://escolas.com.br/escola-municipal-dr-manoel-reis-33050112"
+  },
+  {
+    "name": "Escola Municipal Dr Ricardo Augusto de Azeredo Vianna",
+    "url": "https://escolas.com.br/escola-municipal-dr-ricardo-augusto-de-azeredo-vianna-33146837"
+  },
+  {
+    "name": "Escola Municipal Emb Oswaldo Aranha",
+    "url": "https://escolas.com.br/escola-municipal-emb-oswaldo-aranha-33050910"
+  },
+  {
+    "name": "Escola Municipal Eulina Pinto de Barros",
+    "url": "https://escolas.com.br/escola-municipal-eulina-pinto-de-barros-33050120"
+  },
+  {
+    "name": "Escola Municipal Exp Aquino de Araujo",
+    "url": "https://escolas.com.br/escola-municipal-exp-aquino-de-araujo-33049149"
+  },
+  {
+    "name": "Escola Municipal Francisco Barboza Leite",
+    "url": "https://escolas.com.br/escola-municipal-francisco-barboza-leite-33099065"
+  },
+  {
+    "name": "Escola Municipal General Mourao Filho",
+    "url": "https://escolas.com.br/escola-municipal-general-mourao-filho-33050635"
+  },
+  {
+    "name": "Escola Municipal General Tiburcio",
+    "url": "https://escolas.com.br/escola-municipal-general-tiburcio-33048894"
+  },
+  {
+    "name": "Escola Municipal Governador Mario Covas Junior",
+    "url": "https://escolas.com.br/escola-municipal-governador-mario-covas-junior-33050082"
+  },
+  {
+    "name": "Escola Municipal Gustavo Armbrust",
+    "url": "https://escolas.com.br/escola-municipal-gustavo-armbrust-33048924"
+  },
+  {
+    "name": "Escola Municipal Helena Aguiar de Medeiros",
+    "url": "https://escolas.com.br/escola-municipal-helena-aguiar-de-medeiros-33049165"
+  },
+  {
+    "name": "Escola Municipal Herminia Caldas da Silva",
+    "url": "https://escolas.com.br/escola-municipal-herminia-caldas-da-silva-33049173"
+  },
+  {
+    "name": "Escola Municipal Imaculada Conceicao",
+    "url": "https://escolas.com.br/escola-municipal-imaculada-conceicao-33050139"
+  },
+  {
+    "name": "Escola Municipal Intercultural Mexico Professora Nilcelina dos Santos Ferreira",
+    "url": "https://escolas.com.br/escola-municipal-intercultural-mexico-professora-nilcelina-dos-santos-ferreira-33050180"
+  },
+  {
+    "name": "Escola Municipal Jardim Anhanga",
+    "url": "https://escolas.com.br/escola-municipal-jardim-anhanga-33050643"
+  },
+  {
+    "name": "Escola Municipal Jardim Gramacho",
+    "url": "https://escolas.com.br/escola-municipal-jardim-gramacho-33049181"
+  },
+  {
+    "name": "Escola Municipal Jayme Fichman",
+    "url": "https://escolas.com.br/escola-municipal-jayme-fichman-33050147"
+  },
+  {
+    "name": "Escola Municipal Joaquim da Silva Pecanha",
+    "url": "https://escolas.com.br/escola-municipal-joaquim-da-silva-pecanha-33049190"
+  },
+  {
+    "name": "Escola Municipal Jornalista Moacyr Padilha",
+    "url": "https://escolas.com.br/escola-municipal-jornalista-moacyr-padilha-33050155"
+  },
+  {
+    "name": "Escola Municipal José Camilo dos Santos",
+    "url": "https://escolas.com.br/escola-municipal-jose-camilo-dos-santos-33139784"
+  },
+  {
+    "name": "Escola Municipal José Medeiros Cabral",
+    "url": "https://escolas.com.br/escola-municipal-jose-medeiros-cabral-33153582"
+  },
+  {
+    "name": "Escola Municipal Leni Fernandes do Nascimento",
+    "url": "https://escolas.com.br/escola-municipal-leni-fernandes-do-nascimento-33050929"
+  },
+  {
+    "name": "Escola Municipal Lions",
+    "url": "https://escolas.com.br/escola-municipal-lions-33049220"
+  },
+  {
+    "name": "Escola Municipal Luiz Gama Borges",
+    "url": "https://escolas.com.br/escola-municipal-luiz-gama-borges-33050651"
+  },
+  {
+    "name": "Escola Municipal Mal Floriano Peixoto",
+    "url": "https://escolas.com.br/escola-municipal-mal-floriano-peixoto-33050660"
+  },
+  {
+    "name": "Escola Municipal Marcio Fiat",
+    "url": "https://escolas.com.br/escola-municipal-marcio-fiat-33050937"
+  },
+  {
+    "name": "Escola Municipal Marechal Mallet",
+    "url": "https://escolas.com.br/escola-municipal-marechal-mallet-33049246"
+  },
+  {
+    "name": "Escola Municipal Maria Clara Machado",
+    "url": "https://escolas.com.br/escola-municipal-maria-clara-machado-33146861"
+  },
+  {
+    "name": "Escola Municipal Maria das Gracas Cardoso Bighi",
+    "url": "https://escolas.com.br/escola-municipal-maria-das-gracas-cardoso-bighi-33153612"
+  },
+  {
+    "name": "Escola Municipal Mauro de Castro",
+    "url": "https://escolas.com.br/escola-municipal-mauro-de-castro-33146853"
+  },
+  {
+    "name": "Escola Municipal Monteiro Lobato",
+    "url": "https://escolas.com.br/escola-municipal-monteiro-lobato-33050201"
+  },
+  {
+    "name": "Escola Municipal Montese",
+    "url": "https://escolas.com.br/escola-municipal-montese-33050945"
+  },
+  {
+    "name": "Escola Municipal N S Aparecida",
+    "url": "https://escolas.com.br/escola-municipal-n-s-aparecida-33050228"
+  },
+  {
+    "name": "Escola Municipal Nisia Vilela Fernandes",
+    "url": "https://escolas.com.br/escola-municipal-nisia-vilela-fernandes-33050244"
+  },
+  {
+    "name": "Escola Municipal Nova Campinas",
+    "url": "https://escolas.com.br/escola-municipal-nova-campinas-33050678"
+  },
+  {
+    "name": "Escola Municipal Parque Capivari",
+    "url": "https://escolas.com.br/escola-municipal-parque-capivari-33050953"
+  },
+  {
+    "name": "Escola Municipal Paulo Roberto de Moraes Loureiro",
+    "url": "https://escolas.com.br/escola-municipal-paulo-roberto-de-moraes-loureiro-33135266"
+  },
+  {
+    "name": "Escola Municipal Paulo Rodrigues Pereira",
+    "url": "https://escolas.com.br/escola-municipal-paulo-rodrigues-pereira-33112770"
+  },
+  {
+    "name": "Escola Municipal Pedro Paulo da Silva",
+    "url": "https://escolas.com.br/escola-municipal-pedro-paulo-da-silva-33139776"
+  },
+  {
+    "name": "Escola Municipal Pedro Rodrigues do Carmo",
+    "url": "https://escolas.com.br/escola-municipal-pedro-rodrigues-do-carmo-33050252"
+  },
+  {
+    "name": "Escola Municipal Presidente Vargas",
+    "url": "https://escolas.com.br/escola-municipal-presidente-vargas-33050961"
+  },
+  {
+    "name": "Escola Municipal Professor Carmem Correa de C Reis Braz",
+    "url": "https://escolas.com.br/escola-municipal-professor-carmem-correa-de-c-reis-braz-33050694"
+  },
+  {
+    "name": "Escola Municipal Professor Carmen Lucia Resende Alvim da Silva",
+    "url": "https://escolas.com.br/escola-municipal-professor-carmen-lucia-resende-alvim-da-silva-33126860"
+  },
+  {
+    "name": "Escola Municipal Professor Hilda do Carmo Siqueira",
+    "url": "https://escolas.com.br/escola-municipal-professor-hilda-do-carmo-siqueira-33049289"
+  },
+  {
+    "name": "Escola Municipal Professor Motta Sobrinho",
+    "url": "https://escolas.com.br/escola-municipal-professor-motta-sobrinho-33049297"
+  },
+  {
+    "name": "Escola Municipal Professor Olga Teixeira de Oliveira",
+    "url": "https://escolas.com.br/escola-municipal-professor-olga-teixeira-de-oliveira-33049300"
+  },
+  {
+    "name": "Escola Municipal Professor Raul de Oliveira",
+    "url": "https://escolas.com.br/escola-municipal-professor-raul-de-oliveira-33050970"
+  },
+  {
+    "name": "Escola Municipal Professor Sonia Regina Scudese Dessemone Pinto",
+    "url": "https://escolas.com.br/escola-municipal-professor-sonia-regina-scudese-dessemone-pinto-33139768"
+  },
+  {
+    "name": "Escola Municipal Professor Zilla Junger da Silva",
+    "url": "https://escolas.com.br/escola-municipal-professor-zilla-junger-da-silva-33049319"
+  },
+  {
+    "name": "Escola Municipal Profª Aila Saldanha do Couto",
+    "url": "https://escolas.com.br/escola-municipal-prof-aila-saldanha-do-couto-33050864"
+  },
+  {
+    "name": "Escola Municipal Profª Amelia Camara dos Santos",
+    "url": "https://escolas.com.br/escola-municipal-prof-amelia-camara-dos-santos-33146870"
+  },
+  {
+    "name": "Escola Municipal Professor Alberto Ribeiro Vasconcelos",
+    "url": "https://escolas.com.br/escola-municipal-professor-alberto-ribeiro-vasconcelos-33144125"
+  },
+  {
+    "name": "Escola Municipal Professor Jair Alves de Freitas",
+    "url": "https://escolas.com.br/escola-municipal-professor-jair-alves-de-freitas-33049270"
+  },
+  {
+    "name": "Escola Municipal Professor João Faustino de Franca Sobrinho",
+    "url": "https://escolas.com.br/escola-municipal-professor-joao-faustino-de-franca-sobrinho-33050279"
+  },
+  {
+    "name": "Escola Municipal Professor Oneres Nunes Oliveira",
+    "url": "https://escolas.com.br/escola-municipal-professor-oneres-nunes-oliveira-33144117"
+  },
+  {
+    "name": "Escola Municipal Professor Paulo Freire",
+    "url": "https://escolas.com.br/escola-municipal-professor-paulo-freire-33112789"
+  },
+  {
+    "name": "Escola Municipal Professor Romeu Menezes dos Santos",
+    "url": "https://escolas.com.br/escola-municipal-professor-romeu-menezes-dos-santos-33049211"
+  },
+  {
+    "name": "Escola Municipal Professor Vilmar Bastos Furtado",
+    "url": "https://escolas.com.br/escola-municipal-professor-vilmar-bastos-furtado-33129088"
+  },
+  {
+    "name": "Escola Municipal Professor Walter Russo de Souza",
+    "url": "https://escolas.com.br/escola-municipal-professor-walter-russo-de-souza-33146888"
+  },
+  {
+    "name": "Escola Municipal Professora Maria José de Oliveira",
+    "url": "https://escolas.com.br/escola-municipal-professora-maria-jose-de-oliveira-33144109"
+  },
+  {
+    "name": "Escola Municipal Professora Wanda Gomes Soares",
+    "url": "https://escolas.com.br/escola-municipal-professora-wanda-gomes-soares-33135223"
+  },
+  {
+    "name": "Escola Municipal Regina Celi da Silva Cerdeira",
+    "url": "https://escolas.com.br/escola-municipal-regina-celi-da-silva-cerdeira-33049130"
+  },
+  {
+    "name": "Escola Municipal Roberto Weguelin de Abreu",
+    "url": "https://escolas.com.br/escola-municipal-roberto-weguelin-de-abreu-33050708"
+  },
+  {
+    "name": "Escola Municipal Rotary",
+    "url": "https://escolas.com.br/escola-municipal-rotary-33050716"
+  },
+  {
+    "name": "Escola Municipal Ruy Barbosa",
+    "url": "https://escolas.com.br/escola-municipal-ruy-barbosa-33049327"
+  },
+  {
+    "name": "Escola Municipal Santa Terezinha",
+    "url": "https://escolas.com.br/escola-municipal-santa-terezinha-33049254"
+  },
+  {
+    "name": "Escola Municipal Senador Afonso Arinos",
+    "url": "https://escolas.com.br/escola-municipal-senador-afonso-arinos-33050724"
+  },
+  {
+    "name": "Escola Municipal Sergipe",
+    "url": "https://escolas.com.br/escola-municipal-sergipe-33049335"
+  },
+  {
+    "name": "Escola Municipal Sergipe - Municipalizada",
+    "url": "https://escolas.com.br/escola-municipal-sergipe-municipalizada-33050830"
+  },
+  {
+    "name": "Escola Municipal Sg João Delio dos Santos",
+    "url": "https://escolas.com.br/escola-municipal-sg-joao-delio-dos-santos-33050988"
+  },
+  {
+    "name": "Escola Municipal Solano Trindade",
+    "url": "https://escolas.com.br/escola-municipal-solano-trindade-33050295"
+  },
+  {
+    "name": "Escola Municipal Sta Rita",
+    "url": "https://escolas.com.br/escola-municipal-sta-rita-33050996"
+  },
+  {
+    "name": "Escola Municipal Sto Amaro",
+    "url": "https://escolas.com.br/escola-municipal-sto-amaro-33051011"
+  },
+  {
+    "name": "Escola Municipal Sto Izidro",
+    "url": "https://escolas.com.br/escola-municipal-sto-izidro-33051020"
+  },
+  {
+    "name": "Escola Municipal Tancredo Neves",
+    "url": "https://escolas.com.br/escola-municipal-tancredo-neves-33050856"
+  },
+  {
+    "name": "Escola Municipal Vila Operaria",
+    "url": "https://escolas.com.br/escola-municipal-vila-operaria-33049351"
+  },
+  {
+    "name": "Escola Municipal Vinte e Um de Abril",
+    "url": "https://escolas.com.br/escola-municipal-vinte-e-um-de-abril-33049360"
+  },
+  {
+    "name": "Escola Municipal Visconde de Itaborai",
+    "url": "https://escolas.com.br/escola-municipal-visconde-de-itaborai-33049378"
+  },
+  {
+    "name": "Escola Municipal Wilson de Oliveira Simoes",
+    "url": "https://escolas.com.br/escola-municipal-wilson-de-oliveira-simoes-33153620"
+  },
+  {
+    "name": "E Municipalizada Professora Mariana Nunes Passos",
+    "url": "https://escolas.com.br/e-municipalizada-professora-mariana-nunes-passos-33050821"
+  },
+  {
+    "name": "Escola Municipal Campos Eliseos",
+    "url": "https://escolas.com.br/escola-municipal-campos-eliseos-33165769"
+  },
+  {
+    "name": "Escola Municipal Dra Zilda Arns Neumann",
+    "url": "https://escolas.com.br/escola-municipal-dra-zilda-arns-neumann-33158517"
+  },
+  {
+    "name": "Escola Municipal Profª Elisabeth Lopes Cabral",
+    "url": "https://escolas.com.br/escola-municipal-prof-elisabeth-lopes-cabral-33158509"
+  },
+  {
+    "name": "Escola Municipal Professor José de Souza Herdy",
+    "url": "https://escolas.com.br/escola-municipal-professor-jose-de-souza-herdy-33449236"
+  },
+  {
+    "name": "Escola Municipal Professora Dalva Borges da Cunha",
+    "url": "https://escolas.com.br/escola-municipal-professora-dalva-borges-da-cunha-33158460"
+  },
+  {
+    "name": "Escola Estadual Municipalizada Bairro California",
+    "url": "https://escolas.com.br/escola-estadual-municipalizada-bairro-california-33049955"
+  },
+  {
+    "name": "Escola Municipal Ana de Souza Herdy",
+    "url": "https://escolas.com.br/escola-municipal-ana-de-souza-herdy-33449244"
+  },
+  {
+    "name": "Escola Municipal Barão do Rio Branco",
+    "url": "https://escolas.com.br/escola-municipal-barao-do-rio-branco-33049076"
+  },
+  {
+    "name": "Escola Municipal Cidade dos Meninos",
+    "url": "https://escolas.com.br/escola-municipal-cidade-dos-meninos-33177783"
+  },
+  {
+    "name": "Escola Municipal General Sampaio",
+    "url": "https://escolas.com.br/escola-municipal-general-sampaio-33049157"
+  },
+  {
+    "name": "Escola Municipal Laurentina Cardoso Duarte",
+    "url": "https://escolas.com.br/escola-municipal-laurentina-cardoso-duarte-33146845"
+  },
+  {
+    "name": "Escola Municipal Manoel Joaquim Salgueiro - Municipalizada",
+    "url": "https://escolas.com.br/escola-municipal-manoel-joaquim-salgueiro-municipalizada-33048967"
+  },
+  {
+    "name": "Escola Municipal Marcilio Dias",
+    "url": "https://escolas.com.br/escola-municipal-marcilio-dias-33050163"
+  },
+  {
+    "name": "Escola Municipal Marilandia",
+    "url": "https://escolas.com.br/escola-municipal-marilandia-33050171"
+  },
+  {
+    "name": "Escola Municipal Minas Gerais",
+    "url": "https://escolas.com.br/escola-municipal-minas-gerais-33050198"
+  },
+  {
+    "name": "Escola Municipal Nossa Senhora do Pilar",
+    "url": "https://escolas.com.br/escola-municipal-nossa-senhora-do-pilar-33050236"
+  },
+  {
+    "name": "Escola Municipal Olinda Bonturi Bolsonaro",
+    "url": "https://escolas.com.br/escola-municipal-olinda-bonturi-bolsonaro-33196265"
+  },
+  {
+    "name": "Escola Municipal Oswaldo Cruz - Municipalizada",
+    "url": "https://escolas.com.br/escola-municipal-oswaldo-cruz-municipalizada-33048983"
+  },
+  {
+    "name": "Escola Municipal Pastor Ernani Batista de Lima",
+    "url": "https://escolas.com.br/escola-municipal-pastor-ernani-batista-de-lima-33195668"
+  },
+  {
+    "name": "Escola Municipal Presidente Costa e Silva",
+    "url": "https://escolas.com.br/escola-municipal-presidente-costa-e-silva-33050260"
+  },
+  {
+    "name": "Escola Municipal Professora Dulce Trindade Braga",
+    "url": "https://escolas.com.br/escola-municipal-professora-dulce-trindade-braga-33176914"
+  },
+  {
+    "name": "Escola Municipal Santa Luzia",
+    "url": "https://escolas.com.br/escola-municipal-santa-luzia-33050686"
+  },
+  {
+    "name": "Escola Municipal Santo Agostinho",
+    "url": "https://escolas.com.br/escola-municipal-santo-agostinho-33051003"
+  },
+  {
+    "name": "Escola Municipal Todos Os Santos",
+    "url": "https://escolas.com.br/escola-municipal-todos-os-santos-33049343"
+  },
+  {
+    "name": "Fundec Escola Tecnica",
+    "url": "https://escolas.com.br/fundec-escola-tecnica-33194599"
+  }
+]

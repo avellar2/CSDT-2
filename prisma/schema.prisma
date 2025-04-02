@@ -1,0 +1,228 @@
+datasource db {
+  provider  = "postgresql" // ou o banco de dados que você está usando
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Item {
+  id              Int              @id @default(autoincrement())
+  name            String
+  brand           String
+  serialNumber    String           @unique
+  userId          String
+  profile         Profile?         @relation(fields: [userId], references: [userId])
+  schoolId        Int?
+  school          School?          @relation(fields: [schoolId], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  histories       ItemHistory[]
+  memorandumItems MemorandumItem[] @relation("ItemToMemorandumItem") // Relacionamento com MemorandumItem
+}
+
+model ServiceOrder {
+  id                             Int       @id @default(autoincrement())
+  orderNumber                    String
+  visitDate                      DateTime?
+  visitTime                      String
+  school                         String
+  visitResponsible               String
+  visitResponsibleRole           String
+  visitObjective                 String
+  technicians                    String[]
+  sieducaDetails                 String[]
+  sieducaEquipmentDetails        String?
+  secretaryDetails               String[]
+  secretaryEquipmentDetails      String?
+  otherLocationsDetails          String[]
+  otherLocationsEquipmentDetails String?
+  internetDetails                String[]
+  rackDetails                    String[]
+  rackEquipmentDetails           String?
+  printerDetails                 String[]
+  printerEquipmentDetails        String?
+  visitDescription               String
+  repairDescription              String
+  problemSolved                  String
+  reasonNotSolved                String?
+  nextTechnicianInstructions     String?
+  beforePhotos                   String[]
+  afterPhotos                    String[]
+  completionDate                 DateTime
+  completionTime                 String
+  completionResponsible          String
+  signedPhoto                    String[]
+}
+
+model School {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  inep     Int     @default(0)
+  district String?
+  address  String?
+  director String?
+  phone    String?
+  email    String?
+  items    Item[]
+}
+
+model OsAssinada {
+  id                        Int      @id @default(autoincrement())
+  unidadeEscolar            String
+  tecnicoResponsavel        String
+  numeroOs                  String
+  data                      String
+  hora                      String
+  notebooksOutroLocal       String
+  tabletsOutroLocal         String
+  solicitacaoDaVisita       String
+  relatorio                 String
+  pcsSieduca                String
+  notebooksSieduca          String
+  tabletsSieduca            String
+  estabilizadoresSieduca    String
+  naoHaSieduca              String
+  dellSecretaria            String
+  locadosSecretaria         String
+  outrosSecretaria          String
+  notebooksSecretaria       String
+  tabletsSecretaria         String
+  estabilizadoresSecretaria String
+  dellOutroLocal            String
+  locadosOutroLocal         String
+  outrosOutroLocal          String
+  estabilizadoresOutroLocal String
+  naoHaOutroLocal           String
+  redeBr                    String
+  internetNasEscolas        String
+  educacaoConectada         String
+  naoHaProvedor             String
+  rack                      String
+  switch                    String
+  roteador                  String
+  oki                       String
+  kyocera                   String
+  outrasImpressoras         String
+  solucionado               String
+  emailResponsavel          String
+  status                    String   @default("Pendente")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  fotoAntes                 String? // Campo opcional para armazenar a URL da foto antes
+  fotoDepois                String? // Campo opcional para armazenar a URL da foto depois
+  nameAssigned              String
+  cpfOrRegistration         String
+  fotosAntes                String[]
+  fotosDepois               String[]
+}
+
+model Os {
+  id                        Int      @id @default(autoincrement())
+  unidadeEscolar            String
+  tecnicoResponsavel        String
+  numeroOs                  String   @unique
+  data                      String
+  hora                      String
+  notebooksOutroLocal       String
+  tabletsOutroLocal         String
+  solicitacaoDaVisita       String
+  relatorio                 String
+  pcsSieduca                String
+  notebooksSieduca          String
+  tabletsSieduca            String
+  estabilizadoresSieduca    String
+  naoHaSieduca              String
+  dellSecretaria            String
+  locadosSecretaria         String
+  outrosSecretaria          String
+  notebooksSecretaria       String
+  tabletsSecretaria         String
+  estabilizadoresSecretaria String
+  dellOutroLocal            String
+  locadosOutroLocal         String
+  outrosOutroLocal          String
+  estabilizadoresOutroLocal String
+  naoHaOutroLocal           String
+  redeBr                    String
+  internetNasEscolas        String
+  educacaoConectada         String
+  naoHaProvedor             String
+  rack                      String
+  switch                    String
+  roteador                  String
+  oki                       String
+  kyocera                   String
+  outrasImpressoras         String
+  solucionado               String
+  emailResponsavel          String
+  fotosAntes                String[]
+  fotosDepois               String[]
+  status                    String   @default("Pendente")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @default(now())
+}
+
+model Profile {
+  id          Int      @id @default(autoincrement())
+  userId      String   @unique
+  displayName String
+  photoUrl    String?
+  items       Item[]
+  role        Role     @default(TECH)
+}
+
+enum Role {
+  ADMIN
+  TECH
+  ONLYREAD
+}
+
+model Printer {
+  id         Int    @id @default(autoincrement())
+  sigla      String
+  setor      String
+  modelo     String
+  fabricante String
+  serial     String @unique
+  ip         String
+}
+
+model ItemHistory {
+  id         Int      @id @default(autoincrement())
+  itemId     Int
+  fromSchool String
+  toSchool   String
+  movedAt    DateTime @default(now())
+  item       Item     @relation(fields: [itemId], references: [id])
+
+  @@index([itemId])
+}
+
+model Memorandum {
+  id         Int              @id @default(autoincrement()) // Número do memorando (sequencial)
+  schoolName String // Nome da escola
+  district   String // Distrito da escola
+  items      MemorandumItem[] @relation("MemorandumToMemorandumItem") // Relacionamento com os itens
+  createdAt  DateTime         @default(now()) // Data de criação do memorando
+}
+
+model MemorandumItem {
+  id           Int        @id @default(autoincrement())
+  memorandumId Int
+  itemId       Int
+  memorandum   Memorandum @relation("MemorandumToMemorandumItem", fields: [memorandumId], references: [id])
+  item         Item       @relation("ItemToMemorandumItem", fields: [itemId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@unique([memorandumId, itemId]) // Garante que um item não seja duplicado em um memorando
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+  name     String
+}
