@@ -112,6 +112,14 @@ const Dashboard: React.FC = () => {
               <ChartBar size={48} />
               <p className="mt-2 text-lg">Escalas</p>
             </div>
+            {/* Novo card para Demanda do Dia */}
+            <div
+              onClick={() => handleNavigate("/daily-demands")}
+              className="cursor-pointer bg-cyan-400 hover:bg-cyan-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+            >
+              <ClipboardText size={48} />
+              <p className="mt-2 text-lg">Demanda do Dia</p>
+            </div>
           </div>
         </div>
       </div>

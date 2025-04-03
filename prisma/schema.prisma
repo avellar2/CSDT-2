@@ -58,15 +58,16 @@ model ServiceOrder {
 }
 
 model School {
-  id       Int     @id @default(autoincrement())
-  name     String  @unique
-  inep     Int     @default(0)
+  id       Int            @id @default(autoincrement())
+  name     String
+  inep     Int            @default(0)
   district String?
   address  String?
   director String?
   phone    String?
   email    String?
   items    Item[]
+  demands  SchoolDemand[]
 }
 
 model OsAssinada {
@@ -250,4 +251,5 @@ model SchoolDemand {
   schoolId  Int
   demand    String
   createdAt DateTime @default(now())
+  school    School   @relation(fields: [schoolId], references: [id])
 }
