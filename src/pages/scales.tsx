@@ -108,7 +108,8 @@ const Scales: React.FC = () => {
     const unallocatedTechnicians = technicians.filter(
       (tech) =>
         !baseTechnicians.includes(String(tech.id)) &&
-        !visitTechnicians.includes(String(tech.id)),
+        !visitTechnicians.includes(String(tech.id)) &&
+        !offTechnicians.includes(String(tech.id)), // Exclui técnicos de folga
     );
 
     const errors: {
@@ -194,6 +195,8 @@ const Scales: React.FC = () => {
       setShowModal(true);
     }
   };
+
+
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -387,6 +390,7 @@ const Scales: React.FC = () => {
                       </button>
                     </div>
                     <textarea
+                      required
                       value={schoolDemands[school.id] || ""}
                       onChange={(e) =>
                         handleDemandChange(school.id, e.target.value)
@@ -445,42 +449,42 @@ const Scales: React.FC = () => {
                   {conflictingTechnicians.some((t) =>
                     t.categories[0].includes("Alocado em"),
                   ) && (
-                    <div>
-                      <h3 className="font-semibold text-gray-800">
-                        Conflitos de Alocação:
-                      </h3>
-                      <ul className="list-disc list-inside text-gray-700">
-                        {conflictingTechnicians
-                          .filter((t) => t.categories[0].includes("Alocado em"))
-                          .map((tech, index) => (
-                            <li key={index}>
-                              <span className="font-medium">{tech.name}</span> -{" "}
-                              {tech.categories[0]}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  )}
+                      <div>
+                        <h3 className="font-semibold text-gray-800">
+                          Conflitos de Alocação:
+                        </h3>
+                        <ul className="list-disc list-inside text-gray-700">
+                          {conflictingTechnicians
+                            .filter((t) => t.categories[0].includes("Alocado em"))
+                            .map((tech, index) => (
+                              <li key={index}>
+                                <span className="font-medium">{tech.name}</span> -{" "}
+                                {tech.categories[0]}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
 
                   {conflictingTechnicians.some((t) =>
                     t.categories[0].includes("Não está"),
                   ) && (
-                    <div>
-                      <h3 className="font-semibold text-gray-800">
-                        Técnicos Não Alocados:
-                      </h3>
-                      <ul className="list-disc list-inside text-gray-700">
-                        {conflictingTechnicians
-                          .filter((t) => t.categories[0].includes("Não está"))
-                          .map((tech, index) => (
-                            <li key={index}>
-                              <span className="font-medium">{tech.name}</span> -{" "}
-                              {tech.categories[0]}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  )}
+                      <div>
+                        <h3 className="font-semibold text-gray-800">
+                          Técnicos Não Alocados:
+                        </h3>
+                        <ul className="list-disc list-inside text-gray-700">
+                          {conflictingTechnicians
+                            .filter((t) => t.categories[0].includes("Não está"))
+                            .map((tech, index) => (
+                              <li key={index}>
+                                <span className="font-medium">{tech.name}</span> -{" "}
+                                {tech.categories[0]}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
                 <button
                   onClick={handleCloseModal}
