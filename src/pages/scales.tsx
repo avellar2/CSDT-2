@@ -2,6 +2,12 @@ import React, { useState, useEffect } from "react";
 
 const Scales: React.FC = () => {
   const [technicians, setTechnicians] = useState<any[]>([]);
+  const [schools, setSchools] = useState<any[]>([]); // Lista de escolas
+  const [selectedSchools, setSelectedSchools] = useState<any[]>([]); // Escolas selecionadas
+  const [searchText, setSearchText] = useState(""); // Texto de pesquisa
+  const [schoolDemands, setSchoolDemands] = useState<{ [key: string]: string }>(
+    {},
+  ); // Demandas por escola
   const [baseTechnicians, setBaseTechnicians] = useState<string[]>([]);
   const [visitTechnicians, setVisitTechnicians] = useState<string[]>([]);
   const [offTechnicians, setOffTechnicians] = useState<string[]>([]);
@@ -9,6 +15,7 @@ const Scales: React.FC = () => {
   const [conflictingTechnicians, setConflictingTechnicians] = useState<
     { name: string; categories: string[] }[]
   >([]);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTechnicians = async () => {
@@ -18,58 +25,112 @@ const Scales: React.FC = () => {
           throw new Error("Erro ao buscar técnicos");
         }
         const data = await response.json();
-        console.log("Dados recebidos dos técnicos:", data); // Adicionado para depuração
         setTechnicians(data);
       } catch (error) {
         console.error("Erro ao buscar técnicos:", error);
       }
     };
 
+    const fetchSchools = async () => {
+      try {
+        const response = await fetch("/api/schools");
+        if (!response.ok) {
+          throw new Error("Erro ao buscar escolas");
+        }
+        const data = await response.json();
+        setSchools(data);
+      } catch (error) {
+        console.error("Erro ao buscar escolas:", error);
+      }
+    };
+
     fetchTechnicians();
+    fetchSchools();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // Impede o comportamento padrão do formulário
+  // Filtrar escolas com base no texto de pesquisa
+  const filteredSchools = schools.filter((school) =>
+    school.name.toLowerCase().includes(searchText.toLowerCase()),
+  );
 
-    // Junta todos os técnicos selecionados em qualquer categoria
+  // Adicionar uma escola à lista de selecionadas
+  const handleSelectSchool = (school: any) => {
+    if (!selectedSchools.some((s) => s.id === school.id)) {
+      setSelectedSchools((prev) => [...prev, school]);
+    }
+    setSearchText(""); // Limpa o campo de pesquisa
+  };
+
+  // Remover uma escola da lista de selecionadas
+  const handleRemoveSchool = (schoolId: string) => {
+    setSelectedSchools((prev) =>
+      prev.filter((school) => school.id !== schoolId),
+    );
+    setSchoolDemands((prev) => {
+      const updatedDemands = { ...prev };
+      delete updatedDemands[schoolId]; // Remove as demandas da escola removida
+      return updatedDemands;
+    });
+  };
+
+  // Atualizar as demandas de uma escola
+  const handleDemandChange = (schoolId: string, demand: string) => {
+    setSchoolDemands((prev) => ({
+      ...prev,
+      [schoolId]: demand,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validação existente
+    if (selectedSchools.length === 0) {
+      alert("Por favor, selecione pelo menos uma escola.");
+      return;
+    }
+
     const allSelectedTechnicians = [
       ...baseTechnicians,
       ...visitTechnicians,
       ...offTechnicians,
     ];
 
-    // Encontra técnicos duplicados (que aparecem em mais de uma lista)
+    // Verificação de erros (já existente)
     const duplicateTechnicians = Array.from(
       new Set(
         allSelectedTechnicians.filter(
-          (techId, index) => allSelectedTechnicians.indexOf(techId) !== index
-        )
-      )
+          (techId, index) => allSelectedTechnicians.indexOf(techId) !== index,
+        ),
+      ),
     );
 
-    // Verifica técnicos não alocados
     const unallocatedTechnicians = technicians.filter(
-      (tech) => !allSelectedTechnicians.includes(String(tech.id)) // Garante que o ID seja comparado como string
+      (tech) =>
+        !baseTechnicians.includes(String(tech.id)) &&
+        !visitTechnicians.includes(String(tech.id)),
     );
 
-    // Prepara mensagens de erro
     const errors: {
-      type: string;
+      type: "CONFLITO" | "NAO_ALOCADO";
+      message: string;
       technicians: { name: string; details: string }[];
     }[] = [];
 
     if (duplicateTechnicians.length > 0) {
       errors.push({
         type: "CONFLITO",
+        message: "Técnicos alocados em mais de uma categoria:",
         technicians: duplicateTechnicians.map((techId) => {
-          const tech = technicians.find((t) => String(t.id) === String(techId)); // Garante que o ID seja comparado corretamente
+          const tech = technicians.find((t) => String(t.id) === String(techId));
           const categories = [];
           if (baseTechnicians.includes(techId)) categories.push("Base");
-          if (visitTechnicians.includes(techId)) categories.push("Visita Técnica");
+          if (visitTechnicians.includes(techId))
+            categories.push("Visita Técnica");
           if (offTechnicians.includes(techId)) categories.push("Folga");
 
           return {
-            name: tech?.displayName || "Técnico não encontrado", // Exibe o displayName corretamente
+            name: tech?.displayName || "Técnico não encontrado",
             details: `Alocado em: ${categories.join(", ")}`,
           };
         }),
@@ -79,35 +140,63 @@ const Scales: React.FC = () => {
     if (unallocatedTechnicians.length > 0) {
       errors.push({
         type: "NAO_ALOCADO",
+        message: "Técnicos não alocados em Base ou Visita Técnica:",
         technicians: unallocatedTechnicians.map((tech) => ({
           name: tech.displayName || "Técnico não encontrado",
-          details: "Não alocado em nenhuma categoria",
+          details: "Não está em Base nem Visita Técnica",
         })),
       });
     }
 
-    // Se houver erros, mostra o modal
     if (errors.length > 0) {
       setConflictingTechnicians(
         errors.flatMap((error) =>
           error.technicians.map((tech) => ({
             name: tech.name,
-            categories: [tech.details], // Usamos o campo categories para mostrar o detalhe
-          }))
-        )
+            categories: [tech.details],
+          })),
+        ),
       );
       setShowModal(true);
       return;
     }
 
-    // Se chegou aqui, pode salvar
-    console.log("Escala válida - salvando...");
-    alert("Escala salva com sucesso!");
+    // Se não houver erros, envie os dados para o backend
+    try {
+      const response = await fetch("/api/saveScale", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          baseTechnicians,
+          visitTechnicians,
+          offTechnicians,
+          schoolDemands,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao salvar escala");
+      }
+
+      // Define a mensagem de sucesso e exibe o modal
+      setSuccessMessage("Escala salva com sucesso!");
+      setShowModal(true);
+    } catch (error) {
+      console.error("Erro ao salvar escala:", error);
+      setConflictingTechnicians([
+        {
+          name: "Erro no sistema",
+          categories: ["Erro ao salvar escala. Tente novamente."],
+        },
+      ]);
+      setShowModal(true);
+    }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    // Opcional: Limpar seleções conflitantes
     const conflictingIds = conflictingTechnicians.map(
       (tech) => technicians.find((t) => t.displayName === tech.name)?.id,
     );
@@ -123,7 +212,6 @@ const Scales: React.FC = () => {
     );
   };
 
-  // Filtrar técnicos disponíveis para cada categoria
   const availableForBase = technicians.filter(
     (tech) =>
       !visitTechnicians.includes(tech.id) && !offTechnicians.includes(tech.id),
@@ -145,8 +233,8 @@ const Scales: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
           Definir Escalas
         </h1>
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Selecionar Técnicos de Base */}
           <div>
             <label
               htmlFor="baseTechnicians"
@@ -180,7 +268,6 @@ const Scales: React.FC = () => {
             </p>
           </div>
 
-          {/* Selecionar Técnicos para Visitas */}
           <div>
             <label
               htmlFor="visitTechnicians"
@@ -214,7 +301,6 @@ const Scales: React.FC = () => {
             </p>
           </div>
 
-          {/* Selecionar Técnicos de Folga */}
           <div>
             <label
               htmlFor="offTechnicians"
@@ -248,7 +334,76 @@ const Scales: React.FC = () => {
             </p>
           </div>
 
-          {/* Botão de Submissão */}
+          <div className="mb-6">
+            <label
+              htmlFor="searchSchools"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Pesquisar Escolas
+            </label>
+            <input
+              id="searchSchools"
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Digite o nome da escola"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+            {searchText && (
+              <ul className="mt-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                {filteredSchools.map((school) => (
+                  <li
+                    key={school.id}
+                    onClick={() => handleSelectSchool(school)}
+                    className="p-2 cursor-pointer hover:bg-blue-100 text-zinc-800"
+                  >
+                    {school.name}
+                  </li>
+                ))}
+                {filteredSchools.length === 0 && (
+                  <li className="p-2 text-gray-500">
+                    Nenhuma escola encontrada
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Escolas Selecionadas
+            </h3>
+            {selectedSchools.length > 0 ? (
+              <ul className="space-y-4">
+                {selectedSchools.map((school) => (
+                  <li key={school.id} className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg shadow-sm text-zinc-800">
+                      <span>{school.name}</span>
+                      <button
+                        onClick={() => handleRemoveSchool(school.id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                    <textarea
+                      value={schoolDemands[school.id] || ""}
+                      onChange={(e) =>
+                        handleDemandChange(school.id, e.target.value)
+                      }
+                      placeholder="Adicione as demandas do dia"
+                      className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Nenhuma escola selecionada
+              </p>
+            )}
+          </div>
+
           <div className="text-center">
             <button
               type="submit"
@@ -260,60 +415,81 @@ const Scales: React.FC = () => {
         </form>
       </div>
 
-      {/* Modal de Erro */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
-            <h2 className="text-xl font-bold text-red-600 mb-4">
-              Erros na Escala
-            </h2>
+            {successMessage ? (
+              // Modal de sucesso
+              <>
+                <h2 className="text-xl font-bold text-green-600 mb-4">
+                  Sucesso!
+                </h2>
+                <p className="text-gray-700 mb-4">{successMessage}</p>
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    setSuccessMessage(null);
+                  }}
+                  className="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300"
+                >
+                  Fechar
+                </button>
+              </>
+            ) : (
+              // Modal de erro (existente)
+              <>
+                <h2 className="text-xl font-bold text-red-600 mb-4">
+                  Erros na Escala
+                </h2>
+                <div className="space-y-4">
+                  {conflictingTechnicians.some((t) =>
+                    t.categories[0].includes("Alocado em"),
+                  ) && (
+                    <div>
+                      <h3 className="font-semibold text-gray-800">
+                        Conflitos de Alocação:
+                      </h3>
+                      <ul className="list-disc list-inside text-gray-700">
+                        {conflictingTechnicians
+                          .filter((t) => t.categories[0].includes("Alocado em"))
+                          .map((tech, index) => (
+                            <li key={index}>
+                              <span className="font-medium">{tech.name}</span> -{" "}
+                              {tech.categories[0]}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
 
-            <div className="space-y-4">
-              {conflictingTechnicians.some((t) =>
-                t.categories[0].includes("Alocado em"),
-              ) && (
-                <div>
-                  <h3 className="font-semibold text-gray-800">
-                    Conflitos de Alocação:
-                  </h3>
-                  <ul className="list-disc list-inside text-gray-700">
-                    {conflictingTechnicians
-                      .filter((t) => t.categories[0].includes("Alocado em"))
-                      .map((tech, index) => (
-                        <li key={index}>
-                          {tech.name} - {tech.categories[0]}
-                        </li>
-                      ))}
-                  </ul>
+                  {conflictingTechnicians.some((t) =>
+                    t.categories[0].includes("Não está"),
+                  ) && (
+                    <div>
+                      <h3 className="font-semibold text-gray-800">
+                        Técnicos Não Alocados:
+                      </h3>
+                      <ul className="list-disc list-inside text-gray-700">
+                        {conflictingTechnicians
+                          .filter((t) => t.categories[0].includes("Não está"))
+                          .map((tech, index) => (
+                            <li key={index}>
+                              <span className="font-medium">{tech.name}</span> -{" "}
+                              {tech.categories[0]}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {conflictingTechnicians.some((t) =>
-                t.categories[0].includes("Não alocado"),
-              ) && (
-                <div>
-                  <h3 className="font-semibold text-gray-800">
-                    Técnicos Não Alocados:
-                  </h3>
-                  <ul className="list-disc list-inside text-gray-700">
-                    {conflictingTechnicians
-                      .filter((t) => t.categories[0].includes("Não alocado"))
-                      .map((tech, index) => (
-                        <li key={index}>
-                          {tech.name} - {tech.categories[0]}
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={handleCloseModal}
-              className="w-full mt-4 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition duration-300"
-            >
-              Fechar
-            </button>
+                <button
+                  onClick={handleCloseModal}
+                  className="w-full mt-4 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition duration-300"
+                >
+                  Fechar
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

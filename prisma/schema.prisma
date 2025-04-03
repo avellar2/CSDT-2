@@ -166,12 +166,12 @@ model Os {
 }
 
 model Profile {
-  id          Int      @id @default(autoincrement())
-  userId      String   @unique
+  id          Int     @id @default(autoincrement())
+  userId      String  @unique
   displayName String
   photoUrl    String?
   items       Item[]
-  role        Role     @default(TECH)
+  role        Role    @default(TECH)
 }
 
 enum Role {
@@ -225,4 +225,29 @@ model User {
   email    String @unique
   password String
   name     String
+}
+
+model BaseTechnician {
+  id           Int      @id @default(autoincrement())
+  technicianId Int
+  createdAt    DateTime @default(now())
+}
+
+model VisitTechnician {
+  id           Int      @id @default(autoincrement())
+  technicianId Int
+  createdAt    DateTime @default(now())
+}
+
+model OffTechnician {
+  id           Int      @id @default(autoincrement())
+  technicianId Int
+  createdAt    DateTime @default(now())
+}
+
+model SchoolDemand {
+  id        Int      @id @default(autoincrement())
+  schoolId  Int
+  demand    String
+  createdAt DateTime @default(now())
 }
