@@ -7,8 +7,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Configuração do filtro de data
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
     // Buscar técnicos na base
     const baseTechnicians = await prisma.baseTechnician.findMany({
+      where: {
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
       select: {
         id: true,
         technicianId: true,
@@ -18,6 +29,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Buscar técnicos em visita técnica
     const visitTechnicians = await prisma.visitTechnician.findMany({
+      where: {
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
       select: {
         id: true,
         technicianId: true,
@@ -27,6 +44,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Buscar técnicos de folga
     const offTechnicians = await prisma.offTechnician.findMany({
+      where: {
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
       select: {
         id: true,
         technicianId: true,
@@ -34,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    // Retornar os dados
+    // Retornar os dados filtrados
     res.status(200).json({
       baseTechnicians,
       visitTechnicians,

@@ -19,6 +19,7 @@ const DailyDemands: React.FC = () => {
   const [baseTechnicians, setBaseTechnicians] = useState<Technician[]>([]); // Técnicos na base
   const [visitTechnicians, setVisitTechnicians] = useState<Technician[]>([]); // Técnicos em visita técnica
   const [offTechnicians, setOffTechnicians] = useState<Technician[]>([]); // Técnicos de folga
+  const [signedSchools, setSignedSchools] = useState<string[]>([]); // Escolas assinadas
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,8 +52,14 @@ const DailyDemands: React.FC = () => {
 
       // Mapear os nomes dos técnicos
       return technicians.map((tech) => {
-        const user = data.find((user: { id: string }) => String(user.id) === String(tech.technicianId));
-        return { ...tech, name: user?.displayName || `Técnico ${tech.technicianId}` }; // Fallback com ID
+        const user = data.find(
+          (user: { id: string }) =>
+            String(user.id) === String(tech.technicianId),
+        );
+        return {
+          ...tech,
+          name: user?.displayName || `Técnico ${tech.technicianId}`,
+        }; // Fallback com ID
       });
     } catch (error) {
       console.error("Erro ao buscar nomes dos técnicos:", error);
@@ -61,6 +68,29 @@ const DailyDemands: React.FC = () => {
         ...tech,
         name: `Técnico ${tech.technicianId}`,
       }));
+    }
+  };
+
+  // Função para verificar escolas assinadas
+  const checkSignedOrders = async (demands: Demand[]) => {
+    try {
+      // Extrai nomes de escolas das demandas (assumindo que o title é "Demanda - NomeDaEscola")
+      const schoolNames = demands.map((d) => d.title.replace("Demanda - ", ""));
+
+      const response = await fetch("/api/demands/check-signed", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ schoolNames }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao verificar assinaturas");
+
+      const data = await response.json();
+      setSignedSchools(data.signedSchools);
+    } catch (error) {
+      console.error("Erro ao verificar ordens assinadas:", error);
     }
   };
 
@@ -77,17 +107,25 @@ const DailyDemands: React.FC = () => {
         const demandsResult = await demandsResponse.json();
         setDemands(demandsResult.data || []);
 
-        // Buscar técnicos alocados
+        // Verificar assinaturas
+        await checkSignedOrders(demandsResult.data || []);
+
+        // Buscar técnicos alocados (código existente)
         const techniciansResponse = await fetch("/api/technicians/allocation");
         if (!techniciansResponse.ok) {
           throw new Error("Erro ao buscar técnicos");
         }
         const techniciansResult = await techniciansResponse.json();
 
-        // Atualizar os estados com os nomes dos técnicos
-        setBaseTechnicians(await fetchTechnicianNames(techniciansResult.baseTechnicians || []));
-        setVisitTechnicians(await fetchTechnicianNames(techniciansResult.visitTechnicians || []));
-        setOffTechnicians(await fetchTechnicianNames(techniciansResult.offTechnicians || []));
+        setBaseTechnicians(
+          await fetchTechnicianNames(techniciansResult.baseTechnicians || [])
+        );
+        setVisitTechnicians(
+          await fetchTechnicianNames(techniciansResult.visitTechnicians || [])
+        );
+        setOffTechnicians(
+          await fetchTechnicianNames(techniciansResult.offTechnicians || [])
+        );
       } catch (error) {
         console.error("Erro:", error);
         setError(error instanceof Error ? error.message : "Erro desconhecido");
@@ -119,6 +157,29 @@ const DailyDemands: React.FC = () => {
     }
   };
 
+  const handleDeleteAllocation = async () => {
+    if (!confirm("Tem certeza que deseja APAGAR TODA A ESCALA do dia atual?"))
+      return;
+
+    try {
+      const response = await fetch("/api/technicians/delete-allocation", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Erro ao apagar escala");
+
+      // Atualiza os estados para vazio
+      setBaseTechnicians([]);
+      setVisitTechnicians([]);
+      setOffTechnicians([]);
+
+      alert("Escala do dia apagada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao apagar escala:", error);
+      alert("Erro ao apagar escala. Tente novamente.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
@@ -143,9 +204,18 @@ const DailyDemands: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
       <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-4xl">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-          Demandas do Dia - {formattedDate}
-        </h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">
+            Demandas do Dia - {formattedDate}
+          </h1>
+          <button
+            onClick={handleDeleteAllocation}
+            className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+            title="Apagar toda a escala do dia"
+          >
+            Apagar Escala do Dia
+          </button>
+        </div>
 
         {/* Escala de técnicos */}
         <div className="mb-6">
@@ -159,7 +229,9 @@ const DailyDemands: React.FC = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500">Nenhum técnico alocado na base hoje.</p>
+            <p className="text-gray-500">
+              Nenhum técnico alocado na base hoje.
+            </p>
           )}
         </div>
 
@@ -174,7 +246,9 @@ const DailyDemands: React.FC = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500">Nenhum técnico em visita técnica hoje.</p>
+            <p className="text-gray-500">
+              Nenhum técnico em visita técnica hoje.
+            </p>
           )}
         </div>
 
@@ -202,7 +276,9 @@ const DailyDemands: React.FC = () => {
               >
                 <div>
                   <h2 className="font-bold">{demand.title}</h2>
-                  <p className="mt-2 whitespace-pre-line">{demand.description}</p>
+                  <p className="mt-2 whitespace-pre-line">
+                    {demand.description}
+                  </p>
                   <p className="text-sm text-gray-500 mt-2">
                     {new Date(demand.createdAt).toLocaleTimeString("pt-BR")}
                   </p>
@@ -220,10 +296,11 @@ const DailyDemands: React.FC = () => {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 text-center">Nenhuma demanda registrada hoje.</p>
+          <p className="text-gray-500 text-center">
+            Nenhuma demanda registrada hoje.
+          </p>
         )}
-
-        </div>
+      </div>
     </div>
   );
 };
