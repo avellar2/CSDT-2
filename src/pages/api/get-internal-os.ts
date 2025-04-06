@@ -63,8 +63,8 @@ export default async function handler(
 
         return {
           id: os.id,
-          setor: school?.name || ` ${os.setorId}`,
-          tecnico: profile?.displayName || `Técnico ID: ${os.tecnicoId}`,
+          setor: school?.name || `${os.setorId}`,
+          tecnico: profile?.displayName || `${os.tecnicoId}`,
           problema: os.problema,
           status: os.status,
           updatedAt: os.updatedAt,

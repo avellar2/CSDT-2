@@ -128,6 +128,14 @@ const Dashboard: React.FC = () => {
               <FileText size={48} />
               <p className="mt-2 text-lg">Criar OS interna</p>
             </div>
+            {/* Novo card para Demandas Internas */}
+            <div
+              onClick={() => handleNavigate("/internal-demands")}
+              className="cursor-pointer bg-yellow-500 hover:bg-yellow-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+            >
+              <ClipboardText size={48} />
+              <p className="mt-2 text-lg">Demandas Internas</p>
+            </div>
           </div>
         </div>
       </div>
