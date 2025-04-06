@@ -253,3 +253,14 @@ model SchoolDemand {
   createdAt DateTime @default(now())
   school    School   @relation(fields: [schoolId], references: [id])
 }
+
+model InternalOS {
+  id        Int      @id @default(autoincrement())
+  setorId   String
+  tecnicoId Int
+  problema  String
+  descricao String
+  status    String   @default("Pendente") // Adiciona o campo status com valor padrão "Pendente"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // Adiciona o campo updatedAt para registrar atualizações
+}

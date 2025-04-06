@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'TECH', 'ONLYREAD');
+
 -- CreateTable
 CREATE TABLE "Item" (
     "id" SERIAL NOT NULL,
@@ -53,12 +56,12 @@ CREATE TABLE "ServiceOrder" (
 CREATE TABLE "School" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "inep" INTEGER NOT NULL,
-    "district" TEXT NOT NULL,
-    "address" TEXT NOT NULL,
-    "director" TEXT NOT NULL,
-    "phone" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
+    "inep" INTEGER NOT NULL DEFAULT 0,
+    "district" TEXT,
+    "address" TEXT,
+    "director" TEXT,
+    "phone" TEXT,
+    "email" TEXT,
 
     CONSTRAINT "School_pkey" PRIMARY KEY ("id")
 );
@@ -171,8 +174,100 @@ CREATE TABLE "Profile" (
     "userId" TEXT NOT NULL,
     "displayName" TEXT NOT NULL,
     "photoUrl" TEXT,
+    "role" "Role" NOT NULL DEFAULT 'TECH',
 
     CONSTRAINT "Profile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Printer" (
+    "id" SERIAL NOT NULL,
+    "sigla" TEXT NOT NULL,
+    "setor" TEXT NOT NULL,
+    "modelo" TEXT NOT NULL,
+    "fabricante" TEXT NOT NULL,
+    "serial" TEXT NOT NULL,
+    "ip" TEXT NOT NULL,
+
+    CONSTRAINT "Printer_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ItemHistory" (
+    "id" SERIAL NOT NULL,
+    "itemId" INTEGER NOT NULL,
+    "fromSchool" TEXT NOT NULL,
+    "toSchool" TEXT NOT NULL,
+    "movedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ItemHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Memorandum" (
+    "id" SERIAL NOT NULL,
+    "schoolName" TEXT NOT NULL,
+    "district" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Memorandum_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "MemorandumItem" (
+    "id" SERIAL NOT NULL,
+    "memorandumId" INTEGER NOT NULL,
+    "itemId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MemorandumItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "User" (
+    "id" SERIAL NOT NULL,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BaseTechnician" (
+    "id" SERIAL NOT NULL,
+    "technicianId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BaseTechnician_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "VisitTechnician" (
+    "id" SERIAL NOT NULL,
+    "technicianId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "VisitTechnician_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "OffTechnician" (
+    "id" SERIAL NOT NULL,
+    "technicianId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "OffTechnician_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SchoolDemand" (
+    "id" SERIAL NOT NULL,
+    "schoolId" INTEGER NOT NULL,
+    "demand" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SchoolDemand_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -184,8 +279,32 @@ CREATE UNIQUE INDEX "Os_numeroOs_key" ON "Os"("numeroOs");
 -- CreateIndex
 CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Printer_serial_key" ON "Printer"("serial");
+
+-- CreateIndex
+CREATE INDEX "ItemHistory_itemId_idx" ON "ItemHistory"("itemId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MemorandumItem_memorandumId_itemId_key" ON "MemorandumItem"("memorandumId", "itemId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
 -- AddForeignKey
 ALTER TABLE "Item" ADD CONSTRAINT "Item_userId_fkey" FOREIGN KEY ("userId") REFERENCES "Profile"("userId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Item" ADD CONSTRAINT "Item_schoolId_fkey" FOREIGN KEY ("schoolId") REFERENCES "School"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ItemHistory" ADD CONSTRAINT "ItemHistory_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "MemorandumItem" ADD CONSTRAINT "MemorandumItem_memorandumId_fkey" FOREIGN KEY ("memorandumId") REFERENCES "Memorandum"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "MemorandumItem" ADD CONSTRAINT "MemorandumItem_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SchoolDemand" ADD CONSTRAINT "SchoolDemand_schoolId_fkey" FOREIGN KEY ("schoolId") REFERENCES "School"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

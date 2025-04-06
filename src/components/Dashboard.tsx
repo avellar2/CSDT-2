@@ -120,6 +120,14 @@ const Dashboard: React.FC = () => {
               <ClipboardText size={48} />
               <p className="mt-2 text-lg">Demanda do Dia</p>
             </div>
+            {/* Novo card para Criar OS interna */}
+            <div
+              onClick={() => handleNavigate("/create-internal-os")}
+              className="cursor-pointer bg-pink-400 hover:bg-pink-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+            >
+              <FileText size={48} />
+              <p className="mt-2 text-lg">Criar OS interna</p>
+            </div>
           </div>
         </div>
       </div>

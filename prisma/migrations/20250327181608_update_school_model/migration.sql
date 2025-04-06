@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "School" ALTER COLUMN "inep" SET DEFAULT 0,
-ALTER COLUMN "district" DROP NOT NULL;
