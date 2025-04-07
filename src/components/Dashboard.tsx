@@ -136,6 +136,14 @@ const Dashboard: React.FC = () => {
               <ClipboardText size={48} />
               <p className="mt-2 text-lg">Demandas Internas</p>
             </div>
+            {/* Novo card para Históricos */}
+            <div
+              onClick={() => handleNavigate("/history")}
+              className="cursor-pointer bg-gray-500 hover:bg-gray-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+            >
+              <ClipboardText size={48} />
+              <p className="mt-2 text-lg">Históricos</p>
+            </div>
           </div>
         </div>
       </div>
