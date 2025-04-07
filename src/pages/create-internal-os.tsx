@@ -246,7 +246,7 @@ const CreateInternalOS: React.FC = () => {
           <div>
             <label
               htmlFor="setor"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-bold text-gray-700"
             >
               Setor
             </label>
@@ -264,7 +264,7 @@ const CreateInternalOS: React.FC = () => {
           <div>
             <label
               htmlFor="tecnico"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-bold text-gray-700"
             >
               Técnico
             </label>
@@ -282,7 +282,7 @@ const CreateInternalOS: React.FC = () => {
           <div>
             <label
               htmlFor="problema"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-bold text-gray-700"
             >
               Problema
             </label>
@@ -300,7 +300,7 @@ const CreateInternalOS: React.FC = () => {
           <div>
             <label
               htmlFor="descricao"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-bold text-gray-700"
             >
               Descrição do Problema
             </label>
@@ -427,7 +427,7 @@ const CreateInternalOS: React.FC = () => {
                     Editar OS
                   </Dialog.Title>
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm text-gray-700">
                       Setor
                     </label>
                     <Select
@@ -550,22 +550,22 @@ const CreateInternalOS: React.FC = () => {
           <table className="min-w-full table-auto">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
                   Setor
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
                   Técnico
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
                   Problema
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
                   Status
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
                   Atualizado em
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
                   Ações
                 </th>
               </tr>
@@ -585,11 +585,11 @@ const CreateInternalOS: React.FC = () => {
                   <td
                     className={`px-4 py-2 text-sm font-medium ${
                       os.status === "Pendente"
-                        ? "text-yellow-500"
+                        ? "text-yellow-500 bg-yellow-100"
                         : os.status === "Aceita"
-                          ? "text-blue-500"
-                          : os.status === "Finalizada"
-                            ? "text-green-500"
+                          ? "text-blue-500 bg-blue-100"
+                          : os.status === "Concluído"
+                            ? "text-green-500 bg-green-100"
                             : "text-gray-700"
                     }`}
                   >
