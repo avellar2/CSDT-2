@@ -2,8 +2,9 @@ import { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
 import { HeaderProvider } from '../context/HeaderContext';
 import { Header } from '../components/Header';
-import '../styles/globals.css'; // Adjust the path to your global styles if necessary
+import '../styles/globals.css'; // Outros estilos globais, se houver
 import '../styles/modal.css'; // Importar os estilos personalizados
+import '../styles/calendar.css'; // Importação do CSS global
 import { ThemeProvider } from '@/components/theme-provider';
 
 function MyApp({ Component, pageProps }: AppProps) {

@@ -1,0 +1,25 @@
+/* Estilo para as células do calendário sem eventos */
+.fc-daygrid-day {
+  background-color: #f9f9f9; /* Cor de fundo para dias sem eventos */
+  color: #333; /* Cor do texto */
+}
+
+/* Estilo para os dias de hoje */
+.fc-day-today {
+  background-color: #e0f7fa !important; /* Destaque para o dia atual */
+}
+
+/* Estilo para os dias com eventos */
+.fc-daygrid-event {
+  border-radius: 5px; /* Bordas arredondadas para eventos */
+}
+
+.fc .fc-col-header-cell-cushion {
+  font-weight: bold; /* Negrito para os cabeçalhos das colunas */
+  color: #333; /* Cor do texto dos cabeçalhos */
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.5em; /* Tamanho da fonte do título do calendário */
+  color: #333; /* Cor do texto do título */
+}

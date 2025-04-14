@@ -2,11 +2,13 @@ import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/utils/prisma";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { date } = req.query;
-
-  if (!date) {
-    return res.status(400).json({ message: "A data é obrigatória" });
+  if (!req.query.date) {
+    return res.status(400).json({ error: "Parâmetro 'date' é obrigatório" });
   }
+
+  console.log("Parâmetro recebido:", req.query.date);
+
+  const { date } = req.query;
 
   try {
     const osList = await prisma.internalOS.findMany({

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Calendar } from "react-calendar"; // Biblioteca de calendário
-import "react-calendar/dist/Calendar.css"; // Estilo do calendário
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
 
 interface OS {
   id: string;
@@ -12,84 +14,86 @@ interface OS {
 
 interface Demand {
   id: string;
-  title: string;
+  demand: string;
   description: string;
   createdAt: string;
 }
 
 const History: React.FC = () => {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [osList, setOsList] = useState<OS[]>([]);
-  const [demandList, setDemandList] = useState<Demand[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      // Obter a data atual no formato YYYY-MM-DD
+      const currentDate = new Date().toISOString().split("T")[0];
+
+      // Adicionar o parâmetro 'date' na URL
+      const osResponse = await fetch(`/api/history/internal-os?date=${currentDate}`);
+      const osData = await osResponse.json();
+      console.log("osData:", osData);
+
+      const demandResponse = await fetch(`/api/history/school-demands?date=${currentDate}`);
+      const demandData = await demandResponse.json();
+      console.log("demandData:", demandData);
+
+      const osEvents = Array.isArray(osData)
+        ? osData.map((os) => ({
+          title: `OS: ${os.setor} - ${os.problema}`,
+          start: os.createdAt,
+          allDay: true,
+          backgroundColor: "#FF5733", // Cor personalizada para OS
+          borderColor: "#FF5733", // Cor da borda
+          textColor: "#FFFFFF", // Cor do texto
+        }))
+        : [];
+
+      const demandEvents = Array.isArray(demandData)
+        ? demandData.map((demand) => ({
+          title: `Demanda: ${demand.demand}`,
+          start: demand.createdAt,
+          allDay: true,
+          backgroundColor: "#33B5FF", // Cor personalizada para Demanda
+          borderColor: "#33B5FF", // Cor da borda
+          textColor: "#FFFFFF", // Cor do texto
+        }))
+        : [];
+
+      setEvents([...osEvents, ...demandEvents]);
+    } catch (error) {
+      console.error("Erro ao buscar históricos:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchHistory = async () => {
-      setLoading(true);
-      try {
-        const dateString = selectedDate.toISOString().split("T")[0]; // Formata a data como YYYY-MM-DD
-
-        // Busca as OS internas
-        const osResponse = await fetch(`/api/history/internal-os?date=${dateString}`);
-        const osData = await osResponse.json();
-
-        // Busca as demandas das escolas
-        const demandResponse = await fetch(`/api/history/school-demands?date=${dateString}`);
-        const demandData = await demandResponse.json();
-
-        setOsList(osData);
-        setDemandList(demandData);
-      } catch (error) {
-        console.error("Erro ao buscar históricos:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchHistory();
-  }, [selectedDate]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-center mb-6">Históricos</h1>
-        <Calendar
-          onChange={(date) => setSelectedDate(date as Date)}
-          value={selectedDate}
-          className="mb-6"
-        />
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-6xl mx-auto">
+        <h1 className="text-2xl font-bold text-center mb-6 text-zinc-800">Históricos</h1>
         {loading ? (
           <p className="text-center text-gray-500">Carregando...</p>
         ) : (
-          <div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">OS Internas</h2>
-            {osList.length > 0 ? (
-              <ul className="list-disc list-inside text-gray-800 mb-6">
-                {osList.map((os) => (
-                  <li key={os.id}>
-                    <strong>Setor:</strong> {os.setor} | <strong>Problema:</strong> {os.problema} |{" "}
-                    <strong>Status:</strong> {os.status}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500">Nenhuma OS interna encontrada para esta data.</p>
-            )}
-
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Demandas das Escolas</h2>
-            {demandList.length > 0 ? (
-              <ul className="list-disc list-inside text-gray-800">
-                {demandList.map((demand) => (
-                  <li key={demand.id}>
-                    <strong>Título:</strong> {demand.title} | <strong>Descrição:</strong>{" "}
-                    {demand.description}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500">Nenhuma demanda encontrada para esta data.</p>
-            )}
-          </div>
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            events={events}
+            locale="pt-br"
+            eventTextColor="#000"
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right: "dayGridMonth,timeGridWeek,timeGridDay",
+            }}
+            height={600}
+            selectable
+            dateClick={(info) => console.log("Data clicada:", info.dateStr)}
+          />
         )}
       </div>
     </div>
