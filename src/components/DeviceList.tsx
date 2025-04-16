@@ -288,7 +288,8 @@ const DeviceList: React.FC = () => {
         itemIds: selectedItems, // IDs dos itens selecionados
         schoolName,
         district, // Define o valor do distrito com base na escola selecionada
-        inep: selectedSchool.inep // Define o valor de INEP com base na escola selecionada
+        inep: selectedSchool.inep, // Define o valor de INEP com base na escola selecionada
+        userName,
       });
 
       // Atualizar os itens no frontend após a geração do memorando
@@ -621,6 +622,9 @@ const DeviceList: React.FC = () => {
                   </p>
                   <p>
                     <strong>Data:</strong> {new Date(history.movedAt).toLocaleString('pt-BR')}
+                  </p>
+                  <p>
+                    <strong>Gerado por:</strong> {history.generatedBy || 'N/A'}
                   </p>
                 </div>
               ))

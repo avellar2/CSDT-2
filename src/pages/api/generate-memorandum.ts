@@ -78,6 +78,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     console.log("Items updated.");
 
+    // Adicione o histórico
+    await Promise.all(
+      itemIds.map(async (itemId: number) => {
+        await prisma.itemHistory.create({
+          data: {
+            itemId,
+            fromSchool: schoolName,
+            toSchool: "Destino não informado", // Valor padrão
+            movedAt: new Date(),
+            generatedBy: req.body.userName || "Desconhecido", // Nome do usuário que gerou o memorando
+          },
+        });
+      })
+    );
+    console.log("Item history updated.");
+
     // Gerar o PDF
     console.log("Generating PDF...");
     const pdfPath = path.join(process.cwd(), "public", "memorando.pdf");

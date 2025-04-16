@@ -9,7 +9,7 @@ const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"ADMIN" | "TECH" | "ONLYREAD">("ONLYREAD"); // Default role
+  const [role, setRole] = useState<"ADMIN" | "TECH" | "ONLYREAD" | "ADMTOTAL">("ONLYREAD"); // Inclui ADMTOTAL
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,13 +83,14 @@ const RegisterForm: React.FC = () => {
         className="mb-10 p-3 bg-zinc-800 rounded text-white"
         value={role}
         onChange={(e) =>
-          setRole(e.target.value as "ADMIN" | "TECH" | "ONLYREAD")
+          setRole(e.target.value as "ADMIN" | "TECH" | "ONLYREAD" | "ADMTOTAL")
         }
         required
       >
         <option value="ONLYREAD">Somente Leitura</option>
         <option value="TECH">Técnico</option>
         <option value="ADMIN">Administrador</option>
+        <option value="ADMTOTAL">Administrador Total</option> {/* Novo valor */}
       </select>
       <button className="w-full p-4 bg-blue-500" type="submit">
         Registrar
