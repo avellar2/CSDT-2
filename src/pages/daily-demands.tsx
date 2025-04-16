@@ -266,21 +266,21 @@ const DailyDemands: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-4xl">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">
+      <div className="bg-white shadow-lg rounded-lg p-6 sm:p-8 w-full max-w-md sm:max-w-4xl">
+        <div className="flex flex-col justify-between items-center mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 text-center">
             Demandas do Dia - {formattedDate}
           </h1>
-          <div className="flex space-x-4">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-4">
             <button
               onClick={handleAddDemand}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full sm:w-auto"
             >
               Adicionar Demanda
             </button>
             <button
               onClick={handleDeleteAllocation}
-              className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+              className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors w-full sm:w-auto"
               title="Apagar toda a escala do dia"
             >
               Apagar Escala do Dia
@@ -290,19 +290,17 @@ const DailyDemands: React.FC = () => {
 
         {/* Escala de técnicos */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">
             Técnicos na Base
           </h2>
           {baseTechnicians.length > 0 ? (
-            <ul className="list-disc list-inside text-gray-800">
+            <ul className="list-disc list-inside text-gray-800 space-y-2">
               {baseTechnicians.map((tech) => (
                 <li key={tech.id}>{tech.name || tech.technicianId}</li>
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500">
-              Nenhum técnico alocado na base hoje.
-            </p>
+            <p className="text-gray-500">Nenhum técnico alocado na base hoje.</p>
           )}
         </div>
 
@@ -343,31 +341,31 @@ const DailyDemands: React.FC = () => {
             {demands.map((demand) => (
               <li
                 key={demand.id}
-                className="p-4 bg-gray-100 rounded-lg shadow-sm text-gray-800 flex justify-between items-center"
+                className="p-4 bg-gray-100 rounded-lg shadow-sm text-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center"
               >
-                <div>
-                  <h2 className="font-bold">{demand.title}</h2>
-                  <p className="mt-2 whitespace-pre-line">
+                <div className="w-full sm:w-auto">
+                  <h2 className="font-bold text-sm sm:text-base">{demand.title}</h2>
+                  <p className="mt-2 text-sm sm:text-base whitespace-pre-line">
                     {demand.description}
                   </p>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-xs sm:text-sm text-gray-500 mt-2">
                     {new Date(demand.createdAt).toLocaleTimeString("pt-BR")}
                   </p>
                 </div>
-                <div className="flex space-x-4">
+                <div className="flex space-x-4 mt-4 sm:mt-0">
                   <button
                     onClick={() => handleEditDemand(demand)}
                     className="text-blue-500 hover:text-blue-700"
                     title="Editar"
                   >
-                    <Pencil size={24} />
+                    <Pencil size={20} />
                   </button>
                   <button
                     onClick={() => handleDelete(demand.id)}
                     className="text-red-500 hover:text-red-700"
                     title="Apagar"
                   >
-                    <Trash size={24} />
+                    <Trash size={20} />
                   </button>
                 </div>
               </li>
@@ -388,12 +386,12 @@ const DailyDemands: React.FC = () => {
         initialData={
           editingDemand
             ? {
-                id: Number(editingDemand.id),
-                schoolId: schools.find((school) =>
-                  editingDemand.title.includes(school.name)
-                )?.id || 0,
-                demand: editingDemand.description,
-              }
+              id: Number(editingDemand.id),
+              schoolId: schools.find((school) =>
+                editingDemand.title.includes(school.name)
+              )?.id || 0,
+              demand: editingDemand.description,
+            }
             : undefined
         }
         schools={schools}
