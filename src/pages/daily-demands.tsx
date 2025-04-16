@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Trash } from "phosphor-react"; // Ícone do Phosphor Icons
+import { Trash, Pencil } from "phosphor-react"; // Ícones do Phosphor Icons
+import DemandModal from "../components/DemandModal";
 
 interface Demand {
   id: string;
@@ -20,8 +21,11 @@ const DailyDemands: React.FC = () => {
   const [visitTechnicians, setVisitTechnicians] = useState<Technician[]>([]); // Técnicos em visita técnica
   const [offTechnicians, setOffTechnicians] = useState<Technician[]>([]); // Técnicos de folga
   const [signedSchools, setSignedSchools] = useState<string[]>([]); // Escolas assinadas
+  const [schools, setSchools] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDemand, setEditingDemand] = useState<Demand | null>(null);
 
   // Obter a data atual formatada
   const today = new Date();
@@ -137,6 +141,21 @@ const DailyDemands: React.FC = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const fetchSchools = async () => {
+      try {
+        const response = await fetch("/api/schools");
+        if (!response.ok) throw new Error("Erro ao buscar escolas");
+        const data = await response.json();
+        setSchools(data);
+      } catch (error) {
+        console.error("Erro ao buscar escolas:", error);
+      }
+    };
+
+    fetchSchools();
+  }, []);
+
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja apagar esta demanda?")) return;
 
@@ -180,6 +199,50 @@ const DailyDemands: React.FC = () => {
     }
   };
 
+  const handleAddDemand = () => {
+    setEditingDemand(null); // Limpa os dados para adicionar uma nova demanda
+    setIsModalOpen(true);
+  };
+
+  const handleEditDemand = (demand: Demand) => {
+    setEditingDemand(demand); // Define os dados da demanda para edição
+    setIsModalOpen(true);
+  };
+
+  const handleSaveDemand = async (demand: { id?: number; schoolId: number; demand: string }) => {
+    try {
+      if (demand.id) {
+        const response = await fetch(`/api/school-demands`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(demand),
+        });
+
+        if (!response.ok) throw new Error("Erro ao editar a demanda");
+
+        setDemands((prev) =>
+          prev.map((d) =>
+            d.id === String(demand.id) ? { ...d, ...demand, id: String(demand.id) } : d
+          )
+        );
+      } else {
+        const response = await fetch("/api/school-demands", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(demand),
+        });
+
+        if (!response.ok) throw new Error("Erro ao adicionar a demanda");
+
+        const newDemand = await response.json();
+        setDemands((prev) => [...prev, newDemand]);
+      }
+    } catch (error) {
+      console.error("Erro ao salvar demanda:", error);
+      alert("Erro ao salvar a demanda. Tente novamente.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
@@ -208,13 +271,21 @@ const DailyDemands: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-800">
             Demandas do Dia - {formattedDate}
           </h1>
-          <button
-            onClick={handleDeleteAllocation}
-            className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-            title="Apagar toda a escala do dia"
-          >
-            Apagar Escala do Dia
-          </button>
+          <div className="flex space-x-4">
+            <button
+              onClick={handleAddDemand}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            >
+              Adicionar Demanda
+            </button>
+            <button
+              onClick={handleDeleteAllocation}
+              className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+              title="Apagar toda a escala do dia"
+            >
+              Apagar Escala do Dia
+            </button>
+          </div>
         </div>
 
         {/* Escala de técnicos */}
@@ -285,6 +356,13 @@ const DailyDemands: React.FC = () => {
                 </div>
                 <div className="flex space-x-4">
                   <button
+                    onClick={() => handleEditDemand(demand)}
+                    className="text-blue-500 hover:text-blue-700"
+                    title="Editar"
+                  >
+                    <Pencil size={24} />
+                  </button>
+                  <button
                     onClick={() => handleDelete(demand.id)}
                     className="text-red-500 hover:text-red-700"
                     title="Apagar"
@@ -301,6 +379,25 @@ const DailyDemands: React.FC = () => {
           </p>
         )}
       </div>
+
+      {/* Modal de Adicionar/Editar Demanda */}
+      <DemandModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveDemand}
+        initialData={
+          editingDemand
+            ? {
+                id: Number(editingDemand.id),
+                schoolId: schools.find((school) =>
+                  editingDemand.title.includes(school.name)
+                )?.id || 0,
+                demand: editingDemand.description,
+              }
+            : undefined
+        }
+        schools={schools}
+      />
     </div>
   );
 };
