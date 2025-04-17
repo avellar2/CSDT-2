@@ -53,11 +53,12 @@ model ItemHistory {
 }
 
 model Memorandum {
-  id             Int              @id @default(autoincrement())
-  schoolName     String
-  district       String
-  createdAt      DateTime         @default(now())
-  MemorandumItem MemorandumItem[]
+  id        Int                 @id @default(autoincrement())
+  schoolName String
+  district  String
+  items     MemorandumItem[]    // Relacionamento com MemorandumItem
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
 }
 
 model MemorandumItem {

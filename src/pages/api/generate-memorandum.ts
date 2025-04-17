@@ -52,14 +52,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         district: districtAtt,
         items: {
           create: itemIds.map((id: number) => ({
-            item: { connect: { id } },
+            Item: { connect: { id } },
           })),
         },
       },
       include: {
         items: {
           include: {
-            item: true,
+            Item: true,
           },
         },
       },
@@ -112,9 +112,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     memorandum.items.forEach((item, index) => {
       if (index >= 13) return;
-      const itemWithBrand = `${item.item.name} ${item.item.brand}`;
+      const itemWithBrand = `${item.Item.name} ${item.Item.brand}`;
       form.getTextField(`item${index + 1}`).setText(itemWithBrand);
-      form.getTextField(`serial${index + 1}`).setText(item.item.serialNumber);
+      form.getTextField(`serial${index + 1}`).setText(item.Item.serialNumber);
     });
 
     form.flatten();
