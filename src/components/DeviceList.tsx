@@ -48,11 +48,11 @@ interface Item {
   serialNumber: string;
   createdAt: string;
   inep: string;
-  profile: {
+  Profile: {
     displayName: string;
     userId: string;
   };
-  school: {
+  School: {
     name: string;
   };
 }
@@ -149,7 +149,7 @@ const DeviceList: React.FC = () => {
   useEffect(() => {
     const countItemsInSchool = () => {
       const count = items.filter((item) =>
-        item.school && item.school.name.toLowerCase().includes(searchTerm.toLowerCase())
+        item.School && item.School.name.toLowerCase().includes(searchTerm.toLowerCase())
       ).length;
       setSchoolItemCount(count);
     };
@@ -178,7 +178,7 @@ const DeviceList: React.FC = () => {
         (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.brand && item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.serialNumber && item.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.school && item.school.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        (item.School && item.School.name.toLowerCase().includes(searchTerm.toLowerCase()))
       )
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Ordena por data de criação (mais recentes primeiro)
     : [];
@@ -243,9 +243,9 @@ const DeviceList: React.FC = () => {
       Nome: item.name,
       Marca: item.brand,
       'Número de Série': item.serialNumber,
-      Escola: item.school.name,
+      Escola: item.School.name,
       'Data de Criação': format(new Date(item.createdAt), 'dd/MM/yyyy, HH:mm:ss', { locale: ptBR }),
-      'Adicionado por': item.profile.displayName,
+      'Adicionado por': item.Profile.displayName,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(formattedItems);
@@ -407,14 +407,14 @@ const DeviceList: React.FC = () => {
               />
               <div>
                 <h2 className="text-lg font-semibold">{item.name}</h2>
-                <p className="text-gray-400"><span className='font-extrabold'>Marca:</span> {item.brand}</p>
-                <p className="text-gray-400"><span className='font-extrabold'>Serial:</span> {item.serialNumber}</p>
-                <p className="text-gray-400"><span className='font-extrabold'>Escola:</span> {item.school.name}</p>
+                <p className="text-gray-400"><span className='font-extrabold'>Marca:</span> {item?.brand}</p>
+                <p className="text-gray-400"><span className='font-extrabold'>Serial:</span> {item?.serialNumber}</p>
+                <p className="text-gray-400"><span className='font-extrabold'>Escola:</span> {item.School?.name}</p>
                 <p className="text-gray-400">
                   <span className="font-extrabold">Data de Criação:</span>{' '}
                   {format(new Date(item.createdAt), 'dd/MM/yyyy, HH:mm:ss', { locale: ptBR })}
                 </p>
-                <p className="text-gray-400"><span className='font-extrabold'>Adicionado por:</span> {item.profile.displayName}</p>
+                <p className="text-gray-400"><span className='font-extrabold'>Adicionado por:</span> {item.Profile?.displayName}</p>
               </div>
             </div>
             <div className="flex space-x-4">
@@ -424,7 +424,7 @@ const DeviceList: React.FC = () => {
               >
                 <Clock size={24} />
               </button>
-              {item.profile.userId === userId && (
+              {item.Profile?.userId === userId && (
                 <button onClick={() => deleteItem(item.id)} className="text-red-500 hover:text-red-700">
                   <Trash size={24} />
                 </button>

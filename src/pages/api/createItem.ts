@@ -55,10 +55,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name,
         brand,
         serialNumber,
-        school: {
+        School: {
           connect: { id: parseInt(schoolName) }, // Certifique-se de que schoolName é um ID válido
         },
-        profile: {
+        Profile: {
           connect: { userId: uid },
         },
       },

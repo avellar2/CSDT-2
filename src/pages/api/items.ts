@@ -11,10 +11,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const items = await prisma.item.findMany({
       include: {
-        profile: {
+        Profile: {
           select: { displayName: true },
         },
-        school: {
+        School: {
           select: { name: true },
         },
       },

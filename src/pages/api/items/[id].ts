@@ -28,14 +28,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Verifique se o item existe e se o usuário logado é o mesmo que registrou o item
     const item = await prisma.item.findUnique({
       where: { id: Number(id) },
-      include: { profile: true },
+      include: { Profile: true },
     });
 
     if (!item) {
       return res.status(404).json({ error: 'Item não encontrado' });
     }
 
-    if (!item.profile || item.profile.userId !== uid) {
+    if (!item.Profile || item.Profile.userId !== uid) {
       return res.status(403).json({ error: 'Você não tem permissão para apagar este item' });
     }
 
