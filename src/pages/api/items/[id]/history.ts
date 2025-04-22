@@ -17,16 +17,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const history = await prisma.memorandumItem.findMany({
       where: { itemId: parseInt(id, 10) },
       include: {
-        memorandum: true, // Inclui os detalhes do memorando
+        Memorandum: true, // Inclui os detalhes do memorando
       },
       orderBy: { createdAt: 'desc' },
     });
 
     // Formatar o histórico para exibição
     const formattedHistory = history.map((entry) => ({
-      fromSchool: entry.memorandum.schoolName,
-      toSchool: entry.memorandum.district,
+      fromSchool: entry.Memorandum.schoolName,
+      toSchool: entry.Memorandum.district,
       movedAt: entry.createdAt,
+      generatedBy: entry.Memorandum.generatedBy || 'N/A',
     }));
 
     res.status(200).json(formattedHistory);

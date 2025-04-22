@@ -12,11 +12,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       include: {
         items: {
           include: {
-            item: true, // Inclui os detalhes dos itens
+            Item: true, // Inclui os detalhes dos itens
           },
         },
       },
     });
+
+    console.log('Memorandos retornados:', memorandums);
 
     res.status(200).json(memorandums);
   } catch (error) {

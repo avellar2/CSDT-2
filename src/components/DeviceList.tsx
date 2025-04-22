@@ -99,8 +99,8 @@ const DeviceList: React.FC = () => {
       const decoded = jwtDecode<{ userId: string; name: string }>(token);
       if (!decoded) {
         setModalMessage('Usuário não autenticado. Por favor, faça login.');
-        setModalIsOpen(true);
-        return;
+      setModalIsOpen(true);
+      return;
       }
       setUserName(decoded.name);
       setUserId(decoded.userId);
@@ -128,7 +128,6 @@ const DeviceList: React.FC = () => {
         }
 
         const data = await response.json();
-        console.log('API response:', data);
         if (Array.isArray(data)) {
           setItems(data);
         } else {
@@ -196,8 +195,7 @@ const DeviceList: React.FC = () => {
   const deleteItem = async (itemId: number) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      setModalMessage('Usuário não autenticado. Por favor, faça login.');
-      setModalIsOpen(true);
+      alert('Usuário não autenticado. Por favor, faça login.');
       return;
     }
 
@@ -267,6 +265,27 @@ const DeviceList: React.FC = () => {
   };
 
   const handleGenerateMemorandum = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Usuário não autenticado. Por favor, faça login.');
+      return;
+    }
+
+    if (selectedItems.length === 0) {
+      alert('Selecione pelo menos um item para gerar o memorando.');
+      return;
+    }
+
+    if (!schoolName) {
+      alert('Por favor, selecione uma escola.');
+      return;
+    }
+
+    if (!district) {
+      alert('O distrito não foi definido. Verifique a escola selecionada.');
+      return;
+    }
+
     if (selectedItems.length > 13) {
       setModalMessage('Você pode selecionar no máximo 13 itens por memorando.');
       setModalIsOpen(true);
@@ -282,15 +301,27 @@ const DeviceList: React.FC = () => {
         return;
       }
 
-      // const districtAtt = district === 'não informado' ? '0' : String(district);
-
-      const response = await axios.post('/api/generate-memorandum', {
-        itemIds: selectedItems, // IDs dos itens selecionados
+      console.log('Dados enviados:', {
+        itemIds: selectedItems,
         schoolName,
-        district, // Define o valor do distrito com base na escola selecionada
-        inep: selectedSchool.inep, // Define o valor de INEP com base na escola selecionada
-        userName,
+        district,
+        inep: selectedSchool.inep,
       });
+
+      const response = await axios.post(
+        '/api/generate-memorandum',
+        {
+          itemIds: selectedItems,
+          schoolName,
+          district,
+          inep: selectedSchool.inep,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Envia o token no cabeçalho
+          },
+        }
+      );
 
       // Atualizar os itens no frontend após a geração do memorando
       const updatedItemsResponse = await axios.get('/api/items');
@@ -341,6 +372,7 @@ const DeviceList: React.FC = () => {
     setSelectedItem(item);
     try {
       const response = await axios.get(`/api/items/${item.id}/history`);
+      console.log('Histórico do item recebido:', response.data); // Adicione este log
       setItemHistory(response.data);
       setIsDrawerOpen(true);
     } catch (error) {
@@ -613,10 +645,12 @@ const DeviceList: React.FC = () => {
           <div className="p-4 space-y-4 flex-1 overflow-y-auto">
             {itemHistory.length > 0 ? (
               itemHistory.map((history, index) => (
+                
                 <div
                   key={index}
                   className="bg-zinc-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
                 >
+                  
                   <p>
                     <strong>Foi para:</strong> {history.fromSchool || 'N/A'}
                   </p>

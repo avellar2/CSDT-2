@@ -99,11 +99,13 @@ const MemorandumsPage: React.FC = () => {
               <h3 className="mt-4 font-semibold text-gray-800">Itens:</h3>
               <ul className="list-disc pl-6 text-gray-600">
                 {memorandum.items.map((memorandumItem: any) => (
-                  <li key={memorandumItem.item.id}>
-                    {memorandumItem.item.name} ({memorandumItem.item.brand}) - Serial: {memorandumItem.item.serialNumber}
+                  <li key={memorandumItem.Item?.id}>
+                    {memorandumItem.Item?.name || 'Nome não disponível'} ({memorandumItem.Item?.brand || 'Marca não disponível'}) - Serial: {memorandumItem.Item?.serialNumber || 'N/A'}
                   </li>
                 ))}
               </ul>
+
+              <p className='text-zinc-800 mt-5'><strong>Gerado por:</strong> {memorandum.generatedBy}</p>
             </div>
           ))}
         </div>

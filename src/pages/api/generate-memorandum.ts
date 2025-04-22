@@ -2,35 +2,56 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
-import { supabase } from '@/lib/supabaseClient';
 import prisma from '@/utils/prisma';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale'; // Importa o idioma português
+import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/lib/supabaseClient';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { itemIds, schoolName, district, inep } = req.body;
-  console.log("Request body:", req.body);
+  // Obtenha o token do cabeçalho
+  const token = req.headers.authorization?.split(' ')[1];
+  console.log('Token recebido:', token);
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized: Token is missing.' });
+  }
+
+  // Obtenha o usuário logado do Supabase
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    console.error('Erro ao obter usuário do Supabase:', error);
+    return res.status(401).json({ error: 'Unauthorized: User not authenticated.' });
+  }
+
+  console.log('Usuário autenticado:', user);
+
+  // Busca o perfil do usuário na tabela `profile`
+  const userProfile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+  });
+
+  if (!userProfile) {
+    return res.status(404).json({ error: 'User profile not found.' });
+  }
 
   // Validação dos dados recebidos
+  const { itemIds, schoolName, district, inep } = req.body;
+
   if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
-    return res.status(400).json({ error: 'Invalid request: "itemIds" is required and must be a non-empty array.' });
+    return res.status(400).json({ error: 'Item IDs are required.' });
   }
 
-  if (itemIds.length > 13) {
-    return res.status(400).json({ error: 'Only 13 items are allowed per memorandum.' });
+  if (!schoolName) {
+    return res.status(400).json({ error: 'School name is required.' });
   }
 
-  if (!schoolName || typeof schoolName !== "string") {
-    return res.status(400).json({ error: 'Invalid request: "schoolName" is required and must be a string.' });
+  if (!district) {
+    return res.status(400).json({ error: 'District is required.' });
   }
-
-  // Use valores padrão para district e inep se não forem fornecidos
-  const inepAtt = typeof inep === "number" ? inep : 0; // Valor padrão para inep
-  const districtAtt = district || "não informado"; // Valor padrão para district
 
   try {
     console.log("Upserting school...");
@@ -39,8 +60,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       update: {},
       create: {
         name: schoolName,
-        district: districtAtt,
-        inep: inepAtt,
+        district: district || "não informado",
+        inep: typeof inep === "number" ? inep : 0,
       },
     });
     console.log("School upserted:", school);
@@ -49,7 +70,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const memorandum = await prisma.memorandum.create({
       data: {
         schoolName,
-        district: districtAtt,
+        district,
+        generatedBy: userProfile.displayName, // Nome do usuário logado
         items: {
           create: itemIds.map((id: number) => ({
             Item: { connect: { id } },
@@ -72,8 +94,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: { in: itemIds },
       },
       data: {
-        schoolId: school.id, // Atualiza o campo schoolId com o ID da escola
-        updatedAt: new Date(), // Atualiza explicitamente a data/hora
+        schoolId: school.id,
+        updatedAt: new Date(),
       },
     });
     console.log("Items updated.");
@@ -85,9 +107,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           data: {
             itemId,
             fromSchool: schoolName,
-            toSchool: "Destino não informado", // Valor padrão
+            toSchool: "Destino não informado",
             movedAt: new Date(),
-            generatedBy: req.body.userName || "Desconhecido", // Nome do usuário que gerou o memorando
+            generatedBy: userProfile.displayName, // Nome do usuário que gerou o memorando
           },
         });
       })
@@ -106,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Formatar a data no formato "26 de novembro de 2025"
     const formattedDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
-    form.getTextField("dataMemorando").setText(formattedDate); // Data formatada
+    form.getTextField("dataMemorando").setText(formattedDate);
     form.getTextField("escola").setText(schoolName);
     form.getTextField("distrito").setText(district || "não informado");
 
