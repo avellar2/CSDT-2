@@ -77,6 +77,7 @@ const DeviceList: React.FC = () => {
   const [schoolName, setSchoolName] = useState('');
   const [district, setDistrict] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [memorandumNumber, setMemorandumNumber] = useState(''); // Estado para o número do memorando
   const itemsPerPage = 10; // Número de itens por página
 
   const toggleItemSelection = (itemId: number) => {
@@ -286,6 +287,11 @@ const DeviceList: React.FC = () => {
       return;
     }
 
+    if (!memorandumNumber) {
+      alert('Por favor, insira o número do memorando.');
+      return;
+    }
+
     if (selectedItems.length > 13) {
       setModalMessage('Você pode selecionar no máximo 13 itens por memorando.');
       setModalIsOpen(true);
@@ -293,7 +299,6 @@ const DeviceList: React.FC = () => {
     }
 
     try {
-      // Encontrar a escola selecionada
       const selectedSchool = schools.find((school) => school.name === schoolName);
 
       if (!selectedSchool) {
@@ -306,6 +311,7 @@ const DeviceList: React.FC = () => {
         schoolName,
         district,
         inep: selectedSchool.inep,
+        memorandumNumber,
       });
 
       const response = await axios.post(
@@ -315,17 +321,14 @@ const DeviceList: React.FC = () => {
           schoolName,
           district,
           inep: selectedSchool.inep,
+          memorandumNumber,
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Envia o token no cabeçalho
+            Authorization: `Bearer ${token}`,
           },
         }
       );
-
-      // Atualizar os itens no frontend após a geração do memorando
-      const updatedItemsResponse = await axios.get('/api/items');
-      setItems(updatedItemsResponse.data);
 
       // Decodificar o PDF Base64
       const pdfBase64 = response.data.pdfBase64;
@@ -343,10 +346,17 @@ const DeviceList: React.FC = () => {
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'memorando.pdf');
+      link.setAttribute('download', `memorando-${memorandumNumber}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
+
+      // Atualizar os itens no frontend após a geração do memorando
+      const updatedItemsResponse = await axios.get('/api/items');
+      setItems(updatedItemsResponse.data);
+
+      // Limpar os itens selecionados
+      setSelectedItems([]);
     } catch (error) {
       console.error('Erro ao gerar memorando:', error);
       alert('Falha ao gerar o memorando. Verifique os dados enviados.');
@@ -573,9 +583,9 @@ const DeviceList: React.FC = () => {
 
       {/* AlertDialog para gerar o memorando */}
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent className='dark:bg-zinc-900 bg-white text-black'>
+        <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black">
           <AlertDialogHeader>
-            <AlertDialogTitle className='dark:text-white'>Gerar Memorando</AlertDialogTitle>
+            <AlertDialogTitle className="dark:text-white">Gerar Memorando</AlertDialogTitle>
             <AlertDialogDescription>
               Preencha as informações abaixo para gerar o memorando.
             </AlertDialogDescription>
@@ -615,13 +625,28 @@ const DeviceList: React.FC = () => {
                 type="text"
                 value={district}
                 readOnly
-                className="w-full p-2 rounded dark:bg-zinc-900  dark:text-white"
+                className="w-full p-2 rounded dark:bg-zinc-900 dark:text-white"
+              />
+            </label>
+
+            {/* Campo para o número do memorando */}
+            <label className="block">
+              <span className="dark:text-gray-300">Número do Memorando:</span>
+              <input
+                type="text"
+                value={memorandumNumber}
+                onChange={(e) => setMemorandumNumber(e.target.value)}
+                className="w-full p-2 rounded dark:bg-zinc-900 dark:text-white"
+                placeholder="Digite o número do memorando"
               />
             </label>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className='hover:bg-red-300 dark:text-white'>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleGenerateMemorandum} className='bg-blue-500 hover:bg-blue-700 text-white'>
+            <AlertDialogCancel className="hover:bg-red-300 dark:text-white">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleGenerateMemorandum}
+              className="bg-blue-500 hover:bg-blue-700 text-white"
+            >
               Gerar
             </AlertDialogAction>
           </AlertDialogFooter>

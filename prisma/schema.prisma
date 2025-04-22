@@ -54,6 +54,7 @@ model ItemHistory {
 
 model Memorandum {
   id        Int                 @id @default(autoincrement())
+  number      String           @unique // Número do memorando
   schoolName String
   district  String
   generatedBy String

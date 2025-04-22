@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Validação dos dados recebidos
-  const { itemIds, schoolName, district, inep } = req.body;
+  const { itemIds, schoolName, district, inep, memorandumNumber } = req.body;
 
   if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
     return res.status(400).json({ error: 'Item IDs are required.' });
@@ -51,6 +51,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!district) {
     return res.status(400).json({ error: 'District is required.' });
+  }
+
+  if (!memorandumNumber) {
+    return res.status(400).json({ error: 'Número do memorando é obrigatório.' });
   }
 
   try {
@@ -72,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         schoolName,
         district,
         generatedBy: userProfile.displayName, // Nome do usuário logado
+        number: memorandumNumber, // Armazena o número do memorando
         items: {
           create: itemIds.map((id: number) => ({
             Item: { connect: { id } },
@@ -123,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
     const form = pdfDoc.getForm();
-    form.getTextField("numeroMemorando").setText(`${memorandum.id}`);
+    form.getTextField("numeroMemorando").setText(`${memorandum.number}`);
 
     // Formatar a data no formato "26 de novembro de 2025"
     const formattedDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -134,7 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     memorandum.items.forEach((item, index) => {
       if (index >= 13) return;
-      const itemWithBrand = `${item.Item.name} ${item.Item.brand}`;
+      const itemWithBrand = `${item.Item.brand}`;
       form.getTextField(`item${index + 1}`).setText(itemWithBrand);
       form.getTextField(`serial${index + 1}`).setText(item.Item.serialNumber);
     });

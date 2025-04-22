@@ -32,13 +32,13 @@ const MemorandumsPage: React.FC = () => {
       // Verifica se o termo de pesquisa está presente em qualquer campo relevante
       return (
         memorandum.schoolName.toLowerCase().includes(search) || // Nome da escola
-        memorandum.id.toString().includes(search) || // Número do memorando
+        memorandum.number.toString().includes(search) || // Número do memorando
         memorandum.district?.toLowerCase().includes(search) || // Distrito
         new Date(memorandum.createdAt).toLocaleDateString('pt-BR').includes(search) || // Data formatada
         memorandum.items.some((item: any) =>
-          item.item.name.toLowerCase().includes(search) || // Nome do item
-          item.item.brand.toLowerCase().includes(search) || // Marca do item
-          item.item.serialNumber.toLowerCase().includes(search) // Número de série
+          item.item?.name.toLowerCase().includes(search) || // Nome do item
+          item.item?.brand.toLowerCase().includes(search) || // Marca do item
+          item.item?.serialNumber.toLowerCase().includes(search) // Número de série
         )
       );
     });
@@ -84,7 +84,7 @@ const MemorandumsPage: React.FC = () => {
               className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transform transition-transform hover:scale-105 hover:bg-blue-300"
             >
               <h2 className="text-xl font-semibold text-gray-800">
-                Memorando #{memorandum.id}
+                Memorando #{memorandum.number}
               </h2>
               <p className="text-gray-600 mt-2">
                 <strong>Escola:</strong> {memorandum.schoolName}
