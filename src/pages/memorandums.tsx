@@ -1,21 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { MagnifyingGlass } from 'phosphor-react';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { MagnifyingGlass } from "phosphor-react";
 
 const MemorandumsPage: React.FC = () => {
   const [memorandums, setMemorandums] = useState<any[]>([]);
   const [filteredMemorandums, setFilteredMemorandums] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMemorandums = async () => {
       try {
-        const response = await axios.get('/api/get-memorandums');
+        const response = await axios.get("/api/get-memorandums");
+        console.log("Memorandos recebidos:", response.data); // Verifique os dados aqui
         setMemorandums(response.data);
-        setFilteredMemorandums(response.data); // Inicialmente, todos os memorandos são exibidos
+        setFilteredMemorandums(response.data);
       } catch (error) {
-        console.error('Error fetching memorandums:', error);
+        console.error("Error fetching memorandums:", error);
       } finally {
         setLoading(false);
       }
@@ -36,9 +37,9 @@ const MemorandumsPage: React.FC = () => {
         memorandum.district?.toLowerCase().includes(search) || // Distrito
         new Date(memorandum.createdAt).toLocaleDateString('pt-BR').includes(search) || // Data formatada
         memorandum.items.some((item: any) =>
-          item.item?.name.toLowerCase().includes(search) || // Nome do item
-          item.item?.brand.toLowerCase().includes(search) || // Marca do item
-          item.item?.serialNumber.toLowerCase().includes(search) // Número de série
+          item.Item?.name.toLowerCase().includes(search) || // Nome do item
+          item.Item?.brand.toLowerCase().includes(search) || // Marca do item
+          item.Item?.serialNumber.toLowerCase().includes(search) // Número de série
         )
       );
     });
@@ -75,7 +76,9 @@ const MemorandumsPage: React.FC = () => {
       </div>
 
       {filteredMemorandums.length === 0 ? (
-        <p className="text-center text-gray-600">Nenhum memorando encontrado.</p>
+        <p className="text-center text-gray-600">
+          Nenhum memorando encontrado.
+        </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredMemorandums.map((memorandum) => (
@@ -93,19 +96,23 @@ const MemorandumsPage: React.FC = () => {
                 <strong>Distrito:</strong> {memorandum.district}
               </p>
               <p className="text-gray-600">
-                <strong>Data:</strong>{' '}
-                {new Date(memorandum.createdAt).toLocaleDateString('pt-BR')}
+                <strong>Data:</strong>{" "}
+                {new Date(memorandum.createdAt).toLocaleDateString("pt-BR")}
               </p>
               <h3 className="mt-4 font-semibold text-gray-800">Itens:</h3>
               <ul className="list-disc pl-6 text-gray-600">
                 {memorandum.items.map((memorandumItem: any) => (
                   <li key={memorandumItem.Item?.id}>
-                    {memorandumItem.Item?.name || 'Nome não disponível'} ({memorandumItem.Item?.brand || 'Marca não disponível'}) - Serial: {memorandumItem.Item?.serialNumber || 'N/A'}
+                    {memorandumItem.Item?.name || "Nome não disponível"} (
+                    {memorandumItem.Item?.brand || "Marca não disponível"}) -
+                    Serial: {memorandumItem.Item?.serialNumber || "N/A"}
                   </li>
                 ))}
               </ul>
 
-              <p className='text-zinc-800 mt-5'><strong>Gerado por:</strong> {memorandum.generatedBy}</p>
+              <p className="text-zinc-800 mt-5">
+                <strong>Gerado por:</strong> {memorandum.generatedBy}
+              </p>
             </div>
           ))}
         </div>

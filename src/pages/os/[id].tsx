@@ -9,6 +9,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import Image from 'next/image';
+import axios from 'axios';
 
 interface OS {
   id: number;
@@ -66,29 +67,11 @@ const OSDetail: React.FC = () => {
     if (id && status) {
       const fetchOS = async () => {
         try {
-          let response;
-          if (status === 'pendente') {
-            response = await supabase
-              .from('Os')
-              .select('*')
-              .eq('id', id)
-              .single();
-          } else if (status === 'confirmada') {
-            response = await supabase
-              .from('OsAssinada')
-              .select('*')
-              .eq('id', id)
-              .single();
-          } else {
-            throw new Error('Status inválido');
-          }
+          const response = await axios.get(`/api/os/${id}`, {
+            params: { status },
+          });
 
-          if (response.error) {
-            throw new Error(`Erro ao buscar OS: ${response.error.message}`);
-          }
-
-          const data = response.data;
-          setOs(data);
+          setOs(response.data);
         } catch (error) {
           console.error('Erro ao buscar OS:', error);
           setError('Erro ao buscar OS. Por favor, tente novamente mais tarde.');

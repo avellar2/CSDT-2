@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { GraduationCap, Users } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import Link from 'next/link';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface OS {
   id: number;
@@ -17,6 +18,9 @@ const OSList: React.FC = () => {
   const [pendentes, setPendentes] = useState<OS[]>([]);
   const [confirmadas, setConfirmadas] = useState<OS[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [currentPagePendentes, setCurrentPagePendentes] = useState(1);
+  const [currentPageConfirmadas, setCurrentPageConfirmadas] = useState(1);
+  const itemsPerPage = 5; // Número de itens por página
 
   useEffect(() => {
     const fetchOS = async () => {
@@ -26,8 +30,13 @@ const OSList: React.FC = () => {
           throw new Error("Erro ao buscar OS");
         }
         const data = await response.json();
-        setPendentes(data.pendentes);
-        setConfirmadas(data.confirmadas);
+
+        // Ordenar as OS pendentes e confirmadas pelas mais recentes
+        const sortedPendentes = data.pendentes.sort((a: OS, b: OS) => new Date(b.data).getTime() - new Date(a.data).getTime());
+        const sortedConfirmadas = data.confirmadas.sort((a: OS, b: OS) => new Date(b.data).getTime() - new Date(a.data).getTime());
+
+        setPendentes(sortedPendentes);
+        setConfirmadas(sortedConfirmadas);
       } catch (error) {
         console.error("Erro ao buscar OS:", error);
       }
