@@ -1,13 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import Modal from 'react-modal';
-import { jwtDecode } from 'jwt-decode';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { MagnifyingGlass, Trash, FileArrowDown, Clock, File } from 'phosphor-react';
-import * as XLSX from 'xlsx';
-import axios from 'axios';
-import { SkeletonCard } from './SkeletonCard';
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import Modal from "react-modal";
+import { jwtDecode } from "jwt-decode";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  MagnifyingGlass,
+  Trash,
+  FileArrowDown,
+  Clock,
+  File,
+} from "phosphor-react";
+import * as XLSX from "xlsx";
+import axios from "axios";
+import { SkeletonCard } from "./SkeletonCard";
 import {
   Drawer,
   DrawerClose,
@@ -30,7 +36,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import Select from 'react-select';
+import Select from "react-select";
 import {
   Pagination,
   PaginationContent,
@@ -40,6 +46,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { supabase } from "@/lib/supabaseClient";
 
 interface Item {
   id: number;
@@ -74,24 +81,25 @@ const DeviceList: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false); // Estado para controlar o modal
   const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para controlar o AlertDialog
-  const [schoolName, setSchoolName] = useState('');
-  const [district, setDistrict] = useState('');
+  const [schoolName, setSchoolName] = useState("");
+  const [district, setDistrict] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [memorandumNumber, setMemorandumNumber] = useState(''); // Estado para o número do memorando
+  const [memorandumNumber, setMemorandumNumber] = useState(""); // Estado para o número do memorando
+  const [userRole, setUserRole] = useState<string | null>(null); // Estado para armazenar a role do usuário
   const itemsPerPage = 10; // Número de itens por página
 
   const toggleItemSelection = (itemId: number) => {
     setSelectedItems((prevSelected) =>
       prevSelected.includes(itemId)
         ? prevSelected.filter((id) => id !== itemId)
-        : [...prevSelected, itemId]
+        : [...prevSelected, itemId],
     );
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      setModalMessage('Usuário não autenticado. Por favor, faça login.');
+      setModalMessage("Usuário não autenticado. Por favor, faça login.");
       setModalIsOpen(true);
       return;
     }
@@ -99,31 +107,33 @@ const DeviceList: React.FC = () => {
     try {
       const decoded = jwtDecode<{ userId: string; name: string }>(token);
       if (!decoded) {
-        setModalMessage('Usuário não autenticado. Por favor, faça login.');
-      setModalIsOpen(true);
-      return;
+        setModalMessage("Usuário não autenticado. Por favor, faça login.");
+        setModalIsOpen(true);
+        return;
       }
       setUserName(decoded.name);
       setUserId(decoded.userId);
     } catch (error) {
-      setModalMessage('Usuário não autenticado. Por favor, faça login.');
+      setModalMessage("Usuário não autenticado. Por favor, faça login.");
       setModalIsOpen(true);
       return;
     }
 
     const fetchItems = async () => {
       try {
-        const response = await fetch('/api/items', {
+        const response = await fetch("/api/items", {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
           const text = await response.text();
-          console.error('Expected JSON but got:', text);
-          setModalMessage('Erro ao buscar itens. Resposta inesperada do servidor.');
+          console.error("Expected JSON but got:", text);
+          setModalMessage(
+            "Erro ao buscar itens. Resposta inesperada do servidor.",
+          );
           setModalIsOpen(true);
           return;
         }
@@ -132,11 +142,11 @@ const DeviceList: React.FC = () => {
         if (Array.isArray(data)) {
           setItems(data);
         } else {
-          console.error('Expected an array but got:', data);
+          console.error("Expected an array but got:", data);
         }
       } catch (error) {
-        console.error('Error fetching items:', error);
-        setModalMessage('Erro ao buscar itens.');
+        console.error("Error fetching items:", error);
+        setModalMessage("Erro ao buscar itens.");
         setModalIsOpen(true);
       } finally {
         setLoading(false);
@@ -148,8 +158,10 @@ const DeviceList: React.FC = () => {
 
   useEffect(() => {
     const countItemsInSchool = () => {
-      const count = items.filter((item) =>
-        item.School && item.School.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const count = items.filter(
+        (item) =>
+          item.School &&
+          item.School.name.toLowerCase().includes(searchTerm.toLowerCase()),
       ).length;
       setSchoolItemCount(count);
     };
@@ -162,25 +174,81 @@ const DeviceList: React.FC = () => {
   useEffect(() => {
     async function fetchItems() {
       try {
-        const response = await axios.get('/api/schools');
+        const response = await axios.get("/api/schools");
         setSchools(response.data);
       } catch (error) {
-        console.log('Error fetching schools:', error);
+        console.log("Error fetching schools:", error);
       }
     }
 
-    fetchItems()
+    fetchItems();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("Token não encontrado no localStorage.");
+        return;
+      }
+
+      try {
+        // Decodifica o token para obter o userId
+        const decoded = jwtDecode<{ userId: string }>(token);
+        console.log("Decoded Token:", decoded);
+
+        // Faz a chamada para o Supabase para garantir que o usuário está autenticado
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          console.error("Erro ao buscar usuário no Supabase:", error);
+          return;
+        }
+
+        console.log("Usuário do Supabase:", user);
+
+        // Faz a chamada para o endpoint /api/get-role
+        const response = await fetch(`/api/get-role?userId=${user.id}`);
+        const data = await response.json();
+
+        if (response.ok && data.role) {
+          setUserRole(data.role); // Define a role do usuário
+          console.log("Role do usuário:", data.role);
+        } else {
+          console.error("Erro ao buscar a role:", data.error);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar a role do usuário:", error);
+      }
+    };
+
+    fetchUserRole();
   }, []);
 
   const filteredItems = Array.isArray(items)
     ? items
-      .filter((item) =>
-        (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.brand && item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.serialNumber && item.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.School && item.School.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Ordena por data de criação (mais recentes primeiro)
+        .filter(
+          (item) =>
+            (item.name &&
+              item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (item.brand &&
+              item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (item.serialNumber &&
+              item.serialNumber
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())) ||
+            (item.School &&
+              item.School.name
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())),
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ) // Ordena por data de criação (mais recentes primeiro)
     : [];
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -194,63 +262,68 @@ const DeviceList: React.FC = () => {
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
   const deleteItem = async (itemId: number) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      alert('Usuário não autenticado. Por favor, faça login.');
+      alert("Usuário não autenticado. Por favor, faça login.");
       return;
     }
 
     try {
       const response = await fetch(`/api/items/${itemId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        console.error('Expected JSON but got:', text);
-        setModalMessage('Erro ao apagar item. Resposta inesperada do servidor.');
+        console.error("Expected JSON but got:", text);
+        setModalMessage(
+          "Erro ao apagar item. Resposta inesperada do servidor.",
+        );
         setModalIsOpen(true);
         return;
       }
 
       if (response.ok) {
-        setItems(items.filter(item => item.id !== itemId));
+        setItems(items.filter((item) => item.id !== itemId));
       } else {
         const errorData = await response.json();
         setModalMessage(`Erro ao apagar item: ${errorData.error}`);
         setModalIsOpen(true);
       }
     } catch (error) {
-      console.error('Erro ao apagar item:', error);
-      setModalMessage('Erro ao apagar item');
+      console.error("Erro ao apagar item:", error);
+      setModalMessage("Erro ao apagar item");
       setModalIsOpen(true);
     }
   };
 
   const closeModal = () => {
     setModalIsOpen(false);
-
   };
 
   const exportToExcel = () => {
-    const formattedItems = items.map(item => ({
+    const formattedItems = items.map((item) => ({
       ID: item.id,
       Nome: item.name,
       Marca: item.brand,
-      'Número de Série': item.serialNumber,
+      "Número de Série": item.serialNumber,
       Escola: item.School.name,
-      'Data de Criação': format(new Date(item.createdAt), 'dd/MM/yyyy, HH:mm:ss', { locale: ptBR }),
-      'Adicionado por': item.Profile.displayName,
+      "Data de Criação": format(
+        new Date(item.createdAt),
+        "dd/MM/yyyy, HH:mm:ss",
+        { locale: ptBR },
+      ),
+      "Adicionado por": item.Profile.displayName,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(formattedItems);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Itens');
-    XLSX.writeFile(workbook, 'itens.xlsx');
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Itens");
+    XLSX.writeFile(workbook, "itens.xlsx");
   };
 
   const openModal = () => {
@@ -266,47 +339,49 @@ const DeviceList: React.FC = () => {
   };
 
   const handleGenerateMemorandum = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      alert('Usuário não autenticado. Por favor, faça login.');
+      alert("Usuário não autenticado. Por favor, faça login.");
       return;
     }
 
     if (selectedItems.length === 0) {
-      alert('Selecione pelo menos um item para gerar o memorando.');
+      alert("Selecione pelo menos um item para gerar o memorando.");
       return;
     }
 
     if (!schoolName) {
-      alert('Por favor, selecione uma escola.');
+      alert("Por favor, selecione uma escola.");
       return;
     }
 
     if (!district) {
-      alert('O distrito não foi definido. Verifique a escola selecionada.');
+      alert("O distrito não foi definido. Verifique a escola selecionada.");
       return;
     }
 
     if (!memorandumNumber) {
-      alert('Por favor, insira o número do memorando.');
+      alert("Por favor, insira o número do memorando.");
       return;
     }
 
     if (selectedItems.length > 13) {
-      setModalMessage('Você pode selecionar no máximo 13 itens por memorando.');
+      setModalMessage("Você pode selecionar no máximo 13 itens por memorando.");
       setModalIsOpen(true);
       return;
     }
 
     try {
-      const selectedSchool = schools.find((school) => school.name === schoolName);
+      const selectedSchool = schools.find(
+        (school) => school.name === schoolName,
+      );
 
       if (!selectedSchool) {
-        alert('Por favor, selecione uma escola válida.');
+        alert("Por favor, selecione uma escola válida.");
         return;
       }
 
-      console.log('Dados enviados:', {
+      console.log("Dados enviados:", {
         itemIds: selectedItems,
         schoolName,
         district,
@@ -315,7 +390,7 @@ const DeviceList: React.FC = () => {
       });
 
       const response = await axios.post(
-        '/api/generate-memorandum',
+        "/api/generate-memorandum",
         {
           itemIds: selectedItems,
           schoolName,
@@ -327,7 +402,7 @@ const DeviceList: React.FC = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       // Decodificar o PDF Base64
@@ -340,26 +415,26 @@ const DeviceList: React.FC = () => {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
+      const pdfBlob = new Blob([bytes], { type: "application/pdf" });
 
       // Criar um link para download
       const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `memorando-${memorandumNumber}.pdf`);
+      link.setAttribute("download", `memorando-${memorandumNumber}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
 
       // Atualizar os itens no frontend após a geração do memorando
-      const updatedItemsResponse = await axios.get('/api/items');
+      const updatedItemsResponse = await axios.get("/api/items");
       setItems(updatedItemsResponse.data);
 
       // Limpar os itens selecionados
       setSelectedItems([]);
     } catch (error) {
-      console.error('Erro ao gerar memorando:', error);
-      alert('Falha ao gerar o memorando. Verifique os dados enviados.');
+      console.error("Erro ao gerar memorando:", error);
+      alert("Falha ao gerar o memorando. Verifique os dados enviados.");
     }
   };
 
@@ -374,7 +449,7 @@ const DeviceList: React.FC = () => {
   }
 
   function escolaFiltradaPeloId(id: number) {
-    const schoolFilteredById = schools.filter(school => school.id === id);
+    const schoolFilteredById = schools.filter((school) => school.id === id);
     return schoolFilteredById[0].name;
   }
 
@@ -382,12 +457,12 @@ const DeviceList: React.FC = () => {
     setSelectedItem(item);
     try {
       const response = await axios.get(`/api/items/${item.id}/history`);
-      console.log('Histórico do item recebido:', response.data); // Adicione este log
+      console.log("Histórico do item recebido:", response.data); // Adicione este log
       setItemHistory(response.data);
       setIsDrawerOpen(true);
     } catch (error) {
-      console.error('Erro ao buscar histórico:', error);
-      alert('Falha ao buscar o histórico do item.');
+      console.error("Erro ao buscar histórico:", error);
+      alert("Falha ao buscar o histórico do item.");
     }
   };
 
@@ -400,27 +475,33 @@ const DeviceList: React.FC = () => {
   return (
     <div className=" dark:bg-zinc-950 bg-zinc-200 rounded-lg text-white p-6 container mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold mb-4 md:mb-0 dark:text-zinc-100 text-zinc-700">Lista de Dispositivos</h1>
-        <div className='flex gap-4'>
-          <button onClick={exportToExcel} className="bg-green-500 hover:bg-green-700 text-white p-2 rounded flex items-center">
+        <h1 className="text-2xl font-bold mb-4 md:mb-0 dark:text-zinc-100 text-zinc-700">
+          Lista de Dispositivos
+        </h1>
+        <div className="flex gap-4">
+          <button
+            onClick={exportToExcel}
+            className="bg-green-500 hover:bg-green-700 text-white p-2 rounded flex items-center"
+          >
             <FileArrowDown size={24} className="mr-2" />
             Exportar para Excel
           </button>
-          <button
-            onClick={() => {
-              if (selectedItems.length === 0) {
-                alert("Selecione pelo menos um item para gerar o memorando.");
-                return;
-              }
-              setIsDialogOpen(true); // Abre o AlertDialog
-            }}
-            className="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded flex items-center"
-          >
-            <File size={24} className="mr-2" />
-            Gerar Memorando
-          </button>
+          {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
+            <button
+              onClick={() => {
+                if (selectedItems.length === 0) {
+                  alert("Selecione pelo menos um item para gerar o memorando.");
+                  return;
+                }
+                setIsDialogOpen(true); // Abre o AlertDialog
+              }}
+              className="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded flex items-center"
+            >
+              <File size={24} className="mr-2" />
+              Gerar Memorando
+            </button>
+          )}
         </div>
-
       </div>
       <div className="relative mb-4">
         <input
@@ -430,7 +511,10 @@ const DeviceList: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full p-2 pl-10 rounded dark:bg-zinc-900 dark:text-white"
         />
-        <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <MagnifyingGlass
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          size={20}
+        />
       </div>
       {searchTerm && (
         <p className="mb-4">
@@ -439,7 +523,10 @@ const DeviceList: React.FC = () => {
       )}
       <div className="space-y-4">
         {currentItems.map((item) => (
-          <div key={item.id} className="bg-gray-900 p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div
+            key={item.id}
+            className="bg-gray-900 p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center"
+          >
             <div className="flex items-center mb-4 md:mb-0">
               <input
                 type="checkbox"
@@ -449,14 +536,27 @@ const DeviceList: React.FC = () => {
               />
               <div>
                 <h2 className="text-lg font-semibold">{item.name}</h2>
-                <p className="text-gray-400"><span className='font-extrabold'>Marca:</span> {item?.brand}</p>
-                <p className="text-gray-400"><span className='font-extrabold'>Serial:</span> {item?.serialNumber}</p>
-                <p className="text-gray-400"><span className='font-extrabold'>Escola:</span> {item.School?.name}</p>
                 <p className="text-gray-400">
-                  <span className="font-extrabold">Data de Criação:</span>{' '}
-                  {format(new Date(item.createdAt), 'dd/MM/yyyy, HH:mm:ss', { locale: ptBR })}
+                  <span className="font-extrabold">Marca:</span> {item?.brand}
                 </p>
-                <p className="text-gray-400"><span className='font-extrabold'>Adicionado por:</span> {item.Profile?.displayName}</p>
+                <p className="text-gray-400">
+                  <span className="font-extrabold">Serial:</span>{" "}
+                  {item?.serialNumber}
+                </p>
+                <p className="text-gray-400">
+                  <span className="font-extrabold">Escola:</span>{" "}
+                  {item.School?.name}
+                </p>
+                <p className="text-gray-400">
+                  <span className="font-extrabold">Data de Criação:</span>{" "}
+                  {format(new Date(item.createdAt), "dd/MM/yyyy, HH:mm:ss", {
+                    locale: ptBR,
+                  })}
+                </p>
+                <p className="text-gray-400">
+                  <span className="font-extrabold">Adicionado por:</span>{" "}
+                  {item.Profile?.displayName}
+                </p>
               </div>
             </div>
             <div className="flex space-x-4">
@@ -467,7 +567,10 @@ const DeviceList: React.FC = () => {
                 <Clock size={24} />
               </button>
               {item.Profile?.userId === userId && (
-                <button onClick={() => deleteItem(item.id)} className="text-red-500 hover:text-red-700">
+                <button
+                  onClick={() => deleteItem(item.id)}
+                  className="text-red-500 hover:text-red-700"
+                >
                   <Trash size={24} />
                 </button>
               )}
@@ -503,7 +606,9 @@ const DeviceList: React.FC = () => {
                 </PaginationItem>
                 {/* Reticências antes da página atual */}
                 {currentPage > 3 && (
-                  <PaginationEllipsis className="text-gray-500 px-2">...</PaginationEllipsis>
+                  <PaginationEllipsis className="text-gray-500 px-2">
+                    ...
+                  </PaginationEllipsis>
                 )}
               </>
             )}
@@ -536,7 +641,9 @@ const DeviceList: React.FC = () => {
 
             {/* Reticências antes da última página */}
             {currentPage < totalPages - 2 && (
-              <PaginationEllipsis className="text-gray-500 px-2">...</PaginationEllipsis>
+              <PaginationEllipsis className="text-gray-500 px-2">
+                ...
+              </PaginationEllipsis>
             )}
 
             {/* Última página */}
@@ -557,7 +664,9 @@ const DeviceList: React.FC = () => {
             <PaginationItem>
               <PaginationNext
                 href="#"
-                onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                onClick={() =>
+                  handlePageChange(Math.min(totalPages, currentPage + 1))
+                }
                 className="text-black dark:text-white"
               />
             </PaginationItem>
@@ -575,7 +684,10 @@ const DeviceList: React.FC = () => {
         <div>
           <h2 className="text-xl mb-4">Mensagem</h2>
           <p>{modalMessage}</p>
-          <button onClick={closeModal} className="mt-4 bg-blue-500 hover:bg-blue-700 text-white p-2 rounded">
+          <button
+            onClick={closeModal}
+            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
+          >
             Fechar
           </button>
         </div>
@@ -585,7 +697,9 @@ const DeviceList: React.FC = () => {
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black">
           <AlertDialogHeader>
-            <AlertDialogTitle className="dark:text-white">Gerar Memorando</AlertDialogTitle>
+            <AlertDialogTitle className="dark:text-white">
+              Gerar Memorando
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Preencha as informações abaixo para gerar o memorando.
             </AlertDialogDescription>
@@ -599,14 +713,16 @@ const DeviceList: React.FC = () => {
                   value: school.name,
                   label: school.name,
                 }))}
-                value={schoolName ? { value: schoolName, label: schoolName } : null}
+                value={
+                  schoolName ? { value: schoolName, label: schoolName } : null
+                }
                 onChange={(selectedOption) => {
-                  const selectedSchoolName = selectedOption?.value || '';
+                  const selectedSchoolName = selectedOption?.value || "";
                   setSchoolName(selectedSchoolName);
 
                   // Encontrar o distrito correspondente à escola selecionada
                   const selectedSchool = schools.find(
-                    (school) => school.name === selectedSchoolName
+                    (school) => school.name === selectedSchoolName,
                   );
                   if (selectedSchool) {
                     setDistrict(selectedSchool.district); // Atualiza o distrito
@@ -642,7 +758,9 @@ const DeviceList: React.FC = () => {
             </label>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className="hover:bg-red-300 dark:text-white">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="hover:bg-red-300 dark:text-white">
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleGenerateMemorandum}
               className="bg-blue-500 hover:bg-blue-700 text-white"
@@ -658,32 +776,37 @@ const DeviceList: React.FC = () => {
         <DrawerContent
           className="fixed inset-y-0 right-0 w-full max-w-md bg-zinc-900 text-white shadow-lg transform transition-transform duration-300 ease-in-out flex flex-col"
           style={{
-            transform: isDrawerOpen ? 'translateX(0)' : 'translateX(100%)',
+            transform: isDrawerOpen ? "translateX(0)" : "translateX(100%)",
           }}
         >
           <DrawerHeader className="p-4 border-b border-zinc-800">
-            <DrawerTitle className="text-xl font-bold">Histórico do Item</DrawerTitle>
+            <DrawerTitle className="text-xl font-bold">
+              Histórico do Item
+            </DrawerTitle>
             <DrawerDescription className="text-sm text-gray-400">
-              Histórico de movimentação para o item: <strong>{selectedItem?.name}, {selectedItem?.brand}, {selectedItem?.serialNumber}</strong>
+              Histórico de movimentação para o item:{" "}
+              <strong>
+                {selectedItem?.name}, {selectedItem?.brand},{" "}
+                {selectedItem?.serialNumber}
+              </strong>
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-4 flex-1 overflow-y-auto">
             {itemHistory.length > 0 ? (
               itemHistory.map((history, index) => (
-                
                 <div
                   key={index}
                   className="bg-zinc-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
                 >
-                  
                   <p>
-                    <strong>Foi para:</strong> {history.fromSchool || 'N/A'}
+                    <strong>Foi para:</strong> {history.fromSchool || "N/A"}
                   </p>
                   <p>
-                    <strong>Data:</strong> {new Date(history.movedAt).toLocaleString('pt-BR')}
+                    <strong>Data:</strong>{" "}
+                    {new Date(history.movedAt).toLocaleString("pt-BR")}
                   </p>
                   <p>
-                    <strong>Gerado por:</strong> {history.generatedBy || 'N/A'}
+                    <strong>Gerado por:</strong> {history.generatedBy || "N/A"}
                   </p>
                 </div>
               ))

@@ -22,7 +22,7 @@ model InternalOS {
   descricao String
   createdAt DateTime @default(now())
   status    String   @default("Pendente")
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
 }
 
 model Item {

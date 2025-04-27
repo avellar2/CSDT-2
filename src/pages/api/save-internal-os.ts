@@ -24,6 +24,7 @@ export default async function handler(
           problema: problema.value, // Problema selecionado
           descricao, // Descrição do problema
           createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 

@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
       include: {
-        school: {
+        School: {
           select: {
             name: true,
           },
@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Formatação segura dos dados
     const safeDemands = demands.map((demand) => ({
       id: demand.id.toString(), // Garante que o ID seja string
-      title: `Demanda - ${demand.school?.name || "Escola não especificada"}`,
+      title: `Demanda - ${demand.School?.name || "Escola não especificada"}`,
       description: demand.demand || "Sem descrição fornecida",
       createdAt: demand.createdAt.toISOString(), // Formato padrão para datas
     }));

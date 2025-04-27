@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Monta o objeto de atualização dinamicamente
       const updateData: any = {};
-      if (setor) updateData.setorId = setor;
+      if (setor) updateData.setorId = String(setor); // Converte para String
       if (tecnico) updateData.tecnicoId = Number(tecnico); // Converte para número
       if (problema) updateData.problema = problema;
       if (descricao !== undefined) updateData.descricao = descricao;

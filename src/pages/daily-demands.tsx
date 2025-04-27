@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Trash, Pencil } from "phosphor-react"; // Ícones do Phosphor Icons
 import DemandModal from "../components/DemandModal";
+import { supabase } from "@/lib/supabaseClient"; // Importa o cliente Supabase
+import { jwtDecode } from "jwt-decode"; // Para decodificar o token
 
 interface Demand {
   id: string;
@@ -26,6 +28,7 @@ const DailyDemands: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDemand, setEditingDemand] = useState<Demand | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null); // Estado para armazenar a role do usuário
 
   // Obter a data atual formatada
   const today = new Date();
@@ -156,6 +159,47 @@ const DailyDemands: React.FC = () => {
     fetchSchools();
   }, []);
 
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("Token não encontrado no localStorage.");
+        return;
+      }
+
+      try {
+        // Decodifica o token para obter o userId
+        const decoded = jwtDecode<{ userId: string }>(token);
+        console.log("Decoded Token:", decoded);
+
+        // Faz a chamada para o Supabase para garantir que o usuário está autenticado
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          console.error("Erro ao buscar usuário no Supabase:", error);
+          return;
+        }
+
+        console.log("Usuário do Supabase:", user);
+
+        // Faz a chamada para o endpoint /api/get-role
+        const response = await fetch(`/api/get-role?userId=${user.id}`);
+        const data = await response.json();
+
+        if (response.ok && data.role) {
+          setUserRole(data.role); // Define a role do usuário
+          console.log("Role do usuário:", data.role);
+        } else {
+          console.error("Erro ao buscar a role:", data.error);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar a role do usuário:", error);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja apagar esta demanda?")) return;
 
@@ -272,19 +316,26 @@ const DailyDemands: React.FC = () => {
             Demandas do Dia - {formattedDate}
           </h1>
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-4">
-            <button
-              onClick={handleAddDemand}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full sm:w-auto"
-            >
-              Adicionar Demanda
-            </button>
-            <button
-              onClick={handleDeleteAllocation}
-              className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors w-full sm:w-auto"
-              title="Apagar toda a escala do dia"
-            >
-              Apagar Escala do Dia
-            </button>
+            {/* Botão "Adicionar Demanda" visível apenas para ADMTOTAL e ADMIN */}
+            {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
+              <button
+                onClick={handleAddDemand}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full sm:w-auto"
+              >
+                Adicionar Demanda
+              </button>
+            )}
+
+            {/* Botão "Apagar Escala do Dia" visível apenas para ADMTOTAL e ADMIN */}
+            {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
+              <button
+                onClick={handleDeleteAllocation}
+                className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors w-full sm:w-auto"
+                title="Apagar toda a escala do dia"
+              >
+                Apagar Escala do Dia
+              </button>
+            )}
           </div>
         </div>
 
