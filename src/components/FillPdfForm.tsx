@@ -115,14 +115,28 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
     setLoading(true); // Inicia o carregamento
 
     try {
+      // Verificar se o número da OS já existe
+      const checkResponse = await fetch(`/api/check-os?numeroOs=${formData.numeroOs}`);
+      const checkResult = await checkResponse.json();
+
+      if (checkResult.exists) {
+        setAlertDialog({
+          title: "Número de OS já existente",
+          description: "O número de OS informado já existe. Por favor, escolha outro número.",
+          success: false,
+        });
+        setLoading(false); // Termina o carregamento
+        return;
+      }
+
       // Upload fotosAntes
-      const fotosAntesUrls = await uploadFilesToSupabase(formData.fotosAntes, 'fotos-antes');
+      const fotosAntesUrls = await uploadFilesToSupabase(formData.fotosAntes, "fotos-antes");
 
       // Upload fotosDepois
-      const fotosDepoisUrls = await uploadFilesToSupabase(formData.fotosDepois, 'fotos-depois');
+      const fotosDepoisUrls = await uploadFilesToSupabase(formData.fotosDepois, "fotos-depois");
 
       const url = "/pdf-template.pdf"; // Caminho atualizado para o template PDF
-      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+      const existingPdfBytes = await fetch(url).then((res) => res.arrayBuffer());
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const form = pdfDoc.getForm();
 
@@ -169,9 +183,9 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
       const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
 
       // Salvar a OS no banco de dados com status "Pendente"
-      const response = await fetch('/api/create-os', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/create-os", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           unidadeEscolar: formData.unidadeEscolar,
           tecnicoResponsavel: formData.tecnicoResponsavel,
@@ -212,7 +226,7 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
           emailResponsavel: formData.emailResponsavel,
           fotosAntes: fotosAntesUrls,
           fotosDepois: fotosDepoisUrls,
-          status: "Pendente"
+          status: "Pendente",
         }),
       });
 
@@ -224,7 +238,6 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
       }
 
       const osId = result.id; // Obter o ID da OS criada
-      console.log("Enviando osId:", osId);
       const aceiteUrl = `https://csdt.vercel.app/confirmar-os?osId=${osId}`;
 
       const msg = {
@@ -237,21 +250,25 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
             content: pdfBase64,
             filename: "filled-form.pdf",
             contentType: "application/pdf",
-            encoding: "base64", // Definir explicitamente a codificação
-          }
-        ]
+            encoding: "base64",
+          },
+        ],
       };
 
-      await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(msg),
       });
 
       setAlertDialog({ title: "Sucesso", description: "Email enviado com sucesso!", success: true });
     } catch (error) {
-      console.error('Erro ao enviar o formulário:', error);
-      setAlertDialog({ title: "Erro", description: "Erro ao enviar o formulário. Por favor, tente novamente.", success: false });
+      console.error("Erro ao enviar o formulário:", error);
+      setAlertDialog({
+        title: "Erro",
+        description: "Erro ao enviar o formulário. Por favor, tente novamente.",
+        success: false,
+      });
     } finally {
       setLoading(false); // Termina o carregamento
     }
@@ -284,11 +301,39 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
           <AlertDialogTrigger asChild>
             <Button>{alertDialog.success ? "Sucesso" : "Erro"}</Button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="bg-white flex flex-col text-center">
-            <AlertDialogTitle className="text-zinc-800">{alertDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>{alertDialog.description}</AlertDialogDescription>
+          <AlertDialogContent
+            className={`flex flex-col text-center ${
+              alertDialog.success
+                ? "bg-white"
+                : "bg-red-100 border border-red-500"
+            }`}
+          >
+            <AlertDialogTitle
+              className={`text-lg font-bold ${
+                alertDialog.success ? "text-zinc-800" : "text-red-600"
+              }`}
+            >
+              {alertDialog.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription
+              className={`${
+                alertDialog.success ? "text-zinc-600" : "text-red-500"
+              }`}
+            >
+              {alertDialog.description}
+            </AlertDialogDescription>
             <AlertDialogAction asChild>
-              <Button className="bg-green-400 hover:bg-green-700" onClick={() => setAlertDialog(null)}><CheckCircle size={32} />OK</Button>
+              <Button
+                className={`${
+                  alertDialog.success
+                    ? "bg-green-400 hover:bg-green-700"
+                    : "bg-red-500 hover:bg-red-700"
+                }`}
+                onClick={() => setAlertDialog(null)}
+              >
+                <CheckCircle size={32} />
+                OK
+              </Button>
             </AlertDialogAction>
           </AlertDialogContent>
         </AlertDialog>

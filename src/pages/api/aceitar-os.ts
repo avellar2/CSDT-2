@@ -62,7 +62,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
           nameAssigned,
           cpfOrRegistration,
           fotosAntes: os.fotosAntes,
-          fotosDepois: os.fotosDepois
+          fotosDepois: os.fotosDepois,
+          updatedAt: new Date() // Add the updatedAt field with the current date
         }
       });
 

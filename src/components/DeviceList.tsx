@@ -516,11 +516,18 @@ const DeviceList: React.FC = () => {
           size={20}
         />
       </div>
-      {searchTerm && (
-        <p className="mb-4">
-          Quantidade de itens na escola "{searchTerm}": {schoolItemCount}
+
+      <div className="mb-4 space-y-2">
+        <p className="text-gray-700 dark:text-gray-300">
+          <strong>Total de itens cadastrados:</strong> {items.length}
         </p>
-      )}
+        {searchTerm && (
+          <p className="text-gray-700 dark:text-gray-300">
+            <strong>Quantidade de itens na escola "{searchTerm}":</strong> {schoolItemCount}
+          </p>
+        )}
+      </div>
+
       <div className="space-y-4">
         {currentItems.map((item) => (
           <div
@@ -580,98 +587,13 @@ const DeviceList: React.FC = () => {
       </div>
 
       <div className="mt-6 flex justify-center">
-        <Pagination className="w-full flex flex-wrap justify-center gap-2">
-          <PaginationContent>
-            {/* Botão de página anterior */}
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                className="text-black dark:text-white"
-              />
-            </PaginationItem>
-
-            {/* Primeira página */}
-            {currentPage > 2 && (
-              <>
-                <PaginationItem>
-                  <PaginationLink
-                    href="#"
-                    isActive={currentPage === 1}
-                    onClick={() => handlePageChange(1)}
-                    className="text-black active:bg-blue-200 dark:text-white px-3 py-1 rounded-md"
-                  >
-                    1
-                  </PaginationLink>
-                </PaginationItem>
-                {/* Reticências antes da página atual */}
-                {currentPage > 3 && (
-                  <PaginationEllipsis className="text-gray-500 px-2">
-                    ...
-                  </PaginationEllipsis>
-                )}
-              </>
-            )}
-
-            {/* Página atual */}
-            <PaginationItem>
-              <PaginationLink
-                href="#"
-                isActive={true}
-                onClick={() => handlePageChange(currentPage)}
-                className="text-black active:bg-blue-200 dark:text-white px-3 py-1 rounded-md"
-              >
-                {currentPage}
-              </PaginationLink>
-            </PaginationItem>
-
-            {/* Próxima página */}
-            {currentPage < totalPages - 1 && (
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  isActive={false}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className="text-black active:bg-blue-200 dark:text-white px-3 py-1 rounded-md"
-                >
-                  {currentPage + 1}
-                </PaginationLink>
-              </PaginationItem>
-            )}
-
-            {/* Reticências antes da última página */}
-            {currentPage < totalPages - 2 && (
-              <PaginationEllipsis className="text-gray-500 px-2">
-                ...
-              </PaginationEllipsis>
-            )}
-
-            {/* Última página */}
-            {currentPage < totalPages && (
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  isActive={currentPage === totalPages}
-                  onClick={() => handlePageChange(totalPages)}
-                  className="text-black active:bg-blue-200 dark:text-white px-3 py-1 rounded-md"
-                >
-                  {totalPages}
-                </PaginationLink>
-              </PaginationItem>
-            )}
-
-            {/* Botão de próxima página */}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={() =>
-                  handlePageChange(Math.min(totalPages, currentPage + 1))
-                }
-                className="text-black dark:text-white"
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <div className="w-full flex flex-wrap justify-center gap-2">
+        <Pagination
+          total={filteredItems.length}
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+        />
       </div>
 
       <Modal
@@ -824,6 +746,7 @@ const DeviceList: React.FC = () => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+    </div>
     </div>
   );
 };
