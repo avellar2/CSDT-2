@@ -32,12 +32,21 @@ model Item {
   serialNumber   String           @unique
   userId         String
   schoolId       Int?
+  status         String           @default("DISPONIVEL")
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   School         School?          @relation(fields: [schoolId], references: [id])
   Profile        Profile          @relation(fields: [userId], references: [userId])
   ItemHistory    ItemHistory[]
   MemorandumItem MemorandumItem[]
+}
+
+model ItemsChada {
+  id        Int      @id @default(autoincrement())
+  itemId    Int      // ID do item enviado para CHADA
+  problem   String   // Descrição do problema
+  userName  String   // Nome do usuário que enviou o item
+  createdAt DateTime @default(now()) // Data de envio
 }
 
 model ItemHistory {
@@ -204,6 +213,7 @@ model School {
   director     String?
   phone        String?
   email        String?
+  students     Int? @default(0)
   Item         Item[]
   SchoolDemand SchoolDemand[]
 }

@@ -13,24 +13,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Buscar o histórico do item nas tabelas memorandum e memorandumItems
-    const history = await prisma.memorandumItem.findMany({
-      where: { itemId: parseInt(id, 10) },
-      include: {
-        Memorandum: true, // Inclui os detalhes do memorando
-      },
-      orderBy: { createdAt: 'desc' },
+    const itemId = parseInt(id, 10);
+
+    // Buscar o histórico do item na tabela ItemHistory
+    const itemHistory = await prisma.itemHistory.findMany({
+      where: { itemId },
+      orderBy: { movedAt: 'desc' },
     });
 
-    // Formatar o histórico para exibição
-    const formattedHistory = history.map((entry) => ({
-      fromSchool: entry.Memorandum.schoolName,
-      toSchool: entry.Memorandum.district,
-      movedAt: entry.createdAt,
-      generatedBy: entry.Memorandum.generatedBy || 'N/A',
+    // Formatar o histórico do ItemHistory
+    const formattedItemHistory = itemHistory.map((entry) => ({
+      fromSchool: entry.fromSchool,
+      toSchool: entry.toSchool,
+      movedAt: entry.movedAt,
+      generatedBy: entry.generatedBy || 'N/A',
     }));
 
-    res.status(200).json(formattedHistory);
+    res.status(200).json(formattedItemHistory);
   } catch (error) {
     console.error('Error fetching item history:', error);
     res.status(500).json({ error: 'Internal server error' });

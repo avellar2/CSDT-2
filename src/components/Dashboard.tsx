@@ -124,28 +124,28 @@ const Dashboard: React.FC = () => {
             {(userRole === "ADMTOTAL" ||
               userRole === "ADMIN" ||
               userRole === "TECH") && (
-              <div
-                onClick={() => handleNavigate("/items")}
-                className="cursor-pointer bg-blue-400 hover:bg-blue-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-              >
-                <PlusCircle size={48} />
-                <p className="mt-2 text-lg">Cadastrar Itens</p>
-              </div>
-            )}
+                <div
+                  onClick={() => handleNavigate("/items")}
+                  className="cursor-pointer bg-blue-400 hover:bg-blue-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+                >
+                  <PlusCircle size={48} />
+                  <p className="mt-2 text-lg">Cadastrar Itens</p>
+                </div>
+              )}
 
             {/* Card "Ver Itens Cadastrados" - ADMTOTAL, ADMIN, TECH, ONLYREAD */}
             {(userRole === "ADMTOTAL" ||
               userRole === "ADMIN" ||
               userRole === "TECH" ||
               userRole === "ONLYREAD") && (
-              <div
-                onClick={() => handleNavigate("/device-list")}
-                className="cursor-pointer bg-green-400 hover:bg-green-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-              >
-                <List size={48} />
-                <p className="mt-2 text-lg">Ver Itens Cadastrados</p>
-              </div>
-            )}
+                <div
+                  onClick={() => handleNavigate("/device-list")}
+                  className="cursor-pointer bg-green-400 hover:bg-green-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+                >
+                  <List size={48} />
+                  <p className="mt-2 text-lg">Ver Itens Cadastrados</p>
+                </div>
+              )}
 
             {/* Card "Preencher OS" - ADMTOTAL, TECH */}
             {(userRole === "ADMTOTAL" || userRole === "TECH") && (
@@ -174,40 +174,40 @@ const Dashboard: React.FC = () => {
               userRole === "ADMIN" ||
               userRole === "TECH" ||
               userRole === "ONLYREAD") && (
-              <div
-                onClick={() => handleNavigate("/schools")}
-                className="cursor-pointer bg-orange-400 hover:bg-pink-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-              >
-                <GraduationCap size={48} />
-                <p className="mt-2 text-lg">Todas as Escolas</p>
-              </div>
-            )}
+                <div
+                  onClick={() => handleNavigate("/schools")}
+                  className="cursor-pointer bg-orange-400 hover:bg-pink-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+                >
+                  <GraduationCap size={48} />
+                  <p className="mt-2 text-lg">Todas as Escolas</p>
+                </div>
+              )}
 
             {/* Card "OS assinadas ou pendentes" - ADMTOTAL, ADMIN, TECH */}
             {(userRole === "ADMTOTAL" ||
               userRole === "ADMIN" ||
               userRole === "TECH") && (
-              <div
-                onClick={() => handleNavigate("/os-list")}
-                className="cursor-pointer bg-indigo-400 hover:bg-indigo-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-              >
-                <ClipboardText size={45} />
-                <p className="mt-2 text-lg">OS assinadas ou pendentes</p>
-              </div>
-            )}
+                <div
+                  onClick={() => handleNavigate("/os-list")}
+                  className="cursor-pointer bg-indigo-400 hover:bg-indigo-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+                >
+                  <ClipboardText size={45} />
+                  <p className="mt-2 text-lg">OS assinadas ou pendentes</p>
+                </div>
+              )}
 
             {/* Card "Todas as Impressoras" - ADMTOTAL, ADMIN, TECH */}
             {(userRole === "ADMTOTAL" ||
               userRole === "ADMIN" ||
               userRole === "TECH") && (
-              <div
-                onClick={() => handleNavigate("/printers")}
-                className="cursor-pointer bg-teal-400 hover:bg-teal-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-              >
-                <Printer size={48} />
-                <p className="mt-2 text-lg">Todas as Impressoras</p>
-              </div>
-            )}
+                <div
+                  onClick={() => handleNavigate("/printers")}
+                  className="cursor-pointer bg-teal-400 hover:bg-teal-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+                >
+                  <Printer size={48} />
+                  <p className="mt-2 text-lg">Todas as Impressoras</p>
+                </div>
+              )}
 
             {/* Card "Todos os Memorandos" - ADMTOTAL, ADMIN */}
             {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
@@ -235,14 +235,14 @@ const Dashboard: React.FC = () => {
             {(userRole === "ADMTOTAL" ||
               userRole === "ADMIN" ||
               userRole === "TECH") && (
-              <div
-                onClick={() => handleNavigate("/daily-demands")}
-                className="cursor-pointer bg-cyan-400 hover:bg-cyan-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-              >
-                <ClipboardText size={48} />
-                <p className="mt-2 text-lg">Demanda do Dia</p>
-              </div>
-            )}
+                <div
+                  onClick={() => handleNavigate("/daily-demands")}
+                  className="cursor-pointer bg-cyan-400 hover:bg-cyan-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+                >
+                  <ClipboardText size={48} />
+                  <p className="mt-2 text-lg">Demanda do Dia</p>
+                </div>
+              )}
 
             {/* Card "Criar OS interna" - ADMTOTAL, ADMIN */}
             {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
@@ -263,6 +263,17 @@ const Dashboard: React.FC = () => {
               >
                 <ClipboardText size={48} />
                 <p className="mt-2 text-lg">Demandas Internas</p>
+              </div>
+            )}
+
+            {/* Card "CHADA" - ADMTOTAL, ADMIN, TECH */}
+            {(userRole === "ADMTOTAL" || userRole === "ADMIN" || userRole === "TECH") && (
+              <div
+                onClick={() => handleNavigate("/chada")}
+                className="cursor-pointer bg-gray-500 hover:bg-gray-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+              >
+                <ClipboardText size={48} />
+                <p className="mt-2 text-lg">CHADA</p>
               </div>
             )}
           </div>

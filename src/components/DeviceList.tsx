@@ -230,25 +230,25 @@ const DeviceList: React.FC = () => {
 
   const filteredItems = Array.isArray(items)
     ? items
-        .filter(
-          (item) =>
-            (item.name &&
-              item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.brand &&
-              item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.serialNumber &&
-              item.serialNumber
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())) ||
-            (item.School &&
-              item.School.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())),
-        )
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        ) // Ordena por data de criação (mais recentes primeiro)
+      .filter(
+        (item) =>
+          (item.name &&
+            item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.brand &&
+            item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.serialNumber &&
+            item.serialNumber
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())) ||
+          (item.School &&
+            item.School.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ) // Ordena por data de criação (mais recentes primeiro)
     : [];
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -372,8 +372,35 @@ const DeviceList: React.FC = () => {
     }
 
     try {
+      // Verificar se algum item está na escola CHADA
+      const itemsInChada = items.filter(
+        (item) => selectedItems.includes(item.id) && item.School?.name === "CHADA"
+      );
+
+      if (itemsInChada.length > 0) {
+        const itemNames = itemsInChada.map((item) => item.name).join(", ");
+        setModalMessage(
+          `O(s) item(s) ${itemNames} está(ão) na CHADA. Por favor, dar baixa no(s) item(s) para o CSDT antes de fazer o memorando.`
+        );
+        setModalIsOpen(true);
+        return;
+      }
+
+      // Verificar se o número do memorando já existe
+      const checkResponse = await axios.get(
+        `/api/check-memorandum-number?number=${memorandumNumber}`
+      );
+
+      if (checkResponse.data.exists) {
+        setModalMessage(
+          `O número do memorando ${memorandumNumber} já existe. Por favor, escolha outro número.`
+        );
+        setModalIsOpen(true);
+        return;
+      }
+
       const selectedSchool = schools.find(
-        (school) => school.name === schoolName,
+        (school) => school.name === schoolName
       );
 
       if (!selectedSchool) {
@@ -401,8 +428,8 @@ const DeviceList: React.FC = () => {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-          },
-        },
+          }
+        }
       );
 
       // Decodificar o PDF Base64
@@ -532,7 +559,8 @@ const DeviceList: React.FC = () => {
         {currentItems.map((item) => (
           <div
             key={item.id}
-            className="bg-gray-900 p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center"
+            className={`p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center ${item.School?.name === "CHADA" ? "bg-rose-900 opacity-70" : "bg-gray-900"
+              }`}
           >
             <div className="flex items-center mb-4 md:mb-0">
               <input
@@ -588,165 +616,165 @@ const DeviceList: React.FC = () => {
 
       <div className="mt-6 flex justify-center">
         <div className="w-full flex flex-wrap justify-center gap-2">
-        <Pagination
-          total={filteredItems.length}
-          currentPage={currentPage}
-          itemsPerPage={itemsPerPage}
-          onPageChange={handlePageChange}
-        />
-      </div>
-
-      <Modal
-        isOpen={modalIsOpen}
-        onRequestClose={closeModal}
-        contentLabel="Mensagem"
-        className="modal-content"
-        overlayClassName="modal-overlay"
-      >
-        <div>
-          <h2 className="text-xl mb-4">Mensagem</h2>
-          <p>{modalMessage}</p>
-          <button
-            onClick={closeModal}
-            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
-          >
-            Fechar
-          </button>
+          <Pagination
+            total={filteredItems.length}
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+          />
         </div>
-      </Modal>
 
-      {/* AlertDialog para gerar o memorando */}
-      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="dark:text-white">
-              Gerar Memorando
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Preencha as informações abaixo para gerar o memorando.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-4">
-            {/* Campo para selecionar a escola */}
-            <label className="block">
-              <span className="dark:text-gray-300">Nome da Escola:</span>
-              <Select
-                options={schools.map((school) => ({
-                  value: school.name,
-                  label: school.name,
-                }))}
-                value={
-                  schoolName ? { value: schoolName, label: schoolName } : null
-                }
-                onChange={(selectedOption) => {
-                  const selectedSchoolName = selectedOption?.value || "";
-                  setSchoolName(selectedSchoolName);
-
-                  // Encontrar o distrito correspondente à escola selecionada
-                  const selectedSchool = schools.find(
-                    (school) => school.name === selectedSchoolName,
-                  );
-                  if (selectedSchool) {
-                    setDistrict(selectedSchool.district); // Atualiza o distrito
-                  }
-                }}
-                className="text-black"
-                placeholder="Selecione uma escola"
-                isClearable
-              />
-            </label>
-
-            {/* Campo para o distrito (preenchido automaticamente) */}
-            <label className="block">
-              <span className="dark:text-gray-300">Distrito:</span>
-              <input
-                type="text"
-                value={district}
-                readOnly
-                className="w-full p-2 rounded dark:bg-zinc-900 dark:text-white"
-              />
-            </label>
-
-            {/* Campo para o número do memorando */}
-            <label className="block">
-              <span className="dark:text-gray-300">Número do Memorando:</span>
-              <input
-                type="text"
-                value={memorandumNumber}
-                onChange={(e) => setMemorandumNumber(e.target.value)}
-                className="w-full p-2 rounded dark:bg-zinc-900 dark:text-white"
-                placeholder="Digite o número do memorando"
-              />
-            </label>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="hover:bg-red-300 dark:text-white">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleGenerateMemorandum}
-              className="bg-blue-500 hover:bg-blue-700 text-white"
-            >
-              Gerar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Drawer para exibir o histórico */}
-      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <DrawerContent
-          className="fixed inset-y-0 right-0 w-full max-w-md bg-zinc-900 text-white shadow-lg transform transition-transform duration-300 ease-in-out flex flex-col"
-          style={{
-            transform: isDrawerOpen ? "translateX(0)" : "translateX(100%)",
-          }}
+        <Modal
+          isOpen={modalIsOpen}
+          onRequestClose={closeModal}
+          contentLabel="Mensagem"
+          className="modal-content"
+          overlayClassName="modal-overlay"
         >
-          <DrawerHeader className="p-4 border-b border-zinc-800">
-            <DrawerTitle className="text-xl font-bold">
-              Histórico do Item
-            </DrawerTitle>
-            <DrawerDescription className="text-sm text-gray-400">
-              Histórico de movimentação para o item:{" "}
-              <strong>
-                {selectedItem?.name}, {selectedItem?.brand},{" "}
-                {selectedItem?.serialNumber}
-              </strong>
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="p-4 space-y-4 flex-1 overflow-y-auto">
-            {itemHistory.length > 0 ? (
-              itemHistory.map((history, index) => (
-                <div
-                  key={index}
-                  className="bg-zinc-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-                >
-                  <p>
-                    <strong>Foi para:</strong> {history.fromSchool || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Data:</strong>{" "}
-                    {new Date(history.movedAt).toLocaleString("pt-BR")}
-                  </p>
-                  <p>
-                    <strong>Gerado por:</strong> {history.generatedBy || "N/A"}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500">Nenhum histórico encontrado.</p>
-            )}
-          </div>
-          <DrawerFooter className="p-4 border-t border-zinc-800 flex justify-end">
-            <Button
-              onClick={closeHistoryDrawer}
-              className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-300"
+          <div>
+            <h2 className="text-xl mb-4">Mensagem</h2>
+            <p>{modalMessage}</p>
+            <button
+              onClick={closeModal}
+              className="mt-4 bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
             >
               Fechar
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    </div>
+            </button>
+          </div>
+        </Modal>
+
+        {/* AlertDialog para gerar o memorando */}
+        <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="dark:text-white">
+                Gerar Memorando
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Preencha as informações abaixo para gerar o memorando.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-4">
+              {/* Campo para selecionar a escola */}
+              <label className="block">
+                <span className="dark:text-gray-300">Nome da Escola:</span>
+                <Select
+                  options={schools.map((school) => ({
+                    value: school.name,
+                    label: school.name,
+                  }))}
+                  value={
+                    schoolName ? { value: schoolName, label: schoolName } : null
+                  }
+                  onChange={(selectedOption) => {
+                    const selectedSchoolName = selectedOption?.value || "";
+                    setSchoolName(selectedSchoolName);
+
+                    // Encontrar o distrito correspondente à escola selecionada
+                    const selectedSchool = schools.find(
+                      (school) => school.name === selectedSchoolName,
+                    );
+                    if (selectedSchool) {
+                      setDistrict(selectedSchool.district); // Atualiza o distrito
+                    }
+                  }}
+                  className="text-black"
+                  placeholder="Selecione uma escola"
+                  isClearable
+                />
+              </label>
+
+              {/* Campo para o distrito (preenchido automaticamente) */}
+              <label className="block">
+                <span className="dark:text-gray-300">Distrito:</span>
+                <input
+                  type="text"
+                  value={district}
+                  readOnly
+                  className="w-full p-2 rounded dark:bg-zinc-900 dark:text-white"
+                />
+              </label>
+
+              {/* Campo para o número do memorando */}
+              <label className="block">
+                <span className="dark:text-gray-300">Número do Memorando:</span>
+                <input
+                  type="text"
+                  value={memorandumNumber}
+                  onChange={(e) => setMemorandumNumber(e.target.value)}
+                  className="w-full p-2 rounded dark:bg-zinc-900 dark:text-white"
+                  placeholder="Digite o número do memorando"
+                />
+              </label>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="hover:bg-red-300 dark:text-white">
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleGenerateMemorandum}
+                className="bg-blue-500 hover:bg-blue-700 text-white"
+              >
+                Gerar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Drawer para exibir o histórico */}
+        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <DrawerContent
+            className="fixed inset-y-0 right-0 w-full max-w-md bg-zinc-900 text-white shadow-lg transform transition-transform duration-300 ease-in-out flex flex-col"
+            style={{
+              transform: isDrawerOpen ? "translateX(0)" : "translateX(100%)",
+            }}
+          >
+            <DrawerHeader className="p-4 border-b border-zinc-800">
+              <DrawerTitle className="text-xl font-bold">
+                Histórico do Item
+              </DrawerTitle>
+              <DrawerDescription className="text-sm text-gray-400">
+                Histórico de movimentação para o item:{" "}
+                <strong>
+                  {selectedItem?.name}, {selectedItem?.brand},{" "}
+                  {selectedItem?.serialNumber}
+                </strong>
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="p-4 space-y-4 flex-1 overflow-y-auto">
+              {itemHistory.length > 0 ? (
+                itemHistory.map((history, index) => (
+                  <div
+                    key={index}
+                    className="bg-zinc-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+                  >
+                    <p>
+                      <strong>Foi para:</strong> {history.fromSchool || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Data:</strong>{" "}
+                      {new Date(history.movedAt).toLocaleString("pt-BR")}
+                    </p>
+                    <p>
+                      <strong>Gerado por:</strong> {history.generatedBy || "N/A"}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500">Nenhum histórico encontrado.</p>
+              )}
+            </div>
+            <DrawerFooter className="p-4 border-t border-zinc-800 flex justify-end">
+              <Button
+                onClick={closeHistoryDrawer}
+                className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-300"
+              >
+                Fechar
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      </div>
     </div>
   );
 };
