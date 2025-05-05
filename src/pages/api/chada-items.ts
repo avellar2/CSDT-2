@@ -28,8 +28,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: item?.status || "Status não informado",
           problem: chadaItem.problem, // Problema da tabela ItemsChada
           createdAt: chadaItem.createdAt, // Data de adição
+          userName: chadaItem.userName, // Nome do usuário que adicionou
+          statusChada: chadaItem.status, // Status da tabela ItemsChada
+          updatedAt: chadaItem.updatedAt, // Data de atualização
+          updateBy: chadaItem.updatedBy, // Nome do usuário que atualizou
         };
       });
+
 
       res.status(200).json(formattedItems);
     } catch (error) {

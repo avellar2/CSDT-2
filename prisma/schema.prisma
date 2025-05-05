@@ -46,7 +46,15 @@ model ItemsChada {
   itemId    Int      // ID do item enviado para CHADA
   problem   String   // Descrição do problema
   userName  String   // Nome do usuário que enviou o item
+  status   ItemsChadaStatus   @default(PENDENTE)// Status do item (ex: "Pendente", "Resolvido")
   createdAt DateTime @default(now()) // Data de envio
+  updatedAt DateTime @updatedAt // Data de atualização
+  updatedBy String? // Nome do usuário que atualizou o status
+}
+
+enum ItemsChadaStatus {
+  PENDENTE
+  RESOLVIDO
 }
 
 model ItemHistory {

@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
+import { CheckCircle } from "phosphor-react"; // Importar o ícone do Phosphor
 
 const ChadaPage: React.FC = () => {
   const [items, setItems] = useState([]);
@@ -103,8 +104,39 @@ const ChadaPage: React.FC = () => {
 
       const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
       setItems(updatedItems);
+
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleResolveItem = async (itemId: number) => {
+    if (!userName) {
+      alert("Erro: Nome do usuário logado não encontrado.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/resolve-item", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ itemId, updatedBy: userName }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao dar baixa no item");
+      }
+
+      alert("Item atualizado com sucesso!");
+
+      // Atualizar a lista de itens
+      const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
+      setItems(updatedItems);
+    } catch (error) {
+      console.error("Erro ao dar baixa no item:", error);
+      alert("Falha ao atualizar o item. Tente novamente.");
     }
   };
 
@@ -125,21 +157,62 @@ const ChadaPage: React.FC = () => {
         Adicionar Item à CHADA
       </button>
       {items.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item: any) => (
-            <div
-              key={item.id}
-              className="bg-white shadow-md rounded-lg p-4 border border-gray-200 text-zinc-800"
-            >
-              <h3 className="text-lg font-semibold">{item.name}</h3>
-              <p><strong>Marca:</strong> {item.brand}</p>
-              <p><strong>Serial:</strong> {item.serialNumber || "Não informado"}</p>
-              <p><strong>Status:</strong> {item.status}</p>
-              <p><strong>Problema:</strong> {item.problem || "Não informado"}</p>
-              <p><strong>Adicionado por:</strong> {item.userName || "Não informado"}</p>
-              <p><strong>Adicionado em:</strong> {new Date(item.createdAt).toLocaleDateString("pt-BR")}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Coluna da esquerda: Itens PENDENTES */}
+          <div>
+            <h2 className="text-xl font-bold mb-4">Itens Pendentes</h2>
+            <div className="grid grid-cols-1 gap-4">
+              {items
+                .filter((item: any) => item.statusChada === "PENDENTE")
+                .map((item: any) => (
+                  <div
+                    key={item.id}
+                    className="bg-white shadow-md rounded-lg p-4 border border-gray-200 text-zinc-800"
+                  >
+                    <h3 className="text-lg font-semibold">{item.name}</h3>
+                    <p><strong>Marca:</strong> {item.brand}</p>
+                    <p><strong>Serial:</strong> {item.serialNumber || "Não informado"}</p>
+                    <p><strong>Status:</strong> {item.status}</p>
+                    <p><strong>Problema:</strong> {item.problem || "Não informado"}</p>
+                    <p><strong>Adicionado por:</strong> {item.userName || "Não informado"}</p>
+                    <p><strong>Adicionado em:</strong> {new Date(item.createdAt).toLocaleDateString("pt-BR")}</p>
+                    <button
+                      onClick={() => handleResolveItem(item.id)}
+                      className="mt-4 flex items-center bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                    >
+                      <CheckCircle size={20} className="mr-2" />
+                      Dar Baixa
+                    </button>
+                  </div>
+                ))}
             </div>
-          ))}
+          </div>
+
+          {/* Coluna da direita: Itens RESOLVIDOS */}
+          <div>
+            <h2 className="text-xl font-bold mb-4">Itens Resolvidos</h2>
+            <div className="grid grid-cols-1 gap-4">
+              {items
+                .filter((item: any) => item.statusChada === "RESOLVIDO")
+                .map((item: any) => (
+                  <div
+                    key={item.id}
+                    className="bg-white shadow-md rounded-lg p-4 border border-gray-200 text-zinc-800"
+                  >
+                    <h3 className="text-lg font-semibold">{item.name}</h3>
+                    <p><strong>Marca:</strong> {item.brand}</p>
+                    <p><strong>Serial:</strong> {item.serialNumber || "Não informado"}</p>
+                    <p><strong>Status:</strong> {item.status}</p>
+                    <p><strong>Problema:</strong> {item.problem || "Não informado"}</p>
+                    <p><strong>Adicionado por:</strong> {item.userName || "Não informado"}</p>
+                    <p><strong>Adicionado em:</strong> {new Date(item.createdAt).toLocaleDateString("pt-BR")}</p>
+                    <p><strong>Atualizado por:</strong> {item.updateBy
+                      || "Não informado"}</p>
+                    <p><strong>Atualizado em:</strong> {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString("pt-BR") : "Não informado"}</p>
+                  </div>
+                ))}
+            </div>
+          </div>
         </div>
       ) : (
         <p>Nenhum item na CHADA.</p>
