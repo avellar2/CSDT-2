@@ -1,7 +1,8 @@
 import { supabase } from "@/lib/supabaseClient";
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
-import { CheckCircle } from "phosphor-react"; // Importar o ícone do Phosphor
+import { CheckCircle, Printer } from "phosphor-react"; // Importar os ícones do Phosphor
+import { PDFDocument, rgb } from "pdf-lib";
 
 const ChadaPage: React.FC = () => {
   const [items, setItems] = useState([]);
@@ -10,6 +11,7 @@ const ChadaPage: React.FC = () => {
   const [allItems, setAllItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [problem, setProblem] = useState("");
+  const [sector, setSector] = useState("");
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,8 +75,8 @@ const ChadaPage: React.FC = () => {
   };
 
   const handleAddToChada = async () => {
-    if (!selectedItem || !problem) {
-      alert("Selecione um item e descreva o problema.");
+    if (!selectedItem || !problem || !sector) {
+      alert("Selecione um item, descreva o problema e informe o setor.");
       return;
     }
 
@@ -90,6 +92,7 @@ const ChadaPage: React.FC = () => {
           itemId: selectedItem,
           problem,
           userName,
+          sector, // Enviar o setor ao backend
         }),
       });
 
@@ -100,11 +103,11 @@ const ChadaPage: React.FC = () => {
       alert("Item adicionado à CHADA com sucesso!");
       setModalIsOpen(false);
       setProblem("");
+      setSector(""); // Limpar o campo setor
       setSelectedItem(null);
 
       const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
       setItems(updatedItems);
-
     } catch (error) {
       console.error(error);
     }
@@ -117,6 +120,8 @@ const ChadaPage: React.FC = () => {
     }
 
     try {
+      console.log("Atualizando itemId:", itemId);
+
       const response = await fetch("/api/resolve-item", {
         method: "POST",
         headers: {
@@ -140,9 +145,115 @@ const ChadaPage: React.FC = () => {
     }
   };
 
+  const handlePrintOS = async (item: any) => {
+    try {
+      // Carregar o modelo de PDF
+      const existingPdfBytes = await fetch("/os-interna.pdf").then((res) =>
+        res.arrayBuffer()
+      );
+
+      // Carregar o PDF com PDF-Lib
+      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+      // Obter o formulário do PDF
+      const form = pdfDoc.getForm();
+
+      // Preencher os campos do formulário
+      form.getTextField("SETOR").setText(item.sector || "Não informado");
+      form.getTextField("HORA").setText(new Date().toLocaleTimeString("pt-BR"));
+      form.getTextField("DATA").setText(new Date().toLocaleDateString("pt-BR"));
+      form.getTextField("TECNICO").setText(item.userName || "Não informado");
+      form.getTextField("ITEM").setText(
+        `${item.brand || "Não informado"}, serial: ${item.serialNumber || "Não informado"}`
+      );
+      form.getTextField("RELATORIO").setText(item.problem || "Não informado");
+
+      // Serializar o PDF para bytes
+      const pdfBytes = await pdfDoc.save();
+
+      // Criar um blob e fazer o download do PDF
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `os-${item.serialNumber || "item"}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Erro ao gerar o PDF:", error);
+      alert("Erro ao gerar o PDF. Tente novamente.");
+    }
+  };
+
+  const handleUploadOS = async (itemId: number) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.multiple = true;
+
+    input.onchange = async (event: any) => {
+      const files = event.target.files;
+
+      if (!files || files.length === 0) {
+        alert("Nenhuma imagem selecionada.");
+        return;
+      }
+
+      try {
+        const uploadedUrls: string[] = [];
+
+        for (const file of files) {
+          const fileName = `${itemId}-${Date.now()}-${file.name}`;
+          const { data: uploadData, error } = await supabase.storage
+            .from("os-images")
+            .upload(fileName, file, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (error) {
+            console.error("Erro ao fazer upload da imagem:", error);
+            alert("Erro ao fazer upload da imagem.");
+            return;
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from("os-images")
+            .getPublicUrl(fileName);
+
+          const publicUrl = publicUrlData.publicUrl;
+          uploadedUrls.push(publicUrl);
+        }
+
+        console.log("URLs enviadas para osImages:", uploadedUrls);
+
+        // Atualizar a tabela itemsChada com as URLs das imagens
+        const { error: updateError } = await supabase
+          .from("ItemsChada")
+          .update({ osImages: uploadedUrls })
+          .eq("itemId", Number(itemId)); // Certifique-se de que itemId é um número
+
+        if (updateError) {
+          console.error("Erro ao atualizar a tabela itemsChada:", updateError);
+          alert("Erro ao salvar as imagens na tabela.");
+          return;
+        }
+
+        alert("Imagens enviadas com sucesso!");
+      } catch (error) {
+        console.error("Erro ao fazer upload das imagens:", error);
+        alert("Erro ao fazer upload das imagens. Tente novamente.");
+      }
+    };
+
+    input.click();
+  };
+
   if (loading) {
     return <div>Carregando itens da CHADA...</div>;
   }
+
+  console.log(items);
 
   return (
     <div className="p-6">
@@ -174,15 +285,32 @@ const ChadaPage: React.FC = () => {
                     <p><strong>Serial:</strong> {item.serialNumber || "Não informado"}</p>
                     <p><strong>Status:</strong> {item.status}</p>
                     <p><strong>Problema:</strong> {item.problem || "Não informado"}</p>
+                    <p><strong>Setor:</strong> {item.sector || "Não informado"}</p>
                     <p><strong>Adicionado por:</strong> {item.userName || "Não informado"}</p>
                     <p><strong>Adicionado em:</strong> {new Date(item.createdAt).toLocaleDateString("pt-BR")}</p>
-                    <button
-                      onClick={() => handleResolveItem(item.id)}
-                      className="mt-4 flex items-center bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                    >
-                      <CheckCircle size={20} className="mr-2" />
-                      Dar Baixa
-                    </button>
+                    <div className="flex space-x-4 mt-4">
+                      <button
+                        onClick={() => handleResolveItem(item.id)}
+                        className="flex items-center bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                      >
+                        <CheckCircle size={20} className="mr-2" />
+                        Dar Baixa
+                      </button>
+                      <button
+                        onClick={() => handlePrintOS(item)}
+                        className="flex items-center bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                      >
+                        <Printer size={20} className="mr-2" />
+                        Imprimir OS
+                      </button>
+                      <button
+                        onClick={() => handleUploadOS(item.id)}
+                        className="flex items-center bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+                      >
+                        <Printer size={20} className="mr-2" />
+                        Subir OS
+                      </button>
+                    </div>
                   </div>
                 ))}
             </div>
@@ -204,12 +332,23 @@ const ChadaPage: React.FC = () => {
                     <p><strong>Serial:</strong> {item.serialNumber || "Não informado"}</p>
                     <p><strong>Status:</strong> {item.status}</p>
                     <p><strong>Problema:</strong> {item.problem || "Não informado"}</p>
+                    <p><strong>Setor:</strong> {item.setor || "Não informado"}</p>
                     <p><strong>Adicionado por:</strong> {item.userName || "Não informado"}</p>
                     <p><strong>Adicionado em:</strong> {new Date(item.createdAt).toLocaleDateString("pt-BR")}</p>
                     <p><strong>Atualizado por:</strong> {item.updateBy
                       || "Não informado"}</p>
                     <p><strong>Atualizado em:</strong> {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString("pt-BR") : "Não informado"}</p>
+                    <div className="flex space-x-4 mt-4">
+                      <button
+                        onClick={() => handleUploadOS(item.id)}
+                        className="flex items-center bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+                      >
+                        <Printer size={20} className="mr-2" />
+                        Subir OS
+                      </button>
+                    </div>
                   </div>
+
                 ))}
             </div>
           </div>
@@ -232,6 +371,13 @@ const ChadaPage: React.FC = () => {
               }
               placeholder="Selecione um item"
               className="mb-4 text-zinc-800"
+            />
+            <input
+              type="text"
+              className="w-full mb-4 p-2 border border-gray-300 rounded"
+              placeholder="Informe o setor"
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
             />
             <textarea
               className="w-full mb-4 p-2 border border-gray-300 rounded"

@@ -42,14 +42,16 @@ model Item {
 }
 
 model ItemsChada {
-  id        Int      @id @default(autoincrement())
-  itemId    Int      // ID do item enviado para CHADA
-  problem   String   // Descrição do problema
-  userName  String   // Nome do usuário que enviou o item
-  status   ItemsChadaStatus   @default(PENDENTE)// Status do item (ex: "Pendente", "Resolvido")
-  createdAt DateTime @default(now()) // Data de envio
-  updatedAt DateTime @updatedAt // Data de atualização
+  id        Int              @id @default(autoincrement())
+  itemId    Int // ID do item enviado para CHADA
+  problem   String // Descrição do problema
+  userName  String // Nome do usuário que enviou o item
+  status    ItemsChadaStatus @default(PENDENTE) // Status do item (ex: "Pendente", "Resolvido")
+  createdAt DateTime         @default(now()) // Data de envio
+  updatedAt DateTime         @updatedAt // Data de atualização
+  setor     String
   updatedBy String? // Nome do usuário que atualizou o status
+  osImages  String[] // Imagens do OS
 }
 
 enum ItemsChadaStatus {
@@ -70,14 +72,14 @@ model ItemHistory {
 }
 
 model Memorandum {
-  id        Int                 @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   number      String           @unique // Número do memorando
-  schoolName String
-  district  String
+  schoolName  String
+  district    String
   generatedBy String
-  items     MemorandumItem[]    // Relacionamento com MemorandumItem
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
+  items       MemorandumItem[] // Relacionamento com MemorandumItem
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
 model MemorandumItem {
@@ -140,7 +142,7 @@ model Os {
   fotosDepois               String[]
   status                    String   @default("Pendente")
   createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt @default(now())
+  updatedAt                 DateTime @default(now()) @updatedAt
 }
 
 model OsAssinada {
@@ -221,7 +223,7 @@ model School {
   director     String?
   phone        String?
   email        String?
-  students     Int? @default(0)
+  students     Int?           @default(0)
   Item         Item[]
   SchoolDemand SchoolDemand[]
 }

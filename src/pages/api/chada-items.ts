@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
+import { s } from "@fullcalendar/core/internal-common";
 
 const prisma = new PrismaClient();
 
@@ -32,6 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           statusChada: chadaItem.status, // Status da tabela ItemsChada
           updatedAt: chadaItem.updatedAt, // Data de atualização
           updateBy: chadaItem.updatedBy, // Nome do usuário que atualizou
+          sector: chadaItem.setor, // Setor da tabela ItemsChada
         };
       });
 

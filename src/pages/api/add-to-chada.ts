@@ -8,9 +8,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método não permitido" });
   }
 
-  const { itemId, problem, userName } = req.body;
+  const { itemId, problem, userName, sector } = req.body;
 
-  if (!itemId || !problem || !userName) {
+  if (!itemId || !problem || !userName || !sector) {
     return res.status(400).json({ error: "Todos os campos são obrigatórios" });
   }
 
@@ -34,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         itemId: Number(itemId),
         problem,
         userName,
+        setor: sector, // Adiciona o setor à tabela ItemsChada
       },
     });
 
