@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import { CheckCircle, Printer } from "phosphor-react"; // Importar os ícones do Phosphor
 import { PDFDocument, rgb } from "pdf-lib";
+import Modal from "@/components/Modal";
 
 const ChadaPage: React.FC = () => {
   const [items, setItems] = useState([]);
@@ -22,7 +23,6 @@ const ChadaPage: React.FC = () => {
       } else {
         console.log("Usuário logado:", user);
 
-        // Buscar o displayName do usuário logado
         const response = await fetch("/api/get-user-displayname", {
           method: "POST",
           headers: {
@@ -34,7 +34,6 @@ const ChadaPage: React.FC = () => {
         if (response.ok) {
           const data = await response.json();
           setUserName(data.displayName);
-          console.log("DisplayName do usuário logado:", data.displayName); // Adicionado aqui
         } else {
           console.error("Erro ao buscar displayName do usuário logado");
         }
@@ -81,8 +80,6 @@ const ChadaPage: React.FC = () => {
     }
 
     try {
-      console.log("Usuário logado antes de enviar:", userName);
-
       const response = await fetch("/api/add-to-chada", {
         method: "POST",
         headers: {
@@ -92,7 +89,7 @@ const ChadaPage: React.FC = () => {
           itemId: selectedItem,
           problem,
           userName,
-          sector, // Enviar o setor ao backend
+          sector,
         }),
       });
 
@@ -103,7 +100,7 @@ const ChadaPage: React.FC = () => {
       alert("Item adicionado à CHADA com sucesso!");
       setModalIsOpen(false);
       setProblem("");
-      setSector(""); // Limpar o campo setor
+      setSector("");
       setSelectedItem(null);
 
       const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
@@ -115,50 +112,45 @@ const ChadaPage: React.FC = () => {
 
   const handleResolveItem = async (itemId: number) => {
     if (!userName) {
-      alert("Erro: Nome do usuário logado não encontrado.");
+      alert("Nome do usuário logado não encontrado.");
       return;
     }
 
     try {
-      console.log("Atualizando itemId:", itemId);
-
-      const response = await fetch("/api/resolve-item", {
-        method: "POST",
+      const response = await fetch("/api/update-item-status", {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ itemId, updatedBy: userName }),
+        body: JSON.stringify({
+          itemId,
+          status: "RESOLVIDO",
+        }),
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao dar baixa no item");
+        throw new Error("Erro ao atualizar o status do item");
       }
 
-      alert("Item atualizado com sucesso!");
+      alert("Status do item atualizado para RESOLVIDO!");
 
-      // Atualizar a lista de itens
       const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
       setItems(updatedItems);
     } catch (error) {
-      console.error("Erro ao dar baixa no item:", error);
-      alert("Falha ao atualizar o item. Tente novamente.");
+      console.error("Erro ao resolver o item:", error);
+      alert("Falha ao atualizar o status do item. Tente novamente.");
     }
   };
 
   const handlePrintOS = async (item: any) => {
     try {
-      // Carregar o modelo de PDF
       const existingPdfBytes = await fetch("/os-interna.pdf").then((res) =>
         res.arrayBuffer()
       );
 
-      // Carregar o PDF com PDF-Lib
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-      // Obter o formulário do PDF
       const form = pdfDoc.getForm();
 
-      // Preencher os campos do formulário
       form.getTextField("SETOR").setText(item.sector || "Não informado");
       form.getTextField("HORA").setText(new Date().toLocaleTimeString("pt-BR"));
       form.getTextField("DATA").setText(new Date().toLocaleDateString("pt-BR"));
@@ -168,10 +160,8 @@ const ChadaPage: React.FC = () => {
       );
       form.getTextField("RELATORIO").setText(item.problem || "Não informado");
 
-      // Serializar o PDF para bytes
       const pdfBytes = await pdfDoc.save();
 
-      // Criar um blob e fazer o download do PDF
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -227,16 +217,19 @@ const ChadaPage: React.FC = () => {
 
         console.log("URLs enviadas para osImages:", uploadedUrls);
 
-        // Atualizar a tabela itemsChada com as URLs das imagens
-        const { error: updateError } = await supabase
-          .from("ItemsChada")
-          .update({ osImages: uploadedUrls })
-          .eq("itemId", Number(itemId)); // Certifique-se de que itemId é um número
+        const response = await fetch("/api/upload-os", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            itemId,
+            osImages: uploadedUrls,
+          }),
+        });
 
-        if (updateError) {
-          console.error("Erro ao atualizar a tabela itemsChada:", updateError);
-          alert("Erro ao salvar as imagens na tabela.");
-          return;
+        if (!response.ok) {
+          throw new Error("Erro ao salvar as imagens na tabela");
         }
 
         alert("Imagens enviadas com sucesso!");
@@ -253,8 +246,6 @@ const ChadaPage: React.FC = () => {
     return <div>Carregando itens da CHADA...</div>;
   }
 
-  console.log(items);
-
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Itens na CHADA</h1>
@@ -269,7 +260,6 @@ const ChadaPage: React.FC = () => {
       </button>
       {items.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Coluna da esquerda: Itens PENDENTES */}
           <div>
             <h2 className="text-xl font-bold mb-4">Itens Pendentes</h2>
             <div className="grid grid-cols-1 gap-4">
@@ -303,20 +293,17 @@ const ChadaPage: React.FC = () => {
                         <Printer size={20} className="mr-2" />
                         Imprimir OS
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => handleUploadOS(item.id)}
-                        className="flex items-center bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+                        className="flex items-center bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
                       >
-                        <Printer size={20} className="mr-2" />
-                        Subir OS
-                      </button>
+                        Upload OS
+                      </button> */}
                     </div>
                   </div>
                 ))}
             </div>
           </div>
-
-          {/* Coluna da direita: Itens RESOLVIDOS */}
           <div>
             <h2 className="text-xl font-bold mb-4">Itens Resolvidos</h2>
             <div className="grid grid-cols-1 gap-4">
@@ -332,23 +319,20 @@ const ChadaPage: React.FC = () => {
                     <p><strong>Serial:</strong> {item.serialNumber || "Não informado"}</p>
                     <p><strong>Status:</strong> {item.status}</p>
                     <p><strong>Problema:</strong> {item.problem || "Não informado"}</p>
-                    <p><strong>Setor:</strong> {item.setor || "Não informado"}</p>
+                    <p><strong>Setor:</strong> {item.sector || "Não informado"}</p>
                     <p><strong>Adicionado por:</strong> {item.userName || "Não informado"}</p>
                     <p><strong>Adicionado em:</strong> {new Date(item.createdAt).toLocaleDateString("pt-BR")}</p>
-                    <p><strong>Atualizado por:</strong> {item.updateBy
-                      || "Não informado"}</p>
+                    <p><strong>Atualizado por:</strong> {item.updateBy || "Não informado"}</p>
                     <p><strong>Atualizado em:</strong> {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString("pt-BR") : "Não informado"}</p>
                     <div className="flex space-x-4 mt-4">
                       <button
                         onClick={() => handleUploadOS(item.id)}
                         className="flex items-center bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
                       >
-                        <Printer size={20} className="mr-2" />
                         Subir OS
                       </button>
                     </div>
                   </div>
-
                 ))}
             </div>
           </div>
@@ -356,11 +340,10 @@ const ChadaPage: React.FC = () => {
       ) : (
         <p>Nenhum item na CHADA.</p>
       )}
-
       {modalIsOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Adicionar Item à CHADA</h2>
+            <h2 className="text-xl font-bold mb-4 text-zinc-700">Adicionar Item à CHADA</h2>
             <Select
               options={allItems.map((item: any) => ({
                 value: item.id,

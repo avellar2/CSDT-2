@@ -43,7 +43,7 @@ model Item {
 
 model ItemsChada {
   id        Int              @id @default(autoincrement())
-  itemId    Int // ID do item enviado para CHADA
+  itemId    Int              // ID do item enviado para CHADA
   problem   String // Descrição do problema
   userName  String // Nome do usuário que enviou o item
   status    ItemsChadaStatus @default(PENDENTE) // Status do item (ex: "Pendente", "Resolvido")
@@ -69,6 +69,14 @@ model ItemHistory {
   Item        Item     @relation(fields: [itemId], references: [id])
 
   @@index([itemId])
+}
+
+model ItemsHistoryChada {
+  id         Int      @id @default(autoincrement())
+  itemId     Int
+  resolvedBy String
+  resolvedAt DateTime
+  images     String[]
 }
 
 model Memorandum {
