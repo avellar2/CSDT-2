@@ -42,8 +42,8 @@ model Item {
 }
 
 model ItemsChada {
-  id        Int              @id @default(autoincrement())
-  itemId    Int              // ID do item enviado para CHADA
+  id        String           @id @default(uuid())
+  itemId    Int // ID do item enviado para CHADA
   problem   String // Descrição do problema
   userName  String // Nome do usuário que enviou o item
   status    ItemsChadaStatus @default(PENDENTE) // Status do item (ex: "Pendente", "Resolvido")
@@ -51,7 +51,7 @@ model ItemsChada {
   updatedAt DateTime         @updatedAt // Data de atualização
   setor     String
   updatedBy String? // Nome do usuário que atualizou o status
-  osImages  String[] // Imagens do OS
+  osImages  Json[] // Imagens do OS
 }
 
 enum ItemsChadaStatus {

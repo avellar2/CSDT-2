@@ -8,39 +8,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método não permitido" });
   }
 
-  const { itemId, status } = req.body;
+  console.log("Dados recebidos no backend:", req.body);
 
-  if (!itemId || !status) {
-    return res.status(400).json({ error: "Os campos itemId e status são obrigatórios." });
+  const { id, status, updatedBy } = req.body;
+
+  if (!id || !status || !updatedBy) {
+    console.error("Campos obrigatórios ausentes:", { id, status, updatedBy });
+    return res.status(400).json({ error: "Os campos id, status e updatedBy são obrigatórios." });
   }
 
   try {
-    console.log("Atualizando itemId:", itemId);
+    console.log("Atualizando registro com id:", id);
 
-    // Verificar se o registro existe
-    const existingItem = await prisma.itemsChada.findMany({
-      where: { itemId: Number(itemId) },
+    // Verificar se o registro existe na tabela ItemsChada
+    const existingItem = await prisma.itemsChada.findUnique({
+      where: { id: String(id) },
     });
 
     if (!existingItem) {
-      console.error("Registro não encontrado para itemId:", itemId);
+      console.error("Registro não encontrado para id:", id);
       return res.status(404).json({ error: "Registro não encontrado na tabela ItemsChada." });
     }
 
-    // Atualizar o status do item
-    const updatedItem = await prisma.itemsChada.updateMany({
-      where: { itemId: Number(itemId) },
-      data: { status },
+    // Atualizar o status e o campo updatedBy na tabela ItemsChada
+    const updatedItem = await prisma.itemsChada.update({
+      where: { id: String(id) },
+      data: { status, updatedBy },
     });
 
-    if (updatedItem.count === 0) {
-      console.error("Nenhum registro encontrado para itemId:", itemId);
-      return res.status(404).json({ error: "Registro não encontrado na tabela ItemsChada." });
+    console.log("Status atualizado com sucesso na tabela ItemsChada:", updatedItem);
+
+    // Localizar o registro correspondente na tabela Item usando o itemId
+    const itemToUpdate = await prisma.item.findUnique({
+      where: { id: existingItem.itemId }, // Usar itemId da tabela ItemsChada para encontrar o registro na tabela Item
+    });
+
+    if (!itemToUpdate) {
+      console.error("Registro não encontrado na tabela Item para itemId:", existingItem.itemId);
+      return res.status(404).json({ error: "Registro não encontrado na tabela Item." });
     }
 
-    return res.status(200).json({ message: "Status atualizado com sucesso!", updatedItem });
+    // Atualizar o campo schoolId na tabela Item
+    const updatedItemInItemTable = await prisma.item.update({
+      where: { id: itemToUpdate.id },
+      data: { schoolId: 225 }, // Atualizar o campo schoolId para 225 (CSDT)
+    });
+
+    console.log("schoolId atualizado com sucesso na tabela Item:", updatedItemInItemTable);
+
+    return res.status(200).json({
+      message: "Status e schoolId atualizados com sucesso!",
+      updatedItem,
+      updatedItemInItemTable,
+    });
   } catch (error) {
-    console.error("Erro ao atualizar o status do item:", error);
-    return res.status(500).json({ error: "Erro ao atualizar o status do item." });
+    console.error("Erro ao atualizar o status ou schoolId:", error);
+    return res.status(500).json({ error: "Erro ao atualizar o status ou schoolId." });
   }
 }

@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const formattedItems = itemsChada.map((chadaItem) => {
         const item = items.find((i) => i.id === chadaItem.itemId);
         return {
-          id: chadaItem.itemId,
+          id: chadaItem.id,
           name: item?.name || "Item não encontrado",
           brand: item?.brand || "Marca não informada",
           serialNumber: item?.serialNumber || "Serial não informado",
@@ -34,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updatedAt: chadaItem.updatedAt, // Data de atualização
           updateBy: chadaItem.updatedBy, // Nome do usuário que atualizou
           sector: chadaItem.setor, // Setor da tabela ItemsChada
+          osImages: chadaItem.osImages, // Imagens da tabela ItemsChada
         };
       });
 
