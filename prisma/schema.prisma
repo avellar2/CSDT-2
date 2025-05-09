@@ -143,6 +143,8 @@ model Os {
   roteador                  String
   oki                       String
   kyocera                   String
+  hp                        String   @default("0")
+  ricoh                     String   @default("0")
   outrasImpressoras         String
   solucionado               String
   emailResponsavel          String
@@ -189,6 +191,8 @@ model OsAssinada {
   roteador                  String
   oki                       String
   kyocera                   String
+  hp                        String   @default("0")
+  ricoh                     String   @default("0")
   outrasImpressoras         String
   solucionado               String
   emailResponsavel          String

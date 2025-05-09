@@ -395,7 +395,7 @@ const DailyDemands: React.FC = () => {
                 className="p-4 bg-gray-100 rounded-lg shadow-sm text-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center"
               >
                 <div className="w-full sm:w-auto">
-                  <h2 className="font-bold text-sm sm:text-base">{demand.title}</h2>
+                  <h2 className="font-bold text-sm sm:text-base">oi {demand.title}</h2>
                   <p className="mt-2 text-sm sm:text-base whitespace-pre-line">
                     {demand.description}
                   </p>

@@ -84,7 +84,7 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
           value={formData.emailResponsavel}
           onChange={stableHandleInputChange}
           placeholder="Email da Escola"
-          readOnly
+          
           className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500 cursor-not-allowed bg-zinc-300"
         />
         <input
@@ -412,13 +412,32 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
         />
         <input
           type="number"
+          name="hp"
+          value={formData.hp}
+          onChange={stableHandleInputChange}
+          required
+          placeholder="HP"
+          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+        />
+        <input
+          type="number"
+          name="ricoh"
+          value={formData.ricoh}
+          onChange={stableHandleInputChange}
+          required
+          placeholder="Ricoh"
+          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+        />
+        <input
+          type="number"
           name="outrasImpressoras"
           value={formData.outrasImpressoras}
           onChange={stableHandleInputChange}
           required
-          placeholder="Outras Impressoras"
+          placeholder="Outras Impressoras (PRÓPRIA)"
           className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
         />
+
       </div>
 
       <div className="bg-white p-4 mt-4">

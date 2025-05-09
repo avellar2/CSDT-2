@@ -33,6 +33,8 @@ const initialFormData = {
   roteador: "",
   oki: "",
   kyocera: "",
+  hp: "",
+  ricoh: "",
   outrasImpressoras: "",
   sim: "",
   nao: "",
