@@ -6,7 +6,9 @@ const ConfirmarOS: React.FC = () => {
   const { osId } = router.query;
   const [nameAssigned, setNameAssigned] = useState('');
   const [cpfOrRegistration, setCpfOrRegistration] = useState('');
-  const [message, setMessage] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,13 +23,26 @@ const ConfirmarOS: React.FC = () => {
       });
 
       if (response.ok) {
-        setMessage('OS confirmada com sucesso!');
+        setIsSuccess(true);
+        setModalMessage('A OS foi confirmada com sucesso!');
+        setIsModalOpen(true);
       } else {
-        setMessage('Erro ao confirmar OS.');
+        setIsSuccess(false);
+        setModalMessage('Erro ao confirmar OS. Por favor, tente novamente.');
+        setIsModalOpen(true);
       }
     } catch (error) {
       console.error('Erro ao confirmar OS:', error);
-      setMessage('Erro ao confirmar OS.');
+      setIsSuccess(false);
+      setModalMessage('Erro ao confirmar OS. Por favor, tente novamente.');
+      setIsModalOpen(true);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    if (isSuccess) {
+      router.push('/'); // Redirect to another page if needed
     }
   };
 
@@ -68,7 +83,28 @@ const ConfirmarOS: React.FC = () => {
           Confirmar OS
         </button>
       </form>
-      {message && <p className="mt-4 text-center">{message}</p>}
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-96">
+            <h2
+              className={`text-2xl font-bold mb-4 text-center ${
+                isSuccess ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {isSuccess ? 'Sucesso!' : 'Erro!'}
+            </h2>
+            <p className="text-center text-gray-700 mb-6">{modalMessage}</p>
+            <button
+              onClick={closeModal}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -54,6 +54,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
           switch: os.switch,
           roteador: os.roteador,
           oki: os.oki,
+          hp: os.hp,
+          ricoh: os.ricoh,
           kyocera: os.kyocera,
           outrasImpressoras: os.outrasImpressoras,
           solucionado: os.solucionado,

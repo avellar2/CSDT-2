@@ -159,7 +159,7 @@ model OsAssinada {
   id                        Int      @id @default(autoincrement())
   unidadeEscolar            String
   tecnicoResponsavel        String
-  numeroOs                  String
+  numeroOs                  String   @unique
   data                      String
   hora                      String
   notebooksOutroLocal       String

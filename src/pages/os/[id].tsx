@@ -134,7 +134,7 @@ const OSDetail: React.FC = () => {
           <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Switch:</strong> {os.switchDevice}</p>
           <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Roteador:</strong> {os.roteador}</p>
           <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Oki:</strong> {os.oki}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Oki:</strong> {os.ricoh}</p>
+          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Ricoh:</strong> {os.ricoh}</p>
           <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>HP:</strong> {os.hp}</p>
           <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Kyocera:</strong> {os.kyocera}</p>
           <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Outras Impressoras:</strong> {os.outrasImpressoras}</p>

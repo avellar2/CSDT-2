@@ -13,11 +13,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Verificar na tabela 'os'
     const existingOs = await prisma.os.findUnique({
       where: { numeroOs: String(numeroOs) },
     });
 
-    if (existingOs) {
+    // Verificar na tabela 'osAssinada'
+    const existingOsAssinada = await prisma.osAssinada.findUnique({
+      where: { numeroOs: String(numeroOs) },
+    });
+
+    if (existingOs || existingOsAssinada) {
       return res.status(200).json({ exists: true });
     }
 
