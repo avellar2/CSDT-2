@@ -84,7 +84,7 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
           value={formData.emailResponsavel}
           onChange={stableHandleInputChange}
           placeholder="Email da Escola"
-          
+          readOnly
           className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500 cursor-not-allowed bg-zinc-300"
         />
         <input

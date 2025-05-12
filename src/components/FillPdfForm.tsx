@@ -240,7 +240,7 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
       }
 
       const osId = result.id; // Obter o ID da OS criada
-      const aceiteUrl = `http://localhost:3000/confirmar-os?osId=${osId}`;
+      const aceiteUrl = `https://csdt.vercel.app/confirmar-os?osId=${osId}`;
 
       const msg = {
         to: formData.emailResponsavel,
