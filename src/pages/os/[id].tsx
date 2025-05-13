@@ -44,7 +44,7 @@ interface OS {
   educacaoConectada?: string;
   naoHaProvedor?: string;
   rack?: string;
-  switchDevice?: string;
+  switch?: string;
   roteador?: string;
   oki?: string;
   kyocera?: string;
@@ -97,157 +97,170 @@ const OSDetail: React.FC = () => {
       <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-center">Detalhes da OS</h1>
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg flex flex-col items-center">
         <h2 className="text-2xl sm:text-5xl font-bold mb-4 bg-blue-900 rounded-xl text-white p-2 sm:p-4 text-center">{os.unidadeEscolar}</h2>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>Técnico Responsável:</strong> {os.tecnicoResponsavel}</p>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>Número OS:</strong> {os.numeroOs}</p>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>Assinatura:</strong> {os.nameAssigned}</p>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>CPF/Matrícula:</strong> {os.cpfOrRegistration}</p>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>Data:</strong> {os.data}</p>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>Hora:</strong> {os.hora}</p>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>Status:</strong> {os.status}</p>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>Solicitação da Visita:</strong> {os.solicitacaoDaVisita}</p>
-        <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center w-full sm:w-72'><strong>Relatório:</strong> {os.relatorio}</p>
 
-        <div className="overflow-x-auto mt-8 bg-red-500 w-full">
+        <table className="table-auto w-full border-collapse border border-gray-300 text-left">
+          <tbody>
+            <tr className="bg-gray-100">
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">Técnico Responsável</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.tecnicoResponsavel}</td>
+            </tr>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">Número OS</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.numeroOs}</td>
+            </tr>
+            <tr className="bg-gray-100">
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">Assinatura</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.nameAssigned}</td>
+            </tr>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">CPF/Matrícula</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.cpfOrRegistration}</td>
+            </tr>
+            <tr className="bg-gray-100">
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">Data</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.data}</td>
+            </tr>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">Hora</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.hora}</td>
+            </tr>
+            <tr className="bg-gray-100">
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">Status</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.status}</td>
+            </tr>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">Solicitação da Visita</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.solicitacaoDaVisita}</td>
+            </tr>
+            <tr className="bg-gray-100">
+              <td className="border border-gray-300 px-4 py-2 font-bold text-gray-700">Relatório</td>
+              <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.relatorio}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="overflow-x-auto mt-8 w-full">
           <table className="table-auto w-full border-collapse border border-gray-300">
             <thead className="bg-gray-200">
               <tr>
-                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Categoria</th>
-                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Quantidade</th>
+                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Item</th>
+                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Lab</th>
+                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Sec</th>
+                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Outro</th>
+                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Total</th>
               </tr>
             </thead>
             <tbody>
               <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Notebooks Outro Local</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.notebooksOutroLocal}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">PC</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.pcsSieduca}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{0}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{0}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{parseInt(os.pcsSieduca || '0') + parseInt('0') + parseInt('0')}</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Tablets Outro Local</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.tabletsOutroLocal}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">Notebook</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.notebooksSieduca}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.notebooksSecretaria}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.notebooksOutroLocal}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{parseInt(os.notebooksSieduca || '0') + parseInt(os.notebooksSecretaria || '0') + parseInt(os.notebooksOutroLocal || '0')}</td>
               </tr>
               <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">PCS Sieduca</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.pcsSieduca}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">Tablet</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.tabletsSieduca}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.tabletsSecretaria}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.tabletsOutroLocal}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{parseInt(os.tabletsSieduca || '0') + parseInt(os.tabletsSecretaria || '0') + parseInt(os.tabletsOutroLocal || '0')}</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Notebooks Sieduca</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.notebooksSieduca}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">Estabilizadores</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.estabilizadoresSieduca}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.estabilizadoresSecretaria}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.estabilizadoresOutroLocal}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{parseInt(os.estabilizadoresSieduca || '0') + parseInt(os.estabilizadoresSecretaria || '0') + parseInt(os.estabilizadoresOutroLocal || '0')}</td>
               </tr>
               <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Tablets Sieduca</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.tabletsSieduca}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">PC Dell</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{0}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.dellSecretaria}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.dellOutroLocal}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{parseInt(os.dellSecretaria || '0') + parseInt(os.dellOutroLocal || '0') + parseInt('0')}</td>
               </tr>
               <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Estabilizadores Sieduca</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.estabilizadoresSieduca}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">PC Locado</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{0}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.locadosSecretaria}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.locadosOutroLocal}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{parseInt(os.locadosSecretaria || '0') + parseInt(os.locadosOutroLocal || '0') + parseInt('0')}</td>
               </tr>
               <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Não Há Sieduca</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.naoHaSieduca}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Dell Secretaria</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.dellSecretaria}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Locados Secretaria</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.locadosSecretaria}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Outros Secretaria</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.outrosSecretaria}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Notebooks Secretaria</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.notebooksSecretaria}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Tablets Secretaria</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.tabletsSecretaria}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Estabilizadores Secretaria</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.estabilizadoresSecretaria}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Dell Outro Local</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.dellOutroLocal}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Locados Outro Local</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.locadosOutroLocal}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Outros Outro Local</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.outrosOutroLocal}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Estabilizadores Outro Local</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.estabilizadoresOutroLocal}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Não Há Outro Local</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.naoHaOutroLocal}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Rede BR</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.redeBr}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Internet nas Escolas</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.internetNasEscolas}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Educação Conectada</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.educacaoConectada}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Não Há Provedor</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.naoHaProvedor}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Rack</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.rack}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Switch</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.switchDevice}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Roteador</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.roteador}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Oki</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.oki}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Ricoh</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.ricoh}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">HP</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.hp}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Kyocera</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.kyocera}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Outras Impressoras</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.outrasImpressoras}</td>
-              </tr>
-              <tr className="bg-white">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Solucionado</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.solucionado}</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">Email Responsável</td>
-                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.emailResponsavel}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">PC Próprio</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{0}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.outrosSecretaria}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.outrosOutroLocal}</td>
+                <td className="border border-gray-300 px-4 py-2 text-zinc-800">{parseInt('0') + parseInt(os.outrosSecretaria || '0') + parseInt(os.outrosOutroLocal || '0')}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
+        <table className="table-auto w-full border-collapse border border-gray-300 mt-10">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Item</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">OKI</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Kyocera</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">HP</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Ricoh</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Própria</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">Impressora</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.oki}</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.kyocera}</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.hp}</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.ricoh}</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.outrasImpressoras}</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{parseInt(os.oki || '0') + parseInt(os.kyocera || '0') + parseInt(os.hp || '0') + parseInt(os.ricoh || '0') + parseInt(os.outrasImpressoras || '0')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table className="table-auto w-full border-collapse border border-gray-300 mt-10">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Item</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Rede BR</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Oi/Satélite</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">EC</th>
+              <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Não Há</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">Internet</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.redeBr || '---'}</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.internetNasEscolas || '---'}</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.educacaoConectada || '---'}</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.naoHaProvedor || '---'}</td>
+            </tr>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">Rack</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.rack || '---'}</td>
+            </tr>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">Switch</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.switch || '---'}</td>
+            </tr>
+            <tr>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">Roteador</td>
+              <td className="border border-gray-300 px-4 py-2 text-zinc-800">{os.roteador || '---'}</td>
+            </tr>
+          </tbody>
+        </table>
         {os.fotosAntes && os.fotosAntes.length > 0 && (
           <div className="w-full max-w-5xl mx-auto">
             <h3 className="text-2xl sm:text-4xl font-thin mt-8 sm:mt-16 text-center text-zinc-500">Fotos Antes</h3>
