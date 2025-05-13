@@ -465,6 +465,29 @@ const DeviceList: React.FC = () => {
     }
   };
 
+  // Função para calcular os totais por título
+  const calculateTotals = () => {
+    const totals = {
+      COMPUTADOR: 0,
+      MONITOR: 0,
+      MOUSE: 0,
+      TECLADO: 0,
+      ESTABILIZADOR: 0,
+      IMPRESSORA: 0,
+    };
+
+    items.forEach((item) => {
+      const title = item.name.toUpperCase() as keyof typeof totals;
+      if (totals.hasOwnProperty(title)) {
+        totals[title]++;
+      }
+    });
+
+    return totals;
+  };
+
+  const totals = calculateTotals();
+
   if (loading) {
     return (
       <div className="space-y-4 mt-24">
@@ -544,15 +567,36 @@ const DeviceList: React.FC = () => {
         />
       </div>
 
-      <div className="mb-4 space-y-2">
-        <p className="text-gray-700 dark:text-gray-300">
-          <strong>Total de itens cadastrados:</strong> {items.length}
-        </p>
-        {searchTerm && (
-          <p className="text-gray-700 dark:text-gray-300">
-            <strong>Quantidade de itens na escola "{searchTerm}":</strong> {schoolItemCount}
-          </p>
-        )}
+      {/* Totalizadores por categoria */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-4">
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">Total.</h3>
+          <p className="text-2xl font-semibold">{items.length}</p>
+        </div>
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">Comp.</h3>
+          <p className="text-2xl font-semibold">{totals.COMPUTADOR}</p>
+        </div>
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">Monit.</h3>
+          <p className="text-2xl font-semibold">{totals.MONITOR}</p>
+        </div>
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">Mouse</h3>
+          <p className="text-2xl font-semibold">{totals.MOUSE}</p>
+        </div>
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">Tecl.</h3>
+          <p className="text-2xl font-semibold">{totals.TECLADO}</p>
+        </div>
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">Estab.</h3>
+          <p className="text-2xl font-semibold">{totals.ESTABILIZADOR}</p>
+        </div>
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">Impr.</h3>
+          <p className="text-2xl font-semibold">{totals.IMPRESSORA}</p>
+        </div>
       </div>
 
       <div className="space-y-4">
