@@ -92,12 +92,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Retorna os dados formatados
     res.status(200).json({
       technicianData: technicianData.map((item) => ({
-        label: type === 'internalOs' ? technicianMap[item.tecnicoId] || `Técnico ${item.tecnicoId}` : item.tecnicoResponsavel,
-        value: item._count.tecnicoId || item._count.tecnicoResponsavel,
+        label: 'tecnicoId' in item
+          ? technicianMap[item.tecnicoId] || `Técnico ${item.tecnicoId}`
+          : item.tecnicoResponsavel,
+        value: 'tecnicoId' in item._count ? item._count.tecnicoId : item._count.tecnicoResponsavel,
       })),
       schoolData: schoolData.map((item) => ({
-        label: type === 'internalOs' ? sectorMap[item.setorId] || `Setor ${item.setorId}` : item.unidadeEscolar,
-        value: item._count.setorId || item._count.unidadeEscolar,
+        label: 'setorId' in item
+          ? sectorMap[item.setorId] || `Setor ${item.setorId}`
+          : item.unidadeEscolar,
+        value: 'setorId' in item._count ? item._count.setorId : item._count.unidadeEscolar,
       })),
       problemData: type === 'internalOs'
         ? problemData.map((item) => ({
