@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Buscar o item atual e sua escola
     const currentItem = await prisma.item.findUnique({
       where: { id: itemId },
-      include: { school: true }, // Inclui os dados da escola atual
+      include: { School: true }, // Inclui os dados da escola atual
     });
 
     if (!currentItem) {
@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Item não encontrado' });
     }
 
-    const fromSchool = currentItem.school?.name || 'Desconhecida';
+    const fromSchool = currentItem.School?.name || 'Desconhecida';
 
     // Verificar se a escola de destino existe
     const destinationSchool = await prisma.school.findFirst({
@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await prisma.item.update({
       where: { id: itemId },
       data: {
-        school: {
+        School: {
           connect: { id: destinationSchool.id },
         },
       },
