@@ -107,40 +107,147 @@ const OSDetail: React.FC = () => {
         <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center'><strong>Solicitação da Visita:</strong> {os.solicitacaoDaVisita}</p>
         <p className='text-zinc-700 text-lg sm:text-xl text-left sm:text-center w-full sm:w-72'><strong>Relatório:</strong> {os.relatorio}</p>
 
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-left sm:text-center border mt-8 w-full'>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Notebooks Outro Local:</strong> {os.notebooksOutroLocal}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Tablets Outro Local:</strong> {os.tabletsOutroLocal}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>PCS Sieduca:</strong> {os.pcsSieduca}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Notebooks Sieduca:</strong> {os.notebooksSieduca}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Tablets Sieduca:</strong> {os.tabletsSieduca}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Estabilizadores Sieduca:</strong> {os.estabilizadoresSieduca}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Não Há Sieduca:</strong> {os.naoHaSieduca}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Dell Secretaria:</strong> {os.dellSecretaria}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Locados Secretaria:</strong> {os.locadosSecretaria}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Outros Secretaria:</strong> {os.outrosSecretaria}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Notebooks Secretaria:</strong> {os.notebooksSecretaria}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Tablets Secretaria:</strong> {os.tabletsSecretaria}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Estabilizadores Secretaria:</strong> {os.estabilizadoresSecretaria}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Dell Outro Local:</strong> {os.dellOutroLocal}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Locados Outro Local:</strong> {os.locadosOutroLocal}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Outros Outro Local:</strong> {os.outrosOutroLocal}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Estabilizadores Outro Local:</strong> {os.estabilizadoresOutroLocal}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Não Há Outro Local:</strong> {os.naoHaOutroLocal}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Rede BR:</strong> {os.redeBr}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Internet nas Escolas:</strong> {os.internetNasEscolas}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Educação Conectada:</strong> {os.educacaoConectada}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Não Há Provedor:</strong> {os.naoHaProvedor}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Rack:</strong> {os.rack}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Switch:</strong> {os.switchDevice}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Roteador:</strong> {os.roteador}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Oki:</strong> {os.oki}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Ricoh:</strong> {os.ricoh}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>HP:</strong> {os.hp}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Kyocera:</strong> {os.kyocera}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-200'><strong>Outras Impressoras:</strong> {os.outrasImpressoras}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-zinc-100'><strong>Solucionado:</strong> {os.solucionado}</p>
-          <p className='text-zinc-700 text-lg sm:text-xl bg-red-400'><strong>Email Responsável:</strong> {os.emailResponsavel}</p>
+        <div className="overflow-x-auto mt-8 bg-red-500 w-full">
+          <table className="table-auto w-full border-collapse border border-gray-300">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Categoria</th>
+                <th className="border border-gray-300 px-4 py-2 text-left text-gray-700">Quantidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Notebooks Outro Local</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.notebooksOutroLocal}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Tablets Outro Local</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.tabletsOutroLocal}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">PCS Sieduca</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.pcsSieduca}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Notebooks Sieduca</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.notebooksSieduca}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Tablets Sieduca</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.tabletsSieduca}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Estabilizadores Sieduca</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.estabilizadoresSieduca}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Não Há Sieduca</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.naoHaSieduca}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Dell Secretaria</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.dellSecretaria}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Locados Secretaria</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.locadosSecretaria}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Outros Secretaria</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.outrosSecretaria}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Notebooks Secretaria</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.notebooksSecretaria}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Tablets Secretaria</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.tabletsSecretaria}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Estabilizadores Secretaria</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.estabilizadoresSecretaria}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Dell Outro Local</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.dellOutroLocal}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Locados Outro Local</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.locadosOutroLocal}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Outros Outro Local</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.outrosOutroLocal}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Estabilizadores Outro Local</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.estabilizadoresOutroLocal}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Não Há Outro Local</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.naoHaOutroLocal}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Rede BR</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.redeBr}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Internet nas Escolas</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.internetNasEscolas}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Educação Conectada</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.educacaoConectada}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Não Há Provedor</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.naoHaProvedor}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Rack</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.rack}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Switch</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.switchDevice}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Roteador</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.roteador}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Oki</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.oki}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Ricoh</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.ricoh}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">HP</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.hp}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Kyocera</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.kyocera}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Outras Impressoras</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.outrasImpressoras}</td>
+              </tr>
+              <tr className="bg-white">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Solucionado</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.solucionado}</td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">Email Responsável</td>
+                <td className="border border-gray-300 px-4 py-2 text-gray-700">{os.emailResponsavel}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+
         {os.fotosAntes && os.fotosAntes.length > 0 && (
           <div className="w-full max-w-5xl mx-auto">
             <h3 className="text-2xl sm:text-4xl font-thin mt-8 sm:mt-16 text-center text-zinc-500">Fotos Antes</h3>
