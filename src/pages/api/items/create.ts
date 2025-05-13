@@ -33,17 +33,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name,
         brand,
         serialNumber,
-        school: {
+        School: {
           connect: { id: school.id },
         },
-        histories: {
+        ItemHistory: {
           create: {
             fromSchool: 'Nenhuma', // Ponto inicial
             toSchool: schoolName, // Escola onde o item foi cadastrado
           },
         },
         userId,
-        profile: {
+        Profile: {
           connect: { userId }
         } // Adicionando o campo obrigatório userId
       },
