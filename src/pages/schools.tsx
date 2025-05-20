@@ -65,7 +65,7 @@ const SchoolsPage: React.FC = () => {
 
   const filteredSchools = schools.filter((school) =>
     school.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ); 
 
   console.log(schools);
 
@@ -77,7 +77,7 @@ const SchoolsPage: React.FC = () => {
         <input
           type="text"
           placeholder="Pesquisar escolas..."
-          className="w-full p-2 pl-10 border border-gray-300 bg-zinc-900 rounded-lg"
+          className="w-full p-2 pl-10 border border-gray-300 bg-zinc-900 bg-  rounded-lg"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />

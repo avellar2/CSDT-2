@@ -39,6 +39,7 @@ model Item {
   Profile        Profile          @relation(fields: [userId], references: [userId])
   ItemHistory    ItemHistory[]
   MemorandumItem MemorandumItem[]
+  @@map("Item")
 }
 
 model ItemsChada {

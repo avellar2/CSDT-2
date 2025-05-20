@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient } from '@supabase/supabase-js';
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import Link from "next/link";
 
 
 export const Header: React.FC = () => {
@@ -31,7 +32,13 @@ export const Header: React.FC = () => {
 
   return (
     <div className="w-full flex justify-between items-center pt-8 px-4 sm:px-6 lg:px-8 lg:mb-16 mb-10">
-      <img src="images/logo.png" alt="Logo" className="h-16 w-16 xl:h-28 xl:w-28" />
+      <Link href="/dashboard" className="">
+        <img
+          src="images/logo.png"
+          alt="Logo"
+          className="block h-20 w-20 xl:h-28 xl:w-28 object-cover cursor-pointer"
+        />
+      </Link>
       <div className="text-center sm:text-left w-full lg:text-center sm:flex lg:flex justify-center items-center gap-1.5 lg:mr-10 mr-6">
         <p className="text-lg sm:text-xl lg:text-2xl">Bem vindo,</p>
         <p className="text-xl sm:text-2xl lg:text-3xl font-bold">{localUserName}</p>
