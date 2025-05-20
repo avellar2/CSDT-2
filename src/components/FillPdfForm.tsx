@@ -246,7 +246,7 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
         to: formData.emailResponsavel,
         from: process.env.EMAIL_USER,
         subject: "OS Preenchida",
-        text: `Por favor, clique no link para aceitar a OS: ${aceiteUrl}`,
+        text: `Por favor, clique no link para aceitar a OS: ${aceiteUrl} \n Este é um email automático, exclusivo para o envio de Ordem de Serviço eletrônica, para mais informações: csdt@smeduquedecaxias.rj.gov.br.`,
         attachments: [
           {
             content: pdfBase64,

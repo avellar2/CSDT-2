@@ -11,6 +11,7 @@ interface School {
   id: number;
   name: string;
   inep: number;
+  students: number;
   district: string;
   address: string;
   director: string;
@@ -108,6 +109,8 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
         <h1 className="text-2xl font-bold mb-4 text-center">{school.name}</h1>
         <p><strong>INEP:</strong> {school.inep}</p>
         <p><strong>Distrito:</strong> {school.district}</p>
+        <p><strong>Alunos:</strong> {school.students}</p>
+        
         <p><strong>Endereço:</strong> {school.address}</p>
         <p><strong>Diretor:</strong> {school.director}</p>
         <p><strong>Telefone:</strong> {school.phone}</p>
