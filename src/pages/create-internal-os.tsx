@@ -165,6 +165,7 @@ const CreateInternalOS: React.FC = () => {
 
       if (response.ok) {
         setIsModalOpen(true); // Abre o modal em caso de sucesso
+        await fetchInternalOSList(); // <-- Atualiza a tabela após salvar
       } else {
         const errorData = await response.json();
         alert(`Erro ao salvar OS interna: ${errorData.error}`);
