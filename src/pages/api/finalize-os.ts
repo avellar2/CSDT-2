@@ -68,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Monta o link de confirmação
-    const confirmUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/confirm-os?id=${osId}&token=${confirmToken}`;
+    const confirmUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "https://csdt.vercel.app"}/confirm-os?id=${osId}&token=${confirmToken}`;
 
     // Envia o e-mail
     await transporter.sendMail({
