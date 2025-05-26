@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Gera o PDF preenchido
-    const pdfUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/os-interna.pdf`;
+    const pdfUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "https://csdt.vercel.app"}/os-interna.pdf`;
     const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const form = pdfDoc.getForm();
