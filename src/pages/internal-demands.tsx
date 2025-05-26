@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { CheckCircle } from "phosphor-react"; // Ícone para aceitar OS
+import { PDFDocument } from 'pdf-lib';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +15,7 @@ interface InternalOS {
   problema: string;
   status: string;
   updatedAt: string;
+  email?: string;
 }
 
 interface Profile {
@@ -28,6 +30,7 @@ const InternalDemands: React.FC = () => {
   const [selectedOSId, setSelectedOSId] = useState<string | null>(null);
   const [problemDescription, setProblemDescription] = useState("");
   const [selectedOS, setSelectedOS] = useState<InternalOS | null>(null);
+  const [peca, setPeca] = useState("");
 
   useEffect(() => {
     const fetchProfileAndOS = async () => {
@@ -109,22 +112,15 @@ const InternalDemands: React.FC = () => {
       return;
     }
 
-    console.log({
-      osId: selectedOSId,
-      status: "Concluído",
-      descricao: problemDescription.trim(),
-    });
-
     try {
       const response = await fetch("/api/finalize-os", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          osId: selectedOSId, // Certifique-se de que este valor está definido
-          status: "Concluído", // Status correto
-          descricao: problemDescription.trim(), // Enviar a descrição corretamente
+          osId: selectedOSId,
+          status: "Concluído",
+          descricao: problemDescription.trim(),
+          peca: peca.trim(),
         }),
       });
 
@@ -132,19 +128,13 @@ const InternalDemands: React.FC = () => {
         throw new Error("Erro ao finalizar a OS");
       }
 
-      const updatedOS = await response.json();
-
-      // Atualiza o estado local para refletir a mudança
-      setInternalOSList((prev) =>
-        prev.map((os) => (os.id === updatedOS.id ? { ...os, status: updatedOS.status } : os))
-      );
-
+      // Atualize o estado normalmente
       setIsModalOpen(false);
       setProblemDescription("");
       setSelectedOSId(null);
-      alert("OS finalizada com sucesso!");
+      setPeca("");
+      alert("OS finalizada! O setor receberá um e-mail para confirmação.");
     } catch (error) {
-      console.error("Erro ao finalizar a OS:", error);
       alert("Erro ao finalizar a OS. Tente novamente.");
     }
   };
@@ -244,7 +234,7 @@ const InternalDemands: React.FC = () => {
       {isModalOpen && selectedOS && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Finalizar OS</h2>
+            <h2 className="text-xl font-bold text-zinc-700 mb-4">Finalizar OS</h2>
             <div className="mb-4">
               <p className="text-sm text-gray-700">
                 <strong>Setor:</strong> {selectedOS.setor}
@@ -252,6 +242,19 @@ const InternalDemands: React.FC = () => {
               <p className="text-sm text-gray-700">
                 <strong>Problema:</strong> {selectedOS.problema}
               </p>
+              <p className="text-sm text-gray-700">
+                <strong>Email do setor:</strong> {selectedOS.email || "Não informado"}
+              </p>
+              <label className="block mt-4 mb-1 text-sm font-medium text-gray-700">
+                Peça para comprar
+              </label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-lg mb-4"
+                placeholder="Ex: HD, Memória, Fonte..."
+                value={peca}
+                onChange={(e) => setPeca(e.target.value)}
+              />
             </div>
             <textarea
               className="w-full p-2 border border-gray-300 rounded-lg mb-4"

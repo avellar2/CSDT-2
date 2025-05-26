@@ -14,6 +14,17 @@ export default async function handler(
         orderBy: {
           createdAt: "desc",
         },
+        select: {
+          id: true,
+          setorId: true,
+          tecnicoId: true,
+          problema: true,
+          status: true,
+          email: true, // <-- aqui
+          assinado: true,
+          cpf: true,
+          updatedAt: true,
+        },
       });
 
       // 2. Extrai IDs únicos de setores e técnicos
@@ -67,7 +78,10 @@ export default async function handler(
           tecnico: profile?.displayName || `${os.tecnicoId}`,
           problema: os.problema,
           status: os.status,
+          email: os.email || "Email não encontrado",
           updatedAt: os.updatedAt,
+          assinado: os.assinado || "Não assinado",
+          cpf: os.cpf || "CPF não informado",
         };
       });
 

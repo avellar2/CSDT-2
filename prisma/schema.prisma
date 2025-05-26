@@ -21,6 +21,10 @@ model InternalOS {
   problema  String
   descricao String
   createdAt DateTime @default(now())
+  email     String   @default("Não enviado")
+  assinado  String?
+  cpf       String?
+  peca      String   @default("---------")
   status    String   @default("Pendente")
   updatedAt DateTime @updatedAt
 }
@@ -39,6 +43,7 @@ model Item {
   Profile        Profile          @relation(fields: [userId], references: [userId])
   ItemHistory    ItemHistory[]
   MemorandumItem MemorandumItem[]
+
   @@map("Item")
 }
 

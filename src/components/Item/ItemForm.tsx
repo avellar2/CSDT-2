@@ -12,7 +12,7 @@ interface SchoolOption {
   label: string;
 }
 
-const predefinedItems = ["COMPUTADOR", "MONITOR", "MOUSE", "TECLADO", "ESTABILIZADOR", "IMPRESSORA"];
+const predefinedItems = ["COMPUTADOR", "MONITOR", "MOUSE", "TECLADO", "ESTABILIZADOR", "IMPRESSORA", "NOTEBOOK"];
 
 const ItemForm: React.FC = () => {
   const router = useRouter();

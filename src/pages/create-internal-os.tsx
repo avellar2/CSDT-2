@@ -9,6 +9,14 @@ import {
   MagnifyingGlass,
 } from "phosphor-react"; // Ícones de sucesso, lixeira, lápis e lupa
 import { Pagination } from "@/components/ui/pagination";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface SchoolOption {
   value: string;
@@ -31,7 +39,10 @@ interface InternalOS {
   tecnico: string;
   problema: string;
   descricao: string;
+  assinado?: string;
+  cpf?: string;
   status: string;
+  email?: string;
   updatedAt: string;
 }
 
@@ -227,6 +238,7 @@ const CreateInternalOS: React.FC = () => {
       os.problema.toLowerCase().includes(query) ||
       os.setor.toLowerCase().includes(query) ||
       os.status.toLowerCase().includes(query) ||
+      os.email?.toLowerCase().includes(query) ||
       new Date(os.updatedAt).toLocaleDateString().includes(query)
     );
   });
@@ -236,6 +248,7 @@ const CreateInternalOS: React.FC = () => {
     currentPage * itemsPerPage,
   );
 
+  console.log(paginatedOSList);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-md">
@@ -459,11 +472,11 @@ const CreateInternalOS: React.FC = () => {
                         setSelectedOS((prev) =>
                           prev
                             ? {
-                                ...prev,
-                                tecnico: option?.value
-                                  ? String(option.value)
-                                  : "",
-                              }
+                              ...prev,
+                              tecnico: option?.value
+                                ? String(option.value)
+                                : "",
+                            }
                             : null,
                         )
                       }
@@ -539,7 +552,7 @@ const CreateInternalOS: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Pesquisar por técnico, problema, setor, status ou data"
+            placeholder="Pesquisar por técnico, problema, setor, status, email ou data"
             className="w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-4 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -563,6 +576,9 @@ const CreateInternalOS: React.FC = () => {
                   Status
                 </th>
                 <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
+                  Email
+                </th>
+                <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
                   Atualizado em
                 </th>
                 <th className="px-4 py-2 text-left text-sm font-bold text-gray-700">
@@ -573,27 +589,45 @@ const CreateInternalOS: React.FC = () => {
             <tbody>
               {paginatedOSList.map((os) => (
                 <tr key={os.id} className="border-t">
-                  <td className="px-4 py-2 text-sm text-gray-700">
-                    {os.setor}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
-                    {os.tecnico}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
-                    {os.problema}
-                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-700">{os.setor}</td>
+                  <td className="px-4 py-2 text-sm text-gray-700">{os.tecnico}</td>
+                  <td className="px-4 py-2 text-sm text-gray-700">{os.problema}</td>
                   <td
-                    className={`px-4 py-2 text-sm font-medium ${
-                      os.status === "Pendente"
-                        ? "text-yellow-500 bg-yellow-100"
-                        : os.status === "Aceita"
-                          ? "text-blue-500 bg-blue-100"
-                          : os.status === "Concluído"
-                            ? "text-green-500 bg-green-100"
-                            : "text-gray-700"
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium ${os.status === "Pendente"
+                      ? "text-yellow-500 bg-yellow-100"
+                      : os.status === "Aceita"
+                        ? "text-blue-500 bg-blue-100"
+                        : os.status === "Concluído"
+                          ? "text-green-500 bg-green-100"
+                          : "text-gray-700"
+                      }`}
                   >
                     {os.status}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-700">
+                    {os.email === "Confirmado" ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 transition">
+                            Confirmado
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuLabel>Dados da Confirmação</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem>
+                            <span className="font-semibold">Assinado:</span>&nbsp;
+                            {os.assinado || "—"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <span className="font-semibold">CPF/Matrícula:</span>&nbsp;
+                            {os.cpf || "—"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      os.email || "—"
+                    )}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-700">
                     {new Date(os.updatedAt).toLocaleString()}

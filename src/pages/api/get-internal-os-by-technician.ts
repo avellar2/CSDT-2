@@ -53,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           select: {
             id: true,
             name: true,
+            email: true,
           },
         })
         : [];
@@ -68,6 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           tecnico: profile.displayName, // Usa o displayName do técnico
           problema: os.problema,
           status: os.status,
+          email: school?.email || "Email não encontrado",
           updatedAt: os.updatedAt,
         };
       });

@@ -474,6 +474,7 @@ const DeviceList: React.FC = () => {
       TECLADO: 0,
       ESTABILIZADOR: 0,
       IMPRESSORA: 0,
+      NOTEBOOK: 0
     };
 
     items.forEach((item) => {
@@ -568,7 +569,7 @@ const DeviceList: React.FC = () => {
       </div>
 
       {/* Totalizadores por categoria */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4 mb-4">
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Total.</h3>
           <p className="text-2xl font-semibold">{items.length}</p>
@@ -576,6 +577,10 @@ const DeviceList: React.FC = () => {
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Comp.</h3>
           <p className="text-2xl font-semibold">{totals.COMPUTADOR}</p>
+        </div>
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">NotB.</h3>
+          <p className="text-2xl font-semibold">{totals.NOTEBOOK}</p>
         </div>
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Monit.</h3>
@@ -597,6 +602,7 @@ const DeviceList: React.FC = () => {
           <h3 className="text-lg font-bold">Impr.</h3>
           <p className="text-2xl font-semibold">{totals.IMPRESSORA}</p>
         </div>
+        
       </div>
 
       <div className="space-y-4">
