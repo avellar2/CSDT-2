@@ -34,6 +34,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: "Email do setor não encontrado" });
     }
 
+    // Busca o nome do técnico na tabela profile
+    const tecnico = await prisma.profile.findUnique({
+      where: { id: updatedOS.tecnicoId },
+      select: { displayName: true }
+    });
+
     // Gera token único para confirmação
     const confirmToken = uuidv4();
     await prisma.internalOS.update({
@@ -48,12 +54,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const form = pdfDoc.getForm();
 
     form.getTextField('SETOR').setText(setor.name || "");
-    form.getTextField('TECNICO').setText(updatedOS.tecnicoId?.toString() || "");
+    form.getTextField('TECNICO').setText(tecnico?.displayName || "");
     form.getTextField('SOLICITACAO').setText(updatedOS.problema || "");
     form.getTextField('PECA').setText(updatedOS.peca || "");
     const now = new Date();
-    form.getTextField('DATA').setText(now.toLocaleDateString("pt-BR"));
-    form.getTextField('HORA').setText(now.toLocaleTimeString("pt-BR"));
+    form.getTextField('DATA').setText(
+      now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    );
+    form.getTextField('HORA').setText(
+      now.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    );
     form.getTextField('RELATORIO').setText(updatedOS.descricao || "");
 
     const pdfBytes = await pdfDoc.save();
