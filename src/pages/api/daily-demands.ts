@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           select: {
             name: true,
             address: true,
+            district: true,
           },
         },
       },

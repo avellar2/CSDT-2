@@ -23,7 +23,7 @@ const DailyDemands: React.FC = () => {
   const [visitTechnicians, setVisitTechnicians] = useState<Technician[]>([]); // Técnicos em visita técnica
   const [offTechnicians, setOffTechnicians] = useState<Technician[]>([]); // Técnicos de folga
   const [signedSchools, setSignedSchools] = useState<string[]>([]); // Escolas assinadas
-  const [schools, setSchools] = useState<{ id: number; name: string; address: string }[]>([]);
+  const [schools, setSchools] = useState<{ id: number; name: string; address: string; district: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -390,19 +390,15 @@ const DailyDemands: React.FC = () => {
         {demands.length > 0 ? (
           <ul className="space-y-4">
             {demands.map((demand) => {
-              // Extrai o nome da escola do título da demanda
               const schoolName = demand.title.replace("Demanda - ", "");
-              // Busca a escola correspondente
               const school = schools.find((s) => s.name === schoolName);
 
               return (
-                <li
-                  key={demand.id}
-                  className="p-4 bg-gray-100 rounded-lg shadow-sm text-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center"
-                >
+                <li key={demand.id} className="p-4 bg-gray-100 rounded-lg shadow-sm text-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                   <div className="w-full sm:w-auto">
-                    <h2 className="font-bold text-sm sm:text-base">{demand.title}</h2>
-                    {/* Endereço da escola */}
+                    <h2 className="font-bold text-sm sm:text-base">
+                      {school ? `${school.district} Distrito - ${school.name}` : demand.title}
+                    </h2>
                     {school && (
                       <span className="block text-xs text-gray-500 mb-1">
                         {school.address}
