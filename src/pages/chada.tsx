@@ -14,6 +14,10 @@ const ChadaPage: React.FC = () => {
   const [problem, setProblem] = useState("");
   const [sector, setSector] = useState("");
   const [userName, setUserName] = useState<string | null>(null);
+  const [showBaixaModal, setShowBaixaModal] = useState(false);
+  const [baixaItemId, setBaixaItemId] = useState<string | null>(null);
+  const [novoModelo, setNovoModelo] = useState("");
+  const [novoSerial, setNovoSerial] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -292,7 +296,12 @@ const ChadaPage: React.FC = () => {
                     <p><strong>Adicionado em:</strong> {new Date(item.createdAt).toLocaleDateString("pt-BR")}</p>
                     <div className="flex space-x-4 mt-4">
                       <button
-                        onClick={() => handleResolveItem(item.id)}
+                        onClick={() => {
+                          setBaixaItemId(item.id);
+                          setShowBaixaModal(true);
+                          setNovoModelo("");
+                          setNovoSerial("");
+                        }}
                         className="flex items-center bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                       >
                         <CheckCircle size={20} className="mr-2" />
@@ -352,7 +361,7 @@ const ChadaPage: React.FC = () => {
                                 onClick={() => window.open(url, "_blank")} // Abre a imagem em uma nova aba
                                 className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex justify-center items-center gap-2"
                               >
-                                <Eye size={25}/> Ver OS
+                                <Eye size={25} /> Ver OS
                               </button>
                             ))}
                           </div>
@@ -414,6 +423,73 @@ const ChadaPage: React.FC = () => {
                 className="bg-blue-500 text-white px-4 py-2 rounded"
               >
                 Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showBaixaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-xl font-bold mb-4 text-zinc-700">Dar Baixa no Item</h2>
+            <label className="block mb-2 font-medium">Trocou o modelo?</label>
+            <input
+              type="text"
+              className="w-full mb-4 p-2 border border-gray-300 rounded"
+              placeholder="Novo modelo (deixe em branco se não trocou)"
+              value={novoModelo}
+              onChange={e => setNovoModelo(e.target.value)}
+            />
+            <label className="block mb-2 font-medium">Mudou o serial?</label>
+            <input
+              type="text"
+              className="w-full mb-4 p-2 border border-gray-300 rounded"
+              placeholder="Novo serial (deixe em branco se não mudou)"
+              value={novoSerial}
+              onChange={e => setNovoSerial(e.target.value)}
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowBaixaModal(false);
+                  setNovoModelo("");
+                  setNovoSerial("");
+                  setBaixaItemId(null);
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded mr-2"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!baixaItemId) return;
+                  // Só envia os campos se forem preenchidos
+                  const body: any = {
+                    id: baixaItemId,
+                    status: "RESOLVIDO",
+                    updatedBy: userName,
+                  };
+                  if (novoModelo.trim()) body.novoModelo = novoModelo.trim();
+                  if (novoSerial.trim()) body.novoSerial = novoSerial.trim();
+
+                  await fetch("/api/update-item-status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                  });
+
+                  setShowBaixaModal(false);
+                  setNovoModelo("");
+                  setNovoSerial("");
+                  setBaixaItemId(null);
+
+                  // Atualiza a lista de itens
+                  const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
+                  setItems(updatedItems);
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded"
+              >
+                Confirmar Baixa
               </button>
             </div>
           </div>

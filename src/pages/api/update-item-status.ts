@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   console.log("Dados recebidos no backend:", req.body);
 
-  const { id, status, updatedBy } = req.body;
+  const { id, status, updatedBy, novoModelo, novoSerial } = req.body;
 
   if (!id || !status || !updatedBy) {
     console.error("Campos obrigatórios ausentes:", { id, status, updatedBy });
@@ -56,8 +56,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("schoolId atualizado com sucesso na tabela Item:", updatedItemInItemTable);
 
+    await prisma.item.update({
+      where: { id: itemToUpdate.id },
+      data: {
+        status,
+        ...(novoModelo && { brand: novoModelo }),
+        ...(novoSerial && { serialNumber: novoSerial }),
+      },
+    });
+
     return res.status(200).json({
-      message: "Status e schoolId atualizados com sucesso!",
+      message: "Status, schoolId, modelo e serial atualizados com sucesso!",
       updatedItem,
       updatedItemInItemTable,
     });
