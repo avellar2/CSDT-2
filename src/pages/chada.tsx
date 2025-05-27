@@ -432,7 +432,7 @@ const ChadaPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h2 className="text-xl font-bold mb-4 text-zinc-700">Dar Baixa no Item</h2>
-            <label className="block mb-2 font-medium">Trocou o modelo?</label>
+            <label className="block mb-2 font-medium text-zinc-600">Trocou o modelo?</label>
             <input
               type="text"
               className="w-full mb-4 p-2 border border-gray-300 rounded"
@@ -440,7 +440,7 @@ const ChadaPage: React.FC = () => {
               value={novoModelo}
               onChange={e => setNovoModelo(e.target.value)}
             />
-            <label className="block mb-2 font-medium">Mudou o serial?</label>
+            <label className="block mb-2 font-medium text-zinc-600">Mudou o serial?</label>
             <input
               type="text"
               className="w-full mb-4 p-2 border border-gray-300 rounded"
