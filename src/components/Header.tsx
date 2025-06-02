@@ -34,7 +34,7 @@ export const Header: React.FC = () => {
     <div className="w-full flex justify-between items-center pt-8 px-4 sm:px-6 lg:px-8 lg:mb-16 mb-10">
       <Link href="/dashboard" className="">
         <img
-          src="images/logo.png"
+          src="/images/logo.png"
           alt="Logo"
           className="block h-20 w-20 xl:h-28 xl:w-28 object-cover cursor-pointer"
         />

@@ -31,6 +31,7 @@ const InternalDemands: React.FC = () => {
   const [problemDescription, setProblemDescription] = useState("");
   const [selectedOS, setSelectedOS] = useState<InternalOS | null>(null);
   const [peca, setPeca] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false); // Adicione o estado no início do componente
 
   useEffect(() => {
     const fetchProfileAndOS = async () => {
@@ -112,6 +113,8 @@ const InternalDemands: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true); // Ativa o loading
+
     try {
       const response = await fetch("/api/finalize-os", {
         method: "PATCH",
@@ -128,7 +131,6 @@ const InternalDemands: React.FC = () => {
         throw new Error("Erro ao finalizar a OS");
       }
 
-      // Atualize o estado normalmente
       setIsModalOpen(false);
       setProblemDescription("");
       setSelectedOSId(null);
@@ -136,6 +138,8 @@ const InternalDemands: React.FC = () => {
       alert("OS finalizada! O setor receberá um e-mail para confirmação.");
     } catch (error) {
       alert("Erro ao finalizar a OS. Tente novamente.");
+    } finally {
+      setIsSubmitting(false); // Desativa o loading
     }
   };
 
@@ -277,9 +281,10 @@ const InternalDemands: React.FC = () => {
               </button>
               <button
                 onClick={finalizeOS}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isSubmitting}
               >
-                Finalizar
+                {isSubmitting ? "Enviando..." : "Finalizar"}
               </button>
             </div>
           </div>
