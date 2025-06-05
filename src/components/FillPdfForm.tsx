@@ -246,7 +246,38 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
         to: formData.emailResponsavel,
         from: process.env.EMAIL_USER,
         subject: "OS Preenchida",
-        text: `Por favor, clique no link para aceitar a OS: ${aceiteUrl} \n Este é um email automático, exclusivo para o envio de Ordem de Serviço eletrônica, para mais informações: csdt@smeduquedecaxias.rj.gov.br.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; background: #f8fafc; padding: 32px 0;">
+            <div style="max-width: 480px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px 24px;">
+              <h2 style="color: #2563eb; text-align: center; margin-bottom: 16px;">
+                Confirmação de OS Eletrônica - CSDT
+              </h2>
+              <p style="font-size: 16px; color: #222; margin-bottom: 16px;">
+                Olá,<br>
+                Segue em anexo a Ordem de Serviço (OS) referente a sua escola.
+              </p>
+              <p style="font-size: 16px; color: #222; margin-bottom: 24px;">
+                <strong>Para concluir o processo, é necessário assinar eletronicamente a OS.</strong>
+              </p>
+              <div style="text-align: center; margin-bottom: 24px;">
+                <a href="${aceiteUrl}" style="display: inline-block; background: #2563eb; color: #fff; font-weight: bold; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 16px;">
+                  Assinar OS Eletronicamente
+                </a>
+              </div>
+              <p style="font-size: 14px; color: #555; margin-bottom: 8px;">
+                Caso não consiga clicar no botão acima, copie e cole o link abaixo no seu navegador:
+              </p>
+              <p style="font-size: 13px; color: #2563eb; word-break: break-all; margin-bottom: 24px;">
+                ${aceiteUrl}
+              </p>
+              <hr style="margin: 24px 0;">
+              <p style="font-size: 13px; color: #888;">
+                Este endereço de e-mail serve apenas para envio de OS eletrônica.<br>
+                Para mais informações: <a href="mailto:csdt@smeduquedecaxias.rj.gov.br" style="color: #2563eb;">csdt@smeduquedecaxias.rj.gov.br</a>
+              </p>
+            </div>
+          </div>
+        `,
         attachments: [
           {
             content: pdfBase64,
@@ -304,33 +335,29 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
             <Button>{alertDialog.success ? "Sucesso" : "Erro"}</Button>
           </AlertDialogTrigger>
           <AlertDialogContent
-            className={`flex flex-col text-center ${
-              alertDialog.success
+            className={`flex flex-col text-center ${alertDialog.success
                 ? "bg-white"
                 : "bg-red-100 border border-red-500"
-            }`}
+              }`}
           >
             <AlertDialogTitle
-              className={`text-lg font-bold ${
-                alertDialog.success ? "text-zinc-800" : "text-red-600"
-              }`}
+              className={`text-lg font-bold ${alertDialog.success ? "text-zinc-800" : "text-red-600"
+                }`}
             >
               {alertDialog.title}
             </AlertDialogTitle>
             <AlertDialogDescription
-              className={`${
-                alertDialog.success ? "text-zinc-600" : "text-red-500"
-              }`}
+              className={`${alertDialog.success ? "text-zinc-600" : "text-red-500"
+                }`}
             >
               {alertDialog.description}
             </AlertDialogDescription>
             <AlertDialogAction asChild>
               <Button
-                className={`${
-                  alertDialog.success
+                className={`${alertDialog.success
                     ? "bg-green-400 hover:bg-green-700"
                     : "bg-red-500 hover:bg-red-700"
-                }`}
+                  }`}
                 onClick={() => setAlertDialog(null)}
               >
                 <CheckCircle size={32} />
