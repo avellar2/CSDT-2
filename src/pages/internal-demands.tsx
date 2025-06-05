@@ -267,7 +267,7 @@ const InternalDemands: React.FC = () => {
               value={problemDescription}
               onChange={(e) => setProblemDescription(e.target.value)}
             />
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end s pace-x-4">
               <button
                 onClick={() => {
                   setIsModalOpen(false);

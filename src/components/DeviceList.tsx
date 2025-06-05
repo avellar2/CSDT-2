@@ -799,7 +799,7 @@ const DeviceList: React.FC = () => {
                     className="bg-zinc-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
                   >
                     <p>
-                      <strong>Foi para:</strong> {history.toSchool || "N/A"}
+                      <strong>Foi para:</strong> {history.fromSchool || "N/A"}
                     </p>
                     <p>
                       <strong>Data:</strong>{" "}
