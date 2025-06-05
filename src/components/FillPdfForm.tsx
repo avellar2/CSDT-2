@@ -246,37 +246,18 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
         to: formData.emailResponsavel,
         from: process.env.EMAIL_USER,
         subject: "OS Preenchida",
-        html: `
-          <div style="font-family: Arial, sans-serif; background: #f8fafc; padding: 32px 0;">
-            <div style="max-width: 480px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px 24px;">
-              <h2 style="color: #2563eb; text-align: center; margin-bottom: 16px;">
-                Confirmação de OS Eletrônica - CSDT
-              </h2>
-              <p style="font-size: 16px; color: #222; margin-bottom: 16px;">
-                Olá,<br>
-                Segue em anexo a Ordem de Serviço (OS) referente a sua escola.
-              </p>
-              <p style="font-size: 16px; color: #222; margin-bottom: 24px;">
-                <strong>Para concluir o processo, é necessário assinar eletronicamente a OS.</strong>
-              </p>
-              <div style="text-align: center; margin-bottom: 24px;">
-                <a href="${aceiteUrl}" style="display: inline-block; background: #2563eb; color: #fff; font-weight: bold; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 16px;">
-                  Assinar OS Eletronicamente
-                </a>
-              </div>
-              <p style="font-size: 14px; color: #555; margin-bottom: 8px;">
-                Caso não consiga clicar no botão acima, copie e cole o link abaixo no seu navegador:
-              </p>
-              <p style="font-size: 13px; color: #2563eb; word-break: break-all; margin-bottom: 24px;">
-                ${aceiteUrl}
-              </p>
-              <hr style="margin: 24px 0;">
-              <p style="font-size: 13px; color: #888;">
-                Este endereço de e-mail serve apenas para envio de OS eletrônica.<br>
-                Para mais informações: <a href="mailto:csdt@smeduquedecaxias.rj.gov.br" style="color: #2563eb;">csdt@smeduquedecaxias.rj.gov.br</a>
-              </p>
-            </div>
-          </div>
+        text: `
+          Olá,
+          Segue em anexo a Ordem de Serviço (OS) referente a sua escola.
+
+          Para concluir o processo, é necessário assinar eletronicamente a OS.
+
+          Link para assinatura: ${aceiteUrl}
+
+          Caso não consiga clicar no link acima, copie e cole no seu navegador.
+
+          Este endereço de e-mail serve apenas para envio de OS eletrônica.
+          Para mais informações: csdt@smeduquedecaxias.rj.gov.br
         `,
         attachments: [
           {
@@ -336,8 +317,8 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
           </AlertDialogTrigger>
           <AlertDialogContent
             className={`flex flex-col text-center ${alertDialog.success
-                ? "bg-white"
-                : "bg-red-100 border border-red-500"
+              ? "bg-white"
+              : "bg-red-100 border border-red-500"
               }`}
           >
             <AlertDialogTitle
@@ -355,8 +336,8 @@ const FillPdfForm: React.FC<FillPdfFormProps> = (props) => {
             <AlertDialogAction asChild>
               <Button
                 className={`${alertDialog.success
-                    ? "bg-green-400 hover:bg-green-700"
-                    : "bg-red-500 hover:bg-red-700"
+                  ? "bg-green-400 hover:bg-green-700"
+                  : "bg-red-500 hover:bg-red-700"
                   }`}
                 onClick={() => setAlertDialog(null)}
               >

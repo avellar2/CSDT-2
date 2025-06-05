@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       from: process.env.EMAIL_USER,
       to: req.body.to,
       subject: req.body.subject,
-      html: req.body.html,
+      text: req.body.text, // <-- troque html por text
       attachments: req.body.attachments.map((attachment: any) => ({
         filename: attachment.filename,
         content: attachment.content,
