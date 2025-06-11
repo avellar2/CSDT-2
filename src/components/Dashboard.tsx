@@ -276,6 +276,20 @@ const Dashboard: React.FC = () => {
                 <p className="mt-2 text-lg">CHADA</p>
               </div>
             )}
+
+            {/* Card "Locados" - ADMTOTAL, ADMIN, TECH, ONLYREAD */}
+            {(userRole === "ADMTOTAL" ||
+              userRole === "ADMIN" ||
+              userRole === "TECH" ||
+              userRole === "ONLYREAD") && (
+                <div
+                  onClick={() => handleNavigate("/locados")}
+                  className="cursor-pointer bg-lime-500 hover:bg-lime-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+                >
+                  <List size={48} />
+                  <p className="mt-2 text-lg">Locados</p>
+                </div>
+              )}
           </div>
         </div>
       </div>

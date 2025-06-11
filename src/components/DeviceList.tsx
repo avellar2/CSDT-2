@@ -478,7 +478,7 @@ const DeviceList: React.FC = () => {
     };
 
     items.forEach((item) => {
-      const title = item.name.toUpperCase() as keyof typeof totals;
+      const title = item.name.toUpperCase().trim() as keyof typeof totals;
       if (totals.hasOwnProperty(title)) {
         totals[title]++;
       }
@@ -508,7 +508,7 @@ const DeviceList: React.FC = () => {
     setSelectedItem(item);
     try {
       const response = await axios.get(`/api/items/${item.id}/history`);
-      console.log("Histórico do item recebido:", response.data); // Adicione este log
+
       setItemHistory(response.data);
       setIsDrawerOpen(true);
     } catch (error) {
@@ -602,7 +602,7 @@ const DeviceList: React.FC = () => {
           <h3 className="text-lg font-bold">Impr.</h3>
           <p className="text-2xl font-semibold">{totals.IMPRESSORA}</p>
         </div>
-        
+
       </div>
 
       <div className="space-y-4">
