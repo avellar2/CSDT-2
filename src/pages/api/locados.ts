@@ -8,9 +8,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método não permitido" });
   }
   try {
-    const items = await prisma.item.findMany();
-    res.status(200).json(items);
+    const locados = await prisma.locados.findMany();
+    res.status(200).json(locados);
   } catch (error) {
-    res.status(500).json({ error: "Erro ao buscar itens" });
+    res.status(500).json({ error: "Erro ao buscar itens locados" });
   }
 }

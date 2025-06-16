@@ -307,3 +307,24 @@ enum Role {
   ONLYREAD
   ADMTOTAL
 }
+
+model Locados {
+  id Int      @id @default(autoincrement())
+  name String
+  pcs Int?
+  notebooks Int?
+  tablets Int?
+  estabilizadores Int?
+  monitors Int?
+  impressoras Int?
+
+  name2 String?
+  pcs2 Int?
+  notebooks2 Int?
+  tablets2 Int?
+  estabilizadores2 Int?
+  monitors2 Int?
+  impressoras2 Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+}
