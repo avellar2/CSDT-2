@@ -57,7 +57,7 @@ const LocadosPage = () => {
                 ...base,
                 backgroundColor: "var(--tw-bg-opacity,1) #222", // fundo escuro (opcional)
                 color: "#fff",
-              }),
+              }), 
               singleValue: (base) => ({
                 ...base,
                 color: "#fff", // cor do texto selecionado

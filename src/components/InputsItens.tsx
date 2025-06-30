@@ -47,7 +47,7 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
 
   return (
     <div>
-      <div className="bg-white p-4">
+       <div className="bg-white p-4">
         <span className="text-center bg-gray-900 text-white font-bold text-2xl block mb-4 p-2">Principal</span>
         <Select
           name="unidadeEscolar"
@@ -133,174 +133,288 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
       </div>
 
       <div className="bg-white p-4 mt-4">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Sieduca</span>
-        <input
-          type="number"
-          name="pcsSieduca"
-          min={0}
-          value={formData.pcsSieduca}
-          onChange={stableHandleInputChange}
-          placeholder="PCs Sieduca"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="notebooksSieduca"
-          value={formData.notebooksSieduca}
-          min={0}
-          onChange={stableHandleInputChange}
-          placeholder="Notebooks Sieduca"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="tabletsSieduca"
-          value={formData.tabletsSieduca}
-          onChange={stableHandleInputChange}
-          placeholder="Tablets Sieduca"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="estabilizadoresSieduca"
-          value={formData.estabilizadoresSieduca}
-          onChange={stableHandleInputChange}
-          placeholder="Estabilizadores Sieduca"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <div className="w-full p-2 mb-4 border border-gray-800 rounded focus:outline-none focus:border-blue-500">
-          <label className="block mb-2 text-gray-800">Não Há Sieduca</label>
-          <label className="mr-4">
+        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Laboratório</span>
+
+        {/* PCs */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">PCs</label>
+          <div className="grid grid-cols-2 gap-4">
             <input
-              type="radio"
-              name="naoHaSieduca"
-              value="Sim"
-              checked={formData.naoHaSieduca === "Sim"}
+              type="number"
+              name="pcsProprio"
+              min={0}
+              value={formData.pcsProprio}
               onChange={stableHandleInputChange}
-              className="mr-2 text-gray-800"
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
             />
-            <span className="text-gray-800">Sim</span>
-          </label>
+            <input
+              type="number"
+              name="pcsLocado"
+              min={0}
+              value={formData.pcsLocado}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Notebooks */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Notebooks</label>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              name="notebooksProprio"
+              min={0}
+              value={formData.notebooksProprio}
+              onChange={stableHandleInputChange}
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="number"
+              name="notebooksLocado"
+              min={0}
+              value={formData.notebooksLocado}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Monitores */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Monitores</label>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              name="monitoresProprio"
+              min={0}
+              value={formData.monitoresProprio}
+              onChange={stableHandleInputChange}
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="number"
+              name="monitoresLocado"
+              min={0}
+              value={formData.monitoresLocado}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Estabilizadores */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Estabilizadores</label>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              name="estabilizadoresProprio"
+              min={0}
+              value={formData.estabilizadoresProprio}
+              onChange={stableHandleInputChange}
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="number"
+              name="estabilizadoresLocado"
+              min={0}
+              value={formData.estabilizadoresLocado}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Tablets */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Tablets</label>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              name="tabletsProprio"
+              min={0}
+              value={formData.tabletsProprio}
+              onChange={stableHandleInputChange}
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="number"
+              name="tabletsLocado"
+              min={0}
+              value={formData.tabletsLocado}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Checkbox para indicar se há laboratório */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Não há Laboratório?</label>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="temLaboratorio"
+                checked={formData.temLaboratorio}
+                onChange={(e) =>
+                  stableHandleInputChange({
+                    target: {
+                      name: "temLaboratorio",
+                      value: e.target.checked,
+                    },
+                  } as unknown as ChangeEvent<HTMLInputElement>)
+                }
+                className="mr-2"
+              />
+              <span className="text-gray-800">Não, não tem laboratório</span>
+            </label>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white p-4 mt-4">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Secretaria</span>
-        <input
-          type="number"
-          name="dellSecretaria"
-          value={formData.dellSecretaria}
-          onChange={stableHandleInputChange}
-          placeholder="Dell Secretaria"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="locadosSecretaria"
-          value={formData.locadosSecretaria}
-          onChange={stableHandleInputChange}
-          placeholder="Locados Secretaria"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="outrosSecretaria"
-          value={formData.outrosSecretaria}
-          onChange={stableHandleInputChange}
-          placeholder="Outros Secretaria"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="notebooksSecretaria"
-          value={formData.notebooksSecretaria}
-          onChange={stableHandleInputChange}
-          placeholder="Notebooks Secretaria"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="tabletsSecretaria"
-          value={formData.tabletsSecretaria}
-          onChange={stableHandleInputChange}
-          placeholder="Tablets Secretaria"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="estabilizadoresSecretaria"
-          value={formData.estabilizadoresSecretaria}
-          onChange={stableHandleInputChange}
-          placeholder="Estabilizadores Secretaria"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-      </div>
 
       <div className="bg-white p-4 mt-4">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Outro Local</span>
-        <input
-          type="number"
-          name="dellOutroLocal"
-          value={formData.dellOutroLocal}
-          onChange={stableHandleInputChange}
-          placeholder="Dell Outro Local"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="locadosOutroLocal"
-          value={formData.locadosOutroLocal}
-          onChange={stableHandleInputChange}
-          placeholder="Locados Outro Local"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="outrosOutroLocal"
-          value={formData.outrosOutroLocal}
-          onChange={stableHandleInputChange}
-          placeholder="Outros Outro Local"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="notebooksOutroLocal"
-          value={formData.notebooksOutroLocal}
-          onChange={stableHandleInputChange}
-          placeholder="Notebooks Outro Local"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="tabletsOutroLocal"
-          value={formData.tabletsOutroLocal}
-          onChange={stableHandleInputChange}
-          placeholder="Tablets Outro Local"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="estabilizadoresOutroLocal"
-          value={formData.estabilizadoresOutroLocal}
-          onChange={stableHandleInputChange}
-          placeholder="Estabilizadores Outro Local"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <div className="w-full p-2 mb-4 border border-gray-800 rounded focus:outline-none focus:border-blue-500">
-          <label className="block mb-2 text-gray-800">Não Há Outro Local</label>
-          <label className="mr-4">
+        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Outros locais</span>
+
+        {/* PCs */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">PCs</label>
+          <div className="grid grid-cols-2 gap-4">
             <input
-              type="radio"
-              name="naoHaOutroLocal"
-              value="Sim"
-              checked={formData.naoHaOutroLocal === "Sim"}
+              type="number"
+              name="pcsProprioOutrosLocais"
+              min={0}
+              value={formData.pcsProprioOutrosLocais}
               onChange={stableHandleInputChange}
-              className="mr-2 text-gray-800"
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
             />
-            <span className="text-gray-800">Sim</span>
-          </label>
+            <input
+              type="number"
+              name="pcsLocadoOutrosLocais"
+              min={0}
+              value={formData.pcsLocadoOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Notebooks */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Notebooks</label>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              name="notebooksProprioOutrosLocais"
+              min={0}
+              value={formData.notebooksProprioOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="number"
+              name="notebooksLocadoOutrosLocais"
+              min={0}
+              value={formData.notebooksLocadoOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Monitores */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Monitores</label>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              name="monitoresProprioOutrosLocais"
+              min={0}
+              value={formData.monitoresProprioOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="number"
+              name="monitoresLocadoOutrosLocais"
+              min={0}
+              value={formData.monitoresLocadoOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Estabilizadores */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Estabilizadores</label>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              name="estabilizadoresProprioOutrosLocais"
+              min={0}
+              value={formData.estabilizadoresProprioOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="number"
+              name="estabilizadoresLocadoOutrosLocais"
+              min={0}
+              value={formData.estabilizadoresLocadoOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Tablets */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-bold mb-2">Tablets</label>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              name="tabletsProprioOutrosLocais"
+              min={0}
+              value={formData.tabletsProprioOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Próprios"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="number"
+              name="tabletsLocadoOutrosLocais"
+              min={0}
+              value={formData.tabletsLocadoOutrosLocais}
+              onChange={stableHandleInputChange}
+              placeholder="Locados"
+              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+            />
+          </div>
         </div>
       </div>
+
 
       <div className="bg-white p-4 mt-4">
         <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Internet</span>
@@ -318,20 +432,7 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
             <span className="text-gray-800">Sim</span>
           </label>
         </div>
-        <div className="w-full p-2 mb-4 border border-gray-800 rounded focus:outline-none focus:border-blue-500">
-          <label className="block mb-2 text-gray-800">Internet nas Escolas</label>
-          <label className="mr-4">
-            <input
-              type="radio"
-              name="internetNasEscolas"
-              value="Sim"
-              checked={formData.internetNasEscolas === "Sim"}
-              onChange={stableHandleInputChange}
-              className="mr-2 text-gray-800"
-            />
-            <span className="text-gray-800">Sim</span>
-          </label>
-        </div>
+
         <div className="w-full p-2 mb-4 border border-gray-800 rounded focus:outline-none focus:border-blue-500">
           <label className="block mb-2 text-gray-800">Educação Conectada</label>
           <label className="mr-4">
@@ -452,6 +553,17 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
           placeholder="Solicitação da Visita"
           className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
         />
+
+        {/* Campo para Peças ou Material a Ser Comprado */}
+        <textarea
+          name="pecasOuMaterial"
+          value={formData.pecasOuMaterial}
+          onChange={stableHandleInputChange}
+          placeholder="Peças ou Material a Ser Comprado"
+          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+          rows={4}
+        />
+
         <textarea
           name="relatorio"
           value={formData.relatorio}

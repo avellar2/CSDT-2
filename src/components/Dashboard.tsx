@@ -158,6 +158,17 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
+            {/* Card "Preencher OS 2" - ADMTOTAL, TECH */}
+            {(userRole === "ADMTOTAL" || userRole === "TECH") && (
+              <div
+                onClick={() => handleNavigate("/fill-pdf-form-2")}
+                className="cursor-pointer bg-red-500 hover:bg-red-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+              >
+                <FileText size={48} />
+                <p className="mt-2 text-lg">Preencher OS 2</p>
+              </div>
+            )}
+
             {/* Card "Estatísticas de OS" - ADMTOTAL, ADMIN */}
             {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
               <div

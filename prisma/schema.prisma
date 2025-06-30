@@ -328,3 +328,52 @@ model Locados {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
 }
+
+model OSExterna {
+  id                              Int      @id @default(autoincrement())
+  numeroOs                        String?   @unique
+  data                            String
+  hora                            String
+  unidadeEscolar                  String?
+  tecnicoResponsavel              String?
+  emailResponsavel                String?
+  fotosAntes                      Json?
+  fotosDepois                     Json?
+  pcsProprio                      Int?
+  pcsLocado                       Int?
+  notebooksProprio                Int?
+  notebooksLocado                 Int?
+  monitoresProprio                Int?
+  monitoresLocado                 Int?
+  estabilizadoresProprio          Int?
+  estabilizadoresLocado           Int?
+  tabletsProprio                  Int?
+  tabletsLocado                   Int?
+  pcsProprioOutrosLocais          Int?
+  pcsLocadoOutrosLocais           Int?
+  notebooksProprioOutrosLocais    Int?
+  notebooksLocadoOutrosLocais     Int?
+  monitoresProprioOutrosLocais    Int?
+  monitoresLocadoOutrosLocais     Int?
+  estabilizadoresProprioOutrosLocais Int?
+  estabilizadoresLocadoOutrosLocais Int?
+  tabletsProprioOutrosLocais      Int?
+  tabletsLocadoOutrosLocais       Int?
+  pecasOuMaterial                 String?
+  relatorio                       String?
+  solicitacaoDaVisita             String?
+  temLaboratorio                  Boolean?
+  redeBr                          String?
+  educacaoConectada               String?
+  naoHaProvedor                   String?
+  rack                            Int?
+  switch                          Int?
+  roteador                        Int?
+  oki                             Int?
+  kyocera                         Int?
+  hp                              Int?
+  ricoh                           Int?
+  outrasImpressoras               Int?
+  solucionado                     String?
+  createdAt                       DateTime @default(now())
+}
