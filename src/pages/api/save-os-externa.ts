@@ -11,6 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { formData } = req.body;
 
+    console.log("Dados recebidos:", req.body.formData);
+
     // Filtrar apenas os campos que existem no modelo OSExterna
     const {
       unidadeEscolar,
@@ -72,14 +74,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         redeBr,
         educacaoConectada,
         naoHaProvedor,
-        rack,
-        switch: switchValue,
-        roteador,
-        oki,
-        kyocera,
-        hp,
-        ricoh,
-        outrasImpressoras,
+        rack: parseInt(rack, 10),
+        switch: parseInt(switchValue, 10),
+        roteador: parseInt(roteador, 10),
+        oki: parseInt(oki, 10),
+        kyocera: parseInt(kyocera, 10),
+        hp: parseInt(hp, 10),
+        ricoh: parseInt(ricoh, 10),
+        outrasImpressoras: parseInt(outrasImpressoras, 10),
         solucionado,
         emailResponsavel,
         fotosAntes,

@@ -7,6 +7,7 @@ import {
   Trash,
   PencilSimple,
   MagnifyingGlass,
+  Eye,
 } from "phosphor-react"; // Ícones de sucesso, lixeira, lápis e lupa
 import { Pagination } from "@/components/ui/pagination";
 import {
@@ -120,6 +121,7 @@ const CreateInternalOS: React.FC = () => {
         throw new Error("Erro ao buscar OS internas");
       }
       const data = await response.json();
+      console.log(data);
       setInternalOSList(data);
     } catch (error) {
       console.error("Erro ao buscar OS internas:", error);
@@ -228,6 +230,20 @@ const CreateInternalOS: React.FC = () => {
     } catch (error) {
       console.error("Erro ao atualizar OS:", error);
       alert("Erro ao atualizar OS.");
+    }
+  };
+
+  const handleViewProblem = async (id: string) => {
+    try {
+      const response = await fetch(`/api/get-internal-os/${id}`);
+      if (!response.ok) {
+        throw new Error("Erro ao buscar o problema.");
+      }
+      const data = await response.json();
+      alert(`Descrição do Problema: ${data.descricao}`);
+    } catch (error) {
+      console.error("Erro ao buscar o problema:", error);
+      alert("Erro ao buscar o problema.");
     }
   };
 
@@ -594,14 +610,15 @@ const CreateInternalOS: React.FC = () => {
                   <td className="px-4 py-2 text-sm text-gray-700">{os.tecnico}</td>
                   <td className="px-4 py-2 text-sm text-gray-700">{os.problema}</td>
                   <td
-                    className={`px-4 py-2 text-sm font-medium ${os.status === "Pendente"
-                      ? "text-yellow-500 bg-yellow-100"
-                      : os.status === "Aceita"
-                        ? "text-blue-500 bg-blue-100"
-                        : os.status === "Concluído"
-                          ? "text-green-500 bg-green-100"
-                          : "text-gray-700"
-                      }`}
+                    className={`px-4 py-2 text-sm font-medium ${
+                      os.status === "Pendente"
+                        ? "text-yellow-500 bg-yellow-100"
+                        : os.status === "Aceita"
+                          ? "text-blue-500 bg-blue-100"
+                          : os.status === "Concluído"
+                            ? "text-green-500 bg-green-100"
+                            : "text-gray-700"
+                    }`}
                   >
                     {os.status}
                   </td>
@@ -646,6 +663,21 @@ const CreateInternalOS: React.FC = () => {
                     >
                       <Trash size={20} />
                     </button>
+                    {/* Botão para ver o problema */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="text-green-500 hover:text-green-700">
+                          <Eye size={20} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuLabel>Descrição do Problema</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>
+                          <span className="text-sm text-gray-100">{os.descricao || "—"}</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}

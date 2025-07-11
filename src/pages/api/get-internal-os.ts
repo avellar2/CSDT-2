@@ -22,6 +22,7 @@ export default async function handler(
           status: true,
           email: true, // <-- aqui
           assinado: true,
+          descricao: true,
           cpf: true,
           updatedAt: true,
         },
@@ -77,6 +78,7 @@ export default async function handler(
           setor: school?.name || `${os.setorId}`,
           tecnico: profile?.displayName || `${os.tecnicoId}`,
           problema: os.problema,
+          descricao: os.descricao || "Descrição não informada",
           status: os.status,
           email: os.email || "Email não encontrado",
           updatedAt: os.updatedAt,

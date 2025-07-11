@@ -47,7 +47,7 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
 
   return (
     <div>
-       <div className="bg-white p-4">
+      <div className="bg-white p-4">
         <span className="text-center bg-gray-900 text-white font-bold text-2xl block mb-4 p-2">Principal</span>
         <Select
           name="unidadeEscolar"
@@ -87,7 +87,7 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
           readOnly
           className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500 cursor-not-allowed bg-zinc-300"
         />
-        <input
+        {/* <input
           type="number"
           name="numeroOs"
           value={formData.numeroOs}
@@ -95,8 +95,8 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
           required
           placeholder="Número OS"
           className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
+        /> */}
+        {/* <input
           type="date"
           name="data"
           value={formData.data}
@@ -104,8 +104,8 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
           required
           placeholder="Data"
           className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
+        /> */}
+        {/* <input
           type="time"
           name="hora"
           value={formData.hora}
@@ -113,7 +113,9 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
           required
           placeholder="Hora"
           className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
+        /> */}
+
+        <label className="block text-gray-800 font-bold mb-2">Foto antes:</label>
         <input
           type="file"
           name="fotosAntes"
@@ -122,6 +124,8 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
           accept="image/*"
           className="w-full p-2 mb-4 border border-gray-800 text-gray-800 rounded focus:outline-none focus:border-blue-500"
         />
+
+        <label className="block text-gray-800 font-semibold mb-2">Foto depois:</label>
         <input
           type="file"
           name="fotosDepois"

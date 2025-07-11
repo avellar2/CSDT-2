@@ -309,71 +309,75 @@ enum Role {
 }
 
 model Locados {
-  id Int      @id @default(autoincrement())
-  name String
-  pcs Int?
-  notebooks Int?
-  tablets Int?
+  id              Int    @id @default(autoincrement())
+  name            String
+  pcs             Int?
+  notebooks       Int?
+  tablets         Int?
   estabilizadores Int?
-  monitors Int?
-  impressoras Int?
+  monitors        Int?
+  impressoras     Int?
 
-  name2 String?
-  pcs2 Int?
-  notebooks2 Int?
-  tablets2 Int?
+  name2            String?
+  pcs2             Int?
+  notebooks2       Int?
+  tablets2         Int?
   estabilizadores2 Int?
-  monitors2 Int?
-  impressoras2 Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  monitors2        Int?
+  impressoras2     Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
 }
 
 model OSExterna {
-  id                              Int      @id @default(autoincrement())
-  numeroOs                        String?   @unique
-  data                            String
-  hora                            String
-  unidadeEscolar                  String?
-  tecnicoResponsavel              String?
-  emailResponsavel                String?
-  fotosAntes                      Json?
-  fotosDepois                     Json?
-  pcsProprio                      Int?
-  pcsLocado                       Int?
-  notebooksProprio                Int?
-  notebooksLocado                 Int?
-  monitoresProprio                Int?
-  monitoresLocado                 Int?
-  estabilizadoresProprio          Int?
-  estabilizadoresLocado           Int?
-  tabletsProprio                  Int?
-  tabletsLocado                   Int?
-  pcsProprioOutrosLocais          Int?
-  pcsLocadoOutrosLocais           Int?
-  notebooksProprioOutrosLocais    Int?
-  notebooksLocadoOutrosLocais     Int?
-  monitoresProprioOutrosLocais    Int?
-  monitoresLocadoOutrosLocais     Int?
+  id                                 Int      @id @default(autoincrement())
+  numeroOs                           String?  @unique
+  data                               String
+  hora                               String
+  unidadeEscolar                     String?
+  tecnicoResponsavel                 String?
+  emailResponsavel                   String?
+  fotosAntes                         String[]
+  fotosDepois                        String[]
+  pcsProprio                         Int?
+  pcsLocado                          Int?
+  notebooksProprio                   Int?
+  notebooksLocado                    Int?
+  monitoresProprio                   Int?
+  monitoresLocado                    Int?
+  estabilizadoresProprio             Int?
+  estabilizadoresLocado              Int?
+  tabletsProprio                     Int?
+  tabletsLocado                      Int?
+  pcsProprioOutrosLocais             Int?
+  pcsLocadoOutrosLocais              Int?
+  notebooksProprioOutrosLocais       Int?
+  notebooksLocadoOutrosLocais        Int?
+  monitoresProprioOutrosLocais       Int?
+  monitoresLocadoOutrosLocais        Int?
   estabilizadoresProprioOutrosLocais Int?
-  estabilizadoresLocadoOutrosLocais Int?
-  tabletsProprioOutrosLocais      Int?
-  tabletsLocadoOutrosLocais       Int?
-  pecasOuMaterial                 String?
-  relatorio                       String?
-  solicitacaoDaVisita             String?
-  temLaboratorio                  Boolean?
-  redeBr                          String?
-  educacaoConectada               String?
-  naoHaProvedor                   String?
-  rack                            Int?
-  switch                          Int?
-  roteador                        Int?
-  oki                             Int?
-  kyocera                         Int?
-  hp                              Int?
-  ricoh                           Int?
-  outrasImpressoras               Int?
-  solucionado                     String?
-  createdAt                       DateTime @default(now())
+  estabilizadoresLocadoOutrosLocais  Int?
+  tabletsProprioOutrosLocais         Int?
+  tabletsLocadoOutrosLocais          Int?
+  pecasOuMaterial                    String?
+  relatorio                          String?
+  solicitacaoDaVisita                String?
+  temLaboratorio                     Boolean?
+  redeBr                             String?
+  educacaoConectada                  String?
+  naoHaProvedor                      String?
+  rack                               Int?
+  switch                             Int?
+  roteador                           Int?
+  oki                                Int?
+  kyocera                            Int?
+  hp                                 Int?
+  ricoh                              Int?
+  outrasImpressoras                  Int?
+  solucionado                        String?
+  status                             String   @default("Pendente")
+  assinado                           String?
+  cpf                                String?
+  updatedAt                          DateTime @updatedAt
+  createdAt                          DateTime @default(now())
 }
