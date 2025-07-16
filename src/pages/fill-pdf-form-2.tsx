@@ -141,7 +141,6 @@ const FillPdfForm: React.FC = () => {
       }));
     }
   };
-      console.log(formData);
 
 
   const generatePdf = async (formData: FormDataType) => {
@@ -152,7 +151,6 @@ const FillPdfForm: React.FC = () => {
 
       // Obter o formulário do PDF
       const form = pdfDoc.getForm();
-
 
       // Preencher os campos do formulário
       form.getTextField("UNIDADE ESCOLAR").setText(formData.unidadeEscolar || "");
@@ -220,6 +218,18 @@ const FillPdfForm: React.FC = () => {
         form.getTextField("NAOHALABORATORIO").setText(formData.temLaboratorio ? "Sim" : "Não"); // Caso seja um campo de texto, preenche normalmente
       }
 
+      // Preencher o campo "Problema Solucionado"
+      const fieldSim = form.getField("SIM");
+      const fieldNao = form.getField("NAO");
+
+      if (fieldSim instanceof PDFCheckBox) {
+        formData.solucionado === "Sim" ? fieldSim.check() : fieldSim.uncheck();
+      }
+
+      if (fieldNao instanceof PDFCheckBox) {
+        formData.solucionado === "Não" ? fieldNao.check() : fieldNao.uncheck();
+      }
+
       // Gerar o PDF preenchido
       const pdfBytesFilled = await pdfDoc.save();
 
@@ -250,18 +260,47 @@ const FillPdfForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const numeroOs = formData.numeroOs || "sem-numero"; // Use um valor padrão caso o número da OS não esteja definido
+      // Salvar os dados no banco e obter o número da OS
+      const updatedDataFromDb = await saveDataAndGetNumeroOs(formData);
+
+      // Certifique-se de que o `numeroOs` está definido
+      if (!updatedDataFromDb.numeroOs) {
+        throw new Error("Número da OS não foi gerado corretamente.");
+      }
 
       // Upload fotosAntes
-      const fotosAntesUrls = await uploadFilesToSupabase(formData.fotosAntes as File[], "fotos-antes", numeroOs);
-
+      const fotosAntesUrls = await uploadFilesToSupabase(formData.fotosAntes as File[], "fotos-antes", updatedDataFromDb.numeroOs);
       // Upload fotosDepois
-      const fotosDepoisUrls = await uploadFilesToSupabase(formData.fotosDepois as File[], "fotos-depois", numeroOs);
+      const fotosDepoisUrls = await uploadFilesToSupabase(formData.fotosDepois as File[], "fotos-depois", updatedDataFromDb.numeroOs);
 
-      // Atualizar data e hora dinamicamente antes de enviar
+      const finalUpdatedData = {
+        ...updatedDataFromDb, // Usa os dados atualizados do banco
+        fotosAntes: fotosAntesUrls,
+        fotosDepois: fotosDepoisUrls,
+      };
+
+      // Gerar o PDF preenchido
+      await generatePdf(finalUpdatedData);
+
+      setAlertDialog({ title: "Sucesso", description: "Formulário enviado com sucesso!", success: true });
+    } catch (error) {
+      console.error("Erro ao enviar o formulário:", error);
+      setAlertDialog({
+        title: "Erro",
+        description: "Erro ao enviar o formulário. Por favor, tente novamente.",
+        success: false,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveDataAndGetNumeroOs = async (formData: FormDataType): Promise<FormDataType> => {
+    try {
       const currentDate = new Date();
       const updatedData = {
         ...formData,
+
         data: currentDate.toISOString().split("T")[0], // Atualiza a data no formato YYYY-MM-DD
         hora: new Intl.DateTimeFormat("pt-BR", {
           hour: "2-digit",
@@ -269,8 +308,6 @@ const FillPdfForm: React.FC = () => {
           hour12: false,
           timeZone: "America/Sao_Paulo", // Define explicitamente o fuso horário
         }).format(currentDate), // Atualiza a hora no formato HH:mm
-        fotosAntes: fotosAntesUrls, // Adiciona os links das fotosAntes
-        fotosDepois: fotosDepoisUrls, // Adiciona os links das fotosDepois
       };
 
       const response = await fetch("/api/save-os-externa", {
@@ -283,69 +320,17 @@ const FillPdfForm: React.FC = () => {
 
       const result = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !result.id) {
         throw new Error(result.error || "Erro ao salvar os dados");
       }
 
-      console.log("Dados salvos com sucesso:", result.data);
+      const numeroOs = `${result.id}/${currentDate.getFullYear()}`;
+      console.log("Número da OS gerado:", numeroOs);
 
-      await generatePdf(updatedData);
-
-      setAlertDialog({ title: "Sucesso", description: "Formulário enviado com sucesso!", success: true });
-
-      // Zerar os campos após o envio bem-sucedido
-      setFormData({
-        ...initialFormData,
-        tecnicoResponsavel: userName,
-        emailResponsavel: "",
-        fotosAntes: [] as File[],
-        fotosDepois: [] as File[],
-        pcsProprio: Number,
-        pcsLocado: Number,
-        notebooksProprio: Number,
-        notebooksLocado: Number,
-        monitoresProprio: Number,
-        monitoresLocado: Number,
-        estabilizadoresProprio: Number,
-        estabilizadoresLocado: Number,
-        tabletsProprio: Number,
-        tabletsLocado: Number,
-        pcsProprioOutrosLocais: Number,
-        pcsLocadoOutrosLocais: Number,
-        notebooksProprioOutrosLocais: Number,
-        notebooksLocadoOutrosLocais: Number,
-        monitoresProprioOutrosLocais: Number,
-        monitoresLocadoOutrosLocais: Number,
-        estabilizadoresProprioOutrosLocais: Number,
-        estabilizadoresLocadoOutrosLocais: Number,
-        tabletsProprioOutrosLocais: Number,
-        tabletsLocadoOutrosLocais: Number,
-        pecasOuMaterial: "",
-        relatorio: "",
-        solicitacaoDaVisita: "",
-        temLaboratorio: false,
-        redeBr: "",
-        educacaoConectada: "",
-        naoHaProvedor: "",
-        rack: Number,
-        switch: Number,
-        roteador: Number,
-        oki: Number,
-        kyocera: Number,
-        hp: Number,
-        ricoh: Number,
-        outrasImpressoras: Number,
-        solucionado: "",
-      });
+      return { ...updatedData, numeroOs }; // Retorna os dados atualizados com o número da OS
     } catch (error) {
-      console.error("Erro ao enviar o formulário:", error);
-      setAlertDialog({
-        title: "Erro",
-        description: "Erro ao enviar o formulário. Por favor, tente novamente.",
-        success: false,
-      });
-    } finally {
-      setLoading(false);
+      console.error("Erro ao salvar os dados e obter o número da OS:", error);
+      throw error;
     }
   };
 

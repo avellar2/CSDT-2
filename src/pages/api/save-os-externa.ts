@@ -60,6 +60,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       tabletsLocadoOutrosLocais,
     } = formData;
 
+    // Certifique-se de que fotosAntes e fotosDepois sejam arrays de strings
+    const fotosAntesUrls = Array.isArray(fotosAntes)
+      ? fotosAntes.map((file) => (typeof file === "string" ? file : file.url || ""))
+      : [];
+    const fotosDepoisUrls = Array.isArray(fotosDepois)
+      ? fotosDepois.map((file) => (typeof file === "string" ? file : file.url || ""))
+      : [];
+
     // Salvar os dados na tabela OSExterna
     const osExterna = await prisma.oSExterna.create({
       data: {
@@ -84,8 +92,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         outrasImpressoras: parseInt(outrasImpressoras, 10),
         solucionado,
         emailResponsavel,
-        fotosAntes,
-        fotosDepois,
+        fotosAntes: fotosAntesUrls, // Enviar como array de strings
+        fotosDepois: fotosDepoisUrls, // Enviar como array de strings
         pcsProprio: parseInt(pcsProprio, 10),
         pcsLocado: parseInt(pcsLocado, 10),
         notebooksProprio: parseInt(notebooksProprio, 10),
@@ -112,12 +120,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const currentYear = new Date().getFullYear();
     const numeroOs = `${osExterna.id}/${currentYear}`;
 
+    // Atualizar o registro com o número da OS
     const updatedRecord = await prisma.oSExterna.update({
       where: { id: osExterna.id },
       data: { numeroOs },
     });
 
-    return res.status(200).json({ message: "Dados salvos com sucesso", data: updatedRecord });
+    // Retornar o ID e o número da OS
+    return res.status(200).json({ id: updatedRecord.id, numeroOs: updatedRecord.numeroOs });
   } catch (error) {
     console.error("Erro ao salvar dados:", error);
     return res.status(500).json({ error: "Erro ao salvar os dados" });
