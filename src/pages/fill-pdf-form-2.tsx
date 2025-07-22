@@ -1,14 +1,21 @@
+"use client";
+
 import React, { useState, useEffect, ChangeEvent } from "react";
 import { PDFDocument, PDFCheckBox, PDFTextField } from "pdf-lib";
+import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
-import initialFormData from "../utils/itens"; // Importar os dados iniciais do formulário
-import { CheckCircle } from "phosphor-react";
+import initialFormData from "../utils/itens";
+import { CheckCircle, FileText, Upload, Check, Warning, X, Info, Buildings, User, Calendar, Clock } from "phosphor-react";
 import { useHeaderContext } from "../context/HeaderContext";
 import InputsItens from "@/components/InputsItens";
 import { ButtonLoading } from "@/components/ui/ButtonLoading";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/lib/supabaseClient";
+import { StepIndicator } from "@/components/StepIndicator";
+import { NavigationButtons } from "@/components/NavigationButtons";
+import { useMultiStepForm } from "@/hooks/useMultiStepForm";
+import { formSteps } from "@/utils/formSteps";
 
 interface Escola {
   name: string;
@@ -17,12 +24,17 @@ interface Escola {
 
 const FillPdfForm: React.FC = () => {
   const { userName } = useHeaderContext();
+
   interface FormDataType {
-    [key: string]: any; // Add this index signature
+    [key: string]: any;
     tecnicoResponsavel: string;
     emailResponsavel: string;
-    fotosAntes: File[] | string[]; // Alterado para File[] para suportar upload de arquivos
-    fotosDepois: File[] | string[]; // Alterado para File[] para suportar upload de arquivos
+    numeroOs?: string;
+    unidadeEscolar?: string;
+    data?: string;
+    hora?: string;
+    fotosAntes: File[] | string[];
+    fotosDepois: File[] | string[];
     pcsProprio: NumberConstructor;
     pcsLocado: NumberConstructor;
     notebooksProprio: NumberConstructor;
@@ -109,18 +121,97 @@ const FillPdfForm: React.FC = () => {
   const [alertDialog, setAlertDialog] = useState<{ title: string; description: string; success: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // 🚀 UX States
+  const [showToast, setShowToast] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  } | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
+
+  // 🎯 Multi-step form hook
+  const {
+    currentStep,
+    totalSteps,
+    completedSteps,
+    goToStep,
+    nextStep,
+    previousStep,
+    canProceedToStep,
+    currentStepData,
+    markStepAsCompleted,
+    reset
+  } = useMultiStepForm();
+
+  // 🎯 Toast notification system
+  const showToastMessage = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+    setShowToast({ message, type });
+    setTimeout(() => setShowToast(null), 4000);
+  };
+
+  // 📊 Calculate form completion progress
+  const calculateProgress = () => {
+    const totalFields = formSteps.reduce((acc, step) => acc + step.fields.length, 0);
+    const filledFields = formSteps.reduce((acc, step) => {
+      const stepFilledFields = step.fields.filter(field => {
+        const value = formData[field];
+        if (Array.isArray(value)) {
+          return value.length > 0;
+        }
+        if (field === 'temLaboratorio') {
+          return typeof value === 'boolean';
+        }
+        return value && value.toString().trim() !== '';
+      });
+      return acc + stepFilledFields.length;
+    }, 0);
+
+    const progressPercent = Math.round((filledFields / totalFields) * 100);
+    setProgress(progressPercent);
+  };
+
+  // Calculate step progress
+  const calculateStepProgress = () => {
+    const currentStepFields = currentStepData.fields;
+    const filledFields = currentStepFields.filter(field => {
+      const value = formData[field];
+      if (Array.isArray(value)) {
+        return true; // Arrays são opcionais
+      }
+      if (field === 'temLaboratorio') {
+        return typeof value === 'boolean';
+      }
+      return value && value.toString().trim() !== '';
+    });
+
+    return Math.round((filledFields.length / currentStepFields.length) * 100);
+  };
+
   useEffect(() => {
     const fetchEscolas = async () => {
       try {
         const response = await fetch("/api/schools");
         const data = await response.json();
         setEscolas(data);
+        showToastMessage('Escolas carregadas com sucesso!', 'success');
       } catch (error) {
         console.error("Erro ao buscar escolas:", error);
+        showToastMessage('Erro ao carregar escolas. Tente novamente.', 'error');
       }
     };
 
     fetchEscolas();
+  }, []);
+
+  useEffect(() => {
+    calculateProgress();
+  }, [formData]);
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -129,27 +220,73 @@ const FillPdfForm: React.FC = () => {
       ...prevFormData,
       [name]: value,
     }));
+    setIsDirty(true);
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     if (files && files.length > 0) {
-      const fileArray = Array.from(files); // Converte FileList para Array
+      const fileArray = Array.from(files);
+
+      // Validate file size (10MB max)
+      const oversizedFiles = fileArray.filter(file => file.size > 10 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        showToastMessage(`Arquivos muito grandes: ${oversizedFiles.map(f => f.name).join(', ')}`, 'error');
+        return;
+      }
+
       setFormData((prevFormData) => ({
         ...prevFormData,
-        [name]: fileArray, // Adiciona os arquivos ao estado
+        [name]: fileArray,
+      }));
+
+      showToastMessage(`${fileArray.length} arquivo(s) selecionado(s) com sucesso!`, 'success');
+      setIsDirty(true);
+    } else {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        [name]: [],
       }));
     }
   };
 
+  const handleSelectChange = (selectedOption: any) => {
+    const selectedEscola = escolas.find((escola) => escola.name === selectedOption.value);
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      unidadeEscolar: selectedOption.value,
+      emailResponsavel: selectedEscola ? selectedEscola.email : "",
+    }));
+    setIsDirty(true);
+  };
 
-  const generatePdf = async (formData: FormDataType) => {
+  const handleNext = () => {
+    if (canProceedToStep(currentStep + 1, formData)) {
+      markStepAsCompleted(currentStep);
+      nextStep();
+      showToastMessage(`Etapa "${currentStepData.title}" concluída!`, 'success');
+    } else {
+      showToastMessage('Preencha todos os campos obrigatórios antes de continuar.', 'warning');
+    }
+  };
+
+  const handlePrevious = () => {
+    previousStep();
+  };
+
+  const handleStepClick = (step: number) => {
+    // Permitir navegação apenas para passos já completados ou o próximo passo
+    const maxAllowedStep = Math.max(...completedSteps, currentStep);
+    if (step <= maxAllowedStep + 1) {
+      goToStep(step);
+    }
+  };
+
+  // Funções do PDF e submit (mantendo as mesmas do código original)
+  const generatePdfBytes = async (formData: FormDataType): Promise<string> => {
     try {
-      // Carregar o PDF base da pasta public
       const pdfBytes = await fetch("/os-externa2-EDITADA.pdf").then((res) => res.arrayBuffer());
       const pdfDoc = await PDFDocument.load(pdfBytes);
-
-      // Obter o formulário do PDF
       const form = pdfDoc.getForm();
 
       // Preencher os campos do formulário
@@ -230,61 +367,251 @@ const FillPdfForm: React.FC = () => {
         formData.solucionado === "Não" ? fieldNao.check() : fieldNao.uncheck();
       }
 
-      // Gerar o PDF preenchido
+      // Gerar o PDF preenchido e retornar como base64
       const pdfBytesFilled = await pdfDoc.save();
-
-      // Criar um link para download
-      const blob = new Blob([pdfBytesFilled.buffer as ArrayBuffer], { type: "application/pdf" }); // Acesse o buffer diretamente
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `OS-${formData.numeroOs || "sem-numero"}.pdf`;
-      link.click();
-      URL.revokeObjectURL(url);
+      const pdfBase64 = Buffer.from(pdfBytesFilled).toString("base64");
+      return pdfBase64;
     } catch (error) {
       console.error("Erro ao gerar o PDF:", error);
+      throw error;
     }
   };
 
-  const handleSelectChange = (selectedOption: any) => {
-    const selectedEscola = escolas.find((escola) => escola.name === selectedOption.value);
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      unidadeEscolar: selectedOption.value,
-      emailResponsavel: selectedEscola ? selectedEscola.email : "",
-    }));
+  // Adicione essa função após os outros handlers, antes do generatePdfBytes
+  const clearForm = () => {
+    setFormData({
+      ...initialFormData,
+      tecnicoResponsavel: userName,
+      emailResponsavel: "",
+      fotosAntes: [] as File[],
+      fotosDepois: [] as File[],
+      pcsProprio: Number,
+      pcsLocado: Number,
+      notebooksProprio: Number,
+      notebooksLocado: Number,
+      monitoresProprio: Number,
+      monitoresLocado: Number,
+      estabilizadoresProprio: Number,
+      estabilizadoresLocado: Number,
+      tabletsProprio: Number,
+      tabletsLocado: Number,
+      pcsProprioOutrosLocais: Number,
+      pcsLocadoOutrosLocais: Number,
+      notebooksProprioOutrosLocais: Number,
+      notebooksLocadoOutrosLocais: Number,
+      monitoresProprioOutrosLocais: Number,
+      monitoresLocadoOutrosLocais: Number,
+      estabilizadoresProprioOutrosLocais: Number,
+      estabilizadoresLocadoOutrosLocais: Number,
+      tabletsProprioOutrosLocais: Number,
+      tabletsLocadoOutrosLocais: Number,
+      pecasOuMaterial: "",
+      relatorio: "",
+      solicitacaoDaVisita: "",
+      temLaboratorio: false,
+      redeBr: "",
+      educacaoConectada: "",
+      naoHaProvedor: "",
+      rack: Number,
+      switch: Number,
+      roteador: Number,
+      oki: Number,
+      kyocera: Number,
+      hp: Number,
+      ricoh: Number,
+      outrasImpressoras: Number,
+      solucionado: "",
+    });
+
+    // Reset dos estados do multi-step form
+    reset();
+    setIsDirty(false);
+    setProgress(0);
+
+    // Toast de confirmação
+    showToastMessage('Formulário limpo com sucesso!', 'info');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!canProceedToStep(currentStep, formData)) {
+      showToastMessage('Preencha todos os campos obrigatórios antes de finalizar.', 'warning');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Salvar os dados no banco e obter o número da OS
       const updatedDataFromDb = await saveDataAndGetNumeroOs(formData);
 
-      // Certifique-se de que o `numeroOs` está definido
       if (!updatedDataFromDb.numeroOs) {
         throw new Error("Número da OS não foi gerado corretamente.");
       }
 
-      // Upload fotosAntes
-      const fotosAntesUrls = await uploadFilesToSupabase(formData.fotosAntes as File[], "fotos-antes", updatedDataFromDb.numeroOs);
-      // Upload fotosDepois
-      const fotosDepoisUrls = await uploadFilesToSupabase(formData.fotosDepois as File[], "fotos-depois", updatedDataFromDb.numeroOs);
+      console.log("Dados salvos:", updatedDataFromDb);
+
+      const fotosAntesUrls = await uploadFilesToSupabase(
+        formData.fotosAntes as File[],
+        "fotos-antes",
+        updatedDataFromDb.numeroOs
+      );
+
+      const fotosDepoisUrls = await uploadFilesToSupabase(
+        formData.fotosDepois as File[],
+        "fotos-depois",
+        updatedDataFromDb.numeroOs
+      );
+
+      // Atualizar o registro no banco com as URLs das fotos
+      const updateResponse = await fetch("/api/update-os-externa-fotos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          numeroOs: updatedDataFromDb.numeroOs,
+          fotosAntes: fotosAntesUrls,
+          fotosDepois: fotosDepoisUrls,
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        console.error("Erro ao atualizar fotos no banco:", errorData);
+        throw new Error("Erro ao atualizar fotos no banco de dados");
+      }
+
+      // Gerar token único para confirmação
+      const { v4: uuidv4 } = await import("uuid");
+      const confirmToken = uuidv4();
+
+      // Atualizar com o token de confirmação
+      await fetch("/api/update-os-externa-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          numeroOs: updatedDataFromDb.numeroOs,
+          assinado: confirmToken,
+        }),
+      });
 
       const finalUpdatedData = {
-        ...updatedDataFromDb, // Usa os dados atualizados do banco
+        ...updatedDataFromDb,
         fotosAntes: fotosAntesUrls,
         fotosDepois: fotosDepoisUrls,
       };
 
-      // Gerar o PDF preenchido
-      await generatePdf(finalUpdatedData);
+      console.log("Dados finais atualizados:", finalUpdatedData);
 
-      setAlertDialog({ title: "Sucesso", description: "Formulário enviado com sucesso!", success: true });
+      // Gerar o PDF preenchido como base64
+      const pdfBase64 = await generatePdfBytes(finalUpdatedData);
+
+      const getBaseUrl = () => {
+        // Em desenvolvimento, usar localhost
+        if (process.env.NODE_ENV === 'development') {
+          return 'http://localhost:3000';
+        }
+
+        // Em produção, usar a URL do Vercel
+        return process.env.NEXT_PUBLIC_BASE_URL || 'https://csdt.vercel.app';
+      };
+
+      // Monta o link de confirmação
+      const confirmUrl = `${getBaseUrl()}/confirmar-os-externa?numeroOs=${finalUpdatedData.numeroOs}&token=${confirmToken}`;
+
+      // Enviar por e-mail com HTML estilizado
+      const msg = {
+        to: finalUpdatedData.emailResponsavel,
+        from: process.env.EMAIL_USER,
+        subject: `OS Externa ${finalUpdatedData.numeroOs} - ${finalUpdatedData.unidadeEscolar}`,
+        text: `
+          Olá,
+          Segue em anexo a Ordem de Serviço (OS) Externa ${finalUpdatedData.numeroOs} referente a sua escola: ${finalUpdatedData.unidadeEscolar}.
+
+          OS gerada pelo técnico: ${finalUpdatedData.tecnicoResponsavel}
+          Data: ${finalUpdatedData.data}
+          Hora: ${finalUpdatedData.hora}
+
+          Para concluir o processo, é necessário assinar eletronicamente a OS.
+
+          Link para assinatura: ${confirmUrl}
+
+          Caso não consiga clicar no link acima, copie e cole no seu navegador.
+
+          Este endereço de e-mail serve apenas para envio de OS eletrônica.
+          Para mais informações: csdt@smeduquedecaxias.rj.gov.br
+        `,
+        html: `
+          <div style="font-family: Arial, sans-serif; background: #f8fafc; padding: 32px 0;">
+            <div style="max-width: 480px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px 24px;">
+              <h2 style="color: #2563eb; text-align: center; margin-bottom: 16px;">
+                Confirmação de OS Externa - CSDT
+              </h2>
+              <p style="font-size: 16px; color: #222; margin-bottom: 16px;">
+                Olá,<br>
+                Segue em anexo a Ordem de Serviço (OS) Externa ${finalUpdatedData.numeroOs} referente a sua escola: <strong>${finalUpdatedData.unidadeEscolar}</strong>.
+              </p>
+              <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                <p style="margin: 0; font-size: 14px; color: #475569;">
+                  <strong>OS gerada pelo técnico:</strong> ${finalUpdatedData.tecnicoResponsavel}<br>
+                  <strong>Data:</strong> ${finalUpdatedData.data}<br>
+                  <strong>Hora:</strong> ${finalUpdatedData.hora}
+                </p>
+              </div>
+              <p style="font-size: 16px; color: #222; margin-bottom: 24px;">
+                <strong>Para concluir o processo, é necessário assinar eletronicamente a OS.</strong>
+              </p>
+              <div style="text-align: center; margin-bottom: 24px;">
+                <a href="${confirmUrl}" style="display: inline-block; background: #2563eb; color: #fff; font-weight: bold; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 16px;">
+                  Assinar OS Eletronicamente
+                </a>
+              </div>
+              <p style="font-size: 14px; color: #555; margin-bottom: 8px;">
+                Caso não consiga clicar no botão acima, copie e cole o link abaixo no seu navegador:
+              </p>
+              <p style="font-size: 13px; color: #2563eb; word-break: break-all; margin-bottom: 24px;">
+                ${confirmUrl}
+              </p>
+              <hr style="margin: 24px 0;">
+              <p style="font-size: 13px; color: #888;">
+                Este endereço de e-mail serve apenas para envio de OS eletrônica.<br>
+                Para mais informações: <a href="mailto:csdt@smeduquedecaxias.rj.gov.br" style="color: #2563eb;">csdt@smeduquedecaxias.rj.gov.br</a>
+              </p>
+            </div>
+          </div>
+        `,
+        attachments: [
+          {
+            content: pdfBase64,
+            filename: `OS-Externa-${finalUpdatedData.numeroOs}.pdf`,
+            contentType: "application/pdf",
+            encoding: "base64",
+          },
+        ],
+      };
+
+      const emailResponse = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(msg),
+      });
+
+      if (!emailResponse.ok) {
+        throw new Error("Erro ao enviar e-mail");
+      }
+
+      // LIMPAR O FORMULÁRIO APÓS SUCESSO
+      clearForm();
+
+      setAlertDialog({
+        title: "Sucesso",
+        description: `OS Externa ${updatedDataFromDb.numeroOs} enviada por e-mail para ${updatedDataFromDb.unidadeEscolar}! O responsável receberá um e-mail para confirmação.`,
+        success: true
+      });
     } catch (error) {
       console.error("Erro ao enviar o formulário:", error);
+      showToastMessage('Erro ao processar a OS. Tente novamente.', 'error');
       setAlertDialog({
         title: "Erro",
         description: "Erro ao enviar o formulário. Por favor, tente novamente.",
@@ -336,18 +663,21 @@ const FillPdfForm: React.FC = () => {
 
   const uploadFilesToSupabase = async (files: File[], folder: string, numeroOs: string) => {
     const urls: string[] = [];
+
     for (const file of files) {
       // Verificar se o arquivo possui um nome válido
       const originalFileName = file.name && file.name.trim() !== "" ? file.name : "arquivo-sem-nome";
       const timestamp = new Date().getTime();
-      const fileName = `${numeroOs}-${timestamp}-${originalFileName}`; // Inclui o número da OS no nome do arquivo
-      const filePath = `${folder}/${fileName}`; // Caminho completo dentro da pasta
+      const fileName = `${timestamp}-${originalFileName}`;
+
+      // Manter a organização por subpastas com número da OS
+      const filePath = `${folder}/${numeroOs}/${fileName}`;
 
       try {
-        console.log("Tentando fazer upload do arquivo:", fileName, "na pasta:", folder);
+        console.log("Tentando fazer upload do arquivo:", fileName, "no caminho:", filePath);
 
         const { data, error } = await supabase.storage
-          .from("os-externa-img") // Nome do bucket
+          .from("os-externa-img")
           .upload(filePath, file);
 
         if (error) {
@@ -362,22 +692,25 @@ const FillPdfForm: React.FC = () => {
 
         console.log("Upload bem-sucedido:", data);
 
-        // Obter o link público do arquivo
-        const { publicUrl } = supabase.storage
+        // Obter o link público do arquivo usando o caminho correto
+        const { data: publicUrlData } = supabase.storage
           .from("os-externa-img")
-          .getPublicUrl(filePath).data;
+          .getPublicUrl(filePath);
 
-        if (!publicUrl) {
+        if (!publicUrlData || !publicUrlData.publicUrl) {
           console.error("Erro ao obter o link público do arquivo.");
           throw new Error("Erro ao obter o link público do arquivo.");
         }
 
-        console.log("Link público gerado:", publicUrl);
-        urls.push(publicUrl);
+        console.log("Link público gerado:", publicUrlData.publicUrl);
+        urls.push(publicUrlData.publicUrl);
       } catch (error) {
         console.error("Erro ao fazer upload da foto:", error);
+        // Continue para os próximos arquivos mesmo se um falhar
       }
     }
+
+    console.log("URLs finais geradas:", urls);
     return urls;
   };
 
@@ -386,64 +719,241 @@ const FillPdfForm: React.FC = () => {
     label: escola.name,
   }));
 
+  const stepProgress = calculateStepProgress();
+  const canProceed = canProceedToStep(currentStep, formData);
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl mb-8 mt-8">Preencher OS</h1>
-      <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white p-4 rounded shadow-md flex flex-col">
-        <InputsItens
-          escolaOptions={escolaOptions}
-          formData={formData}
-          handleInputChange={handleInputChange}
-          handleSelectChange={handleSelectChange}
-          handleFileChange={handleFileChange}
-          tecnicoResponsavelLogado={userName}
-        />
-        {loading ? (
-          <ButtonLoading />
-        ) : (
-          <Button
-            type="submit"
-            className="w-full h-12 bg-green-500 hover:bg-green-700 text-white p-2 rounded flex items-center justify-center gap-2"
+    <motion.div
+      className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+    >
+      {/* Toast Notifications */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -100, x: '-50%' }}
+            animate={{ opacity: 1, y: 20, x: '-50%' }}
+            exit={{ opacity: 0, y: -100, x: '-50%' }}
+            className="fixed top-0 left-1/2 z-50 transform"
           >
-            <CheckCircle size={20} />
-            Preencher OS
-          </Button>
+            <div className={`flex items-center gap-3 px-6 py-4 rounded-lg shadow-lg backdrop-blur-sm border ${showToast.type === 'success' ? 'bg-green-500/90 text-white border-green-400' :
+              showToast.type === 'error' ? 'bg-red-500/90 text-white border-red-400' :
+                showToast.type === 'warning' ? 'bg-yellow-500/90 text-white border-yellow-400' :
+                  'bg-blue-500/90 text-white border-blue-400'
+              }`}>
+              {showToast.type === 'success' && <Check size={20} />}
+              {showToast.type === 'error' && <X size={20} />}
+              {showToast.type === 'warning' && <Warning size={20} />}
+              {showToast.type === 'info' && <Info size={20} />}
+              <span className="font-medium">{showToast.message}</span>
+            </div>
+          </motion.div>
         )}
-      </form>
-      {alertDialog && (
-        <AlertDialog open={true} onOpenChange={() => setAlertDialog(null)}>
-          <AlertDialogTrigger asChild>
-            <Button>{alertDialog.success ? "Sucesso" : "Erro"}</Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent
-            className={`flex flex-col text-center ${alertDialog.success ? "bg-white" : "bg-red-100 border border-red-500"
-              }`}
+      </AnimatePresence>
+
+      {/* CONTAINER PRINCIPAL */}
+      <div className="relative z-10 pt-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-lg mx-auto">
+          {/* Header do formulário */}
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="text-center mb-8"
           >
-            <AlertDialogTitle
-              className={`text-lg font-bold ${alertDialog.success ? "text-zinc-800" : "text-red-600"}`}
+            <motion.div
+              className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-2xl"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
             >
-              {alertDialog.title}
-            </AlertDialogTitle>
-            <AlertDialogDescription
-              className={`${alertDialog.success ? "text-zinc-600" : "text-red-500"}`}
+              <currentStepData.icon size={28} className="text-white" />
+            </motion.div>
+
+            <motion.h1
+              className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mb-2"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
             >
-              {alertDialog.description}
-            </AlertDialogDescription>
-            <AlertDialogAction asChild>
-              <Button
-                className={`${alertDialog.success ? "bg-green-400 hover:bg-green-700" : "bg-red-500 hover:bg-red-700"
-                  }`}
-                onClick={() => setAlertDialog(null)}
+              {currentStepData.title}
+            </motion.h1>
+
+            <motion.p
+              className="text-slate-300 mb-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+            >
+              {currentStepData.description}
+            </motion.p>
+
+            {/* Step Indicator */}
+            
+              <StepIndicator
+                currentStep={currentStep}
+                onStepClick={handleStepClick}
+                completedSteps={completedSteps}
+              />
+            
+
+            {/* Step Progress Bar */}
+            <motion.div
+              className="mt-6 max-w-md mx-auto"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-300">
+                  Progresso da Etapa
+                </span>
+                <span className="text-sm text-blue-400 font-semibold">
+                  {stepProgress}%
+                </span>
+              </div>
+              <div className="w-full bg-slate-700/50 rounded-full h-2">
+                <motion.div
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${stepProgress}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Form Container */}
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <div className="backdrop-blur-xl bg-slate-800/85 rounded-3xl p-6 border border-slate-700/50 shadow-2xl">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
               >
-                <CheckCircle size={32} />
-                OK
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogContent>
-        </AlertDialog>
+                <InputsItens
+                  escolaOptions={escolaOptions}
+                  formData={formData}
+                  handleInputChange={handleInputChange}
+                  handleSelectChange={handleSelectChange}
+                  handleFileChange={handleFileChange}
+                  tecnicoResponsavelLogado={userName}
+                  currentStep={currentStep}
+                  currentStepFields={currentStepData.fields}
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Navigation Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="mb-20 backdrop-blur-xl bg-slate-800/85 rounded-3xl p-6 border border-slate-700/50 shadow-2xl"
+          >
+            <NavigationButtons
+              currentStep={currentStep}
+              totalSteps={totalSteps}
+              onPrevious={handlePrevious}
+              onNext={handleNext}
+              onSubmit={handleSubmit}
+              canProceed={canProceed}
+              isLoading={loading}
+            />
+
+            {/* Dirty indicator */}
+            {isDirty && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center text-yellow-400 text-sm flex items-center justify-center gap-2 mt-4"
+              >
+                <Warning size={16} />
+                <span>Formulário modificado</span>
+              </motion.div>
+            )}
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Enhanced Alert Dialog */}
+      {alertDialog && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setAlertDialog(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className={`rounded-2xl p-8 max-w-md w-full shadow-2xl border ${alertDialog.success
+              ? 'bg-slate-800/95 border-green-400/30'
+              : 'bg-slate-800/95 border-red-400/30'
+              }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center">
+              <motion.div
+                className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${alertDialog.success ? 'bg-green-500/20' : 'bg-red-500/20'
+                  }`}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              >
+                <CheckCircle size={40} className={alertDialog.success ? 'text-green-400' : 'text-red-400'} />
+              </motion.div>
+
+              <motion.h3
+                className={`text-2xl font-bold mb-3 ${alertDialog.success ? 'text-green-400' : 'text-red-400'
+                  }`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                {alertDialog.title}
+              </motion.h3>
+
+              <motion.p
+                className="text-slate-200 mb-8 text-lg leading-relaxed"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                {alertDialog.description}
+              </motion.p>
+
+              <motion.button
+                onClick={() => setAlertDialog(null)}
+                className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${alertDialog.success
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                  : 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700'
+                  } text-white`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                Continuar
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
-}
+};
 
 export default FillPdfForm;
+

@@ -378,6 +378,7 @@ model OSExterna {
   status                             String   @default("Pendente")
   assinado                           String?
   cpf                                String?
+  cargoResponsavel                  String?
   updatedAt                          DateTime @updatedAt
   createdAt                          DateTime @default(now())
 }

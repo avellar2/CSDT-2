@@ -10,12 +10,13 @@ import { ThemeProvider } from '@/components/theme-provider';
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const isLoginPage = router.pathname === '/login';
+  const isConfirmarOsPage = router.pathname === '/confirmar-os-externa';
 
   return (
     <ThemeProvider attribute={'class'} defaultTheme='system' enableSystem disableTransitionOnChange>
       <div className='container mx-auto'>
         <HeaderProvider>
-          {!isLoginPage && <Header />}
+          {!isLoginPage && <Header hideHamburger={isConfirmarOsPage} />}
           <Component {...pageProps} />
         </HeaderProvider>
       </div>

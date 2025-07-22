@@ -1,13 +1,17 @@
 import React, { ChangeEvent, useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { Upload, Camera, FileImage } from 'phosphor-react';
 import Select, { MultiValue } from 'react-select';
 
 interface InputsItensProps {
-  formData: any; // Substitua 'any' pelo tipo correto
+  formData: any;
   handleInputChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  handleSelectChange: (selectedOption: any) => void; // Substitua 'any' pelo tipo correto
+  handleSelectChange: (selectedOption: any) => void;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   escolaOptions: { label: string; value: string }[];
-  tecnicoResponsavelLogado: string; // Adicione esta prop para passar o nome do técnico responsável logado
+  tecnicoResponsavelLogado: string;
+  currentStep?: number;
+  currentStepFields?: string[];
 }
 
 const tecnicoParceiroOptions = [
@@ -19,13 +23,21 @@ const tecnicoParceiroOptions = [
   { label: 'Vanderson', value: 'Vanderson' }
 ];
 
-const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, handleSelectChange, handleFileChange, escolaOptions, tecnicoResponsavelLogado }) => {
+const InputsItens: React.FC<InputsItensProps> = ({
+  formData,
+  handleInputChange,
+  handleSelectChange,
+  handleFileChange,
+  escolaOptions,
+  tecnicoResponsavelLogado,
+  currentStep = 0,
+  currentStepFields = []
+}) => {
   const [tecnicoParceiro, setTecnicoParceiro] = useState<MultiValue<{ label: string; value: string }>>([]);
 
   const stableHandleInputChange = useCallback(handleInputChange, []);
 
   useEffect(() => {
-    // Inicializa o campo "Técnico Responsável" com o nome do técnico logado
     stableHandleInputChange({
       target: {
         name: 'tecnicoResponsavel',
@@ -45,567 +57,1013 @@ const InputsItens: React.FC<InputsItensProps> = ({ formData, handleInputChange, 
     } as ChangeEvent<HTMLInputElement>);
   };
 
+  const shouldRenderField = (fieldName: string) => {
+    return currentStepFields.includes(fieldName);
+  };
+
+  const renderFileInput = (fieldName: string, label: string, accept: string = "image/*") => {
+    if (!shouldRenderField(fieldName)) return null;
+
+    const files = formData[fieldName] as File[];
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6"
+      >
+        <label className="block text-sm font-medium text-slate-200 mb-2 flex items-center gap-2">
+          <Camera size={16} />
+          {label}
+        </label>
+
+        <div className="relative">
+          <input
+            type="file"
+            name={fieldName}
+            onChange={handleFileChange}
+            accept={accept}
+            multiple
+            className="hidden"
+            id={fieldName}
+          />
+
+          <label
+            htmlFor={fieldName}
+            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer bg-slate-700/30 hover:bg-slate-600/30 transition-all duration-300 hover:border-blue-400"
+          >
+            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+              <Upload size={24} className="text-slate-400 mb-2" />
+              <p className="text-sm text-slate-300 font-medium">
+                Clique para selecionar fotos
+              </p>
+              <p className="text-xs text-slate-500">
+                PNG, JPG ou JPEG (Max: 10MB cada)
+              </p>
+            </div>
+          </label>
+        </div>
+
+        {files && files.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mt-4 space-y-2"
+          >
+            <p className="text-sm text-slate-300 font-medium flex items-center gap-2">
+              <FileImage size={16} />
+              {files.length} foto(s) selecionada(s):
+            </p>
+            <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+              {Array.from(files).map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 p-2 bg-slate-700/50 rounded-lg text-xs"
+                >
+                  <FileImage size={12} className="text-blue-400 flex-shrink-0" />
+                  <span className="text-slate-300 truncate" title={file.name}>
+                    {file.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </motion.div>
+    );
+  };
+
   return (
-    <div>
-      <div className="bg-white p-4">
-        <span className="text-center bg-gray-900 text-white font-bold text-2xl block mb-4 p-2">Principal</span>
-        <Select
-          name="unidadeEscolar"
-          value={escolaOptions.find(option => option.value === formData.unidadeEscolar)}
-          onChange={handleSelectChange}
-          options={escolaOptions}
-          required
-          placeholder="Selecione a Unidade Escolar"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-600 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="text"
-          name="tecnicoResponsavel"
-          value={formData.tecnicoResponsavel}
-          onChange={stableHandleInputChange}
-          required
-          disabled
-          readOnly
-          placeholder="Técnico Responsável"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500 cursor-not-allowed bg-zinc-300"
-        />
-        <Select
-          name="tecnicoParceiro"
-          value={tecnicoParceiro}
-          onChange={handleTecnicoParceiroChange}
-          options={tecnicoParceiroOptions}
-          isMulti
-          placeholder="Selecione os Técnicos Parceiros"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="email"
-          name="emailResponsavel"
-          value={formData.emailResponsavel}
-          onChange={stableHandleInputChange}
-          placeholder="Email da Escola"
-          readOnly
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500 cursor-not-allowed bg-zinc-300"
-        />
-        {/* <input
-          type="number"
-          name="numeroOs"
-          value={formData.numeroOs}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Número OS"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        /> */}
-        {/* <input
-          type="date"
-          name="data"
-          value={formData.data}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Data"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        /> */}
-        {/* <input
-          type="time"
-          name="hora"
-          value={formData.hora}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Hora"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        /> */}
+    <div className="space-y-6">
+      {/* ===== STEP 0 - PRINCIPAL ===== */}
+      {shouldRenderField('unidadeEscolar') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Unidade Escolar *
+          </label>
+          <Select
+            options={escolaOptions}
+            onChange={handleSelectChange}
+            placeholder="Selecione a Unidade Escolar"
+            className="react-select-container"
+            classNamePrefix="react-select"
+            styles={{
+              control: (provided) => ({
+                ...provided,
+                backgroundColor: '#1e293b',
+                borderColor: '#475569',
+                color: '#e2e8f0', // text-slate-200 - MAIS CLARO
+                '&:hover': { borderColor: '#3b82f6' }
+              }),
+              input: (provided) => ({
+                ...provided,
+                color: '#e2e8f0', // text-slate-200 - TEXTO DIGITADO MAIS CLARO
+              }),
+              menu: (provided) => ({
+                ...provided,
+                backgroundColor: '#1e293b',
+                border: '1px solid #475569'
+              }),
+              option: (provided, state) => ({
+                ...provided,
+                backgroundColor: state.isFocused ? '#3b82f6' : '#1e293b',
+                color: '#e2e8f0', // text-slate-200 - OPÇÕES MAIS CLARAS
+                '&:hover': { backgroundColor: '#3b82f6' }
+              }),
+              singleValue: (provided) => ({
+                ...provided,
+                color: '#e2e8f0' // text-slate-200 - VALOR SELECIONADO MAIS CLARO
+              }),
+              placeholder: (provided) => ({
+                ...provided,
+                color: '#94a3b8' // text-slate-400 - placeholder mantido
+              })
+            }}
+          />
+        </motion.div>
+      )}
 
-        <label className="block text-gray-800 font-bold mb-2">Foto antes:</label>
-        <input
-          type="file"
-          name="fotosAntes"
-          onChange={handleFileChange}
-          multiple
-          accept="image/*"
-          className="w-full p-2 mb-4 border border-gray-800 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
+      {shouldRenderField('tecnicoResponsavel') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Técnico Responsável *
+          </label>
+          <input
+            type="text"
+            name="tecnicoResponsavel"
+            value={formData.tecnicoResponsavel || tecnicoResponsavelLogado}
+            onChange={handleInputChange}
+            readOnly
+            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+          />
 
-        <label className="block text-gray-800 font-semibold mb-2">Foto depois:</label>
-        <input
-          type="file"
-          name="fotosDepois"
-          onChange={handleFileChange}
-          multiple
-          accept="image/*"
-          className="w-full p-2 mb-4 border border-gray-800 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-      </div>
-
-      <div className="bg-white p-4 mt-4">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Laboratório</span>
-
-        {/* PCs */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">PCs</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="pcsProprio"
-              min={0}
-              value={formData.pcsProprio}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="pcsLocado"
-              min={0}
-              value={formData.pcsLocado}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
+          {/* Técnicos Parceiros */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-slate-200 mb-2">
+              Técnicos Parceiros (Opcional)
+            </label>
+            <Select
+              isMulti
+              options={tecnicoParceiroOptions}
+              value={tecnicoParceiro}
+              onChange={handleTecnicoParceiroChange}
+              placeholder="Selecione técnicos parceiros"
+              className="react-select-container"
+              classNamePrefix="react-select"
+              styles={{
+                control: (provided) => ({
+                  ...provided,
+                  backgroundColor: '#1e293b',
+                  borderColor: '#475569',
+                  color: '#f1f5f9',
+                  '&:hover': { borderColor: '#3b82f6' }
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  backgroundColor: '#1e293b',
+                  border: '1px solid #475569'
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: state.isFocused ? '#3b82f6' : '#1e293b',
+                  color: '#f1f5f9',
+                  '&:hover': { backgroundColor: '#3b82f6' }
+                }),
+                multiValue: (provided) => ({
+                  ...provided,
+                  backgroundColor: '#3b82f6'
+                }),
+                multiValueLabel: (provided) => ({
+                  ...provided,
+                  color: '#f1f5f9'
+                }),
+                multiValueRemove: (provided) => ({
+                  ...provided,
+                  color: '#f1f5f9',
+                  '&:hover': { backgroundColor: '#1e40af', color: '#f1f5f9' }
+                })
+              }}
             />
           </div>
-        </div>
+        </motion.div>
+      )}
 
-        {/* Notebooks */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Notebooks</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="notebooksProprio"
-              min={0}
-              value={formData.notebooksProprio}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="notebooksLocado"
-              min={0}
-              value={formData.notebooksLocado}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
+      {shouldRenderField('emailResponsavel') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Email do Responsável *
+          </label>
+          <input
+            type="email"
+            name="emailResponsavel"
+            value={formData.emailResponsavel || ''}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+            placeholder="Email será preenchido automaticamente"
+            readOnly
+          />
+        </motion.div>
+      )}
 
-        {/* Monitores */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Monitores</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="monitoresProprio"
-              min={0}
-              value={formData.monitoresProprio}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="monitoresLocado"
-              min={0}
-              value={formData.monitoresLocado}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
+      {shouldRenderField('solicitacaoDaVisita') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Solicitação da Visita *
+          </label>
+          <textarea
+            name="solicitacaoDaVisita"
+            value={formData.solicitacaoDaVisita || ''}
+            onChange={handleInputChange}
+            rows={4}
+            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 resize-none"
+            placeholder="Descreva a solicitação da visita..."
+          />
+        </motion.div>
+      )}
 
-        {/* Estabilizadores */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Estabilizadores</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="estabilizadoresProprio"
-              min={0}
-              value={formData.estabilizadoresProprio}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="estabilizadoresLocado"
-              min={0}
-              value={formData.estabilizadoresLocado}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Tablets */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Tablets</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="tabletsProprio"
-              min={0}
-              value={formData.tabletsProprio}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="tabletsLocado"
-              min={0}
-              value={formData.tabletsLocado}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Checkbox para indicar se há laboratório */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Não há Laboratório?</label>
-          <div className="flex items-center gap-4">
+      {/* ===== STEP 1 - LABORATÓRIO ===== */}
+      {shouldRenderField('temLaboratorio') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            A escola tem laboratório de informática? *
+          </label>
+          <div className="flex gap-4">
             <label className="flex items-center">
               <input
-                type="checkbox"
+                type="radio"
                 name="temLaboratorio"
-                checked={formData.temLaboratorio}
-                onChange={(e) =>
-                  stableHandleInputChange({
-                    target: {
-                      name: "temLaboratorio",
-                      value: e.target.checked,
-                    },
-                  } as unknown as ChangeEvent<HTMLInputElement>)
-                }
-                className="mr-2"
+                value="true"
+                checked={formData.temLaboratorio === true}
+                onChange={(e) => handleInputChange({
+                  ...e,
+                  target: { ...e.target, name: 'temLaboratorio', value: e.target.value === 'true' }
+                } as any)}
+                className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 focus:ring-blue-500"
               />
-              <span className="text-gray-800">Não, não tem laboratório</span>
+              <span className="ml-2 text-slate-200">Sim</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="temLaboratorio"
+                value="false"
+                checked={formData.temLaboratorio === false}
+                onChange={(e) => handleInputChange({
+                  ...e,
+                  target: { ...e.target, name: 'temLaboratorio', value: e.target.value !== 'true' }
+                } as any)}
+                className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-slate-200">Não</span>
             </label>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      )}
 
+      {/* Campos do Laboratório */}
+      {(shouldRenderField('pcsProprio') || shouldRenderField('pcsLocado') ||
+        shouldRenderField('notebooksProprio') || shouldRenderField('notebooksLocado') ||
+        shouldRenderField('monitoresProprio') || shouldRenderField('monitoresLocado') ||
+        shouldRenderField('estabilizadoresProprio') || shouldRenderField('estabilizadoresLocado') ||
+        shouldRenderField('tabletsProprio') || shouldRenderField('tabletsLocado')) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <h3 className="text-lg font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2">
+              📱 Equipamentos do Laboratório
+            </h3>
 
-      <div className="bg-white p-4 mt-4">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Outros locais</span>
+            {/* PCs */}
+            {(shouldRenderField('pcsProprio') || shouldRenderField('pcsLocado')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">💻 Computadores (PCs)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('pcsProprio') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        PCs Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="pcsProprio"
+                        value={formData.pcsProprio || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('pcsLocado') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        PCs Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="pcsLocado"
+                        value={formData.pcsLocado || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {/* PCs */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">PCs</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="pcsProprioOutrosLocais"
-              min={0}
-              value={formData.pcsProprioOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="pcsLocadoOutrosLocais"
-              min={0}
-              value={formData.pcsLocadoOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
+            {/* Notebooks */}
+            {(shouldRenderField('notebooksProprio') || shouldRenderField('notebooksLocado')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">💻 Notebooks</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('notebooksProprio') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Notebooks Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="notebooksProprio"
+                        value={formData.notebooksProprio || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('notebooksLocado') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Notebooks Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="notebooksLocado"
+                        value={formData.notebooksLocado || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {/* Notebooks */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Notebooks</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="notebooksProprioOutrosLocais"
-              min={0}
-              value={formData.notebooksProprioOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="notebooksLocadoOutrosLocais"
-              min={0}
-              value={formData.notebooksLocadoOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
+            {/* Monitores */}
+            {(shouldRenderField('monitoresProprio') || shouldRenderField('monitoresLocado')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">🖥️ Monitores</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('monitoresProprio') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Monitores Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="monitoresProprio"
+                        value={formData.monitoresProprio || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('monitoresLocado') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Monitores Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="monitoresLocado"
+                        value={formData.monitoresLocado || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {/* Monitores */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Monitores</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="monitoresProprioOutrosLocais"
-              min={0}
-              value={formData.monitoresProprioOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="monitoresLocadoOutrosLocais"
-              min={0}
-              value={formData.monitoresLocadoOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
+            {/* Estabilizadores */}
+            {(shouldRenderField('estabilizadoresProprio') || shouldRenderField('estabilizadoresLocado')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">🔌 Estabilizadores</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('estabilizadoresProprio') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Estabilizadores Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="estabilizadoresProprio"
+                        value={formData.estabilizadoresProprio || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('estabilizadoresLocado') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Estabilizadores Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="estabilizadoresLocado"
+                        value={formData.estabilizadoresLocado || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {/* Estabilizadores */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Estabilizadores</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="estabilizadoresProprioOutrosLocais"
-              min={0}
-              value={formData.estabilizadoresProprioOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="estabilizadoresLocadoOutrosLocais"
-              min={0}
-              value={formData.estabilizadoresLocadoOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
+            {/* Tablets */}
+            {(shouldRenderField('tabletsProprio') || shouldRenderField('tabletsLocado')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">📱 Tablets</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('tabletsProprio') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Tablets Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="tabletsProprio"
+                        value={formData.tabletsProprio || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('tabletsLocado') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Tablets Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="tabletsLocado"
+                        value={formData.tabletsLocado || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
 
-        {/* Tablets */}
-        <div className="mb-4">
-          <label className="block text-gray-800 font-bold mb-2">Tablets</label>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="number"
-              name="tabletsProprioOutrosLocais"
-              min={0}
-              value={formData.tabletsProprioOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Próprios"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-            <input
-              type="number"
-              name="tabletsLocadoOutrosLocais"
-              min={0}
-              value={formData.tabletsLocadoOutrosLocais}
-              onChange={stableHandleInputChange}
-              placeholder="Locados"
-              className="w-full p-2 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-      </div>
+      {/* ===== STEP 2 - OUTROS LOCAIS ===== */}
+      {(shouldRenderField('pcsProprioOutrosLocais') || shouldRenderField('pcsLocadoOutrosLocais') ||
+        shouldRenderField('notebooksProprioOutrosLocais') || shouldRenderField('notebooksLocadoOutrosLocais') ||
+        shouldRenderField('monitoresProprioOutrosLocais') || shouldRenderField('monitoresLocadoOutrosLocais') ||
+        shouldRenderField('estabilizadoresProprioOutrosLocais') || shouldRenderField('estabilizadoresLocadoOutrosLocais') ||
+        shouldRenderField('tabletsProprioOutrosLocais') || shouldRenderField('tabletsLocadoOutrosLocais')) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <h3 className="text-lg font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2">
+              🏢 Equipamentos em Outros Locais
+            </h3>
 
+            {/* PCs Outros Locais */}
+            {(shouldRenderField('pcsProprioOutrosLocais') || shouldRenderField('pcsLocadoOutrosLocais')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">💻 Computadores (PCs)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('pcsProprioOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        PCs Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="pcsProprioOutrosLocais"
+                        value={formData.pcsProprioOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('pcsLocadoOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        PCs Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="pcsLocadoOutrosLocais"
+                        value={formData.pcsLocadoOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-      <div className="bg-white p-4 mt-4">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Internet</span>
-        <div className="w-full p-2 mb-4 border border-gray-800 rounded focus:outline-none focus:border-blue-500">
-          <label className="block mb-2 text-gray-800">Rede BR</label>
-          <label className="mr-4">
-            <input
-              type="radio"
-              name="redeBr"
-              value="Sim"
-              checked={formData.redeBr === "Sim"}
-              onChange={stableHandleInputChange}
-              className="mr-2 text-gray-800"
-            />
-            <span className="text-gray-800">Sim</span>
+            {/* Notebooks Outros Locais */}
+            {(shouldRenderField('notebooksProprioOutrosLocais') || shouldRenderField('notebooksLocadoOutrosLocais')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">💻 Notebooks</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('notebooksProprioOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Notebooks Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="notebooksProprioOutrosLocais"
+                        value={formData.notebooksProprioOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('notebooksLocadoOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Notebooks Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="notebooksLocadoOutrosLocais"
+                        value={formData.notebooksLocadoOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Monitores Outros Locais */}
+            {(shouldRenderField('monitoresProprioOutrosLocais') || shouldRenderField('monitoresLocadoOutrosLocais')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">🖥️ Monitores</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('monitoresProprioOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Monitores Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="monitoresProprioOutrosLocais"
+                        value={formData.monitoresProprioOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('monitoresLocadoOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Monitores Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="monitoresLocadoOutrosLocais"
+                        value={formData.monitoresLocadoOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Estabilizadores Outros Locais */}
+            {(shouldRenderField('estabilizadoresProprioOutrosLocais') || shouldRenderField('estabilizadoresLocadoOutrosLocais')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">🔌 Estabilizadores</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('estabilizadoresProprioOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Estabilizadores Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="estabilizadoresProprioOutrosLocais"
+                        value={formData.estabilizadoresProprioOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('estabilizadoresLocadoOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Estabilizadores Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="estabilizadoresLocadoOutrosLocais"
+                        value={formData.estabilizadoresLocadoOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tablets Outros Locais */}
+            {(shouldRenderField('tabletsProprioOutrosLocais') || shouldRenderField('tabletsLocadoOutrosLocais')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">📱 Tablets</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {shouldRenderField('tabletsProprioOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Tablets Próprio
+                      </label>
+                      <input
+                        type="number"
+                        name="tabletsProprioOutrosLocais"
+                        value={formData.tabletsProprioOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('tabletsLocadoOutrosLocais') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Tablets Locado
+                      </label>
+                      <input
+                        type="number"
+                        name="tabletsLocadoOutrosLocais"
+                        value={formData.tabletsLocadoOutrosLocais || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+      {/* ===== STEP 3 - INTERNET ===== */}
+      {(shouldRenderField('redeBr') || shouldRenderField('educacaoConectada') || shouldRenderField('naoHaProvedor') ||
+        shouldRenderField('rack') || shouldRenderField('switch') || shouldRenderField('roteador')) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <h3 className="text-lg font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2">
+              🌐 Conectividade e Rede
+            </h3>
+
+            {/* Provedores de Internet */}
+            {(shouldRenderField('redeBr') || shouldRenderField('educacaoConectada') || shouldRenderField('naoHaProvedor')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">📡 Provedores de Internet</h4>
+                <div className="space-y-3">
+                  {shouldRenderField('redeBr') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Rede.br
+                      </label>
+                      <select
+                        name="redeBr"
+                        value={formData.redeBr || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                      </select>
+                    </div>
+                  )}
+                  {shouldRenderField('educacaoConectada') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Educação Conectada
+                      </label>
+                      <select
+                        name="educacaoConectada"
+                        value={formData.educacaoConectada || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                      </select>
+                    </div>
+                  )}
+                  {shouldRenderField('naoHaProvedor') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Não há provedor
+                      </label>
+                      <select
+                        name="naoHaProvedor"
+                        value={formData.naoHaProvedor || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Equipamentos de Rede */}
+            {(shouldRenderField('rack') || shouldRenderField('switch') || shouldRenderField('roteador')) && (
+              <div className="mb-4">
+                <h4 className="text-md font-medium text-slate-300 mb-3">🔌 Equipamentos de Rede</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  {shouldRenderField('rack') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Rack
+                      </label>
+                      <input
+                        type="number"
+                        name="rack"
+                        value={formData.rack || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('switch') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Switch
+                      </label>
+                      <input
+                        type="number"
+                        name="switch"
+                        value={formData.switch || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                  {shouldRenderField('roteador') && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                        Roteador
+                      </label>
+                      <input
+                        type="number"
+                        name="roteador"
+                        value={formData.roteador || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+      {/* ===== STEP 4 - IMPRESSORAS ===== */}
+      {(shouldRenderField('oki') || shouldRenderField('kyocera') || shouldRenderField('hp') ||
+        shouldRenderField('ricoh') || shouldRenderField('outrasImpressoras')) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <h3 className="text-lg font-semibold text-slate-200 mb-4 border-b border-slate-600 pb-2">
+              🖨️ Impressoras
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {shouldRenderField('oki') && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-200 mb-2">
+                    OKI
+                  </label>
+                  <input
+                    type="number"
+                    name="oki"
+                    value={formData.oki || ''}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                  />
+                </div>
+              )}
+              {shouldRenderField('kyocera') && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-200 mb-2">
+                    Kyocera
+                  </label>
+                  <input
+                    type="number"
+                    name="kyocera"
+                    value={formData.kyocera || ''}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                  />
+                </div>
+              )}
+              {shouldRenderField('hp') && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-200 mb-2">
+                    HP
+                  </label>
+                  <input
+                    type="number"
+                    name="hp"
+                    value={formData.hp || ''}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                  />
+                </div>
+              )}
+              {shouldRenderField('ricoh') && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-200 mb-2">
+                    Ricoh
+                  </label>
+                  <input
+                    type="number"
+                    name="ricoh"
+                    value={formData.ricoh || ''}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                  />
+                </div>
+              )}
+              {shouldRenderField('outrasImpressoras') && (
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-200 mb-2">
+                    Outras Impressoras
+                  </label>
+                  <input
+                    type="number"
+                    name="outrasImpressoras"
+                    value={formData.outrasImpressoras || ''}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                  />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+      {/* ===== STEP 5 - RELATÓRIO E FOTOS ===== */}
+      {shouldRenderField('pecasOuMaterial') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Peças ou Material Utilizado
           </label>
-        </div>
+          <textarea
+            name="pecasOuMaterial"
+            value={formData.pecasOuMaterial || ''}
+            onChange={handleInputChange}
+            rows={3}
+            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 resize-none"
+            placeholder="Descreva as peças ou materiais utilizados..."
+          />
+        </motion.div>
+      )}
 
-        <div className="w-full p-2 mb-4 border border-gray-800 rounded focus:outline-none focus:border-blue-500">
-          <label className="block mb-2 text-gray-800">Educação Conectada</label>
-          <label className="mr-4">
-            <input
-              type="radio"
-              name="educacaoConectada"
-              value="Sim"
-              checked={formData.educacaoConectada === "Sim"}
-              onChange={stableHandleInputChange}
-              className="mr-2 text-gray-800"
-            />
-            <span className="text-gray-800">Sim</span>
+      {shouldRenderField('relatorio') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Relatório da Visita *
           </label>
-        </div>
-        <div className="w-full p-2 mb-4 border border-gray-800 rounded focus:outline-none focus:border-blue-500">
-          <label className="block mb-2 text-gray-800">Não Há Provedor</label>
-          <label className="mr-4">
-            <input
-              type="radio"
-              name="naoHaProvedor"
-              value="Sim"
-              checked={formData.naoHaProvedor === "Sim"}
-              onChange={stableHandleInputChange}
-              className="mr-2 text-gray-800"
-            />
-            <span className="text-gray-800">Sim</span>
+          <textarea
+            name="relatorio"
+            value={formData.relatorio || ''}
+            onChange={handleInputChange}
+            rows={5}
+            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 resize-none"
+            placeholder="Descreva detalhadamente o serviço realizado..."
+          />
+        </motion.div>
+      )}
+
+      {/* FOTOS */}
+      {renderFileInput('fotosAntes', 'Fotos Antes do Serviço', 'image/*')}
+      {renderFileInput('fotosDepois', 'Fotos Depois do Serviço', 'image/*')}
+
+      {/* ===== STEP 6 - CONCLUSÃO ===== */}
+      {shouldRenderField('solucionado') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Problema Solucionado? *
           </label>
-        </div>
-        <input
-          type="number"
-          name="rack"
-          value={formData.rack}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Rack"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="switch"
-          value={formData.switch}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Switch"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="roteador"
-          value={formData.roteador}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Roteador"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-      </div>
-
-      <div className="bg-white p-4 mt-4">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Impressoras</span>
-
-        <input
-          type="number"
-          name="oki"
-          value={formData.oki}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Oki"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="kyocera"
-          value={formData.kyocera}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Kyocera"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="hp"
-          value={formData.hp}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="HP"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="ricoh"
-          value={formData.ricoh}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Ricoh"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="number"
-          name="outrasImpressoras"
-          value={formData.outrasImpressoras}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Outras Impressoras (PRÓPRIA)"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-
-      </div>
-
-      <div className="bg-white p-4 mt-4">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Relatório</span>
-
-        <input
-          type="text"
-          name="solicitacaoDaVisita"
-          value={formData.solicitacaoDaVisita}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Solicitação da Visita"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-        />
-
-        {/* Campo para Peças ou Material a Ser Comprado */}
-        <textarea
-          name="pecasOuMaterial"
-          value={formData.pecasOuMaterial}
-          onChange={stableHandleInputChange}
-          placeholder="Peças ou Material a Ser Comprado"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-          rows={4}
-        />
-
-        <textarea
-          name="relatorio"
-          value={formData.relatorio}
-          onChange={stableHandleInputChange}
-          required
-          placeholder="Relatório"
-          className="w-full p-2 mb-4 border border-gray-800 placeholder:text-gray-300 text-gray-800 rounded focus:outline-none focus:border-blue-500"
-          rows={6}
-        />
-      </div>
-
-      <div className="bg-white p-4 mt-4 mb-6">
-        <span className="text-center bg-gray-900 p-2 text-white font-bold text-2xl block mb-4">Foi solucionado?</span>
-        <div className="w-full p-2 mb-4 border border-gray-800 rounded focus:outline-none focus:border-blue-500">
-          <label className="mr-4">
-            <input
-              type="radio"
-              name="solucionado"
-              value="Sim"
-              checked={formData.solucionado === "Sim"}
-              onChange={stableHandleInputChange}
-              className="mr-2 text-gray-800"
-            />
-            <span className="text-gray-800">Sim</span>
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="solucionado"
-              value="Não"
-              checked={formData.solucionado === "Não"}
-              onChange={stableHandleInputChange}
-              className="mr-2 text-gray-800"
-            />
-            <span className="text-gray-800">Não</span>
-          </label>
-        </div>
-      </div>
+          <div className="flex gap-4">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="solucionado"
+                value="Sim"
+                checked={formData.solucionado === 'Sim'}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-green-600 bg-slate-700 border-slate-600 focus:ring-green-500"
+              />
+              <span className="ml-2 text-slate-200">Sim</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="solucionado"
+                value="Não"
+                checked={formData.solucionado === 'Não'}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-red-600 bg-slate-700 border-slate-600 focus:ring-red-500"
+              />
+              <span className="ml-2 text-slate-200">Não</span>
+            </label>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };

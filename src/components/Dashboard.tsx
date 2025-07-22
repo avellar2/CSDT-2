@@ -277,6 +277,17 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
+            {/* Card "OS Externas (Novo)" - ADMTOTAL, ADMIN, TECH */}
+            {(userRole === "ADMTOTAL" || userRole === "ADMIN" || userRole === "TECH") && (
+              <div
+                onClick={() => handleNavigate("/os-externas-list")}
+                className="cursor-pointer bg-emerald-500 hover:bg-emerald-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+              >
+                <ClipboardText size={48} />
+                <p className="mt-2 text-lg">OS Externas (Novo)</p>
+              </div>
+            )}
+
             {/* Card "CHADA" - ADMTOTAL, ADMIN, TECH */}
             {(userRole === "ADMTOTAL" || userRole === "ADMIN" || userRole === "TECH") && (
               <div
