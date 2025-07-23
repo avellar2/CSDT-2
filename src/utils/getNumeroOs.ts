@@ -1,4 +1,4 @@
-export const getNumeroOs = async (formData: FormDataType): Promise<string> => {
+export const getNumeroOs = async (formData: any): Promise<string> => {
   try {
     const currentDate = new Date();
     const response = await fetch("/api/save-os-externa", {
