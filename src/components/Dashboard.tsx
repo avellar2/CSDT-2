@@ -148,7 +148,7 @@ const Dashboard: React.FC = () => {
               )}
 
             {/* Card "Preencher OS" - ADMTOTAL, TECH */}
-            {(userRole === "ADMTOTAL" || userRole === "TECH") && (
+            {/* {(userRole === "ADMTOTAL" || userRole === "TECH") && (
               <div
                 onClick={() => handleNavigate("/fill-pdf-form")}
                 className="cursor-pointer bg-red-400 hover:bg-red-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
@@ -156,7 +156,7 @@ const Dashboard: React.FC = () => {
                 <FileText size={48} />
                 <p className="mt-2 text-lg">Preencher OS</p>
               </div>
-            )}
+            )} */}
 
             {/* Card "Preencher OS 2" - ADMTOTAL, TECH */}
             {(userRole === "ADMTOTAL" || userRole === "TECH") && (
@@ -165,7 +165,7 @@ const Dashboard: React.FC = () => {
                 className="cursor-pointer bg-red-500 hover:bg-red-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
               >
                 <FileText size={48} />
-                <p className="mt-2 text-lg">Preencher OS 2</p>
+                <p className="mt-2 text-lg">Preencher OS</p>
               </div>
             )}
 
@@ -203,9 +203,20 @@ const Dashboard: React.FC = () => {
                   className="cursor-pointer bg-indigo-400 hover:bg-indigo-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
                 >
                   <ClipboardText size={45} />
-                  <p className="mt-2 text-lg">OS assinadas ou pendentes</p>
+                  <p className="mt-2 text-lg">OS Externas (Antigo)</p>
                 </div>
               )}
+
+            {/* Card "OS Externas (Novo)" - ADMTOTAL, ADMIN, TECH */}
+            {(userRole === "ADMTOTAL" || userRole === "ADMIN" || userRole === "TECH") && (
+              <div
+                onClick={() => handleNavigate("/os-externas-list")}
+                className="cursor-pointer bg-emerald-500 hover:bg-emerald-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+              >
+                <ClipboardText size={48} />
+                <p className="mt-2 text-lg">OS Externas (Novo)</p>
+              </div>
+            )}
 
             {/* Card "Todas as Impressoras" - ADMTOTAL, ADMIN, TECH */}
             {(userRole === "ADMTOTAL" ||
@@ -277,16 +288,7 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {/* Card "OS Externas (Novo)" - ADMTOTAL, ADMIN, TECH */}
-            {(userRole === "ADMTOTAL" || userRole === "ADMIN" || userRole === "TECH") && (
-              <div
-                onClick={() => handleNavigate("/os-externas-list")}
-                className="cursor-pointer bg-emerald-500 hover:bg-emerald-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-              >
-                <ClipboardText size={48} />
-                <p className="mt-2 text-lg">OS Externas (Novo)</p>
-              </div>
-            )}
+
 
             {/* Card "CHADA" - ADMTOTAL, ADMIN, TECH */}
             {(userRole === "ADMTOTAL" || userRole === "ADMIN" || userRole === "TECH") && (
