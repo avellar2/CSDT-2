@@ -991,7 +991,7 @@ const InputsItens: React.FC<InputsItensProps> = ({
           className="mb-6"
         >
           <label className="block text-sm font-medium text-slate-200 mb-2">
-            Peças ou Material Utilizado
+            Peças ou Material para comprar
           </label>
           <textarea
             name="pecasOuMaterial"
@@ -999,7 +999,7 @@ const InputsItens: React.FC<InputsItensProps> = ({
             onChange={handleInputChange}
             rows={3}
             className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 resize-none"
-            placeholder="Descreva as peças ou materiais utilizados..."
+            placeholder="Descreva as peças ou materiais para a escola comprar..."
           />
         </motion.div>
       )}
