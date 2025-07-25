@@ -88,6 +88,16 @@ const DeviceList: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null); // Estado para armazenar a role do usuário
   const itemsPerPage = 10; // Número de itens por página
 
+  // NOVOS ESTADOS para troca de equipamentos
+  const [memorandumType, setMemorandumType] = useState<'entrega' | 'troca'>('entrega');
+  const [exchangeFromSchool, setExchangeFromSchool] = useState("");
+  const [exchangeToSchool, setExchangeToSchool] = useState("");
+
+  // Para troca: selecionar equipamentos que vão do CSDT para a escola destino
+  const [selectedFromCSDT, setSelectedFromCSDT] = useState<number[]>([]);
+  // Para troca: selecionar equipamentos que vão da escola destino para o CSDT
+  const [selectedFromDestino, setSelectedFromDestino] = useState<number[]>([]);
+
   const toggleItemSelection = (itemId: number) => {
     setSelectedItems((prevSelected) =>
       prevSelected.includes(itemId)
@@ -350,14 +360,32 @@ const DeviceList: React.FC = () => {
       return;
     }
 
-    if (!schoolName) {
-      alert("Por favor, selecione uma escola.");
-      return;
-    }
+    // VALIDAÇÕES baseadas no tipo de memorando
+    if (memorandumType === 'entrega') {
+      if (!schoolName) {
+        alert("Por favor, selecione uma escola.");
+        return;
+      }
 
-    if (!district) {
-      alert("O distrito não foi definido. Verifique a escola selecionada.");
-      return;
+      if (!district) {
+        alert("O distrito não foi definido. Verifique a escola selecionada.");
+        return;
+      }
+    } else if (memorandumType === 'troca') {
+      if (!exchangeFromSchool) {
+        alert("Por favor, selecione a escola de origem (De onde sai).");
+        return;
+      }
+
+      if (!exchangeToSchool) {
+        alert("Por favor, selecione a escola de destino (Para onde vai).");
+        return;
+      }
+
+      if (exchangeFromSchool === exchangeToSchool) {
+        alert("A escola de origem e destino não podem ser iguais.");
+        return;
+      }
     }
 
     if (!memorandumNumber) {
@@ -372,18 +400,36 @@ const DeviceList: React.FC = () => {
     }
 
     try {
-      // Verificar se algum item está na escola CHADA
-      const itemsInChada = items.filter(
-        (item) => selectedItems.includes(item.id) && item.School?.name === "CHADA"
-      );
-
-      if (itemsInChada.length > 0) {
-        const itemNames = itemsInChada.map((item) => item.name).join(", ");
-        setModalMessage(
-          `O(s) item(s) ${itemNames} está(ão) na CHADA. Por favor, dar baixa no(s) item(s) para o CSDT antes de fazer o memorando.`
+      // Para TROCA: Verificar se os itens estão na escola de origem
+      if (memorandumType === 'troca') {
+        const itemsNotInFromSchool = items.filter(
+          (item) => selectedItems.includes(item.id) && item.School?.name !== exchangeFromSchool
         );
-        setModalIsOpen(true);
-        return;
+
+        if (itemsNotInFromSchool.length > 0) {
+          const itemNames = itemsNotInFromSchool.map((item) => item.name).join(", ");
+          setModalMessage(
+            `O(s) item(s) ${itemNames} não está(ão) na escola de origem "${exchangeFromSchool}". Verifique a localização dos equipamentos.`
+          );
+          setModalIsOpen(true);
+          return;
+        }
+      }
+
+      // Para ENTREGA: Verificar se algum item está na escola CHADA
+      if (memorandumType === 'entrega') {
+        const itemsInChada = items.filter(
+          (item) => selectedItems.includes(item.id) && item.School?.name === "CHADA"
+        );
+
+        if (itemsInChada.length > 0) {
+          const itemNames = itemsInChada.map((item) => item.name).join(", ");
+          setModalMessage(
+            `O(s) item(s) ${itemNames} está(ão) na CHADA. Por favor, dar baixa no(s) item(s) para o CSDT antes de fazer o memorando.`
+          );
+          setModalIsOpen(true);
+          return;
+        }
       }
 
       // Verificar se o número do memorando já existe
@@ -399,32 +445,55 @@ const DeviceList: React.FC = () => {
         return;
       }
 
-      const selectedSchool = schools.find(
-        (school) => school.name === schoolName
-      );
-
-      if (!selectedSchool) {
-        alert("Por favor, selecione uma escola válida.");
-        return;
-      }
-
-      console.log("Dados enviados:", {
+      // PREPARAR DADOS baseados no tipo de memorando
+      let requestData: any = {
         itemIds: selectedItems,
-        schoolName,
-        district,
-        inep: selectedSchool.inep,
         memorandumNumber,
-      });
+        type: memorandumType
+      };
 
-      const response = await axios.post(
-        "/api/generate-memorandum",
-        {
-          itemIds: selectedItems,
+      if (memorandumType === 'entrega') {
+        const selectedSchool = schools.find(
+          (school) => school.name === schoolName
+        );
+
+        if (!selectedSchool) {
+          alert("Por favor, selecione uma escola válida.");
+          return;
+        }
+
+        requestData = {
+          ...requestData,
           schoolName,
           district,
           inep: selectedSchool.inep,
-          memorandumNumber,
-        },
+        };
+      } else if (memorandumType === 'troca') {
+        const fromSchool = schools.find(
+          (school) => school.name === exchangeFromSchool
+        );
+        const toSchool = schools.find(
+          (school) => school.name === exchangeToSchool
+        );
+
+        if (!fromSchool || !toSchool) {
+          alert("Por favor, selecione escolas válidas para origem e destino.");
+          return;
+        }
+
+        requestData = {
+          ...requestData,
+          fromCSDT: selectedFromCSDT,
+          fromDestino: selectedFromDestino,
+          toSchool: exchangeToSchool,
+        };
+      }
+
+      console.log("Dados enviados:", requestData);
+
+      const response = await axios.post(
+        "/api/generate-memorandum",
+        requestData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -448,7 +517,10 @@ const DeviceList: React.FC = () => {
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `memorando-${memorandumNumber}.pdf`);
+      const fileName = memorandumType === 'entrega'
+        ? `memorando-entrega-${memorandumNumber}.pdf`
+        : `memorando-troca-${memorandumNumber}.pdf`;
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -457,8 +529,16 @@ const DeviceList: React.FC = () => {
       const updatedItemsResponse = await axios.get("/api/items");
       setItems(updatedItemsResponse.data);
 
-      // Limpar os itens selecionados
+      // Limpar os campos
       setSelectedItems([]);
+      setMemorandumType('entrega');
+      setSchoolName("");
+      setDistrict("");
+      setExchangeFromSchool("");
+      setExchangeToSchool("");
+      setMemorandumNumber("");
+      setIsDialogOpen(false);
+
     } catch (error) {
       console.error("Erro ao gerar memorando:", error);
       alert("Falha ao gerar o memorando. Verifique os dados enviados.");
@@ -695,77 +775,218 @@ const DeviceList: React.FC = () => {
 
         {/* AlertDialog para gerar o memorando */}
         <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black">
+          <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black max-w-2xl">
             <AlertDialogHeader>
               <AlertDialogTitle className="dark:text-white">
                 Gerar Memorando
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Preencha as informações abaixo para gerar o memorando.
+                Escolha o tipo de memorando e preencha as informações necessárias.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="space-y-4">
-              {/* Campo para selecionar a escola */}
-              <label className="block">
-                <span className="dark:text-gray-300">Nome da Escola:</span>
-                <Select
-                  options={schools.map((school) => ({
-                    value: school.name,
-                    label: school.name,
-                  }))}
-                  value={
-                    schoolName ? { value: schoolName, label: schoolName } : null
-                  }
-                  onChange={(selectedOption) => {
-                    const selectedSchoolName = selectedOption?.value || "";
-                    setSchoolName(selectedSchoolName);
 
-                    // Encontrar o distrito correspondente à escola selecionada
-                    const selectedSchool = schools.find(
-                      (school) => school.name === selectedSchoolName,
-                    );
-                    if (selectedSchool) {
-                      setDistrict(selectedSchool.district); // Atualiza o distrito
-                    }
-                  }}
-                  className="text-black"
-                  placeholder="Selecione uma escola"
-                  isClearable
-                />
-              </label>
+            <div className="space-y-6">
+              {/* SELETOR DE TIPO DE MEMORANDO */}
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="dark:text-gray-300 font-semibold">Tipo de Memorando:</span>
+                </label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value="entrega"
+                      checked={memorandumType === 'entrega'}
+                      onChange={(e) => setMemorandumType(e.target.value as 'entrega')}
+                      className="form-radio text-blue-500"
+                    />
+                    <span className="dark:text-gray-300">📦 Entrega de Equipamentos</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value="troca"
+                      checked={memorandumType === 'troca'}
+                      onChange={(e) => setMemorandumType(e.target.value as 'troca')}
+                      className="form-radio text-blue-500"
+                    />
+                    <span className="dark:text-gray-300">🔄 Troca de Equipamentos</span>
+                  </label>
+                </div>
+              </div>
 
-              {/* Campo para o distrito (preenchido automaticamente) */}
-              <label className="block">
-                <span className="dark:text-gray-300">Distrito:</span>
-                <input
-                  type="text"
-                  value={district}
-                  readOnly
-                  className="w-full p-2 rounded dark:bg-zinc-900 dark:text-white"
-                />
-              </label>
+              {/* CAMPOS PARA ENTREGA */}
+              {memorandumType === 'entrega' && (
+                <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-300">
+                    📦 Configurações de Entrega
+                  </h4>
 
-              {/* Campo para o número do memorando */}
+                  <label className="block">
+                    <span className="dark:text-gray-300">Escola de Destino:</span>
+                    <Select
+                      options={schools.map((school) => ({
+                        value: school.name,
+                        label: school.name,
+                      }))}
+                      value={schoolName ? { value: schoolName, label: schoolName } : null}
+                      onChange={(selectedOption) => {
+                        const selectedSchoolName = selectedOption?.value || "";
+                        setSchoolName(selectedSchoolName);
+
+                        const selectedSchool = schools.find(
+                          (school) => school.name === selectedSchoolName,
+                        );
+                        if (selectedSchool) {
+                          setDistrict(selectedSchool.district);
+                        }
+                      }}
+                      className="text-black"
+                      placeholder="Selecione a escola que receberá os equipamentos"
+                      isClearable
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="dark:text-gray-300">Distrito:</span>
+                    <input
+                      type="text"
+                      value={district}
+                      readOnly
+                      className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100"
+                      placeholder="Distrito será preenchido automaticamente"
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* CAMPOS PARA TROCA */}
+              {memorandumType === 'troca' && (
+                <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <h4 className="font-semibold text-orange-800 dark:text-orange-300">
+                    🔄 Configurações de Troca
+                  </h4>
+
+                  {/* Escolher escola destino */}
+                  <label className="block">
+                    <span className="dark:text-gray-300">Escola de Destino:</span>
+                    <Select
+                      options={schools.map((school) => ({
+                        value: school.name,
+                        label: school.name,
+                      }))}
+                      value={exchangeToSchool ? { value: exchangeToSchool, label: exchangeToSchool } : null}
+                      onChange={(selectedOption) => {
+                        setExchangeToSchool(selectedOption?.value || "");
+                      }}
+                      className="text-black"
+                      placeholder="Selecione a escola de destino"
+                      isClearable
+                    />
+                  </label>
+
+                  {/* Selecionar equipamentos que vão do CSDT para a escola destino */}
+                  <div>
+                    <span className="dark:text-gray-300 font-semibold">Equipamentos que vão do CSDT para {exchangeToSchool || "..."}</span>
+                    <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded p-2 border">
+                      {items
+                        .filter(item => item.School?.name === "CSDT")
+                        .map(item => (
+                          <label key={item.id} className="flex items-center gap-2 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={selectedFromCSDT.includes(item.id)}
+                              onChange={() => {
+                                setSelectedFromCSDT(prev =>
+                                  prev.includes(item.id)
+                                    ? prev.filter(id => id !== item.id)
+                                    : [...prev, item.id]
+                                );
+                              }}
+                            />
+                            {item.name} - {item.brand} ({item.serialNumber})
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Selecionar equipamentos que vão da escola destino para o CSDT */}
+                  {exchangeToSchool && (
+                    <div>
+                      <span className="dark:text-gray-300 font-semibold">Equipamentos que vão de {exchangeToSchool} para o CSDT</span>
+                      <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded p-2 border">
+                        {items
+                          .filter(item => item.School?.name === exchangeToSchool)
+                          .map(item => (
+                            <label key={item.id} className="flex items-center gap-2 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={selectedFromDestino.includes(item.id)}
+                                onChange={() => {
+                                  setSelectedFromDestino(prev =>
+                                    prev.includes(item.id)
+                                      ? prev.filter(id => id !== item.id)
+                                      : [...prev, item.id]
+                                  );
+                                }}
+                              />
+                              {item.name} - {item.brand} ({item.serialNumber})
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* NÚMERO DO MEMORANDO */}
               <label className="block">
                 <span className="dark:text-gray-300">Número do Memorando:</span>
                 <input
                   type="text"
                   value={memorandumNumber}
                   onChange={(e) => setMemorandumNumber(e.target.value)}
-                  className="w-full p-2 rounded dark:bg-zinc-900 dark:text-white"
-                  placeholder="Digite o número do memorando"
+                  className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white"
+                  placeholder="Digite o número do memorando (ex: 001/2025)"
                 />
               </label>
+
+              {/* PREVIEW DOS ITENS SELECIONADOS */}
+              <div className="mt-4 p-3 bg-gray-50 dark:bg-zinc-800 rounded border">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  📋 Itens Selecionados: {selectedItems.length}
+                </p>
+                <div className="max-h-32 overflow-y-auto">
+                  {items
+                    .filter(item => selectedItems.includes(item.id))
+                    .map(item => (
+                      <p key={item.id} className="text-xs text-gray-600 dark:text-gray-400">
+                        • {item.name} - {item.brand} ({item.serialNumber})
+                      </p>
+                    ))}
+                </div>
+              </div>
             </div>
+
             <AlertDialogFooter>
-              <AlertDialogCancel className="hover:bg-red-300 dark:text-white">
+              <AlertDialogCancel
+                onClick={() => {
+                  setMemorandumType('entrega');
+                  setSchoolName("");
+                  setDistrict("");
+                  setExchangeFromSchool("");
+                  setExchangeToSchool("");
+                  setMemorandumNumber("");
+                }}
+                className="hover:bg-red-300 dark:text-white"
+              >
                 Cancelar
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleGenerateMemorandum}
                 className="bg-blue-500 hover:bg-blue-700 text-white"
               >
-                Gerar
+                {memorandumType === 'entrega' ? '📦 Gerar Entrega' : '🔄 Gerar Troca'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

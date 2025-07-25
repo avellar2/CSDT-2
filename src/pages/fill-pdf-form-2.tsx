@@ -16,6 +16,7 @@ import { StepIndicator } from "@/components/StepIndicator";
 import { NavigationButtons } from "@/components/NavigationButtons";
 import { useMultiStepForm } from "@/hooks/useMultiStepForm";
 import { formSteps } from "@/utils/formSteps";
+import axios from "axios"; // ADICIONAR esta linha após os outros imports
 
 interface Escola {
   name: string;
@@ -75,7 +76,7 @@ const FillPdfForm: React.FC = () => {
 
   const [formData, setFormData] = useState<FormDataType>({
     ...initialFormData,
-    tecnicoResponsavel: userName,
+    tecnicoResponsavel: '', // MODIFICAR: trocar userName por string vazia
     emailResponsavel: "",
     fotosAntes: [] as File[],
     fotosDepois: [] as File[],
@@ -117,6 +118,9 @@ const FillPdfForm: React.FC = () => {
     solucionado: "",
   });
 
+  // ADICIONAR estes 2 states após os states existentes
+  const [localTecnicoName, setLocalTecnicoName] = useState<string>('');
+  const [isLoadingTecnico, setIsLoadingTecnico] = useState(true);
   const [escolas, setEscolas] = useState<Escola[]>([]);
   const [alertDialog, setAlertDialog] = useState<{ title: string; description: string; success: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -381,7 +385,7 @@ const FillPdfForm: React.FC = () => {
   const clearForm = () => {
     setFormData({
       ...initialFormData,
-      tecnicoResponsavel: userName,
+      tecnicoResponsavel: localTecnicoName,
       emailResponsavel: "",
       fotosAntes: [] as File[],
       fotosDepois: [] as File[],
@@ -622,6 +626,57 @@ const FillPdfForm: React.FC = () => {
     }
   };
 
+  // ADICIONAR esta função
+  const fetchTecnicoName = async () => {
+    try {
+      setIsLoadingTecnico(true);
+
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        setLocalTecnicoName('');
+        setIsLoadingTecnico(false);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await axios.get('/api/user-profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data && response.data.displayName) {
+          setLocalTecnicoName(response.data.displayName);
+          setFormData(prev => ({ ...prev, tecnicoResponsavel: response.data.displayName }));
+        } else {
+          const fallback = user.email?.split('@')[0] || 'Técnico';
+          setLocalTecnicoName(fallback);
+          setFormData(prev => ({ ...prev, tecnicoResponsavel: fallback }));
+        }
+      } else {
+        const fallback = user.email?.split('@')[0] || 'Técnico';
+        setLocalTecnicoName(fallback);
+        setFormData(prev => ({ ...prev, tecnicoResponsavel: fallback }));
+      }
+    } catch (error) {
+      setLocalTecnicoName('Técnico');
+      setFormData(prev => ({ ...prev, tecnicoResponsavel: 'Técnico' }));
+    } finally {
+      setIsLoadingTecnico(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTecnicoName();
+  }, []);
+
+  useEffect(() => {
+    if (userName && !isLoadingTecnico) {
+      setLocalTecnicoName(userName);
+      setFormData(prev => ({ ...prev, tecnicoResponsavel: userName }));
+    }
+  }, [userName, isLoadingTecnico]);
+
   const saveDataAndGetNumeroOs = async (formData: FormDataType): Promise<FormDataType> => {
     try {
       const currentDate = new Date();
@@ -790,13 +845,13 @@ const FillPdfForm: React.FC = () => {
             </motion.p>
 
             {/* Step Indicator */}
-            
-              <StepIndicator
-                currentStep={currentStep}
-                onStepClick={handleStepClick}
-                completedSteps={completedSteps}
-              />
-            
+
+            <StepIndicator
+              currentStep={currentStep}
+              onStepClick={handleStepClick}
+              completedSteps={completedSteps}
+            />
+
 
             {/* Step Progress Bar */}
             <motion.div
@@ -845,7 +900,8 @@ const FillPdfForm: React.FC = () => {
                   handleInputChange={handleInputChange}
                   handleSelectChange={handleSelectChange}
                   handleFileChange={handleFileChange}
-                  tecnicoResponsavelLogado={userName}
+                  tecnicoResponsavelLogado={localTecnicoName || 'Carregando...'}
+                  isLoadingTecnico={isLoadingTecnico}
                   currentStep={currentStep}
                   currentStepFields={currentStepData.fields}
                 />

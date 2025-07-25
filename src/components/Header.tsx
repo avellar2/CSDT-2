@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
+import axios from "axios";
 
 interface HeaderProps {
   hideHamburger?: boolean;
@@ -16,11 +17,65 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
   const { userName, handleLogout } = useHeaderContext();
-  const [localUserName, setLocalUserName] = useState(userName);
+  const [localUserName, setLocalUserName] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  // NOVA FUNÇÃO: Buscar nome do usuário
+  const fetchUserName = async () => {
+    try {
+      setIsLoading(true);
+
+      // Primeiro, verificar se há um usuário logado no Supabase
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        console.log('Usuário não autenticado');
+        setLocalUserName('');
+        setIsLoading(false);
+        return;
+      }
+
+      // Buscar o perfil do usuário no banco
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await axios.get('/api/user-profile', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.data && response.data.displayName) {
+          setLocalUserName(response.data.displayName);
+        } else {
+          // Fallback para o email se não tiver displayName
+          setLocalUserName(user.email?.split('@')[0] || 'Usuário');
+        }
+      } else {
+        // Se não tiver token, usar o email como fallback
+        setLocalUserName(user.email?.split('@')[0] || 'Usuário');
+      }
+
+    } catch (error) {
+      console.error('Erro ao buscar nome do usuário:', error);
+      // Fallback em caso de erro
+      setLocalUserName('Usuário');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // EFEITO: Buscar nome quando o componente monta
   useEffect(() => {
-    setLocalUserName(userName);
+    fetchUserName();
+  }, []);
+
+  // EFEITO: Atualizar quando o userName do context mudar
+  useEffect(() => {
+    if (userName) {
+      setLocalUserName(userName);
+      setIsLoading(false);
+    }
   }, [userName]);
 
   const handleNavigate = (path: string) => {
@@ -42,9 +97,17 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
           className="block h-20 w-20 xl:h-28 xl:w-28 object-cover cursor-pointer"
         />
       </Link>
+
       <div className="text-center sm:text-left w-full lg:text-center sm:flex lg:flex justify-center items-center gap-1.5 lg:mr-10 mr-6">
         <p className="text-lg sm:text-xl lg:text-2xl">Bem vindo,</p>
-        <p className="text-xl sm:text-2xl lg:text-3xl font-bold">{localUserName}</p>
+        {isLoading ? (
+          // SKELETON LOADING enquanto carrega
+          <div className="animate-pulse bg-gray-300 dark:bg-gray-700 h-6 w-32 rounded"></div>
+        ) : (
+          <p className="text-xl sm:text-2xl lg:text-3xl font-bold">
+            {localUserName || 'Usuário'}
+          </p>
+        )}
       </div>
 
       {/* Só renderiza o menu hamburger se hideHamburger for false */}
@@ -57,7 +120,9 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
                 <SheetTitle className="flex items-center justify-between gap-2 mb-10">
                   <Avatar className="w-20 h-20">
                     <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>CN</AvatarFallback>
+                    <AvatarFallback>
+                      {localUserName ? localUserName.charAt(0).toUpperCase() : 'U'}
+                    </AvatarFallback>
                   </Avatar>
                   <Button
                     size="icon"

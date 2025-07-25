@@ -86,14 +86,17 @@ model ItemsHistoryChada {
 }
 
 model Memorandum {
-  id          Int              @id @default(autoincrement())
-  number      String           @unique // Número do memorando
-  schoolName  String
-  district    String
-  generatedBy String
-  items       MemorandumItem[] // Relacionamento com MemorandumItem
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id             Int              @id @default(autoincrement())
+  number         String           @unique // Número do memorando
+  schoolName     String
+  district       String
+  generatedBy    String
+  type           String           @default("entrega") // NOVO: tipo do memorando
+  fromSchoolName String? // NOVO: escola de origem (para troca)
+  toSchoolName   String? // NOVO: escola de destino (para troca)
+  items          MemorandumItem[] // Relacionamento com MemorandumItem
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }
 
 model MemorandumItem {
@@ -378,7 +381,7 @@ model OSExterna {
   status                             String   @default("Pendente")
   assinado                           String?
   cpf                                String?
-  cargoResponsavel                  String?
+  cargoResponsavel                   String?
   updatedAt                          DateTime @updatedAt
   createdAt                          DateTime @default(now())
 }
