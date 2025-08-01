@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { useHeaderContext } from '@/context/HeaderContext';
-import { CheckCircle, Clock, Eye, Calendar, User, PaperPlaneTilt } from 'phosphor-react';
+import { CheckCircle, Clock, Eye, Calendar, User, PaperPlaneTilt, X } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabaseClient';
 
