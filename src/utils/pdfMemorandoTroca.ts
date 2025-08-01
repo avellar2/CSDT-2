@@ -82,7 +82,7 @@ export async function fillMemorandoTrocaPDF(data: MemorandoTrocaData): Promise<U
         
         if (itemText) {
           try {
-            field.setFontAndSize(boldFont, 9);
+            field.setFontSize(9);
           } catch (fontError) {
             // Ignorar erro de fonte
           }
@@ -105,7 +105,7 @@ export async function fillMemorandoTrocaPDF(data: MemorandoTrocaData): Promise<U
         
         if (itemText) {
           try {
-            field.setFontAndSize(boldFont, 9);
+            field.setFontSize(9);
           } catch (fontError) {
             // Ignorar erro de fonte
           }
