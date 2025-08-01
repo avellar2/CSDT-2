@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { useHeaderContext } from '@/context/HeaderContext';
-import { CheckCircle, Clock, Eye, Calendar, User } from 'phosphor-react';
+import { CheckCircle, Clock, Eye, Calendar, User, PaperPlaneTilt } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabaseClient';
 
 // Atualizar a interface para incluir todos os campos do schema
 interface OsExterna {
@@ -55,6 +56,7 @@ interface OsExterna {
   assinado?: string;
   cpf?: string;
   cargoResponsavel?: string;
+  lastEmailSent?: string; // Data do último email enviado
   updatedAt: string;
   createdAt: string;
 }
@@ -66,10 +68,46 @@ const OsExternasList: React.FC = () => {
   const [selectedOs, setSelectedOs] = useState<OsExterna | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [resendingEmail, setResendingEmail] = useState<number | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [emailResult, setEmailResult] = useState<{message: string, escola: string} | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmOsData, setConfirmOsData] = useState<OsExterna | null>(null);
 
   useEffect(() => {
     fetchOsExternas();
+    fetchUserRole();
   }, []);
+
+  const fetchUserRole = async () => {
+    try {
+      // Pega o usuário logado no Supabase
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        console.error("Erro ao buscar usuário no Supabase:", error);
+        return;
+      }
+
+      console.log("ID do usuário no Supabase:", user.id);
+
+      // Consulta a role no Prisma usando o ID do Supabase
+      const response = await fetch(`/api/get-role?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Role encontrada:", data.role);
+        setUserRole(data.role);
+      } else {
+        console.error("Erro ao buscar role:", response.status);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar role do usuário:', error);
+    }
+  };
 
   const fetchOsExternas = async () => {
     try {
@@ -107,6 +145,106 @@ const OsExternasList: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  const canSendEmailToday = (os: OsExterna) => {
+    if (!os.lastEmailSent) return true;
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    const lastEmailDate = new Date(os.lastEmailSent);
+    lastEmailDate.setHours(0, 0, 0, 0);
+    
+    return lastEmailDate.getTime() !== hoje.getTime();
+  };
+
+  const getLastEmailText = (os: OsExterna) => {
+    if (!os.lastEmailSent) return '';
+    
+    const lastEmailDate = new Date(os.lastEmailSent);
+    const hoje = new Date();
+    
+    const diffTime = hoje.getTime() - lastEmailDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return 'Enviado hoje';
+    } else if (diffDays === 1) {
+      return 'Enviado ontem';
+    } else {
+      return `Enviado há ${diffDays} dias`;
+    }
+  };
+
+  const handleResendEmail = async (os: OsExterna) => {
+    if (!userRole || !['ADMIN', 'ADMTOTAL'].includes(userRole)) {
+      alert('Você não tem permissão para reenviar emails.');
+      return;
+    }
+    
+    if (!canSendEmailToday(os)) {
+      setEmailResult({
+        message: 'Já foi enviado um email para esta OS hoje. Limite: 1 email por OS por dia.',
+        escola: os.unidadeEscolar
+      });
+      setShowSuccessModal(true);
+      return;
+    }
+    
+    setConfirmOsData(os);
+    setShowConfirmModal(true);
+  };
+
+  const confirmResendEmail = async () => {
+    if (!confirmOsData) return;
+    
+    setShowConfirmModal(false);
+    const os = confirmOsData;
+    setConfirmOsData(null);
+
+    try {
+      setResendingEmail(os.id);
+      
+      const response = await fetch('/api/resend-os-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          osId: os.id,
+          unidadeEscolar: os.unidadeEscolar,
+          emailResponsavel: os.emailResponsavel,
+          numeroOs: os.numeroOs,
+        }),
+      });
+
+      if (response.ok) {
+        setEmailResult({
+          message: 'Email reenviado com sucesso!',
+          escola: os.unidadeEscolar
+        });
+        setShowSuccessModal(true);
+        // Atualizar os dados para refletir o novo envio
+        fetchOsExternas();
+      } else {
+        const errorData = await response.json();
+        setEmailResult({
+          message: `Erro ao reenviar email: ${errorData.error || 'Erro desconhecido'}`,
+          escola: os.unidadeEscolar
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error('Erro ao reenviar email:', error);
+      setEmailResult({
+        message: 'Erro ao reenviar email. Tente novamente.',
+        escola: os.unidadeEscolar
+      });
+      setShowSuccessModal(true);
+    } finally {
+      setResendingEmail(null);
+    }
   };
 
   const formatDateTime = (dateString: string) => {
@@ -221,14 +359,50 @@ const OsExternasList: React.FC = () => {
                           Criada: {formatDateTime(os.createdAt)}
                         </p>
                       </div>
-                      <Button
-                        onClick={() => handleViewDetails(os)}
-                        size="sm"
-                        className="ml-4 bg-orange-500 hover:bg-orange-600 text-white"
-                      >
-                        <Eye size={16} className="mr-1" />
-                        Ver
-                      </Button>
+                      <div className="flex flex-col gap-2 ml-4">
+                        <Button
+                          onClick={() => handleViewDetails(os)}
+                          size="sm"
+                          className="bg-orange-500 hover:bg-orange-600 text-white"
+                        >
+                          <Eye size={16} className="mr-1" />
+                          Ver
+                        </Button>
+                        
+                        {/* Botão de reenvio de email - apenas para ADMIN e ADMTOTAL */}
+                        {(userRole && ['ADMIN', 'ADMTOTAL'].includes(userRole)) && (
+                          <div className="flex flex-col">
+                            <Button
+                              onClick={() => handleResendEmail(os)}
+                              size="sm"
+                              disabled={resendingEmail === os.id || !canSendEmailToday(os)}
+                              className={`text-white disabled:opacity-50 disabled:cursor-not-allowed ${
+                                canSendEmailToday(os) 
+                                  ? 'bg-blue-500 hover:bg-blue-600' 
+                                  : 'bg-gray-400'
+                              }`}
+                              title={canSendEmailToday(os) 
+                                ? "Reenviar email de lembrete para a escola" 
+                                : "Já foi enviado um email hoje (limite: 1 por dia)"
+                              }
+                            >
+                              {resendingEmail === os.id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                              ) : (
+                                <PaperPlaneTilt size={16} className="mr-1" />
+                              )}
+                              {resendingEmail === os.id ? 'Enviando...' : 'Reenviar'}
+                            </Button>
+                            
+                            {/* Mostrar data do último envio */}
+                            {os.lastEmailSent && (
+                              <span className="text-xs text-gray-500 mt-1 text-center">
+                                {getLastEmailText(os)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -736,6 +910,112 @@ const OsExternasList: React.FC = () => {
                 <Button onClick={closeModal} className="bg-gray-500 hover:bg-gray-600 text-white">
                   Fechar
                 </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação */}
+      {showConfirmModal && confirmOsData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full mx-auto shadow-2xl transform transition-all">
+            <div className="p-6">
+              {/* Header do Modal */}
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+                  <PaperPlaneTilt className="w-8 h-8 text-orange-600" weight="fill" />
+                </div>
+              </div>
+
+              {/* Título */}
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+                Reenviar Email da OS
+              </h3>
+
+              {/* Mensagem */}
+              <p className="text-gray-600 text-center mb-4">
+                Deseja reenviar o email para <strong>{confirmOsData.unidadeEscolar}</strong>?
+              </p>
+
+              {/* Detalhes */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-medium">OS:</span> {confirmOsData.numeroOs}</p>
+                  <p><span className="font-medium">Email:</span> {confirmOsData.emailResponsavel}</p>
+                  <p className="text-orange-600">
+                    ⚠️ Isso enviará um lembrete sobre a OS pendente com o PDF anexado
+                  </p>
+                </div>
+              </div>
+
+              {/* Botões */}
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmResendEmail}
+                  className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Enviar Email
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Sucesso/Erro do Email */}
+      {showSuccessModal && emailResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full mx-auto shadow-2xl transform transition-all">
+            <div className="p-6">
+              {/* Header do Modal */}
+              <div className="flex items-center justify-center mb-4">
+                {emailResult.message.includes('sucesso') ? (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8 text-green-600" weight="fill" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                    <X className="w-8 h-8 text-red-600" weight="bold" />
+                  </div>
+                )}
+              </div>
+
+              {/* Título */}
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+                {emailResult.message.includes('sucesso') ? 'Email Enviado!' : 'Erro no Envio'}
+              </h3>
+
+              {/* Mensagem */}
+              <p className="text-gray-600 text-center mb-4">
+                {emailResult.message}
+              </p>
+
+              {/* Escola */}
+              <div className="bg-gray-50 rounded-lg p-3 mb-6">
+                <p className="text-sm text-gray-600 text-center">
+                  <span className="font-medium">Escola:</span> {emailResult.escola}
+                </p>
+              </div>
+
+              {/* Botão de Fechar */}
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                    emailResult.message.includes('sucesso')
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  Fechar
+                </button>
               </div>
             </div>
           </div>

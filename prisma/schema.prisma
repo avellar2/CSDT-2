@@ -39,10 +39,11 @@ model Item {
   status         String           @default("DISPONIVEL")
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
-  School         School?          @relation(fields: [schoolId], references: [id])
-  Profile        Profile          @relation(fields: [userId], references: [userId])
-  ItemHistory    ItemHistory[]
-  MemorandumItem MemorandumItem[]
+  School            School?             @relation(fields: [schoolId], references: [id])
+  Profile           Profile             @relation(fields: [userId], references: [userId])
+  ItemHistory       ItemHistory[]
+  MemorandumItem    MemorandumItem[]
+  NewMemorandumItem NewMemorandumItem[]
 
   @@map("Item")
 }
@@ -382,6 +383,33 @@ model OSExterna {
   assinado                           String?
   cpf                                String?
   cargoResponsavel                   String?
+  lastEmailSent                      DateTime? // Data do último email enviado
   updatedAt                          DateTime @updatedAt
   createdAt                          DateTime @default(now())
+}
+
+// Nova tabela para memorandos com numeração automática
+model NewMemorandum {
+  id             Int                 @id @default(autoincrement())
+  number         String              @unique // Número do memorando (formato: sequencial/ano)
+  schoolName     String
+  district       String
+  generatedBy    String
+  type           String              @default("entrega") // tipo do memorando (entrega/troca)
+  fromSchoolName String? // escola de origem (para troca)
+  toSchoolName   String? // escola de destino (para troca)
+  items          NewMemorandumItem[] // Relacionamento com NewMemorandumItem
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model NewMemorandumItem {
+  id           Int           @id @default(autoincrement())
+  memorandumId Int
+  itemId       Int
+  createdAt    DateTime      @default(now())
+  Item         Item          @relation(fields: [itemId], references: [id])
+  Memorandum   NewMemorandum @relation(fields: [memorandumId], references: [id])
+
+  @@unique([memorandumId, itemId])
 }

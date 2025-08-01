@@ -242,6 +242,17 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
+            {/* Card "Todos os Memorandos (Novo)" - ADMTOTAL, ADMIN */}
+            {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
+              <div
+                onClick={() => handleNavigate("/new-memorandums")}
+                className="cursor-pointer bg-orange-500 hover:bg-orange-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+              >
+                <FileText size={48} />
+                <p className="mt-2 text-lg">Todos os Memorandos (Novo)</p>
+              </div>
+            )}
+
             {/* Card "Escalas" - ADMTOTAL, ADMIN */}
             {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
               <div

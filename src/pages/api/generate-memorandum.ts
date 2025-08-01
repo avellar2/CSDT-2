@@ -6,6 +6,7 @@ import prisma from '@/utils/prisma';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabaseClient';
+import { generateMemorandoTrocaBase64, convertMemorandumDataForTroca } from '@/utils/pdfMemorandoTroca';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -41,7 +42,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Extrair e validar dados do request
   const {
     itemIds,
-    memorandumNumber,
     type,
     // Para entrega
     schoolName,
@@ -59,10 +59,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Item IDs are required.' });
   }
 
-  if (!memorandumNumber) {
-    return res.status(400).json({ error: 'Número do memorando é obrigatório.' });
-  }
-
   if (!type || !['entrega', 'troca'].includes(type)) {
     return res.status(400).json({ error: 'Tipo de memorando deve ser "entrega" ou "troca".' });
   }
@@ -74,6 +70,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     if (!district) {
       return res.status(400).json({ error: 'Distrito é obrigatório para entrega.' });
+    }
+    if (itemIds.length > 13) {
+      return res.status(400).json({ 
+        error: `Limite de itens excedido. Máximo: 13 itens, recebidos: ${itemIds.length} itens.` 
+      });
     }
   } else if (type === 'troca') {
     if (!fromSchool || !fromSchool.name) {
@@ -194,11 +195,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("Final target school:", targetSchool);
     }
 
+    // GERAR NÚMERO AUTOMÁTICO DO MEMORANDO
+    console.log("Generating automatic memorandum number...");
+    const currentYear = new Date().getFullYear();
+    
+    // Buscar o último memorando do ano atual para determinar o próximo número
+    const lastMemorandumThisYear = await prisma.newMemorandum.findFirst({
+      where: {
+        createdAt: {
+          gte: new Date(`${currentYear}-01-01`),
+          lt: new Date(`${currentYear + 1}-01-01`)
+        }
+      },
+      orderBy: {
+        id: 'desc'
+      }
+    });
+    
+    let sequentialNumber = 1;
+    if (lastMemorandumThisYear) {
+      // Extrair o número sequencial do último memorando (formato: numero/ano)
+      const lastNumber = lastMemorandumThisYear.number.split('/')[0];
+      sequentialNumber = parseInt(lastNumber) + 1;
+    }
+    
+    const automaticMemorandumNumber = `${sequentialNumber}/${currentYear}`;
+    console.log("Generated memorandum number:", automaticMemorandumNumber);
+
     // CRIAR MEMORANDO COM NOVOS CAMPOS
     console.log("Creating memorandum...");
     const memorandumData: any = {
       generatedBy: userProfile.displayName,
-      number: memorandumNumber,
+      number: automaticMemorandumNumber,
       type: type, // AGORA PODE INCLUIR
       items: {
         create: itemIds.map((id: number) => ({
@@ -220,7 +248,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       memorandumData.toSchoolName = cleanToSchoolName;
     }
 
-    const memorandum = await prisma.memorandum.create({
+    const memorandum = await prisma.newMemorandum.create({
       data: memorandumData,
       include: {
         items: {
@@ -234,66 +262,182 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // ATUALIZAR LOCALIZAÇÃO DOS ITENS
     console.log("Updating items location...");
-    await prisma.item.updateMany({
-      where: {
-        id: { in: itemIds },
-      },
-      data: {
-        schoolId: targetSchool.id, // Sempre vai para a escola de destino
-        updatedAt: new Date(),
-      },
-    });
-    console.log("Items updated.");
+    
+    if (type === 'entrega') {
+      // Para entrega: todos os itens vão para a escola de destino
+      await prisma.item.updateMany({
+        where: {
+          id: { in: itemIds },
+        },
+        data: {
+          schoolId: targetSchool.id,
+          updatedAt: new Date(),
+        },
+      });
+      console.log(`Entrega: ${itemIds.length} itens movidos para ${targetSchool.name}`);
+      
+    } else if (type === 'troca') {
+      // Para troca: atualizar baseado nos arrays do frontend
+      const { selectedFromCSDT, selectedFromDestino } = req.body;
+      
+      // Validação adicional no backend
+      if (selectedFromCSDT && selectedFromCSDT.length > 10) {
+        return res.status(400).json({ 
+          error: `Muitos itens do CSDT selecionados. Máximo: 10, selecionados: ${selectedFromCSDT.length}` 
+        });
+      }
+      
+      if (selectedFromDestino && selectedFromDestino.length > 10) {
+        return res.status(400).json({ 
+          error: `Muitos itens da escola selecionados. Máximo: 10, selecionados: ${selectedFromDestino.length}` 
+        });
+      }
+      
+      console.log('Atualizando localizações para troca:');
+      console.log('selectedFromCSDT:', selectedFromCSDT);
+      console.log('selectedFromDestino:', selectedFromDestino);
+      
+      // Itens que saem do CSDT vão para a escola
+      if (selectedFromCSDT && selectedFromCSDT.length > 0) {
+        await prisma.item.updateMany({
+          where: {
+            id: { in: selectedFromCSDT },
+          },
+          data: {
+            schoolId: targetSchool.id, // Vão para escola destino
+            updatedAt: new Date(),
+          },
+        });
+        console.log(`Troca: ${selectedFromCSDT.length} itens movidos do CSDT para ${targetSchool.name}`);
+      }
+      
+      // Itens que voltam da escola vão para o CSDT
+      if (selectedFromDestino && selectedFromDestino.length > 0) {
+        const csdtSchool = await prisma.school.upsert({
+          where: { name: "CSDT" },
+          update: {},
+          create: {
+            name: "CSDT",
+            district: "SEDE",
+            inep: 0,
+          },
+        });
+        
+        await prisma.item.updateMany({
+          where: {
+            id: { in: selectedFromDestino },
+          },
+          data: {
+            schoolId: csdtSchool.id, // Voltam para CSDT
+            updatedAt: new Date(),
+          },
+        });
+        console.log(`Troca: ${selectedFromDestino.length} itens movidos de ${targetSchool.name} para CSDT`);
+      }
+    }
+    
+    console.log("Items location updated.");
 
     // ADICIONAR HISTÓRICO
     console.log("Adding item history...");
-    await Promise.all(
-      itemIds.map(async (itemId: number) => {
-        const historyData: any = {
-          itemId,
-          movedAt: new Date(),
-          generatedBy: userProfile.displayName,
-        };
-
-        if (type === 'entrega') {
-          historyData.fromSchool = "CSDT";
-          historyData.toSchool = schoolName;
-        } else if (type === 'troca') {
-          historyData.fromSchool = cleanFromSchoolName;
-          historyData.toSchool = cleanToSchoolName;
-        }
-
-        await prisma.itemHistory.create({
-          data: historyData,
-        });
-      })
-    );
+    
+    if (type === 'entrega') {
+      // Para entrega: todos os itens saem do CSDT para a escola
+      await Promise.all(
+        itemIds.map(async (itemId: number) => {
+          await prisma.itemHistory.create({
+            data: {
+              itemId,
+              movedAt: new Date(),
+              generatedBy: userProfile.displayName,
+              fromSchool: "CSDT",
+              toSchool: schoolName,
+            },
+          });
+        })
+      );
+      console.log(`Histórico criado para entrega: ${itemIds.length} itens`);
+      
+    } else if (type === 'troca') {
+      // Para troca: registrar movimentos específicos baseado nos arrays
+      const { selectedFromCSDT, selectedFromDestino } = req.body;
+      
+      // Histórico para itens que saem do CSDT
+      if (selectedFromCSDT && selectedFromCSDT.length > 0) {
+        console.log('=== CRIANDO HISTÓRICO PARA ITENS DO CSDT ===');
+        console.log('selectedFromCSDT:', selectedFromCSDT);
+        console.log('Target school object:', targetSchool);
+        console.log('Target school name:', targetSchool.name);
+        
+        await Promise.all(
+          selectedFromCSDT.map(async (itemId: number) => {
+            console.log(`Criando histórico para item ${itemId}: CSDT → ${targetSchool.name}`);
+            
+            const historyRecord = await prisma.itemHistory.create({
+              data: {
+                itemId,
+                movedAt: new Date(),
+                generatedBy: userProfile.displayName,
+                fromSchool: "CSDT",
+                toSchool: targetSchool.name,
+              },
+            });
+            
+            console.log(`✓ Histórico criado para item ${itemId}:`, historyRecord);
+          })
+        );
+        console.log(`Histórico criado: ${selectedFromCSDT.length} itens CSDT → ${targetSchool.name}`);
+      }
+      
+      // Histórico para itens que voltam para o CSDT
+      if (selectedFromDestino && selectedFromDestino.length > 0) {
+        await Promise.all(
+          selectedFromDestino.map(async (itemId: number) => {
+            await prisma.itemHistory.create({
+              data: {
+                itemId,
+                movedAt: new Date(),
+                generatedBy: userProfile.displayName,
+                fromSchool: targetSchool.name,
+                toSchool: "CSDT",
+              },
+            });
+          })
+        );
+        console.log(`Histórico criado: ${selectedFromDestino.length} itens ${targetSchool.name} → CSDT`);
+      }
+    }
+    
     console.log("Item history updated.");
 
     // GERAR PDF
     console.log("Generating PDF...");
 
-    // Escolher o template correto
-    const pdfFileName = type === 'entrega' ? 'memorando.pdf' : 'memorando-troca.pdf';
-    const pdfPath = path.join(process.cwd(), "public", pdfFileName);
+    let pdfBase64: string;
 
-    // Se não existir template específico para troca, usar o padrão
-    const finalPdfPath = fs.existsSync(pdfPath) ? pdfPath : path.join(process.cwd(), "public", "memorando.pdf");
+    if (type === 'troca') {
+      // Usar a nova função específica para memorando de troca
+      const trocaData = convertMemorandumDataForTroca(memorandum, sourceSchool, targetSchool, req.body);
+      pdfBase64 = await generateMemorandoTrocaBase64(trocaData);
+      
+    } else {
+      // Lógica existente para entrega
+      console.log("Using existing PDF filling for entrega...");
+      
+      const pdfFileName = 'memorando.pdf';
+      const pdfPath = path.join(process.cwd(), "public", pdfFileName);
+      const pdfBytes = fs.readFileSync(pdfPath);
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const form = pdfDoc.getForm();
 
-    const pdfBytes = fs.readFileSync(finalPdfPath);
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+      // Preencher campos básicos
+      form.getTextField("numeroMemorando").setText(`${memorandum.number}`);
 
-    const form = pdfDoc.getForm();
+      // Formatar a data no formato "26 de novembro de 2025"
+      const formattedDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      form.getTextField("dataMemorando").setText(formattedDate);
 
-    // Preencher campos básicos
-    form.getTextField("numeroMemorando").setText(`${memorandum.number}`);
-
-    // Formatar a data no formato "26 de novembro de 2025"
-    const formattedDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-    form.getTextField("dataMemorando").setText(formattedDate);
-
-    // Preencher campos específicos por tipo
-    if (type === 'entrega') {
+      // Preencher campos para entrega
       form.getTextField("escola").setText(schoolName);
       form.getTextField("distrito").setText(district || "não informado");
 
@@ -304,36 +448,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log("Campo tipoOperacao não encontrado no PDF");
       }
 
-    } else if (type === 'troca') {
-      // Para troca, usar campos diferentes
-      form.getTextField("escola").setText(`DE: ${cleanFromSchoolName} | PARA: ${cleanToSchoolName}`);
-      form.getTextField("distrito").setText(`${fromSchool.district} → ${toSchool.district}`);
+      // Preencher itens
+      memorandum.items.forEach((item, index) => {
+        if (index >= 13) return; // Limite de 13 itens
+        const itemWithBrand = `${item.Item.brand}`;
+        form.getTextField(`item${index + 1}`).setText(itemWithBrand);
+        form.getTextField(`serial${index + 1}`).setText(item.Item.serialNumber);
+      });
 
-      // Campos específicos para troca (se existirem no PDF)
-      try {
-        form.getTextField("tipoOperacao")?.setText("TROCA DE EQUIPAMENTOS");
-        form.getTextField("escolaOrigem")?.setText(cleanFromSchoolName);
-        form.getTextField("escolaDestino")?.setText(cleanToSchoolName);
-        form.getTextField("distritoOrigem")?.setText(fromSchool.district);
-        form.getTextField("distritoDestino")?.setText(toSchool.district);
-        form.getTextField("inepOrigem")?.setText(fromSchool.inep?.toString() || "");
-        form.getTextField("inepDestino")?.setText(toSchool.inep?.toString() || "");
-      } catch (e) {
-        console.log("Campos específicos de troca não encontrados no PDF");
-      }
+      form.flatten();
+      const pdfBytesModified = await pdfDoc.save();
+      pdfBase64 = Buffer.from(pdfBytesModified).toString("base64");
     }
-
-    // Preencher itens (igual para ambos os tipos)
-    memorandum.items.forEach((item, index) => {
-      if (index >= 13) return; // Limite de 13 itens
-      const itemWithBrand = `${item.Item.brand}`;
-      form.getTextField(`item${index + 1}`).setText(itemWithBrand);
-      form.getTextField(`serial${index + 1}`).setText(item.Item.serialNumber);
-    });
-
-    form.flatten();
-    const pdfBytesModified = await pdfDoc.save();
-    const pdfBase64 = Buffer.from(pdfBytesModified).toString("base64");
 
     console.log(`PDF de ${type} gerado com sucesso.`);
     res.status(200).json({
@@ -345,10 +471,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error) {
-    console.error("Error generating memorandum:", error);
+    console.error("=== ERROR GENERATING MEMORANDUM ===");
+    console.error("Error details:", error);
+    console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
+    console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+    
     res.status(500).json({
       error: "Internal server error",
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     });
   }
 }

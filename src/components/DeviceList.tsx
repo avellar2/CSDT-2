@@ -84,12 +84,18 @@ const DeviceList: React.FC = () => {
   const [schoolName, setSchoolName] = useState("");
   const [district, setDistrict] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [memorandumNumber, setMemorandumNumber] = useState(""); // Estado para o número do memorando
   const [userRole, setUserRole] = useState<string | null>(null); // Estado para armazenar a role do usuário
+  const [currentStep, setCurrentStep] = useState<"step1" | "step2">("step1");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [relatedData, setRelatedData] = useState<any>(null);
+  const [loadingRelatedData, setLoadingRelatedData] = useState(false);
   const itemsPerPage = 10; // Número de itens por página
 
   // NOVOS ESTADOS para troca de equipamentos
-  const [memorandumType, setMemorandumType] = useState<'entrega' | 'troca'>('entrega');
+  const [memorandumType, setMemorandumType] = useState<"entrega" | "troca">(
+    "entrega",
+  );
   const [exchangeFromSchool, setExchangeFromSchool] = useState("");
   const [exchangeToSchool, setExchangeToSchool] = useState("");
 
@@ -240,25 +246,25 @@ const DeviceList: React.FC = () => {
 
   const filteredItems = Array.isArray(items)
     ? items
-      .filter(
-        (item) =>
-          (item.name &&
-            item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.brand &&
-            item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.serialNumber &&
-            item.serialNumber
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())) ||
-          (item.School &&
-            item.School.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())),
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      ) // Ordena por data de criação (mais recentes primeiro)
+        .filter(
+          (item) =>
+            (item.name &&
+              item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (item.brand &&
+              item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (item.serialNumber &&
+              item.serialNumber
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())) ||
+            (item.School &&
+              item.School.name
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())),
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ) // Ordena por data de criação (mais recentes primeiro)
     : [];
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -271,49 +277,102 @@ const DeviceList: React.FC = () => {
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
-  const deleteItem = async (itemId: number) => {
+  const fetchRelatedData = async (itemId: number) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("Usuário não autenticado. Por favor, faça login.");
+      setModalMessage("Usuário não autenticado. Por favor, faça login.");
+      setModalIsOpen(true);
+      return null;
+    }
+
+    setLoadingRelatedData(true);
+    try {
+      const response = await fetch(`/api/items/${itemId}/related-data`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      } else {
+        const errorData = await response.json();
+        setModalMessage(`Erro ao buscar dados relacionados: ${errorData.error}`);
+        setModalIsOpen(true);
+        return null;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados relacionados:", error);
+      setModalMessage("Erro ao buscar dados relacionados");
+      setModalIsOpen(true);
+      return null;
+    } finally {
+      setLoadingRelatedData(false);
+    }
+  };
+
+  const openDeleteModal = async (item: any) => {
+    setItemToDelete(item);
+    const data = await fetchRelatedData(item.id);
+    if (data) {
+      setRelatedData(data);
+      setDeleteModalOpen(true);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setModalMessage("Usuário não autenticado. Por favor, faça login.");
+      setModalIsOpen(true);
       return;
     }
 
     try {
-      const response = await fetch(`/api/items/${itemId}`, {
+      const response = await fetch(`/api/items/${itemToDelete.id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Expected JSON but got:", text);
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Mostrar resumo do que foi deletado
         setModalMessage(
-          "Erro ao apagar item. Resposta inesperada do servidor.",
+          `✅ Item deletado com sucesso!\n\n` +
+          `📦 Item: ${result.deletedData.item.name} (${result.deletedData.item.serialNumber})\n\n` +
+          `🗑️ Dados relacionados removidos:\n` +
+          `• ${result.deletedData.relatedRecords.itemHistory} registros de histórico\n` +
+          `• ${result.deletedData.relatedRecords.memorandumItems} itens de memorando\n` +
+          `• ${result.deletedData.relatedRecords.chadaRecords} registros CHADA\n\n` +
+          `Todos os dados foram removidos permanentemente.`
         );
         setModalIsOpen(true);
-        return;
-      }
-
-      if (response.ok) {
-        setItems(items.filter((item) => item.id !== itemId));
+        
+        // Atualizar lista de itens
+        setItems(items.filter((item) => item.id !== itemToDelete.id));
+        
       } else {
         const errorData = await response.json();
-        setModalMessage(`Erro ao apagar item: ${errorData.error}`);
+        setModalMessage(`❌ Erro ao apagar item: ${errorData.error}`);
         setModalIsOpen(true);
       }
     } catch (error) {
       console.error("Erro ao apagar item:", error);
-      setModalMessage("Erro ao apagar item");
+      setModalMessage("❌ Erro ao apagar item");
       setModalIsOpen(true);
+    } finally {
+      setDeleteModalOpen(false);
+      setItemToDelete(null);
+      setRelatedData(null);
     }
   };
 
-  const closeModal = () => {
-    setModalIsOpen(false);
-  };
 
   const exportToExcel = () => {
     const formattedItems = items.map((item) => ({
@@ -349,19 +408,31 @@ const DeviceList: React.FC = () => {
   };
 
   const handleGenerateMemorandum = async () => {
+    console.log('=== INÍCIO DA GERAÇÃO DO MEMORANDO ===');
+    console.log('Tipo:', memorandumType);
+    console.log('Escola destino:', exchangeToSchool);
+    
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Usuário não autenticado. Por favor, faça login.");
       return;
     }
 
-    if (selectedItems.length === 0) {
-      alert("Selecione pelo menos um item para gerar o memorando.");
-      return;
-    }
-
-    // VALIDAÇÕES baseadas no tipo de memorando
-    if (memorandumType === 'entrega') {
+    // VALIDAÇÕES ESPECÍFICAS POR TIPO DE MEMORANDO
+    if (memorandumType === "entrega") {
+      if (selectedItems.length === 0) {
+        alert("Selecione pelo menos um item para entrega.");
+        return;
+      }
+      
+      if (selectedItems.length > 13) {
+        setModalMessage(
+          `📦 Limite de itens excedido!\n\nVocê selecionou ${selectedItems.length} itens, mas o limite máximo para memorandos de entrega é de 13 itens.\n\nPor favor, reduza a seleção para até 13 itens ou crie múltiplos memorandos.`
+        );
+        setModalIsOpen(true);
+        return;
+      }
+      
       if (!schoolName) {
         alert("Por favor, selecione uma escola.");
         return;
@@ -371,90 +442,122 @@ const DeviceList: React.FC = () => {
         alert("O distrito não foi definido. Verifique a escola selecionada.");
         return;
       }
-    } else if (memorandumType === 'troca') {
-      if (!exchangeFromSchool) {
-        alert("Por favor, selecione a escola de origem (De onde sai).");
-        return;
-      }
-
+      
+    } else if (memorandumType === "troca") {
+      console.log('=== VALIDAÇÃO TROCA ===');
+      console.log('exchangeToSchool:', exchangeToSchool);
+      console.log('selectedFromCSDT:', selectedFromCSDT);
+      console.log('selectedFromDestino:', selectedFromDestino);
+      
+      // Validar escola de destino
       if (!exchangeToSchool) {
-        alert("Por favor, selecione a escola de destino (Para onde vai).");
+        console.error('ERRO: exchangeToSchool está vazio!');
+        alert("Por favor, selecione a escola de destino.");
         return;
       }
-
-      if (exchangeFromSchool === exchangeToSchool) {
-        alert("A escola de origem e destino não podem ser iguais.");
+      
+      // Validar se há pelo menos um item selecionado
+      if (selectedFromCSDT.length === 0 && selectedFromDestino.length === 0) {
+        alert("Selecione pelo menos um item para troca (que sai do CSDT ou que volta da escola).");
         return;
       }
     }
 
-    if (!memorandumNumber) {
-      alert("Por favor, insira o número do memorando.");
-      return;
-    }
 
-    if (selectedItems.length > 13) {
-      setModalMessage("Você pode selecionar no máximo 13 itens por memorando.");
-      setModalIsOpen(true);
-      return;
+    // Para troca, verificar limite individual de 10 itens por categoria
+    if (memorandumType === "troca") {
+      if (selectedFromCSDT.length > 10) {
+        setModalMessage(
+          `🚫 Limite excedido!\n\nVocê selecionou ${selectedFromCSDT.length} itens do CSDT, mas o máximo são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
+        );
+        setModalIsOpen(true);
+        return;
+      }
+      
+      if (selectedFromDestino.length > 10) {
+        setModalMessage(
+          `🚫 Limite excedido!\n\nVocê selecionou ${selectedFromDestino.length} itens da escola, mas o máximo são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
+        );
+        setModalIsOpen(true);
+        return;
+      }
+    } else {
+      // Para entrega, manter limite de 13 itens total
+      if (selectedItems.length > 13) {
+        setModalMessage("Você pode selecionar no máximo 13 itens por memorando.");
+        setModalIsOpen(true);
+        return;
+      }
     }
 
     try {
-      // Para TROCA: Verificar se os itens estão na escola de origem
-      if (memorandumType === 'troca') {
-        const itemsNotInFromSchool = items.filter(
-          (item) => selectedItems.includes(item.id) && item.School?.name !== exchangeFromSchool
+      // Para TROCA: Verificar se os itens estão nas escolas corretas
+      if (memorandumType === "troca") {
+        // Verificar itens que saem do CSDT
+        const itemsNotInCSDT = items.filter(
+          (item) =>
+            selectedFromCSDT.includes(item.id) &&
+            item.School?.name !== "CSDT",
         );
 
-        if (itemsNotInFromSchool.length > 0) {
-          const itemNames = itemsNotInFromSchool.map((item) => item.name).join(", ");
+        if (itemsNotInCSDT.length > 0) {
+          const itemNames = itemsNotInCSDT
+            .map((item) => item.name)
+            .join(", ");
           setModalMessage(
-            `O(s) item(s) ${itemNames} não está(ão) na escola de origem "${exchangeFromSchool}". Verifique a localização dos equipamentos.`
+            `O(s) item(s) ${itemNames} não está(ão) no CSDT. Verifique a localização dos equipamentos.`,
           );
           setModalIsOpen(true);
           return;
         }
+
+        // Verificar itens que saem da escola destino
+        if (selectedFromDestino.length > 0) {
+          const itemsNotInDestination = items.filter(
+            (item) =>
+              selectedFromDestino.includes(item.id) &&
+              item.School?.name !== exchangeToSchool,
+          );
+
+          if (itemsNotInDestination.length > 0) {
+            const itemNames = itemsNotInDestination
+              .map((item) => item.name)
+              .join(", ");
+            setModalMessage(
+              `O(s) item(s) ${itemNames} não está(ão) na escola "${exchangeToSchool}". Verifique a localização dos equipamentos.`,
+            );
+            setModalIsOpen(true);
+            return;
+          }
+        }
       }
 
       // Para ENTREGA: Verificar se algum item está na escola CHADA
-      if (memorandumType === 'entrega') {
+      if (memorandumType === "entrega") {
         const itemsInChada = items.filter(
-          (item) => selectedItems.includes(item.id) && item.School?.name === "CHADA"
+          (item) =>
+            selectedItems.includes(item.id) && item.School?.name === "CHADA",
         );
 
         if (itemsInChada.length > 0) {
           const itemNames = itemsInChada.map((item) => item.name).join(", ");
           setModalMessage(
-            `O(s) item(s) ${itemNames} está(ão) na CHADA. Por favor, dar baixa no(s) item(s) para o CSDT antes de fazer o memorando.`
+            `O(s) item(s) ${itemNames} está(ão) na CHADA. Por favor, dar baixa no(s) item(s) para o CSDT antes de fazer o memorando.`,
           );
           setModalIsOpen(true);
           return;
         }
       }
 
-      // Verificar se o número do memorando já existe
-      const checkResponse = await axios.get(
-        `/api/check-memorandum-number?number=${memorandumNumber}`
-      );
-
-      if (checkResponse.data.exists) {
-        setModalMessage(
-          `O número do memorando ${memorandumNumber} já existe. Por favor, escolha outro número.`
-        );
-        setModalIsOpen(true);
-        return;
-      }
 
       // PREPARAR DADOS baseados no tipo de memorando
       let requestData: any = {
-        itemIds: selectedItems,
-        memorandumNumber,
-        type: memorandumType
+        type: memorandumType,
       };
 
-      if (memorandumType === 'entrega') {
+      if (memorandumType === "entrega") {
         const selectedSchool = schools.find(
-          (school) => school.name === schoolName
+          (school) => school.name === schoolName,
         );
 
         if (!selectedSchool) {
@@ -464,29 +567,46 @@ const DeviceList: React.FC = () => {
 
         requestData = {
           ...requestData,
+          itemIds: selectedItems,
           schoolName,
           district,
           inep: selectedSchool.inep,
         };
-      } else if (memorandumType === 'troca') {
-        const fromSchool = schools.find(
-          (school) => school.name === exchangeFromSchool
-        );
-        const toSchool = schools.find(
-          (school) => school.name === exchangeToSchool
+        
+      } else if (memorandumType === "troca") {
+        console.log('=== PREPARANDO DADOS PARA TROCA ===');
+        
+        // Para troca, enviar todos os itens selecionados (CSDT + escola)
+        const allSelectedItemIds = [...selectedFromCSDT, ...selectedFromDestino];
+        console.log('Itens do CSDT:', selectedFromCSDT);
+        console.log('Itens da escola:', selectedFromDestino);
+        console.log('Todos itens:', allSelectedItemIds);
+        
+        const toSchoolData = schools.find(
+          (school) => school.name === exchangeToSchool,
         );
 
-        if (!fromSchool || !toSchool) {
-          alert("Por favor, selecione escolas válidas para origem e destino.");
+        if (!toSchoolData) {
+          alert("Escola de destino não encontrada. Por favor, selecione uma escola válida.");
           return;
         }
 
+        // Escola de origem sempre será CSDT para simplificar
+        const fromSchoolData = schools.find(
+          (school) => school.name === "CSDT",
+        ) || { name: "CSDT", district: "SEDE", inep: 0 };
+
         requestData = {
           ...requestData,
-          fromCSDT: selectedFromCSDT,
-          fromDestino: selectedFromDestino,
-          toSchool: exchangeToSchool,
+          itemIds: allSelectedItemIds,
+          fromSchool: fromSchoolData,
+          toSchool: toSchoolData,
+          // Dados específicos para separação no PDF
+          selectedFromCSDT,      // Itens que saem do CSDT → campo "novo"
+          selectedFromDestino    // Itens que voltam da escola → campo "antigo"
         };
+        
+        console.log('Dados de troca preparados:', requestData);
       }
 
       console.log("Dados enviados:", requestData);
@@ -497,8 +617,8 @@ const DeviceList: React.FC = () => {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-          }
-        }
+          },
+        },
       );
 
       // Decodificar o PDF Base64
@@ -517,9 +637,10 @@ const DeviceList: React.FC = () => {
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = url;
-      const fileName = memorandumType === 'entrega'
-        ? `memorando-entrega-${memorandumNumber}.pdf`
-        : `memorando-troca-${memorandumNumber}.pdf`;
+      const fileName =
+        memorandumType === "entrega"
+          ? `memorando-entrega-${response.data.memorandumNumber}.pdf`
+          : `memorando-troca-${response.data.memorandumNumber}.pdf`;
       link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
@@ -531,14 +652,15 @@ const DeviceList: React.FC = () => {
 
       // Limpar os campos
       setSelectedItems([]);
-      setMemorandumType('entrega');
+      setSelectedFromCSDT([]);
+      setSelectedFromDestino([]);
+      setMemorandumType("entrega");
       setSchoolName("");
       setDistrict("");
       setExchangeFromSchool("");
-      setExchangeToSchool("");
-      setMemorandumNumber("");
+      setExchangeToSchool("");  
+      setCurrentStep("step1");
       setIsDialogOpen(false);
-
     } catch (error) {
       console.error("Erro ao gerar memorando:", error);
       alert("Falha ao gerar o memorando. Verifique os dados enviados.");
@@ -554,7 +676,7 @@ const DeviceList: React.FC = () => {
       TECLADO: 0,
       ESTABILIZADOR: 0,
       IMPRESSORA: 0,
-      NOTEBOOK: 0
+      NOTEBOOK: 0,
     };
 
     items.forEach((item) => {
@@ -619,13 +741,7 @@ const DeviceList: React.FC = () => {
           </button>
           {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
             <button
-              onClick={() => {
-                if (selectedItems.length === 0) {
-                  alert("Selecione pelo menos um item para gerar o memorando.");
-                  return;
-                }
-                setIsDialogOpen(true); // Abre o AlertDialog
-              }}
+              onClick={() => setIsDialogOpen(true)} // Abre direto sem validação
               className="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded flex items-center"
             >
               <File size={24} className="mr-2" />
@@ -682,15 +798,17 @@ const DeviceList: React.FC = () => {
           <h3 className="text-lg font-bold">Impr.</h3>
           <p className="text-2xl font-semibold">{totals.IMPRESSORA}</p>
         </div>
-
       </div>
 
       <div className="space-y-4">
         {currentItems.map((item) => (
           <div
             key={item.id}
-            className={`p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center ${item.School?.name === "CHADA" ? "bg-rose-900 opacity-70" : "bg-gray-900"
-              }`}
+            className={`p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center ${
+              item.School?.name === "CHADA"
+                ? "bg-rose-900 opacity-70"
+                : "bg-gray-900"
+            }`}
           >
             <div className="flex items-center mb-4 md:mb-0">
               <input
@@ -733,7 +851,7 @@ const DeviceList: React.FC = () => {
               </button>
               {item.Profile?.userId === userId && (
                 <button
-                  onClick={() => deleteItem(item.id)}
+                  onClick={() => openDeleteModal(item)}
                   className="text-red-500 hover:text-red-700"
                 >
                   <Trash size={24} />
@@ -754,82 +872,113 @@ const DeviceList: React.FC = () => {
           />
         </div>
 
-        <Modal
-          isOpen={modalIsOpen}
-          onRequestClose={closeModal}
-          contentLabel="Mensagem"
-          className="modal-content"
-          overlayClassName="modal-overlay"
-        >
-          <div>
-            <h2 className="text-xl mb-4">Mensagem</h2>
-            <p>{modalMessage}</p>
-            <button
-              onClick={closeModal}
-              className="mt-4 bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
-            >
-              Fechar
-            </button>
-          </div>
-        </Modal>
+        {/* Modal moderno para avisos */}
+        <AlertDialog open={modalIsOpen} onOpenChange={setModalIsOpen}>
+          <AlertDialogContent className="dark:bg-zinc-900 bg-white max-w-md">
+            <AlertDialogHeader className="text-center">
+              <AlertDialogTitle className="dark:text-white text-xl font-bold flex items-center justify-center gap-2">
+                {modalMessage.includes('🚫') ? (
+                  <>
+                    <span className="text-2xl">🚫</span>
+                    Limite Excedido
+                  </>
+                ) : (
+                  <>
+                    <span className="text-2xl">ℹ️</span>
+                    Informação
+                  </>
+                )}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="dark:text-gray-300 text-gray-600 text-base whitespace-pre-line">
+                {modalMessage.replace(/🚫|ℹ️/g, '').trim()}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex justify-center">
+              <AlertDialogAction
+                onClick={() => setModalIsOpen(false)}
+                className="bg-blue-500 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+              >
+                Entendi
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* AlertDialog para gerar o memorando */}
         <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black max-w-2xl">
-            <AlertDialogHeader>
+          <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black max-w-2xl max-h-[90vh] flex flex-col">
+            <AlertDialogHeader className="flex-shrink-0">
               <AlertDialogTitle className="dark:text-white">
                 Gerar Memorando
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Escolha o tipo de memorando e preencha as informações necessárias.
+                Escolha o tipo de memorando e preencha as informações
+                necessárias.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
-            <div className="space-y-6">
+            {/* Container com scroll para o conteúdo principal */}
+            <div className="flex-1 overflow-y-auto space-y-6 px-1">
               {/* SELETOR DE TIPO DE MEMORANDO */}
               <div className="space-y-3">
                 <label className="block">
-                  <span className="dark:text-gray-300 font-semibold">Tipo de Memorando:</span>
+                  <span className="dark:text-gray-300 font-semibold">
+                    Tipo de Memorando:
+                  </span>
                 </label>
                 <div className="flex space-x-4">
                   <label className="flex items-center space-x-2">
                     <input
                       type="radio"
                       value="entrega"
-                      checked={memorandumType === 'entrega'}
-                      onChange={(e) => setMemorandumType(e.target.value as 'entrega')}
+                      checked={memorandumType === "entrega"}
+                      onChange={(e) =>
+                        setMemorandumType(e.target.value as "entrega")
+                      }
                       className="form-radio text-blue-500"
                     />
-                    <span className="dark:text-gray-300">📦 Entrega de Equipamentos</span>
+                    <span className="dark:text-gray-300">
+                      📦 Entrega de Equipamentos
+                    </span>
                   </label>
                   <label className="flex items-center space-x-2">
                     <input
                       type="radio"
                       value="troca"
-                      checked={memorandumType === 'troca'}
-                      onChange={(e) => setMemorandumType(e.target.value as 'troca')}
+                      checked={memorandumType === "troca"}
+                      onChange={(e) =>
+                        setMemorandumType(e.target.value as "troca")
+                      }
                       className="form-radio text-blue-500"
                     />
-                    <span className="dark:text-gray-300">🔄 Troca de Equipamentos</span>
+                    <span className="dark:text-gray-300">
+                      🔄 Troca de Equipamentos
+                    </span>
                   </label>
                 </div>
               </div>
 
               {/* CAMPOS PARA ENTREGA */}
-              {memorandumType === 'entrega' && (
+              {memorandumType === "entrega" && (
                 <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <h4 className="font-semibold text-blue-800 dark:text-blue-300">
                     📦 Configurações de Entrega
                   </h4>
 
                   <label className="block">
-                    <span className="dark:text-gray-300">Escola de Destino:</span>
+                    <span className="dark:text-gray-300">
+                      Escola de Destino:
+                    </span>
                     <Select
                       options={schools.map((school) => ({
                         value: school.name,
                         label: school.name,
                       }))}
-                      value={schoolName ? { value: schoolName, label: schoolName } : null}
+                      value={
+                        schoolName
+                          ? { value: schoolName, label: schoolName }
+                          : null
+                      }
                       onChange={(selectedOption) => {
                         const selectedSchoolName = selectedOption?.value || "";
                         setSchoolName(selectedSchoolName);
@@ -857,11 +1006,81 @@ const DeviceList: React.FC = () => {
                       placeholder="Distrito será preenchido automaticamente"
                     />
                   </label>
+
+                  {/* Lista de itens para seleção na entrega */}
+                  <div>
+                    <span className="dark:text-gray-300 font-semibold">
+                      Selecionar itens para entrega:
+                    </span>
+
+                    {/* Barra de pesquisa para entrega */}
+                    <div className="my-2">
+                      <input
+                        type="text"
+                        placeholder="Pesquisar equipamento..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100 border dark:border-zinc-700"
+                      />
+                    </div>
+
+                    {/* Lista com altura limitada e scroll */}
+                    <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded border divide-y divide-gray-200 dark:divide-zinc-700">
+                      {items
+                        .filter(
+                          (item) =>
+                            item.School?.name === "CSDT" &&
+                            (item.name
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                              item.brand
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()) ||
+                              item.serialNumber
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase())),
+                        )
+                        .map((item, idx) => (
+                          <label
+                            key={item.id}
+                            className={`
+                              flex items-center gap-2 text-xs px-2 py-2 cursor-pointer transition
+                              ${idx % 2 === 0 ? "bg-gray-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-800"}
+                              hover:bg-blue-100 dark:hover:bg-blue-900
+                              rounded
+                            `}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedItems.includes(item.id)}
+                              onChange={() => {
+                                setSelectedItems((prev) =>
+                                  prev.includes(item.id)
+                                    ? prev.filter((id) => id !== item.id)
+                                    : [...prev, item.id],
+                                );
+                              }}
+                              className="accent-blue-500"
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{item.name}</span>
+                              <span className="text-gray-500 dark:text-gray-400">
+                                {item.brand} • {item.serialNumber}
+                              </span>
+                              <span className="text-gray-400 text-[10px]">
+                                Criado em:{" "}
+                                {format(new Date(item.createdAt), "dd/MM/yyyy")}
+                              </span>
+                            </div>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* CAMPOS PARA TROCA */}
-              {memorandumType === 'troca' && (
+              {/* CAMPOS PARA TROCA - com altura limitada */}
+              {memorandumType === "troca" && (
                 <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                   <h4 className="font-semibold text-orange-800 dark:text-orange-300">
                     🔄 Configurações de Troca
@@ -869,15 +1088,24 @@ const DeviceList: React.FC = () => {
 
                   {/* Escolher escola destino */}
                   <label className="block">
-                    <span className="dark:text-gray-300">Escola de Destino:</span>
+                    <span className="dark:text-gray-300">
+                      Escola de Destino:
+                    </span>
                     <Select
                       options={schools.map((school) => ({
                         value: school.name,
                         label: school.name,
                       }))}
-                      value={exchangeToSchool ? { value: exchangeToSchool, label: exchangeToSchool } : null}
+                      value={
+                        exchangeToSchool
+                          ? { value: exchangeToSchool, label: exchangeToSchool }
+                          : null
+                      }
                       onChange={(selectedOption) => {
                         setExchangeToSchool(selectedOption?.value || "");
+                        setCurrentStep("step1");
+                        setSelectedFromCSDT([]);
+                        setSelectedFromDestino([]);
                       }}
                       className="text-black"
                       placeholder="Selecione a escola de destino"
@@ -885,98 +1113,375 @@ const DeviceList: React.FC = () => {
                     />
                   </label>
 
-                  {/* Selecionar equipamentos que vão do CSDT para a escola destino */}
-                  <div>
-                    <span className="dark:text-gray-300 font-semibold">Equipamentos que vão do CSDT para {exchangeToSchool || "..."}</span>
-                    <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded p-2 border">
-                      {items
-                        .filter(item => item.School?.name === "CSDT")
-                        .map(item => (
-                          <label key={item.id} className="flex items-center gap-2 text-xs">
-                            <input
-                              type="checkbox"
-                              checked={selectedFromCSDT.includes(item.id)}
-                              onChange={() => {
-                                setSelectedFromCSDT(prev =>
-                                  prev.includes(item.id)
-                                    ? prev.filter(id => id !== item.id)
-                                    : [...prev, item.id]
-                                );
-                              }}
-                            />
-                            {item.name} - {item.brand} ({item.serialNumber})
-                          </label>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Selecionar equipamentos que vão da escola destino para o CSDT */}
+                  {/* Exibir etapas apenas se escola de destino foi selecionada */}
                   {exchangeToSchool && (
                     <div>
-                      <span className="dark:text-gray-300 font-semibold">Equipamentos que vão de {exchangeToSchool} para o CSDT</span>
-                      <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded p-2 border">
-                        {items
-                          .filter(item => item.School?.name === exchangeToSchool)
-                          .map(item => (
-                            <label key={item.id} className="flex items-center gap-2 text-xs">
-                              <input
-                                type="checkbox"
-                                checked={selectedFromDestino.includes(item.id)}
-                                onChange={() => {
-                                  setSelectedFromDestino(prev =>
-                                    prev.includes(item.id)
-                                      ? prev.filter(id => id !== item.id)
-                                      : [...prev, item.id]
-                                  );
-                                }}
-                              />
-                              {item.name} - {item.brand} ({item.serialNumber})
-                            </label>
-                          ))}
+                      {/* Indicador de etapas */}
+                      <div className="flex items-center justify-between mb-4 p-2 bg-gray-100 dark:bg-zinc-700 rounded">
+                        <div
+                          className={`px-3 py-1 rounded ${
+                            currentStep === "step1"
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-300 text-gray-700"
+                          }`}
+                        >
+                          Etapa 1: CSDT → {exchangeToSchool}
+                        </div>
+                        <div className="text-gray-400">→</div>
+                        <div
+                          className={`px-3 py-1 rounded ${
+                            currentStep === "step2"
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-300 text-gray-700"
+                          }`}
+                        >
+                          Etapa 2: {exchangeToSchool} → CSDT
+                        </div>
                       </div>
+
+                      {/* ETAPA 1: Selecionar equipamentos que vão do CSDT para a escola destino */}
+                      {currentStep === "step1" && (
+                        <div>
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="dark:text-gray-300 font-semibold">
+                              Equipamentos que vão do CSDT para{" "}
+                              {exchangeToSchool}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {selectedFromCSDT.length} selecionados
+                            </span>
+                          </div>
+
+                          {/* Barra de pesquisa */}
+                          <div className="my-2">
+                            <input
+                              type="text"
+                              placeholder="Pesquisar equipamento..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100 border dark:border-zinc-700"
+                            />
+                          </div>
+
+                          {/* Lista com altura limitada */}
+                          <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded border divide-y divide-gray-200 dark:divide-zinc-700">
+                            {items
+                              .filter(
+                                (item) =>
+                                  item.School?.name === "CSDT" &&
+                                  (item.name
+                                    .toLowerCase()
+                                    .includes(searchTerm.toLowerCase()) ||
+                                    item.brand
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()) ||
+                                    item.serialNumber
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase())),
+                              )
+                              .map((item, idx) => (
+                                <label
+                                  key={item.id}
+                                  className={`
+                                    flex items-center gap-2 text-xs px-2 py-2 cursor-pointer transition
+                                    ${idx % 2 === 0 ? "bg-gray-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-800"}
+                                    hover:bg-blue-100 dark:hover:bg-blue-900
+                                    rounded
+                                  `}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedFromCSDT.includes(item.id)}
+                                    onChange={() => {
+                                      setSelectedFromCSDT((prev) => {
+                                        if (prev.includes(item.id)) {
+                                          // Remover item
+                                          return prev.filter((id) => id !== item.id);
+                                        } else {
+                                          // Adicionar item - verificar limite
+                                          if (prev.length >= 10) {
+                                            setModalMessage(
+                                              `🚫 Limite excedido!\n\nVocê tentou selecionar ${prev.length + 1} itens do CSDT, mas o máximo permitido são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
+                                            );
+                                            setModalIsOpen(true);
+                                            return prev; // Não adicionar
+                                          }
+                                          return [...prev, item.id];
+                                        }
+                                      });
+                                    }}
+                                    className="accent-blue-500"
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">
+                                      {item.name}
+                                    </span>
+                                    <span className="text-gray-500 dark:text-gray-400">
+                                      {item.brand} • {item.serialNumber}
+                                    </span>
+                                    <span className="text-gray-400 text-[10px]">
+                                      Criado em:{" "}
+                                      {format(
+                                        new Date(item.createdAt),
+                                        "dd/MM/yyyy",
+                                      )}
+                                    </span>
+                                  </div>
+                                </label>
+                              ))}
+                          </div>
+
+                          {/* Botão para próxima etapa */}
+                          <div className="flex justify-end mt-4">
+                            <button
+                              onClick={() => {
+                                if (selectedFromCSDT.length === 0) {
+                                  alert(
+                                    "Selecione pelo menos um item para continuar.",
+                                  );
+                                  return;
+                                }
+                                setCurrentStep("step2");
+                              }}
+                              disabled={selectedFromCSDT.length === 0}
+                              className={`px-4 py-2 rounded ${
+                                selectedFromCSDT.length === 0
+                                  ? "bg-gray-400 cursor-not-allowed"
+                                  : "bg-blue-500 hover:bg-blue-700"
+                              } text-white`}
+                            >
+                              Confirmar e Próximo ({selectedFromCSDT.length}{" "}
+                              itens)
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ETAPA 2: Selecionar equipamentos que vão da escola destino para o CSDT */}
+                      {currentStep === "step2" && (
+                        <div>
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="dark:text-gray-300 font-semibold">
+                              Equipamentos que vão de {exchangeToSchool} para o
+                              CSDT
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {selectedFromDestino.length} selecionados
+                            </span>
+                          </div>
+
+                          {/* Barra de pesquisa para etapa 2 */}
+                          <div className="my-2">
+                            <input
+                              type="text"
+                              placeholder="Pesquisar equipamento..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100 border dark:border-zinc-700"
+                            />
+                          </div>
+
+                          {/* Lista com altura limitada */}
+                          <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded border divide-y divide-gray-200 dark:divide-zinc-700">
+                            {items
+                              .filter(
+                                (item) =>
+                                  item.School?.name === exchangeToSchool &&
+                                  (item.name
+                                    .toLowerCase()
+                                    .includes(searchTerm.toLowerCase()) ||
+                                    item.brand
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()) ||
+                                    item.serialNumber
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase())),
+                              )
+                              .map((item, idx) => (
+                                <label
+                                  key={item.id}
+                                  className={`
+                                    flex items-center gap-2 text-xs px-2 py-2 cursor-pointer transition
+                                    ${idx % 2 === 0 ? "bg-gray-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-800"}
+                                    hover:bg-blue-100 dark:hover:bg-blue-900
+                                    rounded
+                                  `}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedFromDestino.includes(
+                                      item.id,
+                                    )}
+                                    onChange={() => {
+                                      setSelectedFromDestino((prev) => {
+                                        if (prev.includes(item.id)) {
+                                          // Remover item
+                                          return prev.filter((id) => id !== item.id);
+                                        } else {
+                                          // Adicionar item - verificar limite
+                                          if (prev.length >= 10) {
+                                            setModalMessage(
+                                              `🚫 Limite excedido!\n\nVocê tentou selecionar ${prev.length + 1} itens da escola ${exchangeToSchool}, mas o máximo permitido são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
+                                            );
+                                            setModalIsOpen(true);
+                                            return prev; // Não adicionar
+                                          }
+                                          return [...prev, item.id];
+                                        }
+                                      });
+                                    }}
+                                    className="accent-blue-500"
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">
+                                      {item.name}
+                                    </span>
+                                    <span className="text-gray-500 dark:text-gray-400">
+                                      {item.brand} • {item.serialNumber}
+                                    </span>
+                                    <span className="text-gray-400 text-[10px]">
+                                      Criado em:{" "}
+                                      {format(
+                                        new Date(item.createdAt),
+                                        "dd/MM/yyyy",
+                                      )}
+                                    </span>
+                                  </div>
+                                </label>
+                              ))}
+                          </div>
+
+                          {/* Botões para voltar */}
+                          <div className="flex justify-between mt-4">
+                            <button
+                              onClick={() => setCurrentStep("step1")}
+                              className="px-4 py-2 bg-gray-500 hover:bg-gray-700 text-white rounded"
+                            >
+                              ← Voltar
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* NÚMERO DO MEMORANDO */}
-              <label className="block">
-                <span className="dark:text-gray-300">Número do Memorando:</span>
-                <input
-                  type="text"
-                  value={memorandumNumber}
-                  onChange={(e) => setMemorandumNumber(e.target.value)}
-                  className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white"
-                  placeholder="Digite o número do memorando (ex: 001/2025)"
-                />
-              </label>
-
-              {/* PREVIEW DOS ITENS SELECIONADOS */}
-              <div className="mt-4 p-3 bg-gray-50 dark:bg-zinc-800 rounded border">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  📋 Itens Selecionados: {selectedItems.length}
+              {/* NÚMERO AUTOMÁTICO */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800">
+                <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
+                  📋 Número do memorando será gerado automaticamente
+                </span>
+                <p className="text-xs text-blue-500 dark:text-blue-300 mt-1">
+                  Formato: [Sequencial]/[Ano] (ex: 1/2025, 2/2025...)
                 </p>
-                <div className="max-h-32 overflow-y-auto">
-                  {items
-                    .filter(item => selectedItems.includes(item.id))
-                    .map(item => (
-                      <p key={item.id} className="text-xs text-gray-600 dark:text-gray-400">
-                        • {item.name} - {item.brand} ({item.serialNumber})
-                      </p>
-                    ))}
+              </div>
+
+              {/* PREVIEW DOS ITENS SELECIONADOS com altura limitada */}
+              <div className="p-3 bg-gray-50 dark:bg-zinc-800 rounded border">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  📋 Itens Selecionados:{" "}
+                  {memorandumType === "entrega" ? (
+                    <span className={selectedItems.length > 13 ? "text-red-500 font-bold" : ""}>
+                      {selectedItems.length}/13 {selectedItems.length > 13 && "⚠️"}
+                    </span>
+                  ) : memorandumType === "troca" ? (
+                    selectedFromCSDT.length + selectedFromDestino.length
+                  ) : (
+                    0
+                  )}
+                </p>
+                
+                {/* Aviso de limite excedido */}
+                {memorandumType === "entrega" && selectedItems.length > 13 && (
+                  <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-sm">
+                    <span className="text-red-600 dark:text-red-400 font-medium">
+                      ⚠️ Limite excedido! Máximo: 13 itens por memorando de entrega.
+                    </span>
+                  </div>
+                )}
+
+                {/* Container com scroll para muitos itens */}
+                <div className="max-h-24 overflow-y-auto">
+                  {memorandumType === "entrega" && (
+                    <>
+                      {items
+                        .filter((item) => selectedItems.includes(item.id))
+                        .map((item) => (
+                          <p
+                            key={item.id}
+                            className="text-xs text-gray-600 dark:text-gray-400"
+                          >
+                            • {item.name} - {item.brand} ({item.serialNumber})
+                          </p>
+                        ))}
+                    </>
+                  )}
+
+                  {memorandumType === "troca" && (
+                    <>
+                      {/* Itens que saem do CSDT */}
+                      {selectedFromCSDT.length > 0 && (
+                        <div className="mb-2">
+                          <p className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                            🔄 CSDT → {exchangeToSchool}:
+                          </p>
+                          {items
+                            .filter((item) =>
+                              selectedFromCSDT.includes(item.id),
+                            )
+                            .map((item) => (
+                              <p
+                                key={item.id}
+                                className="text-xs text-gray-600 dark:text-gray-400 ml-2"
+                              >
+                                • {item.name} - {item.brand} (
+                                {item.serialNumber})
+                              </p>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* Itens que voltam para o CSDT */}
+                      {selectedFromDestino.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-orange-600 dark:text-orange-400">
+                            🔄 {exchangeToSchool} → CSDT:
+                          </p>
+                          {items
+                            .filter((item) =>
+                              selectedFromDestino.includes(item.id),
+                            )
+                            .map((item) => (
+                              <p
+                                key={item.id}
+                                className="text-xs text-gray-600 dark:text-gray-400 ml-2"
+                              >
+                                • {item.name} - {item.brand} (
+                                {item.serialNumber})
+                              </p>
+                            ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
-            <AlertDialogFooter>
+            {/* Footer fixo na parte inferior */}
+            <AlertDialogFooter className="flex-shrink-0 border-t pt-4">
               <AlertDialogCancel
                 onClick={() => {
-                  setMemorandumType('entrega');
+                  setMemorandumType("entrega");
                   setSchoolName("");
                   setDistrict("");
                   setExchangeFromSchool("");
                   setExchangeToSchool("");
-                  setMemorandumNumber("");
+                  setSelectedItems([]);
+                  setSelectedFromCSDT([]);
+                  setSelectedFromDestino([]);
+                  setCurrentStep("step1");
                 }}
                 className="hover:bg-red-300 dark:text-white"
               >
@@ -986,7 +1491,9 @@ const DeviceList: React.FC = () => {
                 onClick={handleGenerateMemorandum}
                 className="bg-blue-500 hover:bg-blue-700 text-white"
               >
-                {memorandumType === 'entrega' ? '📦 Gerar Entrega' : '🔄 Gerar Troca'}
+                {memorandumType === "entrega"
+                  ? "📦 Gerar Entrega"
+                  : "🔄 Gerar Troca"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -1020,14 +1527,15 @@ const DeviceList: React.FC = () => {
                     className="bg-zinc-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
                   >
                     <p>
-                      <strong>Foi para:</strong> {history.fromSchool || "N/A"}
+                      <strong>Foi para:</strong> {history.toSchool || "N/A"}
                     </p>
                     <p>
                       <strong>Data:</strong>{" "}
                       {new Date(history.movedAt).toLocaleString("pt-BR")}
                     </p>
                     <p>
-                      <strong>Gerado por:</strong> {history.generatedBy || "N/A"}
+                      <strong>Gerado por:</strong>{" "}
+                      {history.generatedBy || "N/A"}
                     </p>
                   </div>
                 ))
@@ -1045,6 +1553,134 @@ const DeviceList: React.FC = () => {
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
+
+        {/* Modal de Confirmação de Deleção */}
+        <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+          <AlertDialogContent className="dark:bg-zinc-900 bg-white max-w-2xl max-h-[90vh] flex flex-col">
+            <AlertDialogHeader className="flex-shrink-0">
+              <AlertDialogTitle className="dark:text-white text-xl font-bold flex items-center gap-2">
+                <span className="text-2xl">🗑️</span>
+                Confirmar Deleção
+              </AlertDialogTitle>
+              <AlertDialogDescription className="dark:text-gray-300 text-gray-600">
+                Você está prestes a deletar este item e TODOS os dados relacionados. Esta ação é irreversível.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="flex-1 overflow-y-auto space-y-4 px-1">
+              {loadingRelatedData ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <span className="ml-2 dark:text-white">Carregando dados relacionados...</span>
+                </div>
+              ) : relatedData ? (
+                <>
+                  {/* Informações do Item */}
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">📦 Item a ser deletado:</h3>
+                    <div className="space-y-1 text-sm">
+                      <p><strong>Nome:</strong> {relatedData.item.name}</p>
+                      <p><strong>Marca:</strong> {relatedData.item.brand}</p>
+                      <p><strong>Série:</strong> {relatedData.item.serialNumber}</p>
+                      <p><strong>Escola:</strong> {relatedData.item.school}</p>
+                      <p><strong>Criado por:</strong> {relatedData.item.createdBy}</p>
+                    </div>
+                  </div>
+
+                  {/* Resumo dos Dados Relacionados */}
+                  {relatedData.totalRelatedRecords > 0 ? (
+                    <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                      <h3 className="font-semibold text-orange-800 dark:text-orange-300 mb-2">
+                        ⚠️ Dados relacionados que serão deletados:
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        {relatedData.relationships.history.count > 0 && (
+                          <div>
+                            <p><strong>📋 Histórico de movimentações:</strong> {relatedData.relationships.history.count} registros</p>
+                            {relatedData.relationships.history.recent.slice(0, 3).map((h: any, idx: number) => (
+                              <p key={idx} className="ml-4 text-xs text-gray-600 dark:text-gray-400">
+                                • {h.from} → {h.to} em {new Date(h.date).toLocaleDateString('pt-BR')}
+                              </p>
+                            ))}
+                            {relatedData.relationships.history.count > 3 && (
+                              <p className="ml-4 text-xs text-gray-500">... e mais {relatedData.relationships.history.count - 3} registros</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {relatedData.relationships.memorandums.count > 0 && (
+                          <div>
+                            <p><strong>📄 Memorandos:</strong> {relatedData.relationships.memorandums.count} memorandos</p>
+                            {relatedData.relationships.memorandums.list.slice(0, 3).map((m: any, idx: number) => (
+                              <p key={idx} className="ml-4 text-xs text-gray-600 dark:text-gray-400">
+                                • #{m.number} - {m.school} ({m.type}) em {new Date(m.date).toLocaleDateString('pt-BR')}
+                              </p>
+                            ))}
+                            {relatedData.relationships.memorandums.count > 3 && (
+                              <p className="ml-4 text-xs text-gray-500">... e mais {relatedData.relationships.memorandums.count - 3} memorandos</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {relatedData.relationships.chada.count > 0 && (
+                          <div>
+                            <p><strong>🔧 Registros CHADA:</strong> {relatedData.relationships.chada.count} registros</p>
+                            {relatedData.relationships.chada.list.slice(0, 3).map((c: any, idx: number) => (
+                              <p key={idx} className="ml-4 text-xs text-gray-600 dark:text-gray-400">
+                                • {c.problem} ({c.status}) - {c.setor}
+                              </p>
+                            ))}
+                            {relatedData.relationships.chada.count > 3 && (
+                              <p className="ml-4 text-xs text-gray-500">... e mais {relatedData.relationships.chada.count - 3} registros</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <p className="text-green-800 dark:text-green-300">
+                        ✅ Este item não possui dados relacionados. Apenas o item principal será deletado.
+                      </p>
+                    </div>
+                  )}
+
+                  {!relatedData.canDelete && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <p className="text-red-800 dark:text-red-300">
+                        ❌ Você não tem permissão para deletar este item. Apenas quem criou o item pode deletá-lo.
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+
+            <AlertDialogFooter className="flex-shrink-0 border-t pt-4">
+              <AlertDialogCancel
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setItemToDelete(null);
+                  setRelatedData(null);
+                }}
+                className="hover:bg-gray-300 dark:text-white"
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                disabled={!relatedData?.canDelete || loadingRelatedData}
+                className={`${
+                  relatedData?.canDelete && !loadingRelatedData
+                    ? "bg-red-500 hover:bg-red-700"
+                    : "bg-gray-400 cursor-not-allowed"
+                } text-white font-semibold`}
+              >
+                {loadingRelatedData ? "Carregando..." : "🗑️ Deletar Tudo"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
