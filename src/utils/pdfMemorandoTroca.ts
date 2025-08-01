@@ -59,7 +59,7 @@ export async function fillMemorandoTrocaPDF(data: MemorandoTrocaData): Promise<U
         // Aplicar formatação em negrito
         if (['numero_memorando', 'origem', 'destino'].includes(fieldName)) {
           try {
-            field.setFontAndSize(boldFont, 10);
+            field.setFontSize(10);
           } catch (fontError) {
             // Ignorar erro de fonte
           }
