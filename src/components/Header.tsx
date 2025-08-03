@@ -3,7 +3,27 @@ import { Button } from "./ui/button";
 import { useHeaderContext } from "../context/HeaderContext";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useRouter } from "next/router";
-import { ChartBar, ClipboardText, File, FileText, GraduationCap, House, List, PlusCircle, Printer } from "phosphor-react";
+import { 
+  ChartBar, 
+  ClipboardText, 
+  File, 
+  FileText, 
+  GraduationCap, 
+  House, 
+  List, 
+  PlusCircle, 
+  Printer,
+  MagnifyingGlass,
+  Star,
+  Bell,
+  Calendar,
+  Users,
+  Desktop,
+  ChartPie,
+  Gear,
+  Clock,
+  X
+} from "phosphor-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient } from '@supabase/supabase-js';
 import { useEffect, useState } from "react";
@@ -19,6 +39,16 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
   const { userName, handleLogout } = useHeaderContext();
   const [localUserName, setLocalUserName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [recentPages, setRecentPages] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState({
+    pendingOS: 0,
+    newDemands: 0,
+    alerts: 0
+  });
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const router = useRouter();
 
   // NOVA FUNÇÃO: Buscar nome do usuário
@@ -78,9 +108,248 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
     }
   }, [userName]);
 
+  // Buscar role do usuário
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) return;
+
+        const response = await fetch(`/api/get-role?userId=${user.id}`);
+        const data = await response.json();
+        if (response.ok && data.role) {
+          setUserRole(data.role);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar role:', error);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  // Carregar favoritos e páginas recentes
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('dashboard-favorites');
+    if (savedFavorites) {
+      setFavorites(JSON.parse(savedFavorites));
+    }
+
+    const savedRecentPages = localStorage.getItem('recent-pages');
+    if (savedRecentPages) {
+      setRecentPages(JSON.parse(savedRecentPages));
+    }
+  }, []);
+
+  // Buscar notificações
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!userRole) return;
+
+      try {
+        const [pendingOSResponse, dailyDemandsResponse] = await Promise.all([
+          fetch('/api/dashboard/pending-os'),
+          fetch('/api/dashboard/daily-demands-count')
+        ]);
+
+        const pendingOSData = await pendingOSResponse.json();
+        const dailyDemandsData = await dailyDemandsResponse.json();
+
+        setNotifications({
+          pendingOS: pendingOSData.success ? pendingOSData.data.totalPendingOS : 0,
+          newDemands: dailyDemandsData.success ? dailyDemandsData.data.dailyDemandsCount : 0,
+          alerts: 0
+        });
+      } catch (error) {
+        console.error('Erro ao buscar notificações:', error);
+      }
+    };
+
+    fetchNotifications();
+  }, [userRole]);
+
+  // Definir todos os cards disponíveis (mesmo sistema do Dashboard)
+  const allCards = [
+    {
+      id: 'dashboard',
+      title: 'Dashboard',
+      icon: House,
+      path: '/dashboard',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
+      category: 'Principal'
+    },
+    {
+      id: 'items',
+      title: 'Cadastrar Itens',
+      icon: PlusCircle,
+      path: '/items',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Escolas e Equipamentos'
+    },
+    {
+      id: 'device-list',
+      title: 'Ver Itens Cadastrados',
+      icon: List,
+      path: '/device-list',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
+      category: 'Escolas e Equipamentos'
+    },
+    {
+      id: 'fill-pdf-form-2',
+      title: 'Preencher OS',
+      icon: FileText,
+      path: '/fill-pdf-form-2',
+      roles: ['ADMTOTAL', 'TECH'],
+      category: 'Ordens de Serviço'
+    },
+    {
+      id: 'statistics',
+      title: 'Estatísticas de OS',
+      icon: ChartBar,
+      path: '/statistics',
+      roles: ['ADMTOTAL', 'ADMIN'],
+      category: 'Estatísticas'
+    },
+    {
+      id: 'advanced-statistics',
+      title: 'Dashboard Avançado',
+      icon: ChartPie,
+      path: '/advanced-statistics',
+      roles: ['ADMTOTAL', 'ADMIN'],
+      category: 'Estatísticas'
+    },
+    {
+      id: 'schools',
+      title: 'Todas as Escolas',
+      icon: GraduationCap,
+      path: '/schools',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
+      category: 'Escolas e Equipamentos'
+    },
+    {
+      id: 'os-list',
+      title: 'OS Externas (Antigo)',
+      icon: ClipboardText,
+      path: '/os-list',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Ordens de Serviço'
+    },
+    {
+      id: 'os-externas-list',
+      title: 'OS Externas (Novo)',
+      icon: ClipboardText,
+      path: '/os-externas-list',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Ordens de Serviço'
+    },
+    {
+      id: 'printers',
+      title: 'Todas as Impressoras',
+      icon: Printer,
+      path: '/printers',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Escolas e Equipamentos'
+    },
+    {
+      id: 'memorandums',
+      title: 'Todos os Memorandos',
+      icon: File,
+      path: '/memorandums',
+      roles: ['ADMTOTAL', 'ADMIN'],
+      category: 'Documentos'
+    },
+    {
+      id: 'new-memorandums',
+      title: 'Memorandos (Novo)',
+      icon: FileText,
+      path: '/new-memorandums',
+      roles: ['ADMTOTAL', 'ADMIN'],
+      category: 'Documentos'
+    },
+    {
+      id: 'scales',
+      title: 'Escalas',
+      icon: Users,
+      path: '/scales',
+      roles: ['ADMTOTAL', 'ADMIN'],
+      category: 'Gestão Diária'
+    },
+    {
+      id: 'daily-demands',
+      title: 'Demanda do Dia',
+      icon: Calendar,
+      path: '/daily-demands',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Gestão Diária'
+    },
+    {
+      id: 'create-internal-os',
+      title: 'Criar OS Interna',
+      icon: FileText,
+      path: '/create-internal-os',
+      roles: ['ADMTOTAL', 'ADMIN'],
+      category: 'Ordens de Serviço'
+    },
+    {
+      id: 'internal-demands',
+      title: 'Demandas Internas',
+      icon: ClipboardText,
+      path: '/internal-demands',
+      roles: ['TECH'],
+      category: 'Gestão Diária'
+    },
+    {
+      id: 'chada',
+      title: 'CHADA',
+      icon: Desktop,
+      path: '/chada',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Outros'
+    },
+    {
+      id: 'locados',
+      title: 'Locados',
+      icon: List,
+      path: '/locados',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
+      category: 'Escolas e Equipamentos'
+    }
+  ];
+
   const handleNavigate = (path: string) => {
+    // Adicionar à lista de páginas recentes
+    const newRecentPages = [path, ...recentPages.filter(p => p !== path)].slice(0, 5);
+    setRecentPages(newRecentPages);
+    localStorage.setItem('recent-pages', JSON.stringify(newRecentPages));
+    
+    // Fechar sidebar e navegar
+    setIsSheetOpen(false);
     router.push(path);
   };
+
+  const toggleFavorite = (cardId: string) => {
+    const newFavorites = favorites.includes(cardId)
+      ? favorites.filter(id => id !== cardId)
+      : [...favorites, cardId];
+    setFavorites(newFavorites);
+    localStorage.setItem('dashboard-favorites', JSON.stringify(newFavorites));
+  };
+
+  // Filtrar cards baseado na role e busca
+  const filteredCards = allCards.filter(card => {
+    const hasRole = card.roles.includes(userRole || '');
+    const matchesSearch = card.title.toLowerCase().includes(searchTerm.toLowerCase());
+    return hasRole && matchesSearch;
+  });
+
+  // Organizar: favoritos primeiro, depois recentes, depois resto
+  const favoriteCards = filteredCards.filter(card => favorites.includes(card.id));
+  const recentCards = filteredCards.filter(card => 
+    recentPages.includes(card.path) && !favorites.includes(card.id)
+  );
+  const otherCards = filteredCards.filter(card => 
+    !favorites.includes(card.id) && !recentPages.includes(card.path)
+  );
 
   const handleSupabaseLogout = async () => {
     await supabase.auth.signOut();
@@ -113,92 +382,200 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
       {/* Só renderiza o menu hamburger se hideHamburger for false */}
       {!hideHamburger && (
         <div>
-          <Sheet>
-            <SheetTrigger><List className="h-10 w-10 xl:w-16 xl:h-16" /></SheetTrigger>
-            <SheetContent className="overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle className="flex items-center justify-between gap-2 mb-10">
-                  <Avatar className="w-20 h-20">
-                    <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>
-                      {localUserName ? localUserName.charAt(0).toUpperCase() : 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <SheetTrigger asChild>
+              <div className="relative cursor-pointer">
+                <List className="h-10 w-10 xl:w-16 xl:h-16" />
+                {(notifications.pendingOS > 0 || notifications.newDemands > 0) && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 xl:w-8 xl:h-8 flex items-center justify-center text-xs xl:text-sm font-bold">
+                    {notifications.pendingOS + notifications.newDemands}
+                  </div>
+                )}
+              </div>
+            </SheetTrigger>
+            <SheetContent className="w-80 overflow-y-auto bg-white dark:bg-gray-900">
+              <SheetHeader className="space-y-4">
+                {/* Header do usuário */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-14 h-14">
+                      <AvatarImage src="https://github.com/shadcn.png" />
+                      <AvatarFallback className="bg-blue-500 text-white font-bold text-lg">
+                        {localUserName ? localUserName.charAt(0).toUpperCase() : 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-bold text-lg text-gray-900 dark:text-white">{localUserName || 'Usuário'}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{userRole || 'Carregando...'}</p>
+                    </div>
+                  </div>
                   <Button
                     size="icon"
+                    variant="ghost"
                     onClick={handleSupabaseLogout}
-                    className="bg-zinc-800 w-16 h-12 hover:bg-red-400 text-white rounded-lg shadow-lg transform transition-transform hover:scale-105"
+                    className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900 dark:hover:text-red-400 transition-colors p-3"
                   >
                     <PowerIcon size={20} />
                   </Button>
-                </SheetTitle>
-                <SheetTitle className="text-2xl">Barra de tarefas</SheetTitle>
-                <SheetDescription className="flex flex-col gap-4">
-                  <div
-                    onClick={() => handleNavigate("/dashboard")}
-                    className="cursor-pointer bg-zinc-500 hover:bg-zinc-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <House size={48} />
-                    <p className="mt-2 text-lg">Home</p>
+                </div>
+
+                {/* Notificações */}
+                {(notifications.pendingOS > 0 || notifications.newDemands > 0) && (
+                  <div className="bg-red-100 dark:bg-red-900/30 border-2 border-red-300 dark:border-red-600 rounded-lg p-4 space-y-2">
+                    <h4 className="font-bold text-red-800 dark:text-red-200 text-base flex items-center gap-2">
+                      <Bell size={18} />
+                      Notificações
+                    </h4>
+                    {notifications.pendingOS > 0 && (
+                      <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                        • {notifications.pendingOS} OS pendentes
+                      </p>
+                    )}
+                    {notifications.newDemands > 0 && (
+                      <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                        • {notifications.newDemands} demandas hoje
+                      </p>
+                    )}
                   </div>
-                  <div
-                    onClick={() => handleNavigate("/items")}
-                    className="cursor-pointer bg-blue-400 hover:bg-blue-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <PlusCircle size={48} />
-                    <p className="mt-2 text-lg">Cadastrar Itens</p>
-                  </div>
-                  <div
-                    onClick={() => handleNavigate("/device-list")}
-                    className="cursor-pointer bg-green-400 hover:bg-green-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <List size={48} />
-                    <p className="mt-2 text-lg">Ver Itens Cadastrados</p>
-                  </div>
-                  <div
-                    onClick={() => handleNavigate("/fill-pdf-form")}
-                    className="cursor-pointer bg-red-400 hover:bg-red-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <FileText size={48} />
-                    <p className="mt-2 text-lg">Preencher OS</p>
-                  </div>
-                  <div
-                    onClick={() => handleNavigate("/statistics")}
-                    className="cursor-pointer bg-purple-400 hover:bg-purple-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <ChartBar size={48} />
-                    <p className="mt-2 text-lg">Estatísticas de OS</p>
-                  </div>
-                  <div
-                    onClick={() => handleNavigate("/schools")}
-                    className="cursor-pointer bg-orange-400 hover:bg-pink-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <GraduationCap size={48} />
-                    <p className="mt-2 text-lg">Todas as Escolas</p>
-                  </div>
-                  <div
-                    onClick={() => handleNavigate("/os-list")}
-                    className="cursor-pointer bg-indigo-400 hover:bg-indigo-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <ClipboardText size={48} />
-                    <p className="mt-2 text-lg">OS assinadas ou pendentes</p>
-                  </div>
-                  <div
-                    onClick={() => handleNavigate("/printers")}
-                    className="cursor-pointer bg-teal-400 hover:bg-teal-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <Printer size={48} />
-                    <p className="mt-2 text-lg">Impressoras da SME</p>
-                  </div>
-                  <div
-                    onClick={() => handleNavigate("/memorandums")}
-                    className="cursor-pointer bg-yellow-400 hover:bg-yellow-700 text-white p-1 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
-                  >
-                    <File size={48} />
-                    <p className="mt-2 text-lg">Todos os memorandos</p>
-                  </div>
-                </SheetDescription>
+                )}
+
+                {/* Busca */}
+                <div className="relative">
+                  <MagnifyingGlass size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar funcionalidades..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-10 py-3 text-base font-medium border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
               </SheetHeader>
+
+              <div className="mt-6 space-y-6">
+                {/* Favoritos */}
+                {favoriteCards.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <Star size={18} className="text-yellow-500" weight="fill" />
+                      Favoritos ({favoriteCards.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {favoriteCards.map(card => {
+                        const IconComponent = card.icon;
+                        return (
+                          <div
+                            key={card.id}
+                            onClick={() => handleNavigate(card.path)}
+                            className="flex items-center gap-4 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer transition-colors group border border-transparent hover:border-blue-200 dark:hover:border-blue-700"
+                          >
+                            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center group-hover:bg-blue-600 transition-colors shadow-sm">
+                              <IconComponent size={20} className="text-white" />
+                            </div>
+                            <span className="text-base font-semibold flex-1 text-gray-900 dark:text-white">{card.title}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(card.id);
+                              }}
+                              className="opacity-70 group-hover:opacity-100 transition-opacity p-1"
+                            >
+                              <Star size={18} className="text-yellow-500" weight="fill" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recentes */}
+                {recentCards.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <Clock size={18} className="text-green-600 dark:text-green-400" />
+                      Recentes ({recentCards.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {recentCards.map(card => {
+                        const IconComponent = card.icon;
+                        return (
+                          <div
+                            key={card.id}
+                            onClick={() => handleNavigate(card.path)}
+                            className="flex items-center gap-4 p-4 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer transition-colors group border border-transparent hover:border-green-200 dark:hover:border-green-700"
+                          >
+                            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center group-hover:bg-green-600 transition-colors shadow-sm">
+                              <IconComponent size={20} className="text-white" />
+                            </div>
+                            <span className="text-base font-semibold flex-1 text-gray-900 dark:text-white">{card.title}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(card.id);
+                              }}
+                              className="opacity-70 group-hover:opacity-100 transition-opacity p-1"
+                            >
+                              <Star size={18} className="text-gray-400 hover:text-yellow-500" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Todas as funcionalidades */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <List size={18} className="text-gray-600 dark:text-gray-400" />
+                    Todas as Funcionalidades ({otherCards.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {otherCards.map(card => {
+                      const IconComponent = card.icon;
+                      return (
+                        <div
+                          key={card.id}
+                          onClick={() => handleNavigate(card.path)}
+                          className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors group border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                        >
+                          <div className="w-12 h-12 bg-gray-500 dark:bg-gray-600 rounded-lg flex items-center justify-center group-hover:bg-gray-600 dark:group-hover:bg-gray-500 transition-colors shadow-sm">
+                            <IconComponent size={20} className="text-white" />
+                          </div>
+                          <span className="text-base font-semibold flex-1 text-gray-900 dark:text-white">{card.title}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(card.id);
+                            }}
+                            className="opacity-70 group-hover:opacity-100 transition-opacity p-1"
+                          >
+                            <Star size={18} className="text-gray-400 hover:text-yellow-500" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Mensagem quando não há resultados */}
+                {filteredCards.length === 0 && searchTerm && (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <MagnifyingGlass size={48} className="mx-auto mb-4 text-gray-400 dark:text-gray-500" />
+                    <p className="text-lg font-semibold mb-2">Nenhuma funcionalidade encontrada</p>
+                    <p className="text-base">para "{searchTerm}"</p>
+                  </div>
+                )}
+              </div>
             </SheetContent>
           </Sheet>
         </div>
