@@ -81,9 +81,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('   📄 Registros tabela nova:', allOsNew);
     }
 
-    // Filtrar apenas os pendentes
-    const pendingOsOld = allOsOld.filter(os => os.status === 'Pendente');
-    const pendingOsNew = allOsNew.filter(os => os.status === 'Pendente');
+    // Filtrar OS não assinadas:
+    // - Tabela 'Os': TODAS as OS (independente do status) = não assinadas
+    // - Tabela 'OSExterna': Apenas status 'Pendente' = não assinadas
+    const pendingOsOld = allOsOld; // TODAS as OS da tabela antiga são não-assinadas
+    const pendingOsNew = allOsNew.filter(os => os.status === 'Pendente'); // Apenas Pendentes da nova tabela
 
     console.log(`📊 Resultados PENDENTES:`, {
       schoolId,

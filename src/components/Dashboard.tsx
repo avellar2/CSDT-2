@@ -7,6 +7,7 @@ import {
   GraduationCap,
   ClipboardText,
   Printer,
+  ChartPie,
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -177,6 +178,17 @@ const Dashboard: React.FC = () => {
               >
                 <ChartBar size={48} />
                 <p className="mt-2 text-lg">Estatísticas de OS</p>
+              </div>
+            )}
+
+            {/* Card "Dashboard Avançado" - ADMTOTAL, ADMIN */}
+            {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
+              <div
+                onClick={() => handleNavigate("/advanced-statistics")}
+                className="cursor-pointer bg-violet-500 hover:bg-violet-700 text-white p-6 rounded-lg shadow-lg transform transition-transform hover:scale-105 flex flex-col items-center"
+              >
+                <ChartPie size={48} />
+                <p className="mt-2 text-lg">Dashboard Avançado</p>
               </div>
             )}
 
