@@ -151,9 +151,10 @@ async function checkPrinterStatus(printer: any): Promise<PrinterStatusInfo> {
     }
 
     const session = snmp.createSession(printer.ip, "public", {
-      timeout: 3000,
-      retries: 1,
-      transport: "udp4"
+      timeout: process.env.NODE_ENV === 'production' ? 8000 : 3000, // Timeout maior em produção
+      retries: process.env.NODE_ENV === 'production' ? 2 : 1,        // Mais tentativas em produção
+      transport: "udp4",
+      sourceAddress: "0.0.0.0" // Bind em todas as interfaces disponíveis
     });
 
     // Começar com OIDs mais básicos e universais

@@ -89,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       prisma.oSExterna.count({ where: { ...createWhereClause(), status: 'Assinado' } }),
       prisma.oSExterna.count({ where: { ...createWhereClause(), status: 'Pendente' } }),
       prisma.oSExterna.count({ where: { ...createWhereClause(), status: 'Assinado' } }),
-      prisma.newMemorandum.count({ where: createWhereClause(true, false, true, false) }),
+      prisma.memorandum.count({ where: createWhereClause(true, false, true, false) }),
       prisma.item.count()
     ]);
 

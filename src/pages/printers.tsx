@@ -318,6 +318,38 @@ const Printers: React.FC = () => {
     }
   };
 
+  const diagnoseSNMP = async (ip: string) => {
+    try {
+      const response = await fetch(`/api/diagnose-snmp?ip=${ip}`);
+      const data = await response.json();
+      
+      let message = `=== DIAGNÓSTICO SNMP ===\nImpressora: ${ip}\n`;
+      message += `Ambiente: ${data.diagnostics.environment}\n`;
+      message += `Servidor: ${data.diagnostics.server.platform} ${data.diagnostics.server.arch}\n\n`;
+      
+      message += `TESTES REALIZADOS:\n`;
+      data.diagnostics.tests.forEach((test: any, index: number) => {
+        const status = test.status === 'success' ? '✅' : test.status === 'failed' ? '❌' : 'ℹ️';
+        message += `${status} ${test.test}: ${test.details}\n`;
+        if (test.error) message += `   Erro: ${test.error}\n`;
+        if (test.result) message += `   Resultado: ${test.result}\n`;
+        message += `\n`;
+      });
+      
+      if (data.suggestions && data.suggestions.length > 0) {
+        message += `SUGESTÕES:\n`;
+        data.suggestions.forEach((suggestion: string, index: number) => {
+          message += `• ${suggestion}\n`;
+        });
+      }
+      
+      alert(message);
+    } catch (error) {
+      console.error('Erro ao diagnosticar SNMP:', error);
+      alert('Erro ao executar diagnóstico');
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-4">
@@ -442,6 +474,31 @@ const Printers: React.FC = () => {
         </div>
       </div>
 
+      {/* Aviso sobre Problemas de Conectividade */}
+      {printerStatus && printerStatus.printers.filter(p => p.isOnline).length === 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-red-600 text-lg">⚠️</span>
+            <h3 className="font-bold text-red-800">Todas as impressoras estão offline</h3>
+          </div>
+          <p className="text-sm text-red-700 mb-3">
+            Isso pode indicar problema de conectividade de rede entre o servidor e as impressoras.
+          </p>
+          <div className="text-xs text-red-600">
+            <strong>Possíveis causas:</strong>
+            <ul className="list-disc list-inside mt-1">
+              <li>Servidor em rede/VLAN diferente das impressoras</li>
+              <li>Firewall bloqueando protocolo SNMP (porta 161)</li>
+              <li>SNMP desabilitado nas impressoras</li>
+              <li>Community string diferente de "public"</li>
+            </ul>
+            <p className="mt-2">
+              <strong>Dica:</strong> Use o botão "🔍 Diagnóstico SNMP" em qualquer impressora para investigar.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Resumo do Status */}
       {printerStatus && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -534,22 +591,30 @@ const Printers: React.FC = () => {
                     >
                       Acessar Interface
                     </a>
-                    {status && !status.isOnline && (
-                      <div className="flex flex-col gap-1">
-                        <button
-                          onClick={() => testPrinterDetail(printer.ip)}
-                          className="text-orange-500 hover:text-orange-700 text-xs underline"
-                        >
-                          Diagnóstico Completo
-                        </button>
-                        <button
-                          onClick={() => discoverPrinterOIDs(printer.ip)}
-                          className="text-purple-500 hover:text-purple-700 text-xs underline"
-                        >
-                          Detectar Consumíveis
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => diagnoseSNMP(printer.ip)}
+                        className="text-red-500 hover:text-red-700 text-xs underline font-semibold"
+                      >
+                        🔍 Diagnóstico SNMP
+                      </button>
+                      {status && !status.isOnline && (
+                        <>
+                          <button
+                            onClick={() => testPrinterDetail(printer.ip)}
+                            className="text-orange-500 hover:text-orange-700 text-xs underline"
+                          >
+                            Diagnóstico Completo
+                          </button>
+                          <button
+                            onClick={() => discoverPrinterOIDs(printer.ip)}
+                            className="text-purple-500 hover:text-purple-700 text-xs underline"
+                          >
+                            Detectar Consumíveis
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
