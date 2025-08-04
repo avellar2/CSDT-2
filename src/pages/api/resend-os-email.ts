@@ -148,13 +148,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 // Função para preencher o PDF da OS usando o template
 async function fillOSExternaPDF(osExterna: any): Promise<Uint8Array> {
-  const pdfPath = path.join(process.cwd(), "public", "os-externa2-editada.pdf");
+  const pdfPath = path.join(process.cwd(), "public", "os-externa2-EDITADA.pdf");
   
   console.log('Caminho do PDF:', pdfPath);
   
   if (!fs.existsSync(pdfPath)) {
     console.error(`PDF template não encontrado em: ${pdfPath}`);
-    throw new Error(`Template os-externa2-editada.pdf não encontrado no caminho: ${pdfPath}`);
+    throw new Error(`Template os-externa2-EDITADA.pdf não encontrado no caminho: ${pdfPath}`);
   }
 
   console.log('PDF template encontrado, carregando...');
