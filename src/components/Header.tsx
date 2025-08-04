@@ -30,6 +30,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import axios from "axios";
+import { PrinterAlertIndicator } from "./PrinterAlertIndicator";
 
 interface HeaderProps {
   hideHamburger?: boolean;
@@ -368,15 +369,23 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
       </Link>
 
       <div className="text-center sm:text-left w-full lg:text-center sm:flex lg:flex justify-center items-center gap-1.5 lg:mr-10 mr-6">
-        <p className="text-lg sm:text-xl lg:text-2xl">Bem vindo,</p>
-        {isLoading ? (
-          // SKELETON LOADING enquanto carrega
-          <div className="animate-pulse bg-gray-300 dark:bg-gray-700 h-6 w-32 rounded"></div>
-        ) : (
-          <p className="text-xl sm:text-2xl lg:text-3xl font-bold">
-            {localUserName || 'Usuário'}
-          </p>
-        )}
+        <div className="flex flex-col lg:flex-row items-center gap-2 lg:gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <p className="text-lg sm:text-xl lg:text-2xl">Bem vindo,</p>
+            {isLoading ? (
+              // SKELETON LOADING enquanto carrega
+              <div className="animate-pulse bg-gray-300 dark:bg-gray-700 h-6 w-32 rounded"></div>
+            ) : (
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold">
+                {localUserName || 'Usuário'}
+              </p>
+            )}
+          </div>
+          {/* Indicador de Alertas Críticos */}
+          <div className="mt-2 lg:mt-0 lg:ml-4">
+            <PrinterAlertIndicator />
+          </div>
+        </div>
       </div>
 
       {/* Só renderiza o menu hamburger se hideHamburger for false */}

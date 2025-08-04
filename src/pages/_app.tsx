@@ -1,7 +1,9 @@
 import { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
 import { HeaderProvider } from '../context/HeaderContext';
+import { PrinterNotificationProvider } from '../context/PrinterNotificationContext';
 import { Header } from '../components/Header';
+import { PrinterCriticalAlert } from '../components/PrinterCriticalAlert';
 import '../styles/globals.css'; // Outros estilos globais, se houver
 import '../styles/modal.css'; // Importar os estilos personalizados
 import '../styles/calendar.css'; // Importação do CSS global
@@ -14,12 +16,16 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <ThemeProvider attribute={'class'} defaultTheme='system' enableSystem disableTransitionOnChange>
-      <div className='container mx-auto'>
-        <HeaderProvider>
-          {!isLoginPage && <Header hideHamburger={isConfirmarOsPage} />}
-          <Component {...pageProps} />
-        </HeaderProvider>
-      </div>
+      <PrinterNotificationProvider>
+        <div className='container mx-auto'>
+          <HeaderProvider>
+            {!isLoginPage && <Header hideHamburger={isConfirmarOsPage} />}
+            <Component {...pageProps} />
+            {/* Alerta crítico global - só aparece se não for página de login */}
+            {!isLoginPage && <PrinterCriticalAlert />}
+          </HeaderProvider>
+        </div>
+      </PrinterNotificationProvider>
     </ThemeProvider>
   );
 }
