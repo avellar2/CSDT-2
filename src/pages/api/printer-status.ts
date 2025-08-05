@@ -423,6 +423,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Verificar se temos dados do agente local primeiro
+    let cachedStatus;
+    try {
+      // Tentar importar dinamicamente a função do agente local
+      const agentModule = await import('./printer-status-from-agent');
+      cachedStatus = agentModule.getCachedPrinterStatus();
+      
+      if (cachedStatus.data && !cachedStatus.isStale) {
+        console.log(`[Hybrid] Retornando dados do agente local (${cachedStatus.age}s atrás)`);
+        return res.status(200).json({
+          ...cachedStatus.data,
+          source: 'local-agent',
+          dataAge: cachedStatus.age
+        });
+      }
+    } catch (importError) {
+      console.log('[Hybrid] Agente local não disponível, usando verificação SNMP padrão');
+      cachedStatus = { data: null, isStale: true, age: 0 };
+    }
+
+    // Se não temos dados do agente ou estão desatualizados, usar verificação local
+    console.log(cachedStatus.data 
+      ? `[Hybrid] Dados do agente desatualizados (${cachedStatus.age}s), usando verificação local`
+      : '[Hybrid] Nenhum dado do agente disponível, usando verificação local'
+    );
+
     // Buscar todas as impressoras
     const allPrinters = await prisma.printer.findMany();
     
@@ -480,13 +506,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       printer.status === 'stopped printing'
     );
 
-    console.log(`Status verificado: ${statusResults.length} impressoras, ${printersWithIssues.length} com problemas`);
+    console.log(`[Local] Status verificado: ${statusResults.length} impressoras, ${printersWithIssues.length} com problemas`);
 
     res.status(200).json({
       timestamp: new Date().toISOString(),
       total: statusResults.length,
       withIssues: printersWithIssues.length,
-      printers: statusResults
+      printers: statusResults,
+      source: 'vercel-snmp',
+      fallback: cachedStatus && cachedStatus.data ? 'stale-agent-data' : 'no-agent-data'
     });
 
   } catch (error) {

@@ -1,0 +1,24 @@
+# Agente local (não fazer deploy - roda apenas na rede local)
+local-agent/
+
+# Arquivos de documentação que não precisam ir para produção
+GUIA-INSTALACAO-HIBRIDA.md
+MEMORANDO-TROCA-README.md
+
+# Arquivos de desenvolvimento
+*.md
+!README.md
+
+# Logs e cache
+logs/
+*.log
+
+# Arquivos temporários
+.DS_Store
+Thumbs.db
+
+# Arquivos de configuração local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

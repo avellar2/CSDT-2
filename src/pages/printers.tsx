@@ -41,6 +41,9 @@ interface PrinterStatusResponse {
   total: number;
   withIssues: number;
   printers: PrinterStatus[];
+  source?: string;
+  dataAge?: number;
+  fallback?: string;
 }
 
 const Printers: React.FC = () => {
@@ -379,8 +382,29 @@ const Printers: React.FC = () => {
         <div className="flex items-center gap-4">
           {printerStatus && (
             <div className="text-sm text-gray-600">
-              Última atualização: {formatLastChecked(printerStatus.timestamp)}
-              {statusLoading && <Clock className="inline ml-2 animate-spin" size={16} />}
+              <div className="flex items-center gap-2">
+                Última atualização: {formatLastChecked(printerStatus.timestamp)}
+                {statusLoading && <Clock className="inline ml-2 animate-spin" size={16} />}
+              </div>
+              {printerStatus.source && (
+                <div className="text-xs mt-1">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    printerStatus.source === 'local-agent' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-orange-100 text-orange-800'
+                  }`}>
+                    {printerStatus.source === 'local-agent' ? '🏠 Agente Local' : '☁️ Vercel SNMP'}
+                    {printerStatus.dataAge !== undefined && printerStatus.source === 'local-agent' && (
+                      <span className="ml-1">({printerStatus.dataAge}s)</span>
+                    )}
+                  </span>
+                  {printerStatus.fallback && (
+                    <span className="ml-2 text-yellow-600 text-xs">
+                      (Fallback: {printerStatus.fallback})
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
           

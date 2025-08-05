@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "name": "csdt2-hybrid",
+  "framework": "nextjs",
+  "functions": {
+    "src/pages/api/printer-status.ts": {
+      "maxDuration": 30
+    },
+    "src/pages/api/printer-status-from-agent.ts": {
+      "maxDuration": 10
+    },
+    "src/pages/api/printer-ping.ts": {
+      "maxDuration": 20
+    }
+  },
+  "regions": ["gru1"],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

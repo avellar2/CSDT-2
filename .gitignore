@@ -33,6 +33,12 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local agent files (não fazer deploy)
+local-agent/node_modules
+local-agent/.env
+local-agent/logs/
+local-agent/*.log
+
 # vercel
 .vercel
 
