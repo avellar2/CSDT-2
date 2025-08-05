@@ -268,7 +268,11 @@ class LocalAgent {
               description: 'Falha na comunicação SNMP com a impressora'
             });
           }
-          session.close();
+          try {
+            session.close();
+          } catch (closeError) {
+            // Ignorar erros de fechamento de socket
+          }
           resolve(statusInfo);
           return;
         }
@@ -342,7 +346,11 @@ class LocalAgent {
         } catch (parseError) {
           logger.error(`Erro ao processar dados SNMP para ${printer.ip}:`, parseError);
           statusInfo.errors = ['Erro ao processar resposta SNMP'];
-          session.close();
+          try {
+            session.close();
+          } catch (closeError) {
+            // Ignorar erros de fechamento de socket
+          }
           resolve(statusInfo);
         }
       });
@@ -350,7 +358,9 @@ class LocalAgent {
       setTimeout(() => {
         try {
           session.close();
-        } catch (e) {}
+        } catch (closeError) {
+          // Ignorar erros de fechamento de socket
+        }
         resolve({
           id: printer.id,
           ip: printer.ip,
@@ -434,13 +444,21 @@ class LocalAgent {
         });
       }
 
-      session.close();
+      try {
+        session.close();
+      } catch (closeError) {
+        // Ignorar erros de fechamento de socket
+      }
       resolve(statusInfo);
     });
   }
 
   async sendStatusToVercel(statusResults) {
     try {
+      logger.info('Tentando enviar dados para Vercel...');
+      logger.info(`URL: ${config.vercelAppUrl}/api/printer-status-from-agent`);
+      logger.info(`API Key: ${config.apiKey.substring(0, 8)}...`);
+      
       const response = await axios.post(`${config.vercelAppUrl}/api/printer-status-from-agent`, {
         timestamp: new Date().toISOString(),
         total: statusResults.length,
@@ -462,7 +480,18 @@ class LocalAgent {
       logger.info(`Status enviado para Vercel com sucesso. Response: ${response.status}`);
       return true;
     } catch (error) {
-      logger.error('Erro ao enviar status para Vercel:', error.message);
+      logger.error('Erro ao enviar status para Vercel:', error.message || 'Erro desconhecido');
+      logger.error('Erro completo:', JSON.stringify(error, null, 2));
+      if (error.response) {
+        logger.error('Status da resposta:', error.response.status);
+        logger.error('Dados da resposta:', JSON.stringify(error.response.data));
+      }
+      if (error.code) {
+        logger.error('Código do erro:', error.code);
+      }
+      if (error.config) {
+        logger.error('URL tentada:', error.config.url);
+      }
       return false;
     }
   }
