@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Tentar importar dinamicamente a função do agente local
     const agentModule = await import('./printer-status-from-agent');
     const cachedStatus = agentModule.getCachedPrinterStatus();
-    
+
     return res.status(200).json({
       success: true,
       hasData: !!cachedStatus.data,
@@ -20,12 +20,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       totalPrinters: cachedStatus.data?.total || 0,
       debug: 'Test endpoint working'
     });
-    
-  } catch (importError) {
+
+  } catch (importError: unknown) {
     return res.status(200).json({
       success: false,
       error: 'Import failed',
-      message: importError.message,
+      message: importError instanceof Error ? importError.message : String(importError),
       debug: 'Agent module not accessible'
     });
   }
