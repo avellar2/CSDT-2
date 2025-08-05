@@ -1,0 +1,78 @@
+2025-08-05T16:35:29.096Z [INFO]: === CSDT-2 Local Agent Starting ===
+2025-08-05T16:35:29.099Z [INFO]: Configuração:
+2025-08-05T16:35:29.099Z [INFO]: - Vercel App URL: https://csdt.vercel.app/
+2025-08-05T16:35:29.099Z [INFO]: - Check Interval: 30s
+2025-08-05T16:35:29.099Z [INFO]: - Local Port: 3001
+2025-08-05T16:35:29.099Z [INFO]: - SNMP Timeout: 5000ms
+2025-08-05T16:35:29.101Z [INFO]: Iniciando agendador - verificação a cada 30 segundos
+2025-08-05T16:35:29.105Z [INFO]: Servidor local rodando na porta 3001
+2025-08-05T16:35:29.105Z [INFO]: Status disponível em: http://localhost:3001/status
+2025-08-05T16:35:30.119Z [INFO]: Iniciando verificação de impressoras...
+2025-08-05T16:35:32.129Z [INFO]: Obtidas 45 impressoras da Vercel
+2025-08-05T16:35:32.129Z [INFO]: Verificando status de 45 impressoras
+2025-08-05T16:35:34.104Z [INFO]: Iniciando verificação de impressoras...
+2025-08-05T16:35:35.633Z [INFO]: Obtidas 45 impressoras da Vercel
+2025-08-05T16:35:35.633Z [INFO]: Verificando status de 45 impressoras
+2025-08-05T16:35:38.140Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-08-05T16:35:38.141Z [ERROR]: Error [ERR_SOCKET_DGRAM_NOT_RUNNING]: Not running
+    at healthCheck (node:dgram:962:11)
+    at Socket.close (node:dgram:787:3)
+    at Session.close (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2061:13)
+    at Req.responseCb (C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js:271:19)
+    at Session.cancelRequests (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2070:7)
+    at Session.onClose (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2363:7)
+    at Socket.emit (node:events:518:28)
+    at socketCloseNT (node:dgram:808:8)
+    at processTicksAndRejections (node:internal/process/task_queues:89:21)
+    at runNextTicks (node:internal/process/task_queues:69:3)
+2025-08-05T16:35:39.516Z [INFO]: === CSDT-2 Local Agent Starting ===
+2025-08-05T16:35:39.519Z [INFO]: Configuração:
+2025-08-05T16:35:39.519Z [INFO]: - Vercel App URL: https://csdt.vercel.app/
+2025-08-05T16:35:39.520Z [INFO]: - Check Interval: 30s
+2025-08-05T16:35:39.520Z [INFO]: - Local Port: 3001
+2025-08-05T16:35:39.520Z [INFO]: - SNMP Timeout: 5000ms
+2025-08-05T16:35:39.524Z [INFO]: Iniciando agendador - verificação a cada 30 segundos
+2025-08-05T16:35:39.527Z [INFO]: Servidor local rodando na porta 3001
+2025-08-05T16:35:39.527Z [INFO]: Status disponível em: http://localhost:3001/status
+2025-08-05T16:35:44.532Z [INFO]: Iniciando verificação de impressoras...
+2025-08-05T16:35:46.103Z [INFO]: Obtidas 45 impressoras da Vercel
+2025-08-05T16:35:46.103Z [INFO]: Verificando status de 45 impressoras
+2025-08-05T16:35:52.113Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-08-05T16:35:52.114Z [ERROR]: Error [ERR_SOCKET_DGRAM_NOT_RUNNING]: Not running
+    at healthCheck (node:dgram:962:11)
+    at Socket.close (node:dgram:787:3)
+    at Session.close (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2061:13)
+    at Req.responseCb (C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js:271:19)
+    at Session.cancelRequests (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2070:7)
+    at Session.onClose (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2363:7)
+    at Socket.emit (node:events:518:28)
+    at socketCloseNT (node:dgram:808:8)
+    at processTicksAndRejections (node:internal/process/task_queues:89:21)
+    at runNextTicks (node:internal/process/task_queues:69:3)
+2025-08-05T16:35:53.674Z [INFO]: === CSDT-2 Local Agent Starting ===
+2025-08-05T16:35:53.676Z [INFO]: Configuração:
+2025-08-05T16:35:53.676Z [INFO]: - Vercel App URL: https://csdt.vercel.app/
+2025-08-05T16:35:53.676Z [INFO]: - Check Interval: 30s
+2025-08-05T16:35:53.676Z [INFO]: - Local Port: 3001
+2025-08-05T16:35:53.676Z [INFO]: - SNMP Timeout: 5000ms
+2025-08-05T16:35:53.679Z [INFO]: Iniciando agendador - verificação a cada 30 segundos
+2025-08-05T16:35:53.682Z [INFO]: Servidor local rodando na porta 3001
+2025-08-05T16:35:53.683Z [INFO]: Status disponível em: http://localhost:3001/status
+2025-08-05T16:35:58.679Z [INFO]: Iniciando verificação de impressoras...
+2025-08-05T16:36:00.393Z [INFO]: Obtidas 45 impressoras da Vercel
+2025-08-05T16:36:00.393Z [INFO]: Verificando status de 45 impressoras
+2025-08-05T16:36:00.756Z [INFO]: Iniciando verificação de impressoras...
+2025-08-05T16:36:02.263Z [INFO]: Obtidas 45 impressoras da Vercel
+2025-08-05T16:36:02.263Z [INFO]: Verificando status de 45 impressoras
+2025-08-05T16:36:06.410Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-08-05T16:36:06.411Z [ERROR]: Error [ERR_SOCKET_DGRAM_NOT_RUNNING]: Not running
+    at healthCheck (node:dgram:962:11)
+    at Socket.close (node:dgram:787:3)
+    at Session.close (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2061:13)
+    at Req.responseCb (C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js:271:19)
+    at Session.cancelRequests (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2070:7)
+    at Session.onClose (C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\net-snmp\index.js:2363:7)
+    at Socket.emit (node:events:518:28)
+    at socketCloseNT (node:dgram:808:8)
+    at processTicksAndRejections (node:internal/process/task_queues:89:21)
+    at runNextTicks (node:internal/process/task_queues:69:3)
