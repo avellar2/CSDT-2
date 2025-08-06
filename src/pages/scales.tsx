@@ -37,6 +37,7 @@ import {
   ChartLineUp,
 } from 'phosphor-react';
 import { Settings } from "lucide-react";
+import GoogleCalendar from '@/components/GoogleCalendar';
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -158,7 +159,7 @@ const Scales: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [activeView, setActiveView] = useState<'create' | 'dashboard' | 'history' | 'analytics'>('create');
+  const [activeView, setActiveView] = useState<'create' | 'dashboard' | 'history' | 'analytics' | 'agenda'>('create');
   const [draggedTechnician, setDraggedTechnician] = useState<Technician | null>(null);
   
   // History States
@@ -172,6 +173,14 @@ const Scales: React.FC = () => {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [schoolVisitsData, setSchoolVisitsData] = useState<any>(null);
   const [loadingSchoolVisits, setLoadingSchoolVisits] = useState(false);
+  
+  // Schedule Events States
+  const [events, setEvents] = useState<any[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  
+  // Calendars States
+  const [calendars, setCalendars] = useState<any[]>([]);
+  const [loadingCalendars, setLoadingCalendars] = useState(false);
   
   // Templates
   const [templates, setTemplates] = useState<ScaleTemplate[]>([]);
@@ -288,6 +297,9 @@ const Scales: React.FC = () => {
     } else if (activeView === 'analytics') {
       fetchAnalyticsData();
       fetchSchoolVisitsData();
+    } else if (activeView === 'agenda') {
+      fetchEvents();
+      fetchCalendars();
     }
   }, [activeView]);
 
@@ -339,6 +351,194 @@ const Scales: React.FC = () => {
       console.error('Erro ao buscar dados de visitas às escolas:', error);
     } finally {
       setLoadingSchoolVisits(false);
+    }
+  };
+
+  const fetchEvents = async () => {
+    try {
+      setLoadingEvents(true);
+      const response = await fetch('/api/schedule/events');
+      if (!response.ok) {
+        throw new Error('Erro ao buscar eventos');
+      }
+      const data = await response.json();
+      // Converter strings de data para objetos Date
+      const eventsWithDates = data.map((event: any) => ({
+        ...event,
+        startDate: new Date(event.startDate),
+        endDate: new Date(event.endDate)
+      }));
+      setEvents(eventsWithDates);
+    } catch (error) {
+      console.error('Erro ao buscar eventos:', error);
+      // Se der erro, inicializa com array vazio
+      setEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  const handleEventCreate = async (eventData: any) => {
+    try {
+      const response = await fetch('/api/schedule/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao criar evento');
+      }
+      
+      const newEvent = await response.json();
+      const eventWithDates = {
+        ...newEvent,
+        startDate: new Date(newEvent.startDate),
+        endDate: new Date(newEvent.endDate)
+      };
+      setEvents(prev => [...prev, eventWithDates]);
+    } catch (error) {
+      console.error('Erro ao criar evento:', error);
+    }
+  };
+
+  const handleEventUpdate = async (id: number, eventData: any) => {
+    try {
+      const response = await fetch(`/api/schedule/events?id=${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar evento');
+      }
+      
+      const updatedEvent = await response.json();
+      const eventWithDates = {
+        ...updatedEvent,
+        startDate: new Date(updatedEvent.startDate),
+        endDate: new Date(updatedEvent.endDate)
+      };
+      
+      setEvents(prev => prev.map(event => 
+        event.id === id ? eventWithDates : event
+      ));
+    } catch (error) {
+      console.error('Erro ao atualizar evento:', error);
+    }
+  };
+
+  const handleEventDelete = async (id: number) => {
+    try {
+      const response = await fetch(`/api/schedule/events?id=${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao excluir evento');
+      }
+      
+      setEvents(prev => prev.filter(event => event.id !== id));
+    } catch (error) {
+      console.error('Erro ao excluir evento:', error);
+    }
+  };
+
+  // Calendar Management Functions
+  const fetchCalendars = async () => {
+    try {
+      setLoadingCalendars(true);
+      const response = await fetch('/api/calendars?ownerId=current-user');
+      if (!response.ok) {
+        throw new Error('Erro ao buscar calendários');
+      }
+      const data = await response.json();
+      setCalendars(data);
+    } catch (error) {
+      console.error('Erro ao buscar calendários:', error);
+      // Se der erro, inicializar com um calendário padrão
+      setCalendars([{
+        id: 1,
+        name: 'Meu Calendário',
+        color: '#3b82f6',
+        isVisible: true,
+        isDefault: true,
+        ownerId: 'current-user'
+      }]);
+    } finally {
+      setLoadingCalendars(false);
+    }
+  };
+
+  const handleCalendarCreate = async (calendarData: any) => {
+    try {
+      const response = await fetch('/api/calendars', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(calendarData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao criar calendário');
+      }
+      
+      const newCalendar = await response.json();
+      setCalendars(prev => [...prev, newCalendar]);
+    } catch (error) {
+      console.error('Erro ao criar calendário:', error);
+    }
+  };
+
+  const handleCalendarUpdate = async (id: number, calendarData: any) => {
+    try {
+      const response = await fetch(`/api/calendars/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(calendarData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar calendário');
+      }
+      
+      const updatedCalendar = await response.json();
+      setCalendars(prev => prev.map(calendar => 
+        calendar.id === id ? updatedCalendar : calendar
+      ));
+    } catch (error) {
+      console.error('Erro ao atualizar calendário:', error);
+    }
+  };
+
+  const handleCalendarToggle = async (id: number, isVisible: boolean) => {
+    try {
+      const response = await fetch(`/api/calendars/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isVisible }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao alterar visibilidade do calendário');
+      }
+      
+      const updatedCalendar = await response.json();
+      setCalendars(prev => prev.map(calendar => 
+        calendar.id === id ? updatedCalendar : calendar
+      ));
+    } catch (error) {
+      console.error('Erro ao alterar visibilidade:', error);
     }
   };
 
@@ -1030,7 +1230,8 @@ const Scales: React.FC = () => {
                 { id: 'create', label: 'Criar Escala', icon: <Plus size={16} /> },
                 { id: 'dashboard', label: 'Dashboard', icon: <ChartBar size={16} /> },
                 { id: 'history', label: 'Histórico', icon: <Clock size={16} /> },
-                { id: 'analytics', label: 'Analytics', icon: <TrendUp size={16} /> }
+                { id: 'analytics', label: 'Analytics', icon: <TrendUp size={16} /> },
+                { id: 'agenda', label: 'Agenda', icon: <Calendar size={16} /> }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1978,6 +2179,17 @@ const Scales: React.FC = () => {
               </>
             )}
           </div>
+        ) : activeView === 'agenda' ? (
+          <GoogleCalendar 
+            events={events}
+            calendars={calendars}
+            onEventCreate={handleEventCreate}
+            onEventUpdate={handleEventUpdate}
+            onEventDelete={handleEventDelete}
+            onCalendarCreate={handleCalendarCreate}
+            onCalendarUpdate={handleCalendarUpdate}
+            onCalendarToggle={handleCalendarToggle}
+          />
         ) : null}
       </div>
 

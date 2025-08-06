@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
-const snmp = require('net-snmp');
+// const snmp = require('net-snmp'); // Comentado temporariamente - instalar com: npm install net-snmp
 
 const prisma = new PrismaClient();
 

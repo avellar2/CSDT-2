@@ -49,53 +49,80 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <div>
-      <form onSubmit={handleSubmit} className="p-4 rounded-lg shadow-md flex flex-col bg-zinc-900 w-full">
-        <div className='flex items-center gap-2 bg-zinc-800 mb-4'>
-          <User size={25} className='ml-4' />
-          <span className='border border-zinc-500 ml-2 h-5'></span>
-          <input
-            type="email"
-            value={email}
-            className="w-full p-4 bg-zinc-800 text-gray-100  focus:outline-blue-400 focus:outline-1"
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            required
-          />
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Campo Email */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-200">Email</label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <User size={20} className="text-slate-400 group-focus-within:text-blue-400 transition-colors duration-200" />
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:bg-white/15 backdrop-blur-sm"
+              placeholder="Digite seu email"
+              required
+            />
+          </div>
         </div>
 
-        <div className='flex items-center gap-2 bg-zinc-800 mb-8'>
-          <Lock size={25} className='ml-4' />
-          <span className='border border-zinc-500 ml-2 h-5'></span>
-          <input
-            type="password"
-            value={password}
-            className="w-full p-4 bg-zinc-800 text-gray-100 border-none focus:outline-blue-400 focus:outline-1"
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Senha"
-            required
-          />
+        {/* Campo Senha */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-200">Senha</label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Lock size={20} className="text-slate-400 group-focus-within:text-blue-400 transition-colors duration-200" />
+            </div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:bg-white/15 backdrop-blur-sm"
+              placeholder="Digite sua senha"
+              required
+            />
+          </div>
         </div>
 
-        <button type="submit" className={`w-full flex items-center justify-center bg-blue-500 gap-1 py-2.5 hover:bg-blue-600 ${email && password ? 'cursor-pointer' : 'cursor-not-allowed'}`} disabled={!email || !password}>
-          <SignIn size={25} />
-          Entrar
+        {/* Botão Submit */}
+        <button 
+          type="submit" 
+          className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg ${
+            email && password 
+              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-blue-500/25 hover:shadow-blue-500/40' 
+              : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+          }`} 
+          disabled={!email || !password}
+        >
+          <SignIn size={20} className={email && password ? 'animate-pulse' : ''} />
+          {email && password ? 'Entrar' : 'Preencha os campos'}
         </button>
       </form>
+      {/* Modal de Erro com design melhorado */}
       <Modal
         isOpen={modalIsOpen}
         onRequestClose={closeModal}
         contentLabel="Mensagem de Erro"
-        className="modal-content"
-        overlayClassName="modal-overlay"
+        className="fixed inset-0 flex items-center justify-center p-4 z-50"
+        overlayClassName="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
       >
-        <div className="flex flex-col items-center">
-          <WarningCircle size={48} className="text-red-500 mb-4" />
-          <h2 className="text-xl mb-4">Erro</h2>
-          <p>{modalMessage}</p>
-          <button onClick={closeModal} className="mt-4 bg-blue-500 hover:bg-blue-700 text-white p-2 rounded">
-            Fechar
-          </button>
+        <div className="bg-slate-800 border border-red-500/20 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform animate-in fade-in zoom-in duration-300">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center">
+              <WarningCircle size={32} className="text-red-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Oops! Algo deu errado</h2>
+            <p className="text-slate-300 text-sm leading-relaxed">{modalMessage}</p>
+            <button 
+              onClick={closeModal} 
+              className="mt-4 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-red-500/25"
+            >
+              Tentar Novamente
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

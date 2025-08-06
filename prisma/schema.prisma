@@ -237,17 +237,18 @@ model Profile {
 }
 
 model School {
-  id           Int            @id @default(autoincrement())
-  name         String         @unique
-  inep         Int            @default(0)
-  district     String?
-  address      String?
-  director     String?
-  phone        String?
-  email        String?
-  students     Int?           @default(0)
-  Item         Item[]
-  SchoolDemand SchoolDemand[]
+  id            Int             @id @default(autoincrement())
+  name          String          @unique
+  inep          Int             @default(0)
+  district      String?
+  address       String?
+  director      String?
+  phone         String?
+  email         String?
+  students      Int?            @default(0)
+  Item          Item[]
+  SchoolDemand  SchoolDemand[]
+  ScheduleEvent ScheduleEvent[]
 }
 
 model SchoolDemand {
@@ -412,4 +413,153 @@ model NewMemorandumItem {
   Memorandum   NewMemorandum @relation(fields: [memorandumId], references: [id])
 
   @@unique([memorandumId, itemId])
+}
+
+// Calendários separados
+model Calendar {
+  id          Int             @id @default(autoincrement())
+  name        String          // Nome do calendário
+  description String?         // Descrição
+  color       String          @default("#3b82f6") // Cor hexadecimal
+  isVisible   Boolean         @default(true) // Se está visível
+  isDefault   Boolean         @default(false) // Se é o padrão
+  ownerId     String          // Dono do calendário
+  isPublic    Boolean         @default(false) // Se é público
+  timezone    String          @default("America/Sao_Paulo") // Fuso horário
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  events      ScheduleEvent[] // Eventos deste calendário
+  
+  @@unique([ownerId, name])
+}
+
+// Tabela para agendamentos e tarefas
+model ScheduleEvent {
+  id            Int               @id @default(autoincrement())
+  title         String            // Título do evento/tarefa
+  description   String?           // Descrição opcional
+  startDate     DateTime          // Data/hora de início
+  endDate       DateTime          // Data/hora de fim
+  allDay        Boolean           @default(false) // Se é evento de dia inteiro
+  type          EventType         @default(TASK) // Tipo do evento
+  priority      Priority          @default(MEDIUM) // Prioridade
+  status        EventStatus       @default(PENDING) // Status do evento
+  createdBy     String            // Usuário que criou
+  assignedTo    String?           // Usuário responsável (opcional)
+  location      String?           // Local do evento (opcional)
+  schoolId      Int?              // Escola relacionada (opcional)
+  calendarId    Int               // Calendário que contém este evento
+  
+  // Eventos recorrentes
+  recurring     Boolean           @default(false) // Se é recorrente
+  recurrence    Json?             // Padrão de recorrência (JSON)
+  parentEventId Int?              // Evento pai (para séries recorrentes)
+  isException   Boolean           @default(false) // Se é exceção na recorrência
+  
+  // Lembretes
+  reminders     EventReminder[]   // Lembretes do evento
+  
+  // Participantes
+  participants  EventParticipant[] // Participantes/convidados
+  
+  // Outros
+  attachments   String[]          // Anexos/links
+  tags          String[]          // Tags para categorização
+  timezone      String            @default("America/Sao_Paulo") // Fuso horário
+  url           String?           // URL relacionada
+  
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  
+  School        School?           @relation(fields: [schoolId], references: [id])
+  Calendar      Calendar          @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  ParentEvent   ScheduleEvent?    @relation("EventRecurrence", fields: [parentEventId], references: [id])
+  ChildEvents   ScheduleEvent[]   @relation("EventRecurrence")
+
+  @@index([startDate, endDate])
+  @@index([createdBy])
+  @@index([assignedTo])
+  @@index([calendarId])
+  @@index([parentEventId])
+}
+
+// Lembretes de eventos
+model EventReminder {
+  id        Int           @id @default(autoincrement())
+  eventId   Int           // Evento relacionado
+  minutes   Int           // Minutos antes do evento (15, 30, 60, etc.)
+  type      ReminderType  @default(POPUP) // Tipo do lembrete
+  sent      Boolean       @default(false) // Se já foi enviado
+  createdAt DateTime      @default(now())
+  
+  Event     ScheduleEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  @@index([eventId])
+}
+
+// Participantes de eventos
+model EventParticipant {
+  id          Int                 @id @default(autoincrement())
+  eventId     Int                 // Evento relacionado
+  email       String              // Email do participante
+  name        String?             // Nome do participante
+  role        ParticipantRole     @default(ATTENDEE) // Papel no evento
+  status      ParticipantStatus   @default(PENDING) // Status de resposta
+  isOrganizer Boolean             @default(false) // Se é organizador
+  canEdit     Boolean             @default(false) // Se pode editar
+  inviteSent  Boolean             @default(false) // Se convite foi enviado
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  
+  Event       ScheduleEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  @@unique([eventId, email])
+  @@index([eventId])
+  @@index([email])
+}
+
+enum EventType {
+  TASK          // Tarefa
+  MEETING       // Reunião
+  APPOINTMENT   // Agendamento/visita técnica
+  REMINDER      // Lembrete
+  DEADLINE      // Prazo
+  MAINTENANCE   // Manutenção
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum EventStatus {
+  PENDING       // Pendente
+  IN_PROGRESS   // Em andamento
+  COMPLETED     // Concluído
+  CANCELLED     // Cancelado
+  POSTPONED     // Adiado
+}
+
+enum ReminderType {
+  POPUP         // Pop-up na tela
+  EMAIL         // Email
+  SMS           // SMS (futuro)
+  PUSH          // Push notification
+}
+
+enum ParticipantRole {
+  ORGANIZER     // Organizador
+  ATTENDEE      // Participante
+  OPTIONAL      // Opcional
+  RESOURCE      // Recurso (sala, equipamento)
+}
+
+enum ParticipantStatus {
+  PENDING       // Aguardando resposta
+  ACCEPTED      // Confirmado
+  DECLINED      // Recusado
+  TENTATIVE     // Talvez
 }

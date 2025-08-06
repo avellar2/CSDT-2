@@ -17,7 +17,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider attribute={'class'} defaultTheme='system' enableSystem disableTransitionOnChange>
       <PrinterNotificationProvider>
-        <div className='container mx-auto'>
+        <div className={isLoginPage ? 'w-full h-full' : 'container mx-auto'}>
           <HeaderProvider>
             {!isLoginPage && <Header hideHamburger={isConfirmarOsPage} />}
             <Component {...pageProps} />
