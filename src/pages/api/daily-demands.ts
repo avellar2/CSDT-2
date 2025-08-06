@@ -12,10 +12,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Configuração do filtro de data
-    const now = new Date();
-    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+    // Configuração do filtro de data - aceitar parâmetros de query
+    const { date, days } = req.query;
+    
+    let startOfDay, endOfDay;
+    
+    if (date) {
+      // Se data específica fornecida
+      const targetDate = new Date(date as string);
+      startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+      endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+    } else if (days) {
+      // Se número de dias fornecido, buscar dos últimos X dias
+      const numDays = parseInt(days as string) || 7;
+      endOfDay = new Date();
+      startOfDay = new Date();
+      startOfDay.setDate(endOfDay.getDate() - numDays);
+      startOfDay.setHours(0, 0, 0, 0);
+      endOfDay.setHours(23, 59, 59, 999);
+    } else {
+      // Padrão: apenas hoje
+      const now = new Date();
+      startOfDay = new Date(now.setHours(0, 0, 0, 0));
+      endOfDay = new Date(now.setHours(23, 59, 59, 999));
+    }
 
     // Consulta com tratamento de erros específico
     const demands = await prisma.schoolDemand.findMany({

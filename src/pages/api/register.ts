@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
-    const { userId, displayName, photoUrl, role } = req.body;
+    const { userId, displayName, photoUrl, role, schoolId } = req.body;
 
     try {
       const profile = await prisma.profile.create({
@@ -14,6 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           displayName, // Corrigido para usar o campo correto
           photoUrl,
           role, // Certifique-se de que o campo role existe no modelo
+          schoolId: schoolId || 225, // Adiciona associação com escola (padrão CSDT)
         },
       });
 

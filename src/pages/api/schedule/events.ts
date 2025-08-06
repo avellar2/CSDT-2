@@ -37,7 +37,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const events = await prisma.scheduleEvent.findMany({
         where,
         include: {
-          School: true
+          School: true,
+          Calendar: true,
+          reminders: true,
+          participants: true
         },
         orderBy: {
           startDate: 'asc'
@@ -68,12 +71,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         assignedTo,
         location,
         schoolId,
+        calendarId,
         recurring,
         recurrence,
         reminders,
         attachments,
-        tags
+        tags,
+        participants,
+        timezone
       } = req.body;
+
+      // Garantir que existe um calendar padrão
+      let defaultCalendarId = calendarId ? parseInt(calendarId) : null;
+      
+      if (!defaultCalendarId) {
+        // Buscar calendar padrão ou criar um
+        let defaultCalendar = await prisma.calendar.findFirst();
+        
+        if (!defaultCalendar) {
+          defaultCalendar = await prisma.calendar.create({
+            data: {
+              name: 'Calendário Padrão',
+              description: 'Calendário criado automaticamente',
+              color: '#2563eb',
+              isDefault: true,
+              isVisible: true,
+              ownerId: createdBy || 'system'
+            }
+          });
+        }
+        
+        defaultCalendarId = defaultCalendar.id;
+      }
 
       const event = await prisma.scheduleEvent.create({
         data: {
@@ -89,14 +118,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           assignedTo,
           location,
           schoolId: schoolId ? parseInt(schoolId) : null,
+          calendarId: defaultCalendarId,
           recurring: recurring || false,
           recurrence,
-          reminders,
           attachments: attachments || [],
-          tags: tags || []
+          tags: tags || [],
+          timezone: timezone || 'America/Sao_Paulo',
+          // Criar lembretes relacionados
+          reminders: {
+            create: Array.isArray(reminders) ? reminders.map(reminder => ({
+              minutes: reminder.minutes || 15,
+              type: reminder.type || 'POPUP'
+            })) : []
+          },
+          // Criar participantes relacionados
+          participants: {
+            create: Array.isArray(participants) ? participants.map(participant => ({
+              email: participant.email,
+              name: participant.name || null,
+              role: participant.role === 'organizer' ? 'ORGANIZER' : 
+                    participant.role === 'optional' ? 'OPTIONAL' : 'ATTENDEE',
+              status: participant.status === 'accepted' ? 'ACCEPTED' :
+                      participant.status === 'declined' ? 'DECLINED' :
+                      participant.status === 'tentative' ? 'TENTATIVE' : 'PENDING',
+              isOrganizer: participant.role === 'organizer'
+            })).filter(p => p.email?.trim()) : []
+          }
         },
         include: {
-          School: true
+          School: true,
+          Calendar: true,
+          reminders: true,
+          participants: true
         }
       });
 
@@ -124,12 +177,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         assignedTo,
         location,
         schoolId,
+        calendarId,
         recurring,
         recurrence,
         reminders,
         attachments,
-        tags
+        tags,
+        participants
       } = req.body;
+
+      // Primeiro, deletar lembretes e participantes existentes
+      await prisma.eventReminder.deleteMany({
+        where: { eventId: parseInt(id as string) }
+      });
+      await prisma.eventParticipant.deleteMany({
+        where: { eventId: parseInt(id as string) }
+      });
 
       const event = await prisma.scheduleEvent.update({
         where: { id: parseInt(id as string) },
@@ -145,14 +208,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           assignedTo,
           location,
           schoolId: schoolId ? parseInt(schoolId) : null,
+          calendarId: calendarId ? parseInt(calendarId) : undefined,
           recurring,
           recurrence,
-          reminders,
           attachments,
-          tags
+          tags,
+          // Criar novos lembretes
+          reminders: {
+            create: Array.isArray(reminders) ? reminders.map(reminder => ({
+              minutes: reminder.minutes || 15,
+              type: reminder.type || 'POPUP'
+            })) : []
+          },
+          // Criar novos participantes
+          participants: {
+            create: Array.isArray(participants) ? participants.map(participant => ({
+              email: participant.email,
+              name: participant.name || null,
+              role: participant.role === 'organizer' ? 'ORGANIZER' : 
+                    participant.role === 'optional' ? 'OPTIONAL' : 'ATTENDEE',
+              status: participant.status === 'accepted' ? 'ACCEPTED' :
+                      participant.status === 'declined' ? 'DECLINED' :
+                      participant.status === 'tentative' ? 'TENTATIVE' : 'PENDING',
+              isOrganizer: participant.role === 'organizer'
+            })).filter(p => p.email?.trim()) : []
+          }
         },
         include: {
-          School: true
+          School: true,
+          Calendar: true,
+          reminders: true,
+          participants: true
         }
       });
 

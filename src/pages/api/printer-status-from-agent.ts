@@ -35,10 +35,49 @@ interface AgentStatusData {
   };
 }
 
-// Armazenamento em memória para os dados do agente
-// Em produção, você pode usar Redis ou outro cache
-let cachedPrinterStatus: AgentStatusData | null = null;
-let lastUpdateTime: number = 0;
+// Sistema de cache singleton para dados do agente
+class PrinterDataCache {
+  private static instance: PrinterDataCache;
+  private _cachedData: AgentStatusData | null = null;
+  private _lastUpdateTime: number = 0;
+
+  private constructor() {}
+
+  static getInstance(): PrinterDataCache {
+    if (!PrinterDataCache.instance) {
+      PrinterDataCache.instance = new PrinterDataCache();
+    }
+    return PrinterDataCache.instance;
+  }
+
+  setData(data: AgentStatusData): void {
+    this._cachedData = data;
+    this._lastUpdateTime = Date.now();
+    console.log(`[Cache] Dados armazenados: ${data.printers.length} impressoras às ${new Date().toLocaleTimeString()}`);
+  }
+
+  getData(): { data: AgentStatusData | null; lastUpdateTime: number } {
+    return {
+      data: this._cachedData,
+      lastUpdateTime: this._lastUpdateTime
+    };
+  }
+
+  hasData(): boolean {
+    return this._cachedData !== null;
+  }
+
+  getAge(): number {
+    return Math.floor((Date.now() - this._lastUpdateTime) / 1000);
+  }
+
+  isStale(maxAgeMs: number = 5 * 60 * 1000): boolean {
+    return (Date.now() - this._lastUpdateTime) > maxAgeMs;
+  }
+}
+
+// Instância global do cache
+const printerCache = PrinterDataCache.getInstance();
 
 // Função para validar a chave de API
 function validateApiKey(req: NextApiRequest): boolean {
@@ -84,12 +123,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Atualizar cache com os novos dados
-    cachedPrinterStatus = {
+    const processedData: AgentStatusData = {
       ...agentData,
       timestamp: new Date().toISOString() // Usar timestamp do servidor
     };
     
-    lastUpdateTime = Date.now();
+    printerCache.setData(processedData);
 
     console.log(`[Agent] Recebidos dados de ${agentData.printers.length} impressoras do agente local`);
     console.log(`[Agent] ${agentData.withIssues} impressoras com problemas detectadas`);
@@ -109,7 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         processedPrinters: agentData.printers.length,
         withIssues: agentData.withIssues,
         criticalIssues: criticalPrinters.length,
-        timestamp: cachedPrinterStatus.timestamp
+        timestamp: processedData.timestamp
       }
     });
 
@@ -128,13 +167,15 @@ export function getCachedPrinterStatus(): {
   isStale: boolean;
   age: number;
 } {
-  const now = Date.now();
-  const age = now - lastUpdateTime;
-  const maxAge = 5 * 60 * 1000; // 5 minutos
+  const cacheData = printerCache.getData();
+  const age = printerCache.getAge();
+  const isStale = printerCache.isStale();
+  
+  console.log(`[Cache] Consultando cache: hasData=${printerCache.hasData()}, age=${age}s, isStale=${isStale}`);
   
   return {
-    data: cachedPrinterStatus,
-    isStale: age > maxAge,
-    age: Math.floor(age / 1000) // idade em segundos
+    data: cacheData.data,
+    isStale,
+    age
   };
 }

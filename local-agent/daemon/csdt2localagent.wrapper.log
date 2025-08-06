@@ -1,10 +1,2 @@
-2025-08-05 14:35:53 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
-2025-08-05 14:35:53 - Started 15596
-2025-08-05 14:39:26 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
-2025-08-05 14:39:26 - Started 14048
-2025-08-05 14:55:51 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
-2025-08-05 14:55:51 - Started 11424
-2025-08-05 14:57:49 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
-2025-08-05 14:57:49 - Started 7396
-2025-08-05 14:59:18 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
-2025-08-05 14:59:18 - Started 13660
+2025-08-06 15:54:53 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-08-06 15:54:53 - Started 13216

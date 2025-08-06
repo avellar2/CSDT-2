@@ -233,7 +233,9 @@ model Profile {
   displayName String
   photoUrl    String?
   role        Role    @default(TECH)
+  schoolId    Int     @default(225) // Campo obrigatório para vincular usuário a uma escola (CSDT)
   Item        Item[]
+  School      School  @relation(fields: [schoolId], references: [id])
 }
 
 model School {
@@ -249,6 +251,7 @@ model School {
   Item          Item[]
   SchoolDemand  SchoolDemand[]
   ScheduleEvent ScheduleEvent[]
+  Profile       Profile[]       // Relacionamento com usuários vinculados
 }
 
 model SchoolDemand {

@@ -11,6 +11,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const agentModule = await import('./printer-status-from-agent');
     const cachedStatus = agentModule.getCachedPrinterStatus();
 
+    console.log('[Test] Dados do cache:', {
+      hasData: !!cachedStatus.data,
+      isStale: cachedStatus.isStale,
+      age: cachedStatus.age,
+      dataExists: cachedStatus.data !== null,
+      totalPrinters: cachedStatus.data?.total || 0
+    });
+
     return res.status(200).json({
       success: true,
       hasData: !!cachedStatus.data,
@@ -18,7 +26,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       age: cachedStatus.age,
       timestamp: cachedStatus.data?.timestamp,
       totalPrinters: cachedStatus.data?.total || 0,
-      debug: 'Test endpoint working'
+      debug: 'Test endpoint working',
+      cacheData: cachedStatus.data ? {
+        total: cachedStatus.data.total,
+        withIssues: cachedStatus.data.withIssues,
+        timestamp: cachedStatus.data.timestamp
+      } : null
     });
 
   } catch (importError: unknown) {

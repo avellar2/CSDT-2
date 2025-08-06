@@ -14,13 +14,15 @@ import {
   Calendar,
   Gear,
   Users,
-  Desktop
+  Desktop,
+  Plus
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { Header } from "./Header";
 import { useHeaderContext } from "../context/HeaderContext";
 import { supabase } from "@/lib/supabaseClient";
+import DashboardRegisterForm from "./DashboardRegisterForm";
 
 interface DecodedToken {
   userId: string;
@@ -41,6 +43,7 @@ const Dashboard: React.FC = () => {
     newDemands: 0,
     alerts: 0
   });
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
 
   // Lógica para buscar o usuário do Supabase e consultar a role no Prisma
   useEffect(() => {
@@ -191,11 +194,22 @@ const Dashboard: React.FC = () => {
     'Escolas e Equipamentos': ['schools', 'items', 'device-list', 'printers', 'locados'],
     'Gestão Diária': ['daily-demands', 'scales', 'internal-demands'],
     'Documentos': ['memorandums', 'new-memorandums'],
+    'Administração': ['register-users'],
     'Outros': ['chada']
   };
 
   // Definir todos os cards disponíveis
-  const allCards = [
+  const allCards: Array<{
+    id: string;
+    title: string;
+    icon: any;
+    color: string;
+    path?: string;
+    action?: () => void;
+    roles: string[];
+    category: string;
+    badge: number | null;
+  }> = [
     {
       id: 'items',
       title: 'Cadastrar Itens',
@@ -365,6 +379,16 @@ const Dashboard: React.FC = () => {
       roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
       category: 'Escolas e Equipamentos',
       badge: null
+    },
+    {
+      id: 'register-users',
+      title: 'Registrar Usuários',
+      icon: Plus,
+      color: 'bg-purple-600 hover:bg-purple-800',
+      action: () => setShowRegisterForm(true),
+      roles: ['ADMIN', 'ADMTOTAL'],
+      category: 'Administração',
+      badge: null
     }
   ];
 
@@ -405,7 +429,7 @@ const Dashboard: React.FC = () => {
       <div
         key={card.id}
         className={`relative cursor-pointer ${card.color} text-white p-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex flex-col items-center group`}
-        onClick={() => handleNavigate(card.path)}
+        onClick={() => card.action ? card.action() : handleNavigate(card.path)}
       >
         {/* Botão de favorito */}
         <button
@@ -444,6 +468,9 @@ const Dashboard: React.FC = () => {
 
   return (
     <>
+      {showRegisterForm && (
+        <DashboardRegisterForm onClose={() => setShowRegisterForm(false)} />
+      )}
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header com busca e notificações */}
