@@ -35,49 +35,42 @@ interface AgentStatusData {
   };
 }
 
-// Sistema de cache singleton para dados do agente
-class PrinterDataCache {
-  private static instance: PrinterDataCache;
-  private _cachedData: AgentStatusData | null = null;
-  private _lastUpdateTime: number = 0;
+// Cache global usando variáveis de processo para ambiente serverless
+declare global {
+  var __PRINTER_CACHE__: AgentStatusData | undefined;
+  var __PRINTER_CACHE_TIME__: number | undefined;
+}
 
-  private constructor() {}
+// Inicializar cache global
+global.__PRINTER_CACHE__ = global.__PRINTER_CACHE__ || undefined;
+global.__PRINTER_CACHE_TIME__ = global.__PRINTER_CACHE_TIME__ || 0;
 
-  static getInstance(): PrinterDataCache {
-    if (!PrinterDataCache.instance) {
-      PrinterDataCache.instance = new PrinterDataCache();
-    }
-    return PrinterDataCache.instance;
-  }
-
+const printerCache = {
   setData(data: AgentStatusData): void {
-    this._cachedData = data;
-    this._lastUpdateTime = Date.now();
+    global.__PRINTER_CACHE__ = data;
+    global.__PRINTER_CACHE_TIME__ = Date.now();
     console.log(`[Cache] Dados armazenados: ${data.printers.length} impressoras às ${new Date().toLocaleTimeString()}`);
-  }
+  },
 
   getData(): { data: AgentStatusData | null; lastUpdateTime: number } {
     return {
-      data: this._cachedData,
-      lastUpdateTime: this._lastUpdateTime
+      data: global.__PRINTER_CACHE__ || null,
+      lastUpdateTime: global.__PRINTER_CACHE_TIME__ || 0
     };
-  }
+  },
 
   hasData(): boolean {
-    return this._cachedData !== null;
-  }
+    return global.__PRINTER_CACHE__ !== undefined;
+  },
 
   getAge(): number {
-    return Math.floor((Date.now() - this._lastUpdateTime) / 1000);
-  }
+    return Math.floor((Date.now() - (global.__PRINTER_CACHE_TIME__ || 0)) / 1000);
+  },
 
   isStale(maxAgeMs: number = 5 * 60 * 1000): boolean {
-    return (Date.now() - this._lastUpdateTime) > maxAgeMs;
+    return (Date.now() - (global.__PRINTER_CACHE_TIME__ || 0)) > maxAgeMs;
   }
-}
-
-// Instância global do cache
-const printerCache = PrinterDataCache.getInstance();
+};
 
 // Função para validar a chave de API
 function validateApiKey(req: NextApiRequest): boolean {
