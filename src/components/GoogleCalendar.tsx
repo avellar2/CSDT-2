@@ -61,9 +61,9 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
   const [showEventModal, setShowEventModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
-  const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
-  const [draggedEvent, setDraggedEvent] = useState<ScheduleEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | RecurringEvent | null>(null);
+  const [editingEvent, setEditingEvent] = useState<ScheduleEvent | RecurringEvent | null>(null);
+  const [draggedEvent, setDraggedEvent] = useState<ScheduleEvent | RecurringEvent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [quickCreateText, setQuickCreateText] = useState('');
   const [selectedCalendar, setSelectedCalendar] = useState<number | null>(null);
@@ -444,7 +444,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
     setShowEventModal(true);
   };
 
-  const handleEventDrop = (event: ScheduleEvent, newDate: Date) => {
+  const handleEventDrop = (event: ScheduleEvent | RecurringEvent, newDate: Date) => {
     // Calcular a diferença em dias entre a data atual e a nova data
     const currentDate = new Date(event.startDate);
     const daysDiff = Math.floor((newDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -1527,15 +1527,15 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                               <label key={index} className="flex flex-col items-center">
                                 <input
                                   type="checkbox"
-                                  checked={eventForm.recurrence.daysOfWeek?.includes(index) || false}
+                                  checked={(eventForm.recurrence.daysOfWeek as number[])?.includes(index) || false}
                                   onChange={(e) => {
-                                    const daysOfWeek = eventForm.recurrence.daysOfWeek || [];
+                                    const daysOfWeek = (eventForm.recurrence.daysOfWeek as number[]) || [];
                                     const newDaysOfWeek = e.target.checked
                                       ? [...daysOfWeek, index]
                                       : daysOfWeek.filter(d => d !== index);
                                     setEventForm({
                                       ...eventForm,
-                                      recurrence: { ...eventForm.recurrence, daysOfWeek: newDaysOfWeek }
+                                      recurrence: { ...eventForm.recurrence, daysOfWeek: newDaysOfWeek } as any
                                     });
                                   }}
                                   className="mb-1"
@@ -1615,7 +1615,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                       {/* Preview da recorrência */}
                       <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
                         <p className="text-sm text-blue-800 dark:text-blue-200">
-                          <strong>Resumo:</strong> {getRecurrenceDescription(eventForm.recurrence)}
+                          <strong>Resumo:</strong> {getRecurrenceDescription(eventForm.recurrence as any)}
                         </p>
                       </div>
                     </div>

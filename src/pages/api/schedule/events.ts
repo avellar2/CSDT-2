@@ -136,11 +136,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             create: Array.isArray(participants) ? participants.map(participant => ({
               email: participant.email,
               name: participant.name || null,
-              role: participant.role === 'organizer' ? 'ORGANIZER' : 
-                    participant.role === 'optional' ? 'OPTIONAL' : 'ATTENDEE',
-              status: participant.status === 'accepted' ? 'ACCEPTED' :
-                      participant.status === 'declined' ? 'DECLINED' :
-                      participant.status === 'tentative' ? 'TENTATIVE' : 'PENDING',
+              role: participant.role === 'organizer' ? 'ORGANIZER' as const : 
+                    participant.role === 'optional' ? 'OPTIONAL' as const : 'ATTENDEE' as const,
+              status: participant.status === 'accepted' ? 'ACCEPTED' as const :
+                      participant.status === 'declined' ? 'DECLINED' as const :
+                      participant.status === 'tentative' ? 'TENTATIVE' as const : 'PENDING' as const,
               isOrganizer: participant.role === 'organizer'
             })).filter(p => p.email?.trim()) : []
           }
@@ -225,11 +225,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             create: Array.isArray(participants) ? participants.map(participant => ({
               email: participant.email,
               name: participant.name || null,
-              role: participant.role === 'organizer' ? 'ORGANIZER' : 
-                    participant.role === 'optional' ? 'OPTIONAL' : 'ATTENDEE',
-              status: participant.status === 'accepted' ? 'ACCEPTED' :
-                      participant.status === 'declined' ? 'DECLINED' :
-                      participant.status === 'tentative' ? 'TENTATIVE' : 'PENDING',
+              role: participant.role === 'organizer' ? 'ORGANIZER' as const : 
+                    participant.role === 'optional' ? 'OPTIONAL' as const : 'ATTENDEE' as const,
+              status: participant.status === 'accepted' ? 'ACCEPTED' as const :
+                      participant.status === 'declined' ? 'DECLINED' as const :
+                      participant.status === 'tentative' ? 'TENTATIVE' as const : 'PENDING' as const,
               isOrganizer: participant.role === 'organizer'
             })).filter(p => p.email?.trim()) : []
           }

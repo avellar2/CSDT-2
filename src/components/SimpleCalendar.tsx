@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { 
   Calendar as CalendarIcon, 
   Plus, 
-  ChevronLeft, 
-  ChevronRight,
+  CaretLeft as ChevronLeft, 
+  CaretRight as ChevronRight,
   X
 } from 'phosphor-react';
 

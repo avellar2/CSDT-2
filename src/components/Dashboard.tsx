@@ -429,7 +429,7 @@ const Dashboard: React.FC = () => {
       <div
         key={card.id}
         className={`relative cursor-pointer ${card.color} text-white p-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex flex-col items-center group`}
-        onClick={() => card.action ? card.action() : handleNavigate(card.path)}
+        onClick={() => card.action ? card.action() : card.path && handleNavigate(card.path)}
       >
         {/* Botão de favorito */}
         <button

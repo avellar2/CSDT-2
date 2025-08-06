@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { 
   Calendar as CalendarIcon, 
   Plus, 
-  ChevronLeft, 
-  ChevronRight,
+  CaretLeft as ChevronLeft, 
+  CaretRight as ChevronRight,
   Clock,
   MapPin,
   User,
   Tag,
-  Edit,
+  PencilSimple as Edit,
   Trash,
   CheckCircle,
   X
 } from 'phosphor-react';
+
+type EventType = 'TASK' | 'MEETING' | 'APPOINTMENT' | 'REMINDER' | 'DEADLINE' | 'MAINTENANCE';
+type EventPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+type EventStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'POSTPONED';
 
 interface ScheduleEvent {
   id: number;
@@ -21,9 +25,9 @@ interface ScheduleEvent {
   startDate: Date;
   endDate: Date;
   allDay: boolean;
-  type: 'TASK' | 'MEETING' | 'APPOINTMENT' | 'REMINDER' | 'DEADLINE' | 'MAINTENANCE';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'POSTPONED';
+  type: EventType;
+  priority: EventPriority;
+  status: EventStatus;
   createdBy: string;
   assignedTo?: string;
   location?: string;
@@ -49,7 +53,20 @@ const AgendaCalendar: React.FC<CalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
-  const [eventForm, setEventForm] = useState({
+  const [eventForm, setEventForm] = useState<{
+    title: string;
+    description: string;
+    startDate: string;
+    startTime: string;
+    endDate: string;
+    endTime: string;
+    allDay: boolean;
+    type: EventType;
+    priority: EventPriority;
+    location: string;
+    assignedTo: string;
+    tags: string[];
+  }>({
     title: '',
     description: '',
     startDate: '',
@@ -57,11 +74,11 @@ const AgendaCalendar: React.FC<CalendarProps> = ({
     endDate: '',
     endTime: '',
     allDay: false,
-    type: 'TASK' as const,
-    priority: 'MEDIUM' as const,
+    type: 'TASK',
+    priority: 'MEDIUM',
     location: '',
     assignedTo: '',
-    tags: [] as string[]
+    tags: []
   });
 
   const months = [

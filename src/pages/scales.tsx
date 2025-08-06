@@ -739,7 +739,7 @@ const Scales: React.FC = () => {
       setEvents(prev => [...prev, eventWithDates]);
     } catch (error) {
       console.error('Erro ao criar evento:', error);
-      alert(`Erro ao criar evento: ${error.message}`);
+      alert(`Erro ao criar evento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   };
 

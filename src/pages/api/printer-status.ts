@@ -127,6 +127,27 @@ interface PrinterStatusInfo {
 
 async function checkPrinterStatus(printer: any): Promise<PrinterStatusInfo> {
   return new Promise((resolve) => {
+    // SNMP temporariamente desabilitado - retornar status básico
+    resolve({
+      id: printer.id,
+      ip: printer.ip || 'N/A',
+      sigla: printer.sigla,
+      status: 'snmp-disabled',
+      errorState: 'snmp-disabled',
+      errors: ['Verificação SNMP desabilitada'],
+      errorDetails: [{
+        error: 'Verificação SNMP desabilitada',
+        severity: 'warning',
+        action: 'Usar agente local para monitoramento',
+        description: 'Módulo SNMP não disponível no momento'
+      }],
+      paperStatus: 'unknown',
+      isOnline: false,
+      lastChecked: new Date().toISOString(),
+      hasCriticalErrors: false
+    });
+    
+    /* CÓDIGO SNMP TEMPORARIAMENTE COMENTADO
     // Verificar se o IP é válido
     if (!printer.ip || printer.ip === 'não informado' || printer.ip.trim() === '') {
       resolve({
@@ -151,270 +172,17 @@ async function checkPrinterStatus(printer: any): Promise<PrinterStatusInfo> {
     }
 
     const session = snmp.createSession(printer.ip, "public", {
-      timeout: process.env.NODE_ENV === 'production' ? 8000 : 3000, // Timeout maior em produção
-      retries: process.env.NODE_ENV === 'production' ? 2 : 1,        // Mais tentativas em produção
-      transport: "udp4",
-      sourceAddress: "0.0.0.0" // Bind em todas as interfaces disponíveis
-    });
-
-    // Começar com OIDs mais básicos e universais
-    const basicOids = [
-      PRINTER_OIDs.sysDescr,
-      PRINTER_OIDs.sysUpTime,
-      PRINTER_OIDs.hrDeviceStatus
-    ];
-
-    session.get(basicOids, (error: any, varbinds: any[]) => {
-      let statusInfo: PrinterStatusInfo = {
-        id: printer.id,
-        ip: printer.ip,
-        sigla: printer.sigla,
-        status: 'unknown',
-        errorState: 'unknown',
-        errors: [],
-        errorDetails: [],
-        paperStatus: 'unknown',
-        isOnline: false,
-        lastChecked: new Date().toISOString(),
-        hasCriticalErrors: false
-      };
-
-      if (error) {
-        console.error(`Erro SNMP para impressora ${printer.ip}:`, error.message);
-        if (error.message.includes('ENOTFOUND')) {
-          statusInfo.errors.push('IP não encontrado na rede');
-          statusInfo.errorDetails.push({
-            error: 'IP não encontrado na rede',
-            severity: 'error',
-            action: 'Verificar se o IP está correto e se a impressora está ligada',
-            description: 'O endereço IP não responde na rede'
-          });
-        } else if (error.message.includes('timeout')) {
-          statusInfo.errors.push('Timeout - impressora não responde');
-          statusInfo.errorDetails.push({
-            error: 'Timeout - impressora não responde',
-            severity: 'error',
-            action: 'Verificar se a impressora está ligada e conectada à rede',
-            description: 'A impressora não respondeu dentro do tempo limite'
-          });
-        } else if (error.message.includes('forcibly closed')) {
-          statusInfo.errors.push('SNMP não habilitado ou bloqueado');
-          statusInfo.errorDetails.push({
-            error: 'SNMP não habilitado ou bloqueado',
-            severity: 'warning',
-            action: 'Habilitar SNMP nas configurações da impressora',
-            description: 'O protocolo SNMP não está ativo na impressora'
-          });
-        } else {
-          statusInfo.errors.push('Erro de conexão SNMP');
-          statusInfo.errorDetails.push({
-            error: 'Erro de conexão SNMP',
-            severity: 'error',
-            action: 'Verificar conectividade de rede',
-            description: 'Falha na comunicação SNMP com a impressora'
-          });
-        }
-        session.close();
-        resolve(statusInfo);
-        return;
-      }
-
-      try {
-        statusInfo.isOnline = true;
-        statusInfo.status = 'online';
-        statusInfo.errors = ['Sem Erro'];
-        statusInfo.errorDetails = [];
-
-        varbinds.forEach((vb: any) => {
-          if (snmp.isVarbindError(vb)) {
-            console.warn(`OID ${vb.oid} não suportado pela impressora ${printer.ip}`);
-            return;
-          }
-
-          try {
-            switch (vb.oid) {
-              case PRINTER_OIDs.sysDescr:
-                // Detectar tipo de impressora pela descrição e aplicar análise específica
-                const desc = vb.value.toString().toLowerCase();
-                console.log(`Descrição da impressora ${printer.ip}: ${desc}`);
-                
-                // Armazenar tipo para uso posterior
-                if (desc.includes('xerox')) {
-                  statusInfo.status = 'xerox-detected';
-                } else if (desc.includes('oki')) {
-                  statusInfo.status = 'oki-detected';
-                } else if (desc.includes('hp')) {
-                  statusInfo.status = 'hp-detected';
-                } else {
-                  statusInfo.status = 'printer-detected';
-                }
-                break;
-
-              case PRINTER_OIDs.sysUpTime:
-                if (vb.value !== null && vb.value !== undefined) {
-                  const uptimeMs = parseInt(vb.value) * 10;
-                  const days = Math.floor(uptimeMs / (1000 * 60 * 60 * 24));
-                  const hours = Math.floor((uptimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                  statusInfo.uptime = `${days}d ${hours}h`;
-                }
-                break;
-
-              case PRINTER_OIDs.hrDeviceStatus:
-                const deviceStatus = parseInt(vb.value);
-                switch (deviceStatus) {
-                  case 1: 
-                    statusInfo.status = 'desconhecido'; 
-                    break;
-                  case 2: 
-                    statusInfo.status = 'funcionando'; 
-                    statusInfo.errors = ['Sem Erro'];
-                    statusInfo.errorDetails = [];
-                    break;
-                  case 3: 
-                    statusInfo.status = 'funcionando'; 
-                    statusInfo.errors = ['Sem Erro'];
-                    statusInfo.errorDetails = [];
-                    break;
-                  case 4: 
-                    statusInfo.status = 'testando'; 
-                    statusInfo.errors = ['Em Teste'];
-                    statusInfo.errorDetails = [{
-                      error: 'Em Teste',
-                      severity: 'warning',
-                      action: 'Aguardar conclusão do teste',
-                      description: 'A impressora está executando rotinas de teste interno'
-                    }];
-                    break;
-                  case 5: 
-                    statusInfo.status = 'inoperante'; 
-                    statusInfo.errors = ['Dispositivo Inoperante'];
-                    statusInfo.errorDetails = [{
-                      error: 'Dispositivo Inoperante',
-                      severity: 'critical',
-                      action: 'Verificar impressora imediatamente - pode estar com erro grave',
-                      description: 'A impressora está fora de operação e não consegue imprimir'
-                    }];
-                    statusInfo.hasCriticalErrors = true;
-                    break;
-                  default: 
-                    statusInfo.status = 'outro';
-                }
-                break;
-            }
-          } catch (vbError) {
-            console.warn(`Erro ao processar OID ${vb.oid}:`, vbError);
-          }
-        });
-
-        // Tentar obter informações específicas da impressora em uma segunda consulta
-        attemptAdvancedQuery(session, printer, statusInfo, resolve);
-
-      } catch (parseError) {
-        console.error(`Erro ao processar dados SNMP para ${printer.ip}:`, parseError);
-        statusInfo.errors = ['Erro ao processar resposta SNMP'];
-        session.close();
-        resolve(statusInfo);
-      }
-    });
-
-    // Timeout de segurança
-    setTimeout(() => {
-      try {
-        session.close();
-      } catch (e) {}
-      resolve({
-        id: printer.id,
-        ip: printer.ip,
-        sigla: printer.sigla,
-        status: 'timeout',
-        errorState: 'timeout',
-        errors: ['Timeout na consulta SNMP'],
-        errorDetails: [{
-          error: 'Timeout na consulta SNMP',
-          severity: 'error',
-          action: 'Verificar se a impressora está ligada e acessível',
-          description: 'A impressora não respondeu dentro do tempo limite'
-        }],
-        paperStatus: 'unknown',
-        isOnline: false,
-        lastChecked: new Date().toISOString(),
-        hasCriticalErrors: false
-      });
-    }, 5000);
+    */
   });
 }
 
+// FUNÇÃO SNMP TEMPORARIAMENTE COMENTADA
+/* 
 // Tentar consultas mais específicas baseadas no tipo de impressora
 function attemptAdvancedQuery(session: any, printer: any, statusInfo: PrinterStatusInfo, resolve: Function) {
-  const advancedOids = [
-    PRINTER_OIDs.hrPrinterStatus,
-    PRINTER_OIDs.hrPrinterDetectedErrorState
-  ];
-
-  session.get(advancedOids, (error: any, varbinds: any[]) => {
-    if (error) {
-      statusInfo.paperStatus = 'unknown';
-      statusInfo.tonerLevel = undefined;
-    } else {
-      varbinds.forEach((vb: any) => {
-        if (!snmp.isVarbindError(vb)) {
-          try {
-            switch (vb.oid) {
-              case PRINTER_OIDs.hrPrinterStatus:
-                const printerStatus = parseInt(vb.value);
-                const newStatus = PRINTER_STATUS[printerStatus as keyof typeof PRINTER_STATUS];
-                if (newStatus) {
-                  statusInfo.status = newStatus;
-                }
-                break;
-
-              case PRINTER_OIDs.hrPrinterDetectedErrorState:
-                const errorCode = parseInt(vb.value);
-                if (errorCode > 0) {
-                  const errors: string[] = [];
-                  const errorDetails: ErrorDetail[] = [];
-                  
-                  Object.entries(ERROR_STATES).forEach(([bit, description]) => {
-                    const bitValue = parseInt(bit);
-                    if (errorCode & bitValue && bitValue > 0) {
-                      errors.push(description);
-                      
-                      // Adicionar detalhes do erro se disponível
-                      const detail = ERROR_DETAILS[description as keyof typeof ERROR_DETAILS];
-                      if (detail) {
-                        errorDetails.push({
-                          error: description,
-                          severity: detail.severity,
-                          action: detail.action,
-                          description: detail.description
-                        });
-                      }
-                    }
-                  });
-                  
-                  if (errors.length > 0) {
-                    statusInfo.errors = errors;
-                    statusInfo.errorDetails = errorDetails;
-                    
-                    // Verificar se há erros críticos
-                    statusInfo.hasCriticalErrors = errorDetails.some(
-                      detail => detail.severity === 'critical'
-                    );
-                  }
-                }
-                break;
-            }
-          } catch (e) {
-            console.warn(`Erro ao processar OID avançado ${vb.oid}:`, e);
-          }
-        }
-      });
-    }
-
-    session.close();
-    resolve(statusInfo);
-  });
+  // Implementação SNMP comentada
 }
+*/
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
