@@ -2143,8 +2143,8 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                             {(selectedEvent as any).scaleData.demands.map((demand: any) => (
                               <div key={demand.id} className="border border-gray-200 dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700/50">
                                 <div className="flex items-start justify-between mb-2">
-                                  <h6 className="font-medium text-gray-900 dark:text-white text-sm">
-                                    {demand.title}
+                                  <h6 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-1">
+                                    🏫 {demand.school}
                                   </h6>
                                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                     demand.priority === 'URGENT' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
@@ -2157,12 +2157,9 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                                      demand.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
                                   </span>
                                 </div>
-                                <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
+                                <p className="text-gray-600 dark:text-gray-300 text-sm">
                                   {demand.description}
                                 </p>
-                                <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                                  🏫 {demand.school}
-                                </div>
                               </div>
                             ))}
                           </div>

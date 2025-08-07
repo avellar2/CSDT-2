@@ -37,7 +37,7 @@ const DashboardRegisterForm: React.FC<DashboardRegisterFormProps> = ({ onClose }
     name: "",
     email: "",
     password: "",
-    role: "ONLYREAD" as "ADMIN" | "TECH" | "ONLYREAD" | "ADMTOTAL",
+    role: "ONLYREAD" as "ADMIN" | "TECH" | "ONLYREAD" | "ADMTOTAL" | "SCHOOL",
     schoolId: 225 // Padrão CSDT
   });
   
@@ -183,7 +183,8 @@ const DashboardRegisterForm: React.FC<DashboardRegisterFormProps> = ({ onClose }
     { value: "ONLYREAD", label: "Somente Leitura", description: "Acesso apenas para visualização" },
     { value: "TECH", label: "Técnico", description: "Acesso técnico com permissões de execução" },
     { value: "ADMIN", label: "Administrador", description: "Acesso administrativo completo" },
-    { value: "ADMTOTAL", label: "Administrador Total", description: "Acesso total ao sistema" }
+    { value: "ADMTOTAL", label: "Administrador Total", description: "Acesso total ao sistema" },
+    { value: "SCHOOL", label: "Escola", description: "Acesso para escolas abrirem chamados técnicos" }
   ];
 
   return (

@@ -239,19 +239,20 @@ model Profile {
 }
 
 model School {
-  id            Int             @id @default(autoincrement())
-  name          String          @unique
-  inep          Int             @default(0)
-  district      String?
-  address       String?
-  director      String?
-  phone         String?
-  email         String?
-  students      Int?            @default(0)
-  Item          Item[]
-  SchoolDemand  SchoolDemand[]
-  ScheduleEvent ScheduleEvent[]
-  Profile       Profile[]       // Relacionamento com usuários vinculados
+  id               Int               @id @default(autoincrement())
+  name             String            @unique
+  inep             Int               @default(0)
+  district         String?
+  address          String?
+  director         String?
+  phone            String?
+  email            String?
+  students         Int?              @default(0)
+  Item             Item[]
+  SchoolDemand     SchoolDemand[]
+  ScheduleEvent    ScheduleEvent[]
+  Profile          Profile[]         // Relacionamento com usuários vinculados
+  TechnicalTicket  TechnicalTicket[] // Chamados técnicos da escola
 }
 
 model SchoolDemand {
@@ -314,6 +315,7 @@ enum Role {
   TECH
   ONLYREAD
   ADMTOTAL
+  SCHOOL
 }
 
 model Locados {
@@ -475,10 +477,11 @@ model ScheduleEvent {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   
-  School        School?           @relation(fields: [schoolId], references: [id])
-  Calendar      Calendar          @relation(fields: [calendarId], references: [id], onDelete: Cascade)
-  ParentEvent   ScheduleEvent?    @relation("EventRecurrence", fields: [parentEventId], references: [id])
-  ChildEvents   ScheduleEvent[]   @relation("EventRecurrence")
+  School          School?           @relation(fields: [schoolId], references: [id])
+  Calendar        Calendar          @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  ParentEvent     ScheduleEvent?    @relation("EventRecurrence", fields: [parentEventId], references: [id])
+  ChildEvents     ScheduleEvent[]   @relation("EventRecurrence")
+  TechnicalTicket TechnicalTicket[] // Chamados técnicos vinculados a este evento
 
   @@index([startDate, endDate])
   @@index([createdBy])
@@ -565,4 +568,84 @@ enum ParticipantStatus {
   ACCEPTED      // Confirmado
   DECLINED      // Recusado
   TENTATIVE     // Talvez
+}
+
+// Chamados técnicos das escolas
+model TechnicalTicket {
+  id                Int                    @id @default(autoincrement())
+  schoolId          Int                    // Escola que criou o chamado
+  title             String                 // Título do chamado
+  description       String                 // Descrição do problema
+  priority          TicketPriority?        // Prioridade (definida por quem aceita)
+  category          TicketCategory         @default(OTHER) // Categoria do problema
+  equipmentAffected String?                // Equipamentos afetados
+  status            TicketStatus           @default(OPEN) // Status do chamado
+  createdBy         String                 // Usuário da escola que criou
+  assignedTo        String?                // Técnico responsável (quando aceito)
+  scheduledDate     DateTime?              // Data agendada para visita
+  scheduledTime     String?                // Hora agendada
+  eventId           Int?                   // ID do evento na agenda (quando agendado)
+  notes             String?                // Observações internas
+  attachments       String[]               // Anexos/fotos
+  deletedAt         DateTime?              // Data de exclusão
+  deletedBy         String?                // Quem excluiu
+  deletionReason    String?                // Motivo da exclusão
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  
+  School            School                 @relation(fields: [schoolId], references: [id])
+  Event             ScheduleEvent?         @relation(fields: [eventId], references: [id])
+  Comments          TicketComment[]        // Comentários do chamado
+  
+  @@index([schoolId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([assignedTo])
+}
+
+// Comentários dos chamados técnicos
+model TicketComment {
+  id           Int             @id @default(autoincrement())
+  ticketId     Int             // ID do chamado
+  authorId     String          // ID do usuário que comentou
+  authorName   String          // Nome do autor
+  authorRole   String          // Role do autor (SCHOOL/ADMIN/ADMTOTAL)
+  content      String          // Conteúdo do comentário
+  isInternal   Boolean         @default(false) // Se é comentário interno (só admins veem)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  
+  Ticket       TechnicalTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketCategory {
+  COMPUTER          // Computador/Desktop
+  NOTEBOOK          // Notebook
+  TABLET            // Tablet
+  PRINTER           // Impressora
+  NETWORK           // Rede/Internet
+  SOFTWARE          // Software
+  MAINTENANCE       // Manutenção geral
+  OTHER             // Outros
+}
+
+enum TicketStatus {
+  OPEN              // Aberto (aguardando aceite)
+  ASSIGNED          // Aceito/Atribuído
+  SCHEDULED         // Agendado
+  IN_PROGRESS       // Em andamento
+  RESOLVED          // Resolvido
+  CLOSED            // Fechado
+  CANCELLED         // Cancelado
+  DELETED           // Excluído
 }

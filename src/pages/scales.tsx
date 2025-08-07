@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { supabase } from '@/lib/supabaseClient';
 import {
   DndContext,
   DragEndEvent,
@@ -35,6 +36,7 @@ import {
   ArrowRight,
   TrendUp,
   ChartLineUp,
+  Wrench,
 } from 'phosphor-react';
 import { Settings } from "lucide-react";
 import GoogleCalendar from '@/components/GoogleCalendar';
@@ -175,7 +177,7 @@ const Scales: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [activeView, setActiveView] = useState<'create' | 'dashboard' | 'history' | 'analytics' | 'agenda'>('create');
+  const [activeView, setActiveView] = useState<'create' | 'dashboard' | 'history' | 'analytics' | 'agenda' | 'tickets'>('create');
   const [draggedTechnician, setDraggedTechnician] = useState<Technician | null>(null);
   
   // History States
@@ -207,6 +209,26 @@ const Scales: React.FC = () => {
   const [demandAnalysis, setDemandAnalysis] = useState<{[key: string]: DemandAnalysis}>({});
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(true);
   const [capacityWarnings, setCapacityWarnings] = useState<string[]>([]);
+  
+  // Technical Tickets States
+  const [technicalTickets, setTechnicalTickets] = useState<any[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [ticketStats, setTicketStats] = useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [ticketFilter, setTicketFilter] = useState<string>('all');
+  const [ticketSearchTerm, setTicketSearchTerm] = useState<string>('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState<any>(null);
+  const [deletionReason, setDeletionReason] = useState<string>('');
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [schedulePriority, setSchedulePriority] = useState<string>('MEDIUM');
+  const [scheduleDate, setScheduleDate] = useState<string>('');
+  const [scheduleTime, setScheduleTime] = useState<string>('');
+  const [scheduleNotes, setScheduleNotes] = useState<string>('');
+  const [scheduling, setScheduling] = useState(false);
   
   // Error and Success
   const [conflictingTechnicians, setConflictingTechnicians] = useState<
@@ -316,8 +338,106 @@ const Scales: React.FC = () => {
     } else if (activeView === 'agenda') {
       fetchEvents();
       fetchCalendars();
+    } else if (activeView === 'tickets') {
+      fetchTechnicalTickets();
+      fetchAdminUsers();
     }
   }, [activeView]);
+
+  // Fetch current user information
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        setLoadingUser(true);
+        
+        // Get logged-in user from Supabase
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+          console.error('Error fetching user:', error);
+          return;
+        }
+
+        // Get user profile from Prisma
+        const response = await fetch(`/api/get-role?userId=${user.id}`);
+        const profileData = await response.json();
+
+        if (response.ok && (profileData.role === 'ADMIN' || profileData.role === 'ADMTOTAL')) {
+          setCurrentUser({
+            userId: user.id,
+            displayName: profileData.displayName,
+            role: profileData.role
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  const handleScheduleTicket = async () => {
+    if (!scheduleDate || !scheduleTime || !currentUser) {
+      alert('Por favor, preencha a data e horário para o agendamento.');
+      return;
+    }
+
+    try {
+      setScheduling(true);
+      
+      const response = await fetch('/api/technical-tickets/schedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketId: selectedTicket.id,
+          priority: schedulePriority,
+          scheduledDate: scheduleDate,
+          scheduledTime: scheduleTime,
+          assignedTo: currentUser.displayName,
+          notes: scheduleNotes,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao agendar chamado');
+      }
+
+      const result = await response.json();
+      
+      // Atualizar lista de chamados
+      await fetchTechnicalTickets();
+      
+      // Limpar campos
+      setSchedulePriority('MEDIUM');
+      setScheduleDate('');
+      setScheduleTime('');
+      setScheduleNotes('');
+      
+      // Fechar modal
+      setShowTicketModal(false);
+      setSelectedTicket(null);
+      
+      alert('Chamado agendado com sucesso!');
+      
+    } catch (error) {
+      console.error('Erro ao agendar chamado:', error);
+      alert(`Erro ao agendar chamado: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  // Reload tickets when filter changes
+  useEffect(() => {
+    if (activeView === 'tickets') {
+      fetchTechnicalTickets();
+    }
+  }, [ticketFilter]);
 
   const fetchScaleHistory = async () => {
     try {
@@ -332,6 +452,79 @@ const Scales: React.FC = () => {
       console.error('Erro ao buscar histórico:', error);
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  const fetchTechnicalTickets = async () => {
+    try {
+      setLoadingTickets(true);
+      const response = await fetch(`/api/technical-tickets/list?status=${ticketFilter}`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar chamados técnicos');
+      }
+      const data = await response.json();
+      if (data.success) {
+        setTechnicalTickets(data.tickets);
+        setTicketStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar chamados técnicos:', error);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+  const handleDeleteTicket = async () => {
+    if (!ticketToDelete || !deletionReason.trim() || !currentUser) return;
+
+    try {
+      const response = await fetch(`/api/technical-tickets/delete?ticketId=${ticketToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deletedBy: currentUser.displayName,
+          deletionReason: deletionReason.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao excluir chamado');
+      }
+
+      const result = await response.json();
+      console.log('Chamado excluído:', result);
+
+      // Recarregar lista de chamados
+      fetchTechnicalTickets();
+
+      // Fechar modal e limpar estados
+      setShowDeleteModal(false);
+      setTicketToDelete(null);
+      setDeletionReason('');
+
+      // Mostrar mensagem de sucesso
+      alert('Chamado excluído com sucesso!');
+
+    } catch (error) {
+      console.error('Erro ao excluir chamado:', error);
+      alert('Erro ao excluir chamado. Tente novamente.');
+    }
+  };
+
+  const fetchAdminUsers = async () => {
+    try {
+      const response = await fetch('/api/users/admins');
+      if (!response.ok) {
+        throw new Error('Erro ao buscar administradores');
+      }
+      const data = await response.json();
+      if (data.success) {
+        setAdminUsers(data.users);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar administradores:', error);
     }
   };
 
@@ -1570,7 +1763,8 @@ const Scales: React.FC = () => {
                 { id: 'dashboard', label: 'Dashboard', icon: <ChartBar size={16} /> },
                 { id: 'history', label: 'Histórico', icon: <Clock size={16} /> },
                 { id: 'analytics', label: 'Analytics', icon: <TrendUp size={16} /> },
-                { id: 'agenda', label: 'Agenda', icon: <Calendar size={16} /> }
+                { id: 'agenda', label: 'Agenda', icon: <Calendar size={16} /> },
+                { id: 'tickets', label: 'Chamados', icon: <Wrench size={16} /> }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -2529,6 +2723,232 @@ const Scales: React.FC = () => {
             onCalendarUpdate={handleCalendarUpdate}
             onCalendarToggle={handleCalendarToggle}
           />
+        ) : activeView === 'tickets' ? (
+          <div className="space-y-6">
+            {/* Header dos Chamados */}
+            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Wrench size={20} />
+                  Chamados Técnicos
+                </h3>
+                
+                {/* Filtros e Pesquisa */}
+                <div className="flex items-center gap-3">
+                  {/* Barra de Pesquisa */}
+                  <div className="relative">
+                    <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar chamados..."
+                      value={ticketSearchTerm}
+                      onChange={(e) => setTicketSearchTerm(e.target.value)}
+                      className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                    />
+                    {ticketSearchTerm && (
+                      <button
+                        onClick={() => setTicketSearchTerm('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        title="Limpar pesquisa"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Filtro de Status */}
+                  <select
+                    value={ticketFilter}
+                    onChange={(e) => setTicketFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="OPEN">Abertos</option>
+                    <option value="ASSIGNED">Atribuídos</option>
+                    <option value="SCHEDULED">Agendados</option>
+                    <option value="IN_PROGRESS">Em Andamento</option>
+                    <option value="RESOLVED">Resolvidos</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Estatísticas */}
+              {ticketStats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{ticketStats.total}</div>
+                    <div className="text-xs text-blue-800 dark:text-blue-300">Total</div>
+                  </div>
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{ticketStats.open}</div>
+                    <div className="text-xs text-yellow-800 dark:text-yellow-300">Abertos</div>
+                  </div>
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{ticketStats.assigned}</div>
+                    <div className="text-xs text-orange-800 dark:text-orange-300">Atribuídos</div>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{ticketStats.scheduled}</div>
+                    <div className="text-xs text-purple-800 dark:text-purple-300">Agendados</div>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{ticketStats.inProgress}</div>
+                    <div className="text-xs text-blue-800 dark:text-blue-300">Em Andamento</div>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{ticketStats.resolved}</div>
+                    <div className="text-xs text-green-800 dark:text-green-300">Resolvidos</div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">{ticketStats.closed}</div>
+                    <div className="text-xs text-gray-800 dark:text-gray-300">Fechados</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Informações da Pesquisa */}
+            {ticketSearchTerm && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
+                  <MagnifyingGlass size={16} />
+                  <span>
+                    Pesquisando por: <strong>"{ticketSearchTerm}"</strong>
+                  </span>
+                  <button
+                    onClick={() => setTicketSearchTerm('')}
+                    className="ml-auto px-2 py-1 bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700 rounded text-xs transition-colors"
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de Chamados */}
+            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700">
+              {loadingTickets ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+              ) : (() => {
+                // Filtrar chamados baseado no termo de pesquisa
+                const filteredTickets = technicalTickets.filter(ticket => {
+                  const searchLower = ticketSearchTerm.toLowerCase();
+                  return (
+                    ticket.title.toLowerCase().includes(searchLower) ||
+                    ticket.description.toLowerCase().includes(searchLower) ||
+                    ticket.School?.name.toLowerCase().includes(searchLower) ||
+                    ticket.category.toLowerCase().includes(searchLower) ||
+                    ticket.id.toString().includes(searchLower)
+                  );
+                });
+
+                return filteredTickets.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Wrench size={32} className="mx-auto mb-2 opacity-50" />
+                    <p>
+                      {ticketSearchTerm 
+                        ? `Nenhum chamado encontrado para "${ticketSearchTerm}"`
+                        : 'Nenhum chamado técnico encontrado'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {filteredTickets.map((ticket) => (
+                    <div
+                      key={ticket.id}
+                      className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        setShowTicketModal(true);
+                      }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              #{ticket.id} - {ticket.School?.name} - {ticket.title}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              ticket.status === 'OPEN' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                              ticket.status === 'ASSIGNED' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                              ticket.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                              ticket.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                              ticket.status === 'RESOLVED' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                              'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                            }`}>
+                              {ticket.status === 'OPEN' ? 'Aberto' :
+                               ticket.status === 'ASSIGNED' ? 'Atribuído' :
+                               ticket.status === 'SCHEDULED' ? 'Agendado' :
+                               ticket.status === 'IN_PROGRESS' ? 'Em Andamento' :
+                               ticket.status === 'RESOLVED' ? 'Resolvido' : 'Fechado'}
+                            </span>
+                            {ticket.priority && (
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                ticket.priority === 'URGENT' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                ticket.priority === 'HIGH' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                ticket.priority === 'MEDIUM' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              }`}>
+                                {ticket.priority === 'URGENT' ? 'Urgente' :
+                                 ticket.priority === 'HIGH' ? 'Alta' :
+                                 ticket.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            <span className="flex items-center gap-1">
+                              <MapPin size={14} />
+                              {ticket.School?.name}
+                            </span>
+                            <span>{ticket.category}</span>
+                            <span>{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                            {ticket.description}
+                          </p>
+                          {ticket.assignedTo && (
+                            <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                              Responsável: {ticket.assignedTo}
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4 flex items-center gap-2">
+                          {ticket.status === 'OPEN' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // TODO: Implementar aceitar chamado
+                                console.log('Aceitar chamado:', ticket.id);
+                              }}
+                              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded transition-colors"
+                            >
+                              Aceitar
+                            </button>
+                          )}
+                          {/* Botão de deletar (disponível para todos os status) */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTicketToDelete(ticket);
+                              setShowDeleteModal(true);
+                            }}
+                            className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
+                            title="Excluir chamado"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         ) : null}
       </div>
 
@@ -2840,6 +3260,308 @@ const Scales: React.FC = () => {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Detail/Action Modal */}
+      {showTicketModal && selectedTicket && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-xl max-w-2xl mx-auto p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Wrench size={20} />
+                Chamado #{selectedTicket.id}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowTicketModal(false);
+                  setSelectedTicket(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  {selectedTicket.title}
+                </h3>
+                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <span className="flex items-center gap-1">
+                    <MapPin size={14} />
+                    {selectedTicket.School?.name}
+                  </span>
+                  <span>{selectedTicket.category}</span>
+                  <span>{new Date(selectedTicket.createdAt).toLocaleDateString('pt-BR')}</span>
+                  <span>Por: {selectedTicket.createdBy}</span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Descrição:</h4>
+                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                  {selectedTicket.description}
+                </p>
+              </div>
+
+              {selectedTicket.equipmentAffected && (
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Equipamentos Afetados:</h4>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    {selectedTicket.equipmentAffected}
+                  </p>
+                </div>
+              )}
+
+              {selectedTicket.status === 'OPEN' && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-3">
+                    Aceitar e Agendar Chamado
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Prioridade:
+                      </label>
+                      <select 
+                        value={schedulePriority} 
+                        onChange={(e) => setSchedulePriority(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="LOW">Baixa</option>
+                        <option value="MEDIUM">Média</option>
+                        <option value="HIGH">Alta</option>
+                        <option value="URGENT">Urgente</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Responsável:
+                      </label>
+                      {loadingUser ? (
+                        <div className="flex items-center gap-2 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                          <span className="text-gray-500 dark:text-gray-400">Carregando...</span>
+                        </div>
+                      ) : currentUser ? (
+                        <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 font-medium">
+                          {currentUser.displayName} ({currentUser.role})
+                        </div>
+                      ) : (
+                        <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-100">
+                          Erro: Usuário não encontrado ou sem permissão
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Data da Visita:
+                      </label>
+                      <input
+                        type="date"
+                        value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Horário:
+                      </label>
+                      <input
+                        type="time"
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Observações Internas:
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={scheduleNotes}
+                      onChange={(e) => setScheduleNotes(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      placeholder="Observações para a equipe técnica..."
+                    ></textarea>
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                    <button
+                      className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+                        scheduling || !scheduleDate || !scheduleTime
+                          ? 'bg-gray-400 cursor-not-allowed text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                      onClick={handleScheduleTicket}
+                      disabled={scheduling || !scheduleDate || !scheduleTime}
+                    >
+                      {scheduling ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Agendando...
+                        </div>
+                      ) : (
+                        'Aceitar e Agendar'
+                      )}
+                    </button>
+                    <button
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => {
+                        setShowTicketModal(false);
+                        setSelectedTicket(null);
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Botão de Exclusão - Sempre visível */}
+              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => {
+                    setTicketToDelete(selectedTicket);
+                    setShowDeleteModal(true);
+                  }}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Trash size={16} />
+                  Excluir Chamado
+                </button>
+              </div>
+
+              {selectedTicket.status !== 'OPEN' && (
+                <div className="bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                        selectedTicket.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-800' :
+                        selectedTicket.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
+                        selectedTicket.status === 'RESOLVED' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {selectedTicket.status === 'SCHEDULED' ? 'Agendado' :
+                         selectedTicket.status === 'IN_PROGRESS' ? 'Em Andamento' :
+                         selectedTicket.status === 'RESOLVED' ? 'Resolvido' : selectedTicket.status}
+                      </span>
+                    </div>
+                    
+                    {selectedTicket.scheduledDate && (
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Agendado para: {new Date(selectedTicket.scheduledDate).toLocaleDateString('pt-BR')}
+                        {selectedTicket.scheduledTime && ` às ${selectedTicket.scheduledTime}`}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {selectedTicket.assignedTo && (
+                    <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                      Responsável: {selectedTicket.assignedTo}
+                    </div>
+                  )}
+                  
+                  {selectedTicket.notes && (
+                    <div className="mt-2">
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Observações:</span>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                        {selectedTicket.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && ticketToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-xl max-w-md mx-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Trash size={20} className="text-red-500" />
+                Excluir Chamado
+              </h2>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setTicketToDelete(null);
+                  setDeletionReason('');
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  <strong>Atenção:</strong> Ao excluir este chamado, a escola será notificada sobre o motivo da exclusão.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-700 dark:text-gray-300 mb-2">
+                  <strong>Chamado:</strong> #{ticketToDelete.id} - {ticketToDelete.title}
+                </p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                  <strong>Escola:</strong> {ticketToDelete.School?.name}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Motivo da Exclusão: *
+                </label>
+                <textarea
+                  value={deletionReason}
+                  onChange={(e) => setDeletionReason(e.target.value)}
+                  placeholder="Explique o motivo da exclusão do chamado (será mostrado para a escola)..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setTicketToDelete(null);
+                    setDeletionReason('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteTicket}
+                  disabled={!deletionReason.trim()}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+                >
+                  Excluir Chamado
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
