@@ -15,7 +15,10 @@ import {
   Gear,
   Users,
   Desktop,
-  Plus
+  Plus,
+  Wrench,
+  Trash,
+  CheckCircle
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -195,6 +198,7 @@ const Dashboard: React.FC = () => {
     'Gestão Diária': ['daily-demands', 'scales', 'internal-demands'],
     'Documentos': ['memorandums', 'new-memorandums'],
     'Administração': ['register-users'],
+    'Chamados Técnicos': ['open-technical-ticket', 'view-deleted-tickets'],
     'Outros': ['chada']
   };
 
@@ -388,6 +392,36 @@ const Dashboard: React.FC = () => {
       action: () => setShowRegisterForm(true),
       roles: ['ADMIN', 'ADMTOTAL'],
       category: 'Administração',
+      badge: null
+    },
+    {
+      id: 'open-technical-ticket',
+      title: 'Abrir Chamado Técnico / CSDT',
+      icon: Wrench,
+      color: 'bg-orange-600 hover:bg-orange-800',
+      path: '/technical-tickets/create',
+      roles: ['SCHOOL'],
+      category: 'Chamados Técnicos',
+      badge: null
+    },
+    {
+      id: 'view-deleted-tickets',
+      title: 'Ver Chamados Excluídos',
+      icon: Trash,
+      color: 'bg-red-600 hover:bg-red-800',
+      path: '/technical-tickets/deleted',
+      roles: ['SCHOOL'],
+      category: 'Chamados Técnicos',
+      badge: null
+    },
+    {
+      id: 'accepted-tickets',
+      title: 'Chamados Aceitos / CSDT',
+      icon: CheckCircle,
+      color: 'bg-green-600 hover:bg-green-800',
+      path: '/technical-tickets/accepted',
+      roles: ['ADMIN', 'ADMTOTAL'],
+      category: 'Chamados Técnicos',
       badge: null
     }
   ];
