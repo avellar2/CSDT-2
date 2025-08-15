@@ -59,7 +59,7 @@ const FillPdfForm: React.FC = () => {
     pecasOuMaterial: string;
     relatorio: string;
     solicitacaoDaVisita: string;
-    temLaboratorio: boolean;
+    temLaboratorio: boolean | undefined;
     redeBr: string;
     educacaoConectada: string;
     naoHaProvedor: string;
@@ -103,7 +103,7 @@ const FillPdfForm: React.FC = () => {
     pecasOuMaterial: "",
     relatorio: "",
     solicitacaoDaVisita: "",
-    temLaboratorio: false,
+    temLaboratorio: undefined,
     redeBr: "",
     educacaoConectada: "",
     naoHaProvedor: "",
@@ -164,8 +164,17 @@ const FillPdfForm: React.FC = () => {
           return value.length > 0;
         }
         if (field === 'temLaboratorio') {
-          return typeof value === 'boolean';
+          return value !== undefined && value !== null && typeof value === 'boolean';
         }
+        
+        // Se a escola não tem laboratório, considerar campos do laboratório como preenchidos
+        const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado', 
+                          'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio', 
+                          'estabilizadoresLocado', 'tabletsProprio', 'tabletsLocado'];
+        if (labFields.includes(field) && formData.temLaboratorio === false) {
+          return true;
+        }
+        
         return value && value.toString().trim() !== '';
       });
       return acc + stepFilledFields.length;
@@ -184,8 +193,17 @@ const FillPdfForm: React.FC = () => {
         return true; // Arrays são opcionais
       }
       if (field === 'temLaboratorio') {
-        return typeof value === 'boolean';
+        return value !== undefined && value !== null && typeof value === 'boolean';
       }
+      
+      // Se a escola não tem laboratório, considerar campos do laboratório como preenchidos
+      const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado', 
+                        'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio', 
+                        'estabilizadoresLocado', 'tabletsProprio', 'tabletsLocado'];
+      if (labFields.includes(field) && formData.temLaboratorio === false) {
+        return true;
+      }
+      
       return value && value.toString().trim() !== '';
     });
 
@@ -412,7 +430,7 @@ const FillPdfForm: React.FC = () => {
       pecasOuMaterial: "",
       relatorio: "",
       solicitacaoDaVisita: "",
-      temLaboratorio: false,
+      temLaboratorio: undefined,
       redeBr: "",
       educacaoConectada: "",
       naoHaProvedor: "",

@@ -576,7 +576,7 @@ const OsExternasList: React.FC = () => {
                         Tem Laboratório ?
                       </td>
                       <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.temLaboratorio ? 'Não' : 'Sim'}
+                        {selectedOs.temLaboratorio ? 'Sim' : 'Não'}
                       </td>
                     </tr>
                   </tbody>

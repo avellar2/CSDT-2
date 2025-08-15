@@ -309,44 +309,106 @@ const
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <label className="block text-sm font-medium text-slate-200 mb-2">
-              A escola tem laboratório de informática? *
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="temLaboratorio"
-                  value="true"
-                  checked={formData.temLaboratorio === true}
-                  onChange={(e) => handleInputChange({
-                    ...e,
-                    target: { ...e.target, name: 'temLaboratorio', value: e.target.value === 'true' }
-                  } as any)}
-                  className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 focus:ring-blue-500"
-                />
-                <span className="ml-2 text-slate-200">Sim</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="temLaboratorio"
-                  value="false"
-                  checked={formData.temLaboratorio === false}
-                  onChange={(e) => handleInputChange({
-                    ...e,
-                    target: { ...e.target, name: 'temLaboratorio', value: e.target.value !== 'true' }
-                  } as any)}
-                  className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 focus:ring-blue-500"
-                />
-                <span className="ml-2 text-slate-200">Não</span>
-              </label>
+            <div className="bg-gradient-to-r from-blue-500/20 to-indigo-500/20 border-2 border-blue-400/30 rounded-xl p-6 mb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">🖥️</span>
+                </div>
+                <label className="text-lg font-bold text-white">
+                  A escola tem laboratório de informática? 
+                  <span className="text-red-400 ml-1">*</span>
+                </label>
+              </div>
+              
+              <p className="text-slate-300 text-sm mb-6 italic">
+                Esta informação é obrigatória para determinar os equipamentos disponíveis
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <label className={`
+                  flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:scale-105
+                  ${formData.temLaboratorio === true 
+                    ? 'bg-green-500/30 border-green-400 text-green-100 shadow-lg shadow-green-500/20' 
+                    : 'bg-slate-700/50 border-slate-600 text-slate-200 hover:border-green-400/50 hover:bg-green-500/10'
+                  }
+                `}>
+                  <input
+                    type="radio"
+                    name="temLaboratorio"
+                    value="true"
+                    checked={formData.temLaboratorio === true}
+                    onChange={() => handleInputChange({
+                      target: { name: 'temLaboratorio', value: true }
+                    } as any)}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      formData.temLaboratorio === true 
+                        ? 'border-green-400 bg-green-500' 
+                        : 'border-slate-400'
+                    }`}>
+                      {formData.temLaboratorio === true && (
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className="text-lg font-semibold">✅ Sim</span>
+                  </div>
+                </label>
+                
+                <label className={`
+                  flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:scale-105
+                  ${formData.temLaboratorio === false 
+                    ? 'bg-red-500/30 border-red-400 text-red-100 shadow-lg shadow-red-500/20' 
+                    : 'bg-slate-700/50 border-slate-600 text-slate-200 hover:border-red-400/50 hover:bg-red-500/10'
+                  }
+                `}>
+                  <input
+                    type="radio"
+                    name="temLaboratorio"
+                    value="false"
+                    checked={formData.temLaboratorio === false}
+                    onChange={() => handleInputChange({
+                      target: { name: 'temLaboratorio', value: false }
+                    } as any)}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      formData.temLaboratorio === false 
+                        ? 'border-red-400 bg-red-500' 
+                        : 'border-slate-400'
+                    }`}>
+                      {formData.temLaboratorio === false && (
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className="text-lg font-semibold">❌ Não</span>
+                  </div>
+                </label>
+              </div>
+              
+              {formData.temLaboratorio === undefined && (
+                <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-400/50 rounded-lg">
+                  <p className="text-yellow-200 text-sm font-medium text-center">
+                    ⚠️ Por favor, selecione uma opção para continuar
+                  </p>
+                </div>
+              )}
+              
+              {formData.temLaboratorio === false && (
+                <div className="mt-4 p-3 bg-blue-500/20 border border-blue-400/50 rounded-lg">
+                  <p className="text-blue-200 text-sm font-medium text-center">
+                    ℹ️ Como a escola não possui laboratório, os campos de equipamentos do laboratório foram ocultados
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
 
-        {/* Campos do Laboratório */}
-        {(shouldRenderField('pcsProprio') || shouldRenderField('pcsLocado') ||
+        {/* Campos do Laboratório - Só aparecem se a escola tem laboratório */}
+        {formData.temLaboratorio === true && (shouldRenderField('pcsProprio') || shouldRenderField('pcsLocado') ||
           shouldRenderField('notebooksProprio') || shouldRenderField('notebooksLocado') ||
           shouldRenderField('monitoresProprio') || shouldRenderField('monitoresLocado') ||
           shouldRenderField('estabilizadoresProprio') || shouldRenderField('estabilizadoresLocado') ||

@@ -54,8 +54,17 @@ export const useMultiStepForm = (initialStep = 0) => {
         return true; // Arrays podem estar vazios (fotos são opcionais)
       }
       if (field === 'temLaboratorio') {
-        return typeof value === 'boolean';
+        return value !== undefined && value !== null && typeof value === 'boolean';
       }
+      
+      // Se a escola não tem laboratório, não exigir campos de equipamentos do laboratório
+      const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado', 
+                        'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio', 
+                        'estabilizadoresLocado', 'tabletsProprio', 'tabletsLocado'];
+      if (labFields.includes(field) && formData.temLaboratorio === false) {
+        return true; // Não exigir campos do laboratório se a escola não tem laboratório
+      }
+      
       return value !== undefined && value !== null && value.toString().trim() !== '';
     });
   }, [currentStep]);
