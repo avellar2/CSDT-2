@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import Modal from "react-modal";
 import { jwtDecode } from "jwt-decode";
@@ -10,10 +10,22 @@ import {
   FileArrowDown,
   Clock,
   File,
+  Database,
+  CloudArrowDown,
+  ChartLine,
+  Eye,
+  FileText,
+  Bell
 } from "phosphor-react";
 import * as XLSX from "xlsx";
 import axios from "axios";
 import { SkeletonCard } from "./SkeletonCard";
+import Dashboard from "./Analytics/Dashboard";
+import DeviceViews from "./Views/DeviceViews";
+import AdvancedFilters from "./Filters/AdvancedFilters";
+import SmartGrouping from "./Grouping/SmartGrouping";
+import AdvancedReports from "./Reports/AdvancedReports";
+import AlertSystem from "./Alerts/AlertSystem";
 import {
   Drawer,
   DrawerClose,
@@ -78,7 +90,6 @@ const DeviceList: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [itemHistory, setItemHistory] = useState<any[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false); // Estado para controlar o modal
   const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para controlar o AlertDialog
   const [schoolName, setSchoolName] = useState("");
@@ -91,6 +102,16 @@ const DeviceList: React.FC = () => {
   const [relatedData, setRelatedData] = useState<any>(null);
   const [loadingRelatedData, setLoadingRelatedData] = useState(false);
   const itemsPerPage = 10; // Número de itens por página
+  
+  // Novos estados para funcionalidades avançadas
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'table'>('list');
+  const [groupBy, setGroupBy] = useState<'school' | 'type' | 'status' | 'date' | 'district'>('school');
+  const [showGrouping, setShowGrouping] = useState(false);
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
+  const [activeFilters, setActiveFilters] = useState<any>(null);
+  const [showReports, setShowReports] = useState(false);
+  const [showAlerts, setShowAlerts] = useState(false);
 
   // NOVOS ESTADOS para troca de equipamentos
   const [memorandumType, setMemorandumType] = useState<"entrega" | "troca">(
@@ -104,13 +125,6 @@ const DeviceList: React.FC = () => {
   // Para troca: selecionar equipamentos que vão da escola destino para o CSDT
   const [selectedFromDestino, setSelectedFromDestino] = useState<number[]>([]);
 
-  const toggleItemSelection = (itemId: number) => {
-    setSelectedItems((prevSelected) =>
-      prevSelected.includes(itemId)
-        ? prevSelected.filter((id) => id !== itemId)
-        : [...prevSelected, itemId],
-    );
-  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -184,8 +198,12 @@ const DeviceList: React.FC = () => {
 
     if (Array.isArray(items)) {
       countItemsInSchool();
+      // Inicializar filteredItems se não há filtros ativos
+      if (!activeFilters) {
+        setFilteredItems(items);
+      }
     }
-  }, [searchTerm, items]);
+  }, [searchTerm, items, activeFilters]);
 
   useEffect(() => {
     async function fetchItems() {
@@ -244,7 +262,8 @@ const DeviceList: React.FC = () => {
     fetchUserRole();
   }, []);
 
-  const filteredItems = Array.isArray(items)
+  // Filtros básicos (mantidos para compatibilidade)
+  const basicFilteredItems = Array.isArray(items)
     ? items
         .filter(
           (item) =>
@@ -267,15 +286,18 @@ const DeviceList: React.FC = () => {
         ) // Ordena por data de criação (mais recentes primeiro)
     : [];
 
+  // Use filteredItems se há filtros avançados, senão use básicos
+  const displayItems = activeFilters ? filteredItems : basicFilteredItems;
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = displayItems.slice(indexOfFirstItem, indexOfLastItem);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const totalPages = Math.ceil(displayItems.length / itemsPerPage);
 
   const fetchRelatedData = async (itemId: number) => {
     const token = localStorage.getItem("token");
@@ -395,11 +417,124 @@ const DeviceList: React.FC = () => {
     XLSX.writeFile(workbook, "itens.xlsx");
   };
 
-  const openModal = () => {
-    if (selectedItems.length === 0) {
-      alert("Selecione pelo menos um item para gerar o memorando.");
+  const generateCompleteBackup = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setModalMessage("Usuário não autenticado. Por favor, faça login.");
+      setModalIsOpen(true);
       return;
     }
+
+    setLoading(true);
+    try {
+      // Buscar todos os dados para backup
+      const [itemsRes, schoolsRes, historiesRes] = await Promise.all([
+        fetch("/api/items", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/schools", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/backup/histories", { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+
+      const backupData = {
+        exportDate: new Date().toISOString(),
+        version: "1.0",
+        items: await itemsRes.json(),
+        schools: await schoolsRes.json(), 
+        histories: await historiesRes.json(),
+        summary: {
+          totalItems: items.length,
+          totalSchools: schools.length,
+          exportedBy: userName,
+          categories: calculateTotals()
+        }
+      };
+
+      // Gerar arquivo JSON
+      const jsonBlob = new Blob([JSON.stringify(backupData, null, 2)], { 
+        type: "application/json" 
+      });
+      
+      // Gerar Excel com múltiplas abas
+      const workbook = XLSX.utils.book_new();
+      
+      // Aba de Itens
+      const formattedItems = backupData.items.map((item: any) => ({
+        ID: item.id,
+        Nome: item.name,
+        Marca: item.brand,
+        "Número de Série": item.serialNumber,
+        Escola: item.School?.name || "N/A",
+        INEP: item.inep || "N/A",
+        "Data de Criação": format(new Date(item.createdAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
+        "Adicionado por": item.Profile?.displayName || "N/A",
+        "Status": item.School?.name === "CHADA" ? "Manutenção" : "Ativo"
+      }));
+      
+      // Aba de Escolas
+      const formattedSchools = backupData.schools.map((school: any) => ({
+        ID: school.id,
+        Nome: school.name,
+        Distrito: school.district,
+        INEP: school.inep,
+        "Qtd Equipamentos": backupData.items.filter((item: any) => item.School?.name === school.name).length
+      }));
+      
+      // Aba de Resumo
+      const summaryData = [
+        { "Categoria": "Total de Equipamentos", "Quantidade": backupData.summary.totalItems },
+        { "Categoria": "Total de Escolas", "Quantidade": backupData.summary.totalSchools },
+        { "Categoria": "COMPUTADORES", "Quantidade": backupData.summary.categories.COMPUTADOR },
+        { "Categoria": "NOTEBOOKS", "Quantidade": backupData.summary.categories.NOTEBOOK },
+        { "Categoria": "MONITORES", "Quantidade": backupData.summary.categories.MONITOR },
+        { "Categoria": "MOUSES", "Quantidade": backupData.summary.categories.MOUSE },
+        { "Categoria": "TECLADOS", "Quantidade": backupData.summary.categories.TECLADO },
+        { "Categoria": "ESTABILIZADORES", "Quantidade": backupData.summary.categories.ESTABILIZADOR },
+        { "Categoria": "IMPRESSORAS", "Quantidade": backupData.summary.categories.IMPRESSORA },
+        { "Categoria": "Data do Backup", "Quantidade": format(new Date(), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) },
+        { "Categoria": "Gerado por", "Quantidade": userName || "N/A" }
+      ];
+
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(formattedItems), "Equipamentos");
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(formattedSchools), "Escolas");
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(summaryData), "Resumo");
+      
+      // Downloads
+      const timestamp = format(new Date(), "yyyy-MM-dd_HH-mm-ss");
+      
+      // Download JSON
+      const jsonUrl = URL.createObjectURL(jsonBlob);
+      const jsonLink = document.createElement("a");
+      jsonLink.href = jsonUrl;
+      jsonLink.download = `backup-csdt-${timestamp}.json`;
+      document.body.appendChild(jsonLink);
+      jsonLink.click();
+      jsonLink.remove();
+      URL.revokeObjectURL(jsonUrl);
+      
+      // Download Excel
+      XLSX.writeFile(workbook, `backup-csdt-${timestamp}.xlsx`);
+      
+      setModalMessage(
+        `✅ Backup gerado com sucesso!\n\n` +
+        `📁 Arquivos baixados:\n` +
+        `• backup-csdt-${timestamp}.json (dados completos)\n` +
+        `• backup-csdt-${timestamp}.xlsx (planilha com 3 abas)\n\n` +
+        `📊 Resumo do backup:\n` +
+        `• ${backupData.summary.totalItems} equipamentos\n` +
+        `• ${backupData.summary.totalSchools} escolas\n` +
+        `• Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}`
+      );
+      setModalIsOpen(true);
+      
+    } catch (error) {
+      console.error("Erro ao gerar backup:", error);
+      setModalMessage("❌ Erro ao gerar backup. Tente novamente.");
+      setModalIsOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openModal = () => {
     setIsModalOpen(true);
   };
 
@@ -420,14 +555,14 @@ const DeviceList: React.FC = () => {
 
     // VALIDAÇÕES ESPECÍFICAS POR TIPO DE MEMORANDO
     if (memorandumType === "entrega") {
-      if (selectedItems.length === 0) {
+      if (selectedFromCSDT.length === 0) {
         alert("Selecione pelo menos um item para entrega.");
         return;
       }
       
-      if (selectedItems.length > 13) {
+      if (selectedFromCSDT.length > 13) {
         setModalMessage(
-          `📦 Limite de itens excedido!\n\nVocê selecionou ${selectedItems.length} itens, mas o limite máximo para memorandos de entrega é de 13 itens.\n\nPor favor, reduza a seleção para até 13 itens ou crie múltiplos memorandos.`
+          `📦 Limite de itens excedido!\n\nVocê selecionou ${selectedFromCSDT.length} itens, mas o limite máximo para memorandos de entrega é de 13 itens.\n\nPor favor, reduza a seleção para até 13 itens ou crie múltiplos memorandos.`
         );
         setModalIsOpen(true);
         return;
@@ -483,7 +618,7 @@ const DeviceList: React.FC = () => {
       }
     } else {
       // Para entrega, manter limite de 13 itens total
-      if (selectedItems.length > 13) {
+      if (selectedFromCSDT.length > 13) {
         setModalMessage("Você pode selecionar no máximo 13 itens por memorando.");
         setModalIsOpen(true);
         return;
@@ -536,7 +671,7 @@ const DeviceList: React.FC = () => {
       if (memorandumType === "entrega") {
         const itemsInChada = items.filter(
           (item) =>
-            selectedItems.includes(item.id) && item.School?.name === "CHADA",
+            selectedFromCSDT.includes(item.id) && item.School?.name === "CHADA",
         );
 
         if (itemsInChada.length > 0) {
@@ -567,7 +702,7 @@ const DeviceList: React.FC = () => {
 
         requestData = {
           ...requestData,
-          itemIds: selectedItems,
+          itemIds: selectedFromCSDT,
           schoolName,
           district,
           inep: selectedSchool.inep,
@@ -651,7 +786,6 @@ const DeviceList: React.FC = () => {
       setItems(updatedItemsResponse.data);
 
       // Limpar os campos
-      setSelectedItems([]);
       setSelectedFromCSDT([]);
       setSelectedFromDestino([]);
       setMemorandumType("entrega");
@@ -687,6 +821,114 @@ const DeviceList: React.FC = () => {
     });
 
     return totals;
+  };
+
+  // Handlers para filtros avançados - DEVE vir antes do return early
+  const handleFiltersChange = useCallback((newFilteredItems: Item[], newActiveFilters: any) => {
+    setFilteredItems(newFilteredItems);
+    setActiveFilters(newActiveFilters);
+    setCurrentPage(1); // Reset página ao filtrar
+  }, []);
+
+  // Handler para mudança de modo de visualização
+  const handleViewModeChange = (mode: 'list' | 'grid' | 'table') => {
+    setViewMode(mode);
+  };
+
+  // Handler para agrupamento
+  const handleGroupByChange = (newGroupBy: 'school' | 'type' | 'status' | 'date' | 'district') => {
+    setGroupBy(newGroupBy);
+  };
+
+  // Handler para gerar relatório baseado nos filtros
+  const handleGenerateFilteredReport = (filteredItems: Item[], filters: any) => {
+    console.log('Generating filtered report with', filteredItems.length, 'items');
+    
+    // Criar descrição dos filtros aplicados
+    let filterDescription = [];
+    
+    if (filters.searchTerm) {
+      filterDescription.push(`Busca: "${filters.searchTerm}"`);
+    }
+    
+    if (filters.selectedSchools.length > 0) {
+      filterDescription.push(`Escolas: ${filters.selectedSchools.join(', ')}`);
+    }
+    
+    if (filters.selectedTypes.length > 0) {
+      filterDescription.push(`Tipos: ${filters.selectedTypes.join(', ')}`);
+    }
+    
+    if (filters.dateRange.start && filters.dateRange.end) {
+      const startFormatted = format(new Date(filters.dateRange.start), 'dd/MM/yyyy', { locale: ptBR });
+      const endFormatted = format(new Date(filters.dateRange.end), 'dd/MM/yyyy', { locale: ptBR });
+      filterDescription.push(`Período: ${startFormatted} a ${endFormatted}`);
+    }
+    
+    if (filters.createdBy.length > 0) {
+      filterDescription.push(`Criado por: ${filters.createdBy.join(', ')}`);
+    }
+    
+    if (filters.status !== 'all') {
+      const statusMap = {
+        'csdt': 'No CSDT',
+        'chada': 'Na CHADA',
+        'schools': 'Em Escolas'
+      };
+      filterDescription.push(`Status: ${statusMap[filters.status as keyof typeof statusMap]}`);
+    }
+    
+    // Gerar dados do relatório
+    const reportData = filteredItems.map(item => ({
+      ID: item.id,
+      Nome: item.name,
+      Marca: item.brand,
+      'Número de Série': item.serialNumber,
+      Escola: item.School?.name || 'N/A',
+      'Data de Criação': format(new Date(item.createdAt), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
+      'Criado por': item.Profile?.displayName || 'N/A',
+      Status: item.School?.name === 'CHADA' ? 'Manutenção' : 
+              item.School?.name === 'CSDT' ? 'Depósito' : 'Em Operação'
+    }));
+
+    // Gerar estatísticas do relatório
+    const stats = {
+      'Total de Equipamentos': filteredItems.length,
+      'Em Operação': filteredItems.filter(i => i.School?.name !== 'CSDT' && i.School?.name !== 'CHADA').length,
+      'No Depósito (CSDT)': filteredItems.filter(i => i.School?.name === 'CSDT').length,
+      'Em Manutenção (CHADA)': filteredItems.filter(i => i.School?.name === 'CHADA').length,
+      'Data do Relatório': format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
+      'Gerado por': userName || 'N/A',
+      'Filtros Aplicados': filterDescription.length > 0 ? filterDescription.join('; ') : 'Nenhum filtro aplicado'
+    };
+
+    const statsData = Object.entries(stats).map(([key, value]) => ({
+      'Critério': key,
+      'Valor': value
+    }));
+
+    // Criar workbook
+    const workbook = XLSX.utils.book_new();
+    
+    // Aba de estatísticas
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(statsData), 'Resumo');
+    
+    // Aba de dados
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportData), 'Equipamentos');
+
+    // Download
+    const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
+    const filename = `relatorio-filtrado-${timestamp}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+
+    // Mostrar mensagem de sucesso
+    setModalMessage(
+      `✅ Relatório filtrado gerado com sucesso!\n\n` +
+      `📁 Arquivo: ${filename}\n` +
+      `📊 ${filteredItems.length} equipamentos incluídos\n\n` +
+      `🔍 Filtros aplicados:\n${filterDescription.length > 0 ? filterDescription.join('\n') : 'Nenhum filtro aplicado'}`
+    );
+    setModalIsOpen(true);
   };
 
   const totals = calculateTotals();
@@ -725,19 +967,79 @@ const DeviceList: React.FC = () => {
     setItemHistory([]);
   };
 
+
   return (
-    <div className=" dark:bg-zinc-950 bg-zinc-200 rounded-lg text-white p-6 container mx-auto">
+    <div className="dark:bg-zinc-950 bg-zinc-200 rounded-lg text-white p-6 container mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4">
         <h1 className="text-2xl font-bold mb-4 md:mb-0 dark:text-zinc-100 text-zinc-700">
-          Lista de Dispositivos
+          Gestão de Dispositivos
         </h1>
-        <div className="flex gap-4">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setShowDashboard(!showDashboard)}
+            className={`p-2 rounded flex items-center gap-1 transition-colors ${
+              showDashboard 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-500 hover:bg-gray-600 text-white'
+            }`}
+          >
+            <ChartLine size={20} />
+            <span className="hidden sm:inline">{showDashboard ? 'Ocultar' : 'Dashboard'}</span>
+          </button>
+          
+          <button
+            onClick={() => setShowGrouping(!showGrouping)}
+            className={`p-2 rounded flex items-center gap-1 transition-colors ${
+              showGrouping 
+                ? 'bg-purple-500 text-white' 
+                : 'bg-gray-500 hover:bg-gray-600 text-white'
+            }`}
+          >
+            <Eye size={20} />
+            <span className="hidden sm:inline">{showGrouping ? 'Lista' : 'Agrupar'}</span>
+          </button>
+
+          <button
+            onClick={() => setShowReports(!showReports)}
+            className={`p-2 rounded flex items-center gap-1 transition-colors ${
+              showReports 
+                ? 'bg-green-500 text-white' 
+                : 'bg-gray-500 hover:bg-gray-600 text-white'
+            }`}
+          >
+            <FileText size={20} />
+            <span className="hidden sm:inline">{showReports ? 'Ocultar' : 'Relatórios'}</span>
+          </button>
+
+          <button
+            onClick={() => setShowAlerts(!showAlerts)}
+            className={`p-2 rounded flex items-center gap-1 transition-colors ${
+              showAlerts 
+                ? 'bg-red-500 text-white' 
+                : 'bg-gray-500 hover:bg-gray-600 text-white'
+            }`}
+          >
+            <Bell size={20} />
+            <span className="hidden sm:inline">{showAlerts ? 'Ocultar' : 'Alertas'}</span>
+          </button>
           <button
             onClick={exportToExcel}
             className="bg-green-500 hover:bg-green-700 text-white p-2 rounded flex items-center"
           >
             <FileArrowDown size={24} className="mr-2" />
-            Exportar para Excel
+            Exportar Excel
+          </button>
+          <button
+            onClick={generateCompleteBackup}
+            className="bg-purple-500 hover:bg-purple-700 text-white p-2 rounded flex items-center"
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+            ) : (
+              <Database size={24} className="mr-2" />
+            )}
+            {loading ? "Gerando..." : "Backup Completo"}
           </button>
           {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
             <button
@@ -750,19 +1052,51 @@ const DeviceList: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="relative mb-4">
-        <input
-          type="text"
-          placeholder="Pesquisar"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-2 pl-10 rounded dark:bg-zinc-900 dark:text-white"
-        />
-        <MagnifyingGlass
-          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-          size={20}
-        />
-      </div>
+      {/* Sistema de Alertas */}
+      {showAlerts && (
+        <div className="mb-6">
+          <AlertSystem items={items} schools={schools} />
+        </div>
+      )}
+
+      {/* Relatórios Avançados */}
+      {showReports && (
+        <div className="mb-6">
+          <AdvancedReports items={items} schools={schools} />
+        </div>
+      )}
+
+      {/* Dashboard Analytics */}
+      {showDashboard && (
+        <div className="mb-6">
+          <Dashboard items={items} schools={schools} />
+        </div>
+      )}
+
+      {/* Filtros Avançados */}
+      <AdvancedFilters
+        items={items}
+        schools={schools}
+        onFiltersChange={handleFiltersChange}
+        onGenerateReport={handleGenerateFilteredReport}
+      />
+      
+      {/* Busca rápida (mantida para compatibilidade) */}
+      {!activeFilters && (
+        <div className="relative mb-4">
+          <input
+            type="text"
+            placeholder="Pesquisar (use filtros avançados para mais opções)"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full p-2 pl-10 rounded dark:bg-zinc-900 dark:text-white"
+          />
+          <MagnifyingGlass
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            size={20}
+          />
+        </div>
+      )}
 
       {/* Totalizadores por categoria */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4 mb-4">
@@ -800,76 +1134,55 @@ const DeviceList: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {currentItems.map((item) => (
-          <div
-            key={item.id}
-            className={`p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center ${
-              item.School?.name === "CHADA"
-                ? "bg-rose-900 opacity-70"
-                : "bg-gray-900"
-            }`}
-          >
-            <div className="flex items-center mb-4 md:mb-0">
-              <input
-                type="checkbox"
-                checked={selectedItems.includes(item.id)}
-                onChange={() => toggleItemSelection(item.id)}
-                className="mr-2"
-              />
-              <div>
-                <h2 className="text-lg font-semibold">{item.name}</h2>
-                <p className="text-gray-400">
-                  <span className="font-extrabold">Marca:</span> {item?.brand}
-                </p>
-                <p className="text-gray-400">
-                  <span className="font-extrabold">Serial:</span>{" "}
-                  {item?.serialNumber}
-                </p>
-                <p className="text-gray-400">
-                  <span className="font-extrabold">Escola:</span>{" "}
-                  {item.School?.name}
-                </p>
-                <p className="text-gray-400">
-                  <span className="font-extrabold">Data de Criação:</span>{" "}
-                  {format(new Date(item.createdAt), "dd/MM/yyyy, HH:mm:ss", {
-                    locale: ptBR,
-                  })}
-                </p>
-                <p className="text-gray-400">
-                  <span className="font-extrabold">Adicionado por:</span>{" "}
-                  {item.Profile?.displayName}
-                </p>
-              </div>
-            </div>
-            <div className="flex space-x-4">
-              <button
-                onClick={() => openHistoryDrawer(item)}
-                className="text-blue-500 hover:text-blue-700"
-              >
-                <Clock size={24} />
-              </button>
-              {item.Profile?.userId === userId && (
-                <button
-                  onClick={() => openDeleteModal(item)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <Trash size={24} />
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Conteúdo principal - Agrupamento ou Visualizações */}
+      {showGrouping ? (
+        <SmartGrouping
+          items={displayItems}
+          schools={schools}
+          onHistoryClick={openHistoryDrawer}
+          onDeleteClick={openDeleteModal}
+          userId={userId}
+          groupBy={groupBy}
+          onGroupByChange={handleGroupByChange}
+        />
+      ) : (
+        <DeviceViews
+          items={currentItems}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          onHistoryClick={openHistoryDrawer}
+          onDeleteClick={openDeleteModal}
+          userId={userId}
+        />
+      )}
 
       <div className="mt-6 flex justify-center">
-        <div className="w-full flex flex-wrap justify-center gap-2">
-          <Pagination
-            total={filteredItems.length}
-            currentPage={currentPage}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-          />
+        {/* Paginação - só mostrar se não estiver no modo agrupamento */}
+        {!showGrouping && (
+          <div className="w-full flex flex-wrap justify-center gap-2">
+            <Pagination
+              total={displayItems.length}
+              currentPage={currentPage}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
+        
+        {/* Informações dos resultados */}
+        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          {showGrouping ? (
+            `Mostrando ${displayItems.length} equipamentos agrupados por ${{
+              school: 'escola',
+              type: 'tipo',
+              status: 'status',
+              date: 'data',
+              district: 'distrito'
+            }[groupBy]}`
+          ) : (
+            `Mostrando ${Math.min(indexOfFirstItem + 1, displayItems.length)}-${Math.min(indexOfLastItem, displayItems.length)} de ${displayItems.length} equipamentos`
+          )}
+          {activeFilters && ' (filtrados)'}
         </div>
 
         {/* Modal moderno para avisos */}
@@ -1052,9 +1365,9 @@ const DeviceList: React.FC = () => {
                           >
                             <input
                               type="checkbox"
-                              checked={selectedItems.includes(item.id)}
+                              checked={selectedFromCSDT.includes(item.id)}
                               onChange={() => {
-                                setSelectedItems((prev) =>
+                                setSelectedFromCSDT((prev) =>
                                   prev.includes(item.id)
                                     ? prev.filter((id) => id !== item.id)
                                     : [...prev, item.id],
@@ -1382,8 +1695,8 @@ const DeviceList: React.FC = () => {
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   📋 Itens Selecionados:{" "}
                   {memorandumType === "entrega" ? (
-                    <span className={selectedItems.length > 13 ? "text-red-500 font-bold" : ""}>
-                      {selectedItems.length}/13 {selectedItems.length > 13 && "⚠️"}
+                    <span className={selectedFromCSDT.length > 13 ? "text-red-500 font-bold" : ""}>
+                      {selectedFromCSDT.length}/13 {selectedFromCSDT.length > 13 && "⚠️"}
                     </span>
                   ) : memorandumType === "troca" ? (
                     selectedFromCSDT.length + selectedFromDestino.length
@@ -1393,7 +1706,7 @@ const DeviceList: React.FC = () => {
                 </p>
                 
                 {/* Aviso de limite excedido */}
-                {memorandumType === "entrega" && selectedItems.length > 13 && (
+                {memorandumType === "entrega" && selectedFromCSDT.length > 13 && (
                   <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-sm">
                     <span className="text-red-600 dark:text-red-400 font-medium">
                       ⚠️ Limite excedido! Máximo: 13 itens por memorando de entrega.
@@ -1406,7 +1719,7 @@ const DeviceList: React.FC = () => {
                   {memorandumType === "entrega" && (
                     <>
                       {items
-                        .filter((item) => selectedItems.includes(item.id))
+                        .filter((item) => selectedFromCSDT.includes(item.id))
                         .map((item) => (
                           <p
                             key={item.id}
@@ -1478,7 +1791,6 @@ const DeviceList: React.FC = () => {
                   setDistrict("");
                   setExchangeFromSchool("");
                   setExchangeToSchool("");
-                  setSelectedItems([]);
                   setSelectedFromCSDT([]);
                   setSelectedFromDestino([]);
                   setCurrentStep("step1");
