@@ -1,2 +1,38 @@
 2025-08-06 15:54:53 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
 2025-08-06 15:54:53 - Started 13216
+2025-08-08 09:13:15 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-08-08 09:13:15 - Started 5140
+2025-08-12 08:42:22 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-08-12 08:42:22 - Started 5188
+2025-08-13 16:56:46 - Stopping csdt2localagent.exe
+2025-08-13 16:56:46 - ProcessKill 5188
+2025-08-13 16:56:47 - Shutdown exception
+Message:O sistema está sendo desligado.
+
+Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   em System.Management.ManagementScope.InitializeGuts(Object o)
+   em System.Management.ManagementScope.Initialize()
+   em System.Management.ManagementObjectSearcher.Initialize()
+   em System.Management.ManagementObjectSearcher.Get()
+   em winsw.WrapperService.GetChildPids(Int32 pid)
+   em winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   em winsw.WrapperService.StopIt()
+   em winsw.WrapperService.OnShutdown()
+2025-08-13 16:57:09 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-08-13 16:57:09 - Started 4932
+2025-08-13 16:58:22 - Stopping csdt2localagent.exe
+2025-08-13 16:58:22 - ProcessKill 4932
+2025-08-13 16:58:22 - Shutdown exception
+Message:Classe não registrada
+
+Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   em System.Management.ManagementScope.InitializeGuts(Object o)
+   em System.Management.ManagementScope.Initialize()
+   em System.Management.ManagementObjectSearcher.Initialize()
+   em System.Management.ManagementObjectSearcher.Get()
+   em winsw.WrapperService.GetChildPids(Int32 pid)
+   em winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   em winsw.WrapperService.StopIt()
+   em winsw.WrapperService.OnShutdown()
+2025-08-15 08:35:46 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-08-15 08:35:46 - Started 5200
