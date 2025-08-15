@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         </div>
         
         <div style="background-color: #e0f2fe; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="color: #000000;"><strong>📎 PDF ANEXADO:</strong> A Ordem de Serviço completa está anexada neste email para facilitar a assinatura.</p>
+          <p style="color: #000000;"><strong>📎 PDF ANEXADO:</strong> A Ordem de Serviço completa está anexada neste email para facilitar o entendimento do serviço prestado pela equipe.</p>
         </div>
         
         ${osExterna.assinado && osExterna.assinado.length > 10 ? `
