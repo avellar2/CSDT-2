@@ -91,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         ${osExterna.assinado && osExterna.assinado.length > 10 ? `
         <div style="text-align: center; margin: 20px 0;">
-          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/confirmar-os-externa?numeroOs=${encodeURIComponent(numeroOs)}&token=${osExterna.assinado}" 
+          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://csdt.vercel.app'}/confirmar-os-externa?numeroOs=${encodeURIComponent(numeroOs)}&token=${osExterna.assinado}" 
              style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
             ✅ ASSINAR ONLINE
           </a>
