@@ -144,7 +144,13 @@ const OsExternasList: React.FC = () => {
   const osExternasAssinadas = filterOsBySearch(osExternas.filter(os => os.status === 'Assinado'));
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    // Para campos de data simples (formato YYYY-MM-DD), adicionar fuso horário brasileiro
+    if (dateString && dateString.length === 10) {
+      return new Date(dateString + 'T12:00:00-03:00').toLocaleDateString('pt-BR');
+    }
+    // Para timestamps completos, usar fuso horário brasileiro
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   };
 
   const canSendEmailToday = (os: OsExterna) => {
@@ -248,7 +254,15 @@ const OsExternasList: React.FC = () => {
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR');
+    return new Date(dateString).toLocaleString('pt-BR', { 
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   };
 
   const handleViewDetails = (os: OsExterna) => {

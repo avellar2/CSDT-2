@@ -7,10 +7,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Aceitar data como parâmetro de query, senão usar hoje
+    const { date } = req.query;
+    
+    // Função auxiliar para criar data no fuso horário brasileiro
+    const createBrazilianDate = (dateString?: string) => {
+      if (dateString) {
+        // Para data específica, criar no fuso horário local brasileiro
+        const targetDate = new Date(dateString + 'T00:00:00-03:00');
+        return new Date(targetDate.getTime());
+      } else {
+        // Para "hoje", usar a data atual no fuso brasileiro
+        const now = new Date();
+        // Ajustar para fuso horário brasileiro (UTC-3)
+        const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+        return new Date(brazilTime.toISOString().split('T')[0] + 'T00:00:00-03:00');
+      }
+    };
+    
     // Configuração do filtro de data
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    const targetDate = createBrazilianDate(date as string);
+    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
 
     // Buscar técnicos na base
     const baseTechnicians = await prisma.baseTechnician.findMany({

@@ -104,7 +104,7 @@ const DailyDemands: React.FC = () => {
   }, []);
 
   // Check OS status
-  const checkOSStatus = useCallback(async (demandsToCheck: Demand[]) => {
+  const checkOSStatus = useCallback(async (demandsToCheck: Demand[], targetDate?: Date) => {
     if (!demandsToCheck.length) return;
     
     try {
@@ -113,7 +113,10 @@ const DailyDemands: React.FC = () => {
       const response = await fetch("/api/demands/check-os-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ demandIds }),
+        body: JSON.stringify({ 
+          demandIds,
+          targetDate: targetDate ? formatDateForAPI(targetDate) : undefined
+        }),
       });
 
       if (!response.ok) throw new Error("Erro ao verificar status das OS");
@@ -177,29 +180,28 @@ const DailyDemands: React.FC = () => {
 
       // Check OS status
       if (fetchedDemands.length > 0) {
-        await checkOSStatus(fetchedDemands);
+        await checkOSStatus(fetchedDemands, targetDate);
       }
 
-      // Fetch technicians (only for today)
-      const isToday = targetDate.toDateString() === new Date().toDateString();
-      if (isToday) {
-        const techniciansResponse = await fetch("/api/technicians/allocation");
+      // Fetch technicians for any date
+      const techniciansResponse = await fetch(
+        `/api/technicians/allocation?date=${formatDateForAPI(targetDate)}`
+      );
+      
+      if (techniciansResponse.ok) {
+        const techniciansResult = await techniciansResponse.json();
         
-        if (techniciansResponse.ok) {
-          const techniciansResult = await techniciansResponse.json();
-          
-          const [baseWithNames, visitWithNames, offWithNames] = await Promise.all([
-            fetchTechnicianNames(techniciansResult.baseTechnicians || []),
-            fetchTechnicianNames(techniciansResult.visitTechnicians || []),
-            fetchTechnicianNames(techniciansResult.offTechnicians || [])
-          ]);
-          
-          setBaseTechnicians(baseWithNames);
-          setVisitTechnicians(visitWithNames);
-          setOffTechnicians(offWithNames);
-        }
+        const [baseWithNames, visitWithNames, offWithNames] = await Promise.all([
+          fetchTechnicianNames(techniciansResult.baseTechnicians || []),
+          fetchTechnicianNames(techniciansResult.visitTechnicians || []),
+          fetchTechnicianNames(techniciansResult.offTechnicians || [])
+        ]);
+        
+        setBaseTechnicians(baseWithNames);
+        setVisitTechnicians(visitWithNames);
+        setOffTechnicians(offWithNames);
       } else {
-        // Clear technician data for non-today dates
+        // Clear technician data if API fails
         setBaseTechnicians([]);
         setVisitTechnicians([]);
         setOffTechnicians([]);
@@ -495,8 +497,8 @@ Veja o console para mais detalhes!`);
           {/* Main content */}
           <div className="xl:col-span-3 space-y-6">
             
-            {/* Technician sections (only for today) */}
-            {isToday && hasTechnicians && (
+            {/* Technician sections */}
+            {hasTechnicians && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <TechnicianCard
                   title="Técnicos na Base"

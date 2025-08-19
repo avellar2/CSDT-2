@@ -17,22 +17,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     let startOfDay, endOfDay;
     
+    // Função auxiliar para criar data no fuso horário brasileiro
+    const createBrazilianDate = (dateString?: string) => {
+      if (dateString) {
+        // Para data específica, criar no fuso horário local brasileiro
+        const targetDate = new Date(dateString + 'T00:00:00-03:00');
+        return new Date(targetDate.getTime());
+      } else {
+        // Para "hoje", usar a data atual no fuso brasileiro
+        const now = new Date();
+        // Ajustar para fuso horário brasileiro (UTC-3)
+        const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+        return new Date(brazilTime.toISOString().split('T')[0] + 'T00:00:00-03:00');
+      }
+    };
+
     if (date) {
       // Se data específica fornecida
-      const targetDate = new Date(date as string);
+      const targetDate = createBrazilianDate(date as string);
       startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0);
       endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
     } else if (days) {
       // Se número de dias fornecido, buscar dos últimos X dias
       const numDays = parseInt(days as string) || 7;
-      const today = new Date();
+      const today = createBrazilianDate();
       endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
       startOfDay = new Date(today);
       startOfDay.setDate(today.getDate() - numDays);
       startOfDay.setHours(0, 0, 0, 0);
     } else {
-      // Padrão: apenas hoje
-      const today = new Date();
+      // Padrão: apenas hoje (no fuso brasileiro)
+      const today = createBrazilianDate();
       startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
       endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
     }
@@ -72,6 +87,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdAt: demands[0].createdAt,
       schoolName: demands[0].School?.name
     } : 'No demands');
+    
+    // Debug específico para escola EM OLINDA BONTURI BOLSONARO
+    const olindaDemand = demands.find(d => d.School?.name?.includes('OLINDA BONTURI BOLSONARO'));
+    if (olindaDemand) {
+      console.log('🏫 OLINDA BONTURI BOLSONARO encontrada:', {
+        id: olindaDemand.id,
+        createdAt: olindaDemand.createdAt,
+        demand: olindaDemand.demand?.substring(0, 50)
+      });
+    } else {
+      console.log('🏫 OLINDA BONTURI BOLSONARO NÃO encontrada nas demandas do dia');
+    }
 
     // Formatação segura dos dados
     const safeDemands = demands.map((demand) => ({
