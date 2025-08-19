@@ -7,10 +7,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Configuração do filtro de data para hoje
+    // Configuração do filtro de data para hoje (fuso horário brasileiro UTC-3)
     const now = new Date();
-    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+    const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+    const today = new Date(brazilTime.toISOString().split('T')[0] + 'T00:00:00-03:00');
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 
     // Contar demandas criadas hoje
     const dailyDemandsCount = await prisma.schoolDemand.count({

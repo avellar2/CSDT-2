@@ -29,7 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 20, // Limit to last 20 for performance
     });
 
-    const today = new Date();
+    // Usar fuso horário brasileiro (UTC-3)
+    const now = new Date();
+    const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+    const today = new Date(brazilTime.toISOString().split('T')[0] + 'T00:00:00-03:00');
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
     const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 

@@ -15,7 +15,9 @@ import {
   X,
   ListChecks,
   Hash,
-  Tag
+  Tag,
+  FilePdf,
+  Download
 } from 'phosphor-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -66,6 +68,7 @@ const NewMemorandumsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMemorandum, setSelectedMemorandum] = useState<Memorandum | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [generatingPdfId, setGeneratingPdfId] = useState<number | null>(null);
 
   const fetchMemorandums = async (page: number = 1) => {
     try {
@@ -129,6 +132,68 @@ const NewMemorandumsPage: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedMemorandum(null);
+  };
+
+  const generatePDF = async (memorandum: Memorandum) => {
+    try {
+      setGeneratingPdfId(memorandum.id);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Token não encontrado');
+        return;
+      }
+
+      console.log('Regenerando PDF para memorando:', memorandum.id);
+
+      const response = await axios.post(
+        '/api/regenerate-memorandum-pdf',
+        { memorandumId: memorandum.id },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      // Decodificar o PDF Base64
+      const pdfBase64 = response.data.pdfBase64;
+      const binaryString = atob(pdfBase64);
+      const binaryLen = binaryString.length;
+      const bytes = new Uint8Array(binaryLen);
+
+      for (let i = 0; i < binaryLen; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const pdfBlob = new Blob([bytes], { type: "application/pdf" });
+
+      // Criar um link para download
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      const fileName = memorandum.type === "entrega"
+        ? `memorando-entrega-${memorandum.number}.pdf`
+        : `memorando-troca-${memorandum.number}.pdf`;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+
+      // Limpar a URL do objeto para liberar memória
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      if (axios.isAxiosError(error)) {
+        alert(`Erro ao gerar PDF: ${error.response?.data?.error || error.message}`);
+      } else {
+        alert('Erro desconhecido ao gerar PDF');
+      }
+    } finally {
+      setGeneratingPdfId(null);
+    }
   };
 
   if (loading) {
@@ -242,15 +307,37 @@ const NewMemorandumsPage: React.FC = () => {
                     <Package size={16} />
                     <span>{memorandum.items.length} itens</span>
                   </div>
-                  <button
-                    onClick={() => openItemsModal(memorandum)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-600 dark:text-orange-400 
-                             bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 
-                             rounded-full transition-colors duration-200"
-                  >
-                    <Eye size={14} />
-                    Ver itens
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openItemsModal(memorandum)}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-600 dark:text-orange-400 
+                               bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 
+                               rounded-full transition-colors duration-200"
+                    >
+                      <Eye size={14} />
+                      Ver itens
+                    </button>
+                    <button
+                      onClick={() => generatePDF(memorandum)}
+                      disabled={generatingPdfId === memorandum.id}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
+                               bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 
+                               rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Gerar PDF do memorando"
+                    >
+                      {generatingPdfId === memorandum.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-2 border-red-600 border-t-transparent"></div>
+                          Gerando...
+                        </>
+                      ) : (
+                        <>
+                          <FilePdf size={14} />
+                          PDF
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Footer do card */}
