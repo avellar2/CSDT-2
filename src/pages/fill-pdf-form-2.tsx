@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, ChangeEvent } from "react";
+import { useRouter } from "next/router";
 import { PDFDocument, PDFCheckBox, PDFTextField } from "pdf-lib";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
@@ -25,6 +26,7 @@ interface Escola {
 
 const FillPdfForm: React.FC = () => {
   const { userName } = useHeaderContext();
+  const router = useRouter();
 
   interface FormDataType {
     [key: string]: any;
@@ -153,6 +155,25 @@ const FillPdfForm: React.FC = () => {
     setShowToast({ message, type });
     setTimeout(() => setShowToast(null), 4000);
   };
+
+  // 🔗 Pre-fill form from URL parameters (from daily-demands)
+  useEffect(() => {
+    if (router.isReady) {
+      const { schoolName, demand } = router.query;
+      
+      if (schoolName || demand) {
+        setFormData(prev => ({
+          ...prev,
+          unidadeEscolar: schoolName as string || prev.unidadeEscolar,
+          solicitacaoDaVisita: demand as string || prev.solicitacaoDaVisita
+        }));
+        
+        if (schoolName) {
+          showToastMessage(`Escola pré-selecionada: ${schoolName}`, 'info');
+        }
+      }
+    }
+  }, [router.isReady, router.query]);
 
   // 📊 Calculate form completion progress
   const calculateProgress = () => {
