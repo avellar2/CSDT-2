@@ -20,22 +20,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (date) {
       // Se data específica fornecida
       const targetDate = new Date(date as string);
-      startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-      endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+      startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0);
+      endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
     } else if (days) {
       // Se número de dias fornecido, buscar dos últimos X dias
       const numDays = parseInt(days as string) || 7;
-      endOfDay = new Date();
-      startOfDay = new Date();
-      startOfDay.setDate(endOfDay.getDate() - numDays);
+      const today = new Date();
+      endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      startOfDay = new Date(today);
+      startOfDay.setDate(today.getDate() - numDays);
       startOfDay.setHours(0, 0, 0, 0);
-      endOfDay.setHours(23, 59, 59, 999);
     } else {
       // Padrão: apenas hoje
-      const now = new Date();
-      startOfDay = new Date(now.setHours(0, 0, 0, 0));
-      endOfDay = new Date(now.setHours(23, 59, 59, 999));
+      const today = new Date();
+      startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+      endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
     }
+
+    console.log('Debug - Date filter:', {
+      date,
+      startOfDay: startOfDay.toISOString(),
+      endOfDay: endOfDay.toISOString(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
 
     // Consulta com tratamento de erros específico
     const demands = await prisma.schoolDemand.findMany({
@@ -59,6 +66,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
+    console.log('Debug - Raw demands found:', demands.length);
+    console.log('Debug - Sample demand:', demands[0] ? {
+      id: demands[0].id,
+      createdAt: demands[0].createdAt,
+      schoolName: demands[0].School?.name
+    } : 'No demands');
+
     // Formatação segura dos dados
     const safeDemands = demands.map((demand) => ({
       id: demand.id.toString(), // Garante que o ID seja string
@@ -71,6 +85,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       data: safeDemands,
       message: `Encontradas ${safeDemands.length} demandas`,
+      debug: {
+        startOfDay: startOfDay.toISOString(),
+        endOfDay: endOfDay.toISOString(),
+        totalFound: demands.length
+      }
     });
   } catch (error) {
     console.error("Erro no servidor:", error);

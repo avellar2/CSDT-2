@@ -430,6 +430,7 @@ const Dashboard: React.FC = () => {
   const filteredCards = allCards.filter(card => {
     const hasRole = card.roles.includes(userRole || '');
     const matchesSearch = card.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
     return hasRole && matchesSearch;
   });
 
@@ -441,6 +442,7 @@ const Dashboard: React.FC = () => {
   // Agrupar cards por categoria
   const groupedCards = Object.entries(cardCategories).reduce((acc, [category, cardIds]) => {
     const categoryCards = sortedCards.filter(card => cardIds.includes(card.id));
+    
     if (categoryCards.length > 0) {
       acc[category] = categoryCards;
     }
@@ -452,7 +454,12 @@ const Dashboard: React.FC = () => {
     !Object.values(cardCategories).flat().includes(card.id)
   );
   if (uncategorizedCards.length > 0) {
-    groupedCards['Outros'] = uncategorizedCards;
+    // Se já existe categoria "Outros", adiciona os não categorizados a ela
+    if (groupedCards['Outros']) {
+      groupedCards['Outros'] = [...groupedCards['Outros'], ...uncategorizedCards];
+    } else {
+      groupedCards['Outros'] = uncategorizedCards;
+    }
   }
 
   const renderCard = (card: typeof allCards[0]) => {
