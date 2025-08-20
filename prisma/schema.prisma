@@ -63,6 +63,11 @@ model ItemsChada {
 
 enum ItemsChadaStatus {
   PENDENTE
+  RECEBIDO
+  EM_ANALISE
+  CONSERTADO
+  SEM_CONSERTO
+  DEVOLVIDO
   RESOLVIDO
 }
 
