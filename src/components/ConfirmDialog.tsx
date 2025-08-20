@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle, AlertTriangle } from 'phosphor-react';
+import { X, CheckCircle, WaveTriangle } from 'phosphor-react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const getIcon = () => {
     switch (type) {
       case 'danger': return <X size={24} className="text-red-500" weight="bold" />;
-      case 'warning': return <AlertTriangle size={24} className="text-yellow-500" weight="fill" />;
+      case 'warning': return <WaveTriangle size={24} className="text-yellow-500" weight="fill" />;
       case 'info': return <CheckCircle size={24} className="text-blue-500" weight="fill" />;
     }
   };

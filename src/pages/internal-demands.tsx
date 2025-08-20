@@ -14,7 +14,7 @@ import {
   ChartBar,
   Wrench,
   X,
-  AlertTriangle,
+  WaveTriangle,
   Info
 } from "phosphor-react";
 import { PDFDocument } from 'pdf-lib';
@@ -203,13 +203,15 @@ const InternalDemands: React.FC = () => {
 
     // Ordenação
     filtered.sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
 
       // Converter datas para comparação
       if (sortField === 'createdAt' || sortField === 'updatedAt') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+        const aTime = new Date(aValue).getTime();
+        const bTime = new Date(bValue).getTime();
+        aValue = aTime;
+        bValue = bTime;
       }
 
       if (sortDirection === 'asc') {
@@ -364,7 +366,7 @@ const InternalDemands: React.FC = () => {
 
   // Render do status badge
   const getStatusBadge = (status: string) => {
-    const styles = {
+    const styles: { [key: string]: string } = {
       'Pendente': 'bg-yellow-100 text-yellow-800 border-yellow-200',
       'Aceita': 'bg-blue-100 text-blue-800 border-blue-200',
       'Concluído': 'bg-green-100 text-green-800 border-green-200'
@@ -800,7 +802,7 @@ const InternalDemands: React.FC = () => {
             switch (type) {
               case 'success': return <CheckCircle size={20} weight="fill" className="text-green-600" />;
               case 'error': return <X size={20} weight="bold" className="text-red-600" />;
-              case 'warning': return <AlertTriangle size={20} weight="fill" className="text-yellow-600" />;
+              case 'warning': return <WaveTriangle size={20} weight="fill" className="text-yellow-600" />;
               case 'info': return <Info size={20} weight="fill" className="text-blue-600" />;
             }
           };
