@@ -47,7 +47,8 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
   const [notifications, setNotifications] = useState({
     pendingOS: 0,
     newDemands: 0,
-    alerts: 0
+    alerts: 0,
+    internalChat: 0
   });
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const router = useRouter();
@@ -148,18 +149,31 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
       if (!userRole) return;
 
       try {
-        const [pendingOSResponse, dailyDemandsResponse] = await Promise.all([
+        const requests = [
           fetch('/api/dashboard/pending-os'),
           fetch('/api/dashboard/daily-demands-count')
-        ]);
+        ];
 
-        const pendingOSData = await pendingOSResponse.json();
-        const dailyDemandsData = await dailyDemandsResponse.json();
+        // Adicionar chamados internos para técnicos
+        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
+          requests.push(fetch('/api/internal-chat/count-pending'));
+        }
+
+        const responses = await Promise.all(requests);
+        const pendingOSData = await responses[0].json();
+        const dailyDemandsData = await responses[1].json();
+        
+        let internalChatCount = 0;
+        if (responses[2]) {
+          const internalChatData = await responses[2].json();
+          internalChatCount = internalChatData.success ? internalChatData.needsAttention : 0;
+        }
 
         setNotifications({
           pendingOS: pendingOSData.success ? pendingOSData.data.totalPendingOS : 0,
           newDemands: dailyDemandsData.success ? dailyDemandsData.data.dailyDemandsCount : 0,
-          alerts: 0
+          alerts: 0,
+          internalChat: internalChatCount
         });
       } catch (error) {
         console.error('Erro ao buscar notificações:', error);
@@ -395,9 +409,9 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
             <SheetTrigger asChild>
               <div className="relative cursor-pointer">
                 <List className="h-10 w-10 xl:w-16 xl:h-16" />
-                {(notifications.pendingOS > 0 || notifications.newDemands > 0) && (
+                {(notifications.pendingOS > 0 || notifications.newDemands > 0 || notifications.internalChat > 0) && (
                   <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 xl:w-8 xl:h-8 flex items-center justify-center text-xs xl:text-sm font-bold">
-                    {notifications.pendingOS + notifications.newDemands}
+                    {notifications.pendingOS + notifications.newDemands + notifications.internalChat}
                   </div>
                 )}
               </div>
@@ -429,7 +443,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
                 </div>
 
                 {/* Notificações */}
-                {(notifications.pendingOS > 0 || notifications.newDemands > 0) && (
+                {(notifications.pendingOS > 0 || notifications.newDemands > 0 || notifications.internalChat > 0) && (
                   <div className="bg-red-100 dark:bg-red-900/30 border-2 border-red-300 dark:border-red-600 rounded-lg p-4 space-y-2">
                     <h4 className="font-bold text-red-800 dark:text-red-200 text-base flex items-center gap-2">
                       <Bell size={18} />
@@ -443,6 +457,11 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
                     {notifications.newDemands > 0 && (
                       <p className="text-sm font-medium text-red-700 dark:text-red-300">
                         • {notifications.newDemands} demandas hoje
+                      </p>
+                    )}
+                    {notifications.internalChat > 0 && (
+                      <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                        • {notifications.internalChat} chamados internos
                       </p>
                     )}
                   </div>

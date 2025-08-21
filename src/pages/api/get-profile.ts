@@ -17,6 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         select: {
           id: true,
           displayName: true,
+          role: true,
+          schoolId: true,
         },
       });
 
