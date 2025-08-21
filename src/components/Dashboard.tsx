@@ -18,7 +18,8 @@ import {
   Plus,
   Wrench,
   Trash,
-  CheckCircle
+  CheckCircle,
+  ChatCircle
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -44,7 +45,8 @@ const Dashboard: React.FC = () => {
   const [notifications, setNotifications] = useState({
     pendingOS: 0,
     newDemands: 0,
-    alerts: 0
+    alerts: 0,
+    internalChat: 0
   });
   const [showRegisterForm, setShowRegisterForm] = useState(false);
 
@@ -141,10 +143,19 @@ const Dashboard: React.FC = () => {
         const dailyDemandsResponse = await fetch('/api/dashboard/daily-demands-count');
         const dailyDemandsData = await dailyDemandsResponse.json();
 
+        // Buscar chamados internos pendentes (só para TECH, ADMIN, ADMTOTAL)
+        let internalChatCount = 0;
+        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
+          const internalChatResponse = await fetch('/api/internal-chat/count-pending');
+          const internalChatData = await internalChatResponse.json();
+          internalChatCount = internalChatData.success ? internalChatData.needsAttention : 0;
+        }
+
         const newNotifications = {
           pendingOS: pendingOSData.success ? pendingOSData.data.totalPendingOS : 0,
           newDemands: dailyDemandsData.success ? dailyDemandsData.data.dailyDemandsCount : 0,
-          alerts: 0 // Pode implementar depois
+          alerts: 0, // Pode implementar depois
+          internalChat: internalChatCount
         };
 
         setNotifications(newNotifications);
@@ -156,7 +167,8 @@ const Dashboard: React.FC = () => {
         setNotifications({
           pendingOS: 0,
           newDemands: 0,
-          alerts: 0
+          alerts: 0,
+          internalChat: 0
         });
       }
     };
@@ -198,7 +210,7 @@ const Dashboard: React.FC = () => {
     'Gestão Diária': ['daily-demands', 'scales', 'internal-demands'],
     'Documentos': ['memorandums', 'new-memorandums'],
     'Administração': ['register-users'],
-    'Chamados Técnicos': ['open-technical-ticket', 'view-deleted-tickets'],
+    'Chamados Técnicos': ['open-technical-ticket', 'view-deleted-tickets', 'internal-chat', 'accepted-tickets'],
     'Outros': ['chada']
   };
 
@@ -423,6 +435,16 @@ const Dashboard: React.FC = () => {
       roles: ['ADMIN', 'ADMTOTAL'],
       category: 'Chamados Técnicos',
       badge: null
+    },
+    {
+      id: 'internal-chat',
+      title: 'Chat Interno - Setores',
+      icon: ChatCircle,
+      color: 'bg-blue-600 hover:bg-blue-800',
+      path: '/internal-chat',
+      roles: ['ADMIN', 'ADMTOTAL', 'TECH', 'SCHOOL'],
+      category: 'Chamados Técnicos',
+      badge: notifications.internalChat > 0 ? notifications.internalChat : null
     }
   ];
 

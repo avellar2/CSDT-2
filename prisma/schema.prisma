@@ -258,6 +258,7 @@ model School {
   ScheduleEvent    ScheduleEvent[]
   Profile          Profile[]         // Relacionamento com usuários vinculados
   TechnicalTicket  TechnicalTicket[] // Chamados técnicos da escola
+  InternalTickets  InternalTicket[]  @relation("InternalTickets") // Chamados internos
 }
 
 model SchoolDemand {
@@ -653,4 +654,78 @@ enum TicketStatus {
   CLOSED            // Fechado
   CANCELLED         // Cancelado
   DELETED           // Excluído
+}
+
+// Modelos para Chamados Internos (setores do prédio)
+// Usando a tabela School existente para representar setores
+model InternalTicket {
+  id           Int                     @id @default(autoincrement())
+  schoolId     Int                     // Usando schoolId para referenciar o setor
+  title        String
+  description  String?
+  category     InternalTicketCategory  @default(OTHER)
+  priority     InternalTicketPriority  @default(NORMAL)
+  status       InternalTicketStatus    @default(OPEN)
+  assignedTo   String?                 // ID do técnico responsável (userId do Supabase)
+  assignedName String?                 // Nome do técnico para facilitar consultas
+  closedAt     DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  
+  School       School                  @relation("InternalTickets", fields: [schoolId], references: [id])
+  messages     InternalChatMessage[]
+  
+  @@index([schoolId])
+  @@index([status])
+  @@index([assignedTo])
+  @@index([createdAt])
+  @@map("internal_tickets")
+}
+
+model InternalChatMessage {
+  id          Int      @id @default(autoincrement())
+  ticketId    Int
+  senderId    String   // ID do usuário (departmentId para setor, userId para técnico)
+  senderName  String   // Nome do remetente
+  senderType  String   // "DEPARTMENT" ou "TECH"
+  content     String
+  attachments String[] // URLs das imagens/arquivos
+  sentAt      DateTime @default(now())
+  readAt      DateTime?
+  
+  Ticket      InternalTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@index([sentAt])
+  @@map("internal_chat_messages")
+}
+
+enum InternalTicketCategory {
+  COMPUTER      // Computador/Desktop
+  NOTEBOOK      // Notebook
+  TABLET        // Tablet
+  PRINTER       // Impressora
+  NETWORK       // Rede/Internet
+  SOFTWARE      // Software
+  PHONE         // Telefone/Ramal
+  MAINTENANCE   // Manutenção geral
+  ACCESS        // Acesso/Permissões
+  OTHER         // Outros
+}
+
+enum InternalTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum InternalTicketStatus {
+  OPEN          // Aberto (aguardando aceite)
+  ASSIGNED      // Aceito/Atribuído
+  IN_PROGRESS   // Em andamento
+  WAITING       // Aguardando resposta do setor
+  RESOLVED      // Resolvido (aguardando confirmação)
+  CLOSED        // Fechado/Concluído
+  CANCELLED     // Cancelado
 }
