@@ -138,13 +138,15 @@ const DemandCard: React.FC<DemandCardProps> = ({
 
           {/* Edit and Delete buttons */}
           <div className="flex gap-2">
-            <button
-              onClick={() => onEdit(demand)}
-              className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-              title="Editar demanda"
-            >
-              <Pencil size={18} />
-            </button>
+            {(userRole === 'ADMTOTAL' || userRole === 'ADMIN') && (
+              <button
+                onClick={() => onEdit(demand)}
+                className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Editar demanda"
+              >
+                <Pencil size={18} />
+              </button>
+            )}
             
             {(userRole === 'ADMTOTAL' || userRole === 'ADMIN') && (
               <button

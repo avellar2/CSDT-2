@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import BarcodeScanner from "@/components/Scanner/BarcodeScanner";
 import { BarcodeScannerAdvanced } from "@/components/Scanner/BarcodeScannerAdvanced";
 import { dataCache, persistentCache } from '@/utils/cache';
+import Select from 'react-select';
 import { 
   Computer, 
   Barcode, 
@@ -61,6 +62,8 @@ export const ItemFormModern: React.FC<ItemFormModernProps> = ({ onToast }) => {
     serialNumber: "",
     schoolId: ""
   });
+
+  const [selectedSchool, setSelectedSchool] = useState<SchoolOption | null>(null);
   
   // UI States
   const [schools, setSchools] = useState<SchoolOption[]>([]);
@@ -189,7 +192,7 @@ export const ItemFormModern: React.FC<ItemFormModernProps> = ({ onToast }) => {
         break;
       
       case 'schoolId':
-        if (!value) {
+        if (!value && !selectedSchool) {
           newErrors.schoolId = 'Escola é obrigatória';
         } else {
           delete newErrors.schoolId;
@@ -205,6 +208,16 @@ export const ItemFormModern: React.FC<ItemFormModernProps> = ({ onToast }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setTouched(prev => ({ ...prev, [field]: true }));
     validateField(field, value);
+  };
+
+  const handleSchoolChange = (selectedOption: SchoolOption | null) => {
+    setSelectedSchool(selectedOption);
+    setFormData(prev => ({ 
+      ...prev, 
+      schoolId: selectedOption ? selectedOption.value.toString() : "" 
+    }));
+    setTouched(prev => ({ ...prev, schoolId: true }));
+    validateField('schoolId', selectedOption ? selectedOption.value.toString() : "");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -256,6 +269,7 @@ export const ItemFormModern: React.FC<ItemFormModernProps> = ({ onToast }) => {
         // Reset form
         if (!quickMode) {
           setFormData({ name: "", brand: "", serialNumber: "", schoolId: "" });
+          setSelectedSchool(null);
           setTouched({});
           setErrors({});
         } else {
@@ -305,7 +319,10 @@ export const ItemFormModern: React.FC<ItemFormModernProps> = ({ onToast }) => {
   };
 
   const isFormValid = Object.keys(errors).length === 0 && 
-                     Object.keys(formData).every(key => formData[key as keyof typeof formData]);
+                     formData.name && 
+                     formData.brand && 
+                     formData.serialNumber && 
+                     selectedSchool;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -495,20 +512,62 @@ export const ItemFormModern: React.FC<ItemFormModernProps> = ({ onToast }) => {
                     <Building2 className="w-4 h-4 inline mr-2" />
                     Escola/Unidade *
                   </label>
-                  <select
-                    value={formData.schoolId}
-                    onChange={(e) => handleFieldChange('schoolId', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      errors.schoolId && touched.schoolId ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  <Select
+                    value={selectedSchool}
+                    onChange={handleSchoolChange}
+                    options={schools}
+                    placeholder="Digite para buscar uma escola..."
+                    isClearable
+                    isSearchable
+                    noOptionsMessage={() => "Nenhuma escola encontrada"}
+                    loadingMessage={() => "Carregando..."}
+                    styles={{
+                      control: (provided, state) => ({
+                        ...provided,
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: `1px solid ${
+                          errors.schoolId && touched.schoolId 
+                            ? '#FCA5A5' 
+                            : state.isFocused 
+                              ? '#3B82F6' 
+                              : '#D1D5DB'
+                        }`,
+                        backgroundColor: errors.schoolId && touched.schoolId ? '#FEF2F2' : 'white',
+                        boxShadow: state.isFocused 
+                          ? '0 0 0 2px rgba(59, 130, 246, 0.5)' 
+                          : 'none',
+                        '&:hover': {
+                          borderColor: errors.schoolId && touched.schoolId 
+                            ? '#FCA5A5' 
+                            : '#9CA3AF'
+                        }
+                      }),
+                      option: (provided, state) => ({
+                        ...provided,
+                        backgroundColor: state.isSelected 
+                          ? '#3B82F6' 
+                          : state.isFocused 
+                            ? '#EBF4FF' 
+                            : 'white',
+                        color: state.isSelected ? 'white' : '#374151',
+                        ':active': {
+                          backgroundColor: '#3B82F6',
+                          color: 'white'
+                        }
+                      }),
+                      menu: (provided) => ({
+                        ...provided,
+                        borderRadius: '8px',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        border: '1px solid #E5E7EB'
+                      })
+                    }}
+                    className={`react-select-container ${
+                      errors.schoolId && touched.schoolId ? 'react-select-error' : ''
                     }`}
-                  >
-                    <option value="">Selecione a escola</option>
-                    {schools.map(school => (
-                      <option key={school.value} value={school.value}>
-                        {school.label}
-                      </option>
-                    ))}
-                  </select>
+                    classNamePrefix="react-select"
+                  />
                   {errors.schoolId && touched.schoolId && (
                     <motion.p
                       initial={{ opacity: 0 }}
