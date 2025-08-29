@@ -32,40 +32,45 @@ const LoginPage: React.FC = () => {
                   CSDT
                 </h1>
                 <h2 className="text-3xl font-light text-gray-200">
-                  Plataforma Educacional
+                  Plataforma de Gestão Educacional
                 </h2>
                 <p className="text-xl text-gray-300 leading-relaxed">
-                  Sistema integrado para gestão de serviços técnicos em
-                  instituições de ensino. Conectando escolas e equipe técnica.
+                  Solução inteligente para o gerenciamento de serviços técnicos em instituições de ensino. Unindo tecnologia de ponta, eficiência operacional e comunicação integrada entre escolas e equipes especializadas.
                 </p>
               </div>
             </div>
 
             {/* Features list */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-slate-400 rounded-full"></div>
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold text-gray-200 mb-4">Recursos avançados:</h3>
+              <div className="flex items-start space-x-3">
+                <span className="text-blue-400 text-lg">📌</span>
                 <span className="text-gray-300">
-                  Abertura de chamados técnicos
+                  Registro ágil e simplificado de chamados técnicos
                 </span>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-gradient-to-r from-slate-400 to-blue-400 rounded-full"></div>
+              <div className="flex items-start space-x-3">
+                <span className="text-blue-400 text-lg">📅</span>
                 <span className="text-gray-300">
-                  Agendamento de visitas técnicas
+                  Agendamento inteligente de visitas e atendimentos
                 </span>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-slate-500 rounded-full"></div>
+              <div className="flex items-start space-x-3">
+                <span className="text-blue-400 text-lg">⚙️</span>
                 <span className="text-gray-300">
-                  Controle de ordens de serviço
+                  Monitoramento completo de ordens de serviço
                 </span>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-gradient-to-r from-slate-500 to-blue-500 rounded-full"></div>
+              <div className="flex items-start space-x-3">
+                <span className="text-blue-400 text-lg">⏱️</span>
                 <span className="text-gray-300">
-                  Acompanhamento em tempo real
+                  Acompanhamento em tempo real, com transparência total
                 </span>
+              </div>
+              <div className="mt-6 pt-4 border-t border-gray-600">
+                <p className="text-gray-300 font-medium italic">
+                  Segurança, confiabilidade e inovação para transformar a gestão educacional.
+                </p>
               </div>
             </div>
           </div>
