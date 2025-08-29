@@ -13,7 +13,9 @@ import {
   Funnel,
   SortAscending,
   SortDescending,
-  X
+  X,
+  Monitor,
+  Desktop
 } from 'phosphor-react';
 import axios from 'axios';
 
@@ -27,6 +29,7 @@ interface School {
   phone: string;
   email: string;
   students?: number;
+  laboratorio?: number;
 }
 
 const districtColors: { [key: string]: string } = {
@@ -351,7 +354,7 @@ const SchoolsPage: React.FC = () => {
         )}
 
         {/* Estatísticas Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
@@ -395,7 +398,21 @@ const SchoolsPage: React.FC = () => {
           <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
             <div className="flex items-center">
               <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Eye className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <Desktop className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Com Laboratório</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {schools.filter(school => school.laboratorio && school.laboratorio > 0).length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
+            <div className="flex items-center">
+              <div className="p-3 bg-rose-100 dark:bg-rose-900/20 rounded-lg">
+                <Eye className="w-6 h-6 text-rose-600 dark:text-rose-400" />
               </div>
               <div className="ml-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Encontradas</p>
@@ -441,6 +458,12 @@ const SchoolsPage: React.FC = () => {
                       <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                         <Users size={14} className="mr-2" />
                         {school.students.toLocaleString()} alunos
+                      </div>
+                    )}
+                    {school.laboratorio !== undefined && school.laboratorio > 0 && (
+                      <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
+                        <Desktop size={14} className="mr-2" />
+                        Laboratório: {school.laboratorio} equipamentos
                       </div>
                     )}
                   </div>
@@ -552,6 +575,9 @@ const SchoolsPage: React.FC = () => {
                       Alunos
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Laboratório
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Ações
                     </th>
                   </tr>
@@ -586,6 +612,16 @@ const SchoolsPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {school.students && school.students > 0 ? school.students.toLocaleString() : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {school.laboratorio && school.laboratorio > 0 ? (
+                          <div className="flex items-center text-blue-600 dark:text-blue-400">
+                            <Desktop size={16} className="mr-1" />
+                            {school.laboratorio} equipamentos
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">Sem laboratório</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">

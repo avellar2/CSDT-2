@@ -253,6 +253,7 @@ model School {
   phone            String?
   email            String?
   students         Int?              @default(0)
+  laboratorio      Int?              @default(0) // Quantidade de itens no laboratório de informática
   Item             Item[]
   SchoolDemand     SchoolDemand[]
   ScheduleEvent    ScheduleEvent[]
