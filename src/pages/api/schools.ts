@@ -9,7 +9,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const schools = await prisma.school.findMany();
+    // Lista de unidades administrativas que devem ser excluídas da listagem de escolas
+    const administrativeUnits = [
+      'SEC.FAZ', 'GM', 'LAB', 'PROTOCOLO', 'ARQUIVO', 'AUD', 'CPFPF', 'DEJUR', 
+      'CIE', 'CAE', 'CME', 'CACS FUNDEB', 'DIGITALIZAÇÃO', 'CAED', 'NCR', 'NAI', 
+      'CSDT', 'SUPED', 'CEI', 'DEB', 'DAISE', 'DAIE', 'DPPE', 'CEJA', 'CLL', 
+      'NUMP', 'CEF I', 'CEF II', 'COTRAN', 'SAGP', 'ASS/SAGP', 'CAT', 'DGP', 
+      'DIE', 'NF', 'CAESC', 'NL', 'CAPC', 'AC', 'NAA', 'EAG', 'CGP', 'GAB', 
+      'SUPLAN', 'DCC', 'DCF', 'AG', 'PATRIMONIO', 'REC', 'RG', 'CHADA', 'OUV', 
+      'NSGE', 'NSGE LAB', 'RPP'
+    ];
+
+    const schools = await prisma.school.findMany({
+      where: {
+        NOT: {
+          name: {
+            in: administrativeUnits
+          }
+        }
+      }
+    });
+    
     res.status(200).json(schools);
   } catch (error) {
     console.error('Error fetching schools:', error);
