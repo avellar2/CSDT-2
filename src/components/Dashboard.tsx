@@ -19,7 +19,8 @@ import {
   Wrench,
   Trash,
   CheckCircle,
-  ChatCircle
+  ChatCircle,
+  CloudArrowDown
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -50,6 +51,7 @@ const Dashboard: React.FC = () => {
     delayedDiagnostics: 0
   });
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
 
   // Lógica para buscar o usuário do Supabase e consultar a role no Prisma
   useEffect(() => {
@@ -207,6 +209,57 @@ const Dashboard: React.FC = () => {
 
   const handleNavigate = (path: string) => {
     router.push(path);
+  };
+
+  const handleCreateBackup = async () => {
+    // Verificar se é o Vanderson pelo ID do Supabase
+    if (supabaseUserId !== 'c7b74239-4188-4218-8390-063e0ad58871') {
+      alert('Acesso negado. Apenas Vanderson pode fazer backup.');
+      return;
+    }
+
+    setIsCreatingBackup(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        alert('Você precisa estar logado para fazer backup.');
+        return;
+      }
+
+      const response = await fetch('/api/backup/create', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao criar backup');
+      }
+
+      // Criar download do arquivo ZIP
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || `backup_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      alert('✅ Backup CSV criado com sucesso! O arquivo ZIP foi baixado com todos os dados em formato CSV.');
+      
+    } catch (error) {
+      console.error('Erro ao criar backup:', error);
+      alert(`❌ Erro ao criar backup: ${error}`);
+    } finally {
+      setIsCreatingBackup(false);
+    }
   };
 
   if (isLoading) {
@@ -582,6 +635,23 @@ const Dashboard: React.FC = () => {
                     <Printer size={16} />
                     <span>{notifications.delayedDiagnostics} impressoras atrasadas</span>
                   </div>
+                )}
+                
+                {/* Botão de backup - apenas para Vanderson */}
+                {supabaseUserId === 'c7b74239-4188-4218-8390-063e0ad58871' && (
+                  <button
+                    onClick={handleCreateBackup}
+                    disabled={isCreatingBackup}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isCreatingBackup 
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-900/50'
+                    }`}
+                    title="Fazer backup de todas as tabelas e arquivos"
+                  >
+                    <CloudArrowDown size={16} />
+                    <span>{isCreatingBackup ? 'Criando...' : 'Backup'}</span>
+                  </button>
                 )}
               </div>
             </div>
