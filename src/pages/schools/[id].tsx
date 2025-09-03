@@ -58,6 +58,12 @@ interface School {
     serialNumber?: string; // Adicione o campo serial
     createdAt: string; // Adicione o campo serializado
     updatedAt: string; // Adicione o campo serializado
+    school?: {
+      id: number;
+      name: string;
+      isAnnex: boolean;
+      isMainSchool: boolean;
+    };
   }[]; // Adicione os itens relacionados à escola
 }
 
@@ -392,36 +398,82 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
         <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <FileText size={20} />
-            Resumo de Itens por Tipo
+            Resumo de Itens por Escola e Tipo
           </h3>
           {loadingItems ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1,2,3,4].map(i => (
                 <div key={i} className="animate-pulse">
-                  <div className="h-20 bg-gray-200 dark:bg-zinc-700 rounded-lg"></div>
+                  <div className="h-24 bg-gray-200 dark:bg-zinc-700 rounded-lg"></div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {Object.entries(
-                items.reduce((acc, item) => {
-                  if (!acc[item.name]) {
-                    acc[item.name] = 0;
-                  }
-                  acc[item.name] += 1;
-                  return acc;
-                }, {} as Record<string, number>)
-              ).map(([name, quantity]) => (
-                <div
-                  key={name}
-                  className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center"
-                >
-                  <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">{name}</h4>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{quantity}</p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300">itens</p>
+            <div className="space-y-6">
+              {/* Itens da escola principal */}
+              {items.some(item => item.school?.isMainSchool) && (
+                <div>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    🏫 {school.name} (Escola Principal)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {Object.entries(
+                      items
+                        .filter(item => item.school?.isMainSchool)
+                        .reduce((acc, item) => {
+                          if (!acc[item.name]) {
+                            acc[item.name] = 0;
+                          }
+                          acc[item.name] += 1;
+                          return acc;
+                        }, {} as Record<string, number>)
+                    ).map(([name, quantity]) => (
+                      <div
+                        key={`main-${name}`}
+                        className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center"
+                      >
+                        <h5 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">{name}</h5>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{quantity}</p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">itens</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {/* Itens dos anexos agrupados por anexo */}
+              {Array.from(new Set(items.filter(item => item.school?.isAnnex).map(item => item.school?.id)))
+                .map(annexId => {
+                  const annexItems = items.filter(item => item.school?.id === annexId);
+                  const annexName = annexItems[0]?.school?.name || 'Anexo';
+                  return (
+                    <div key={annexId}>
+                      <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        📍 {annexName.replace(/^ANEXO\s*(\([^)]*\))?\s*:?\s*/i, '')} (Anexo)
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {Object.entries(
+                          annexItems.reduce((acc, item) => {
+                            if (!acc[item.name]) {
+                              acc[item.name] = 0;
+                            }
+                            acc[item.name] += 1;
+                            return acc;
+                          }, {} as Record<string, number>)
+                        ).map(([name, quantity]) => (
+                          <div
+                            key={`annex-${annexId}-${name}`}
+                            className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 text-center"
+                          >
+                            <h5 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">{name}</h5>
+                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{quantity}</p>
+                            <p className="text-xs text-purple-700 dark:text-purple-300">itens</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
@@ -429,13 +481,13 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
         {/* Lista detalhada de itens */}
         <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-            Itens Cadastrados na Escola
+            Todos os Itens Cadastrados (Escola + Anexos)
           </h3>
           {loadingItems ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1,2,3,4,5,6].map(i => (
                 <div key={i} className="animate-pulse">
-                  <div className="h-32 bg-gray-200 dark:bg-zinc-700 rounded-lg"></div>
+                  <div className="h-36 bg-gray-200 dark:bg-zinc-700 rounded-lg"></div>
                 </div>
               ))}
             </div>
@@ -444,8 +496,31 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
+                    item.school?.isMainSchool
+                      ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10'
+                      : item.school?.isAnnex
+                      ? 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10'
+                      : 'border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800'
+                  }`}
                 >
+                  {/* Badge indicador da escola de origem */}
+                  <div className="mb-3">
+                    {item.school?.isMainSchool ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                        🏫 Escola Principal
+                      </span>
+                    ) : item.school?.isAnnex ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
+                        📍 Anexo: {item.school.name.replace(/^ANEXO\s*(\([^)]*\))?\s*:?\s*/i, '')}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400">
+                        ❓ Origem não identificada
+                      </span>
+                    )}
+                  </div>
+                  
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                     {item.name}
                   </h4>
@@ -465,7 +540,7 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
                 Nenhum item cadastrado
               </h4>
               <p className="text-gray-600 dark:text-gray-400">
-                Esta escola ainda não possui itens cadastrados no sistema.
+                Esta escola e seus anexos ainda não possuem itens cadastrados no sistema.
               </p>
             </div>
           )}

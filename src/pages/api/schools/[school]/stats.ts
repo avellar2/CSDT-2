@@ -15,10 +15,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const schoolId = Number(schoolParam);
     
-    // Buscar nome da escola primeiro
+    // Buscar escola principal e seus anexos
     const school = await prisma.school.findUnique({
       where: { id: schoolId },
-      select: { name: true }
+      select: { 
+        name: true,
+        annexes: { 
+          select: { id: true, name: true } 
+        }
+      }
     });
 
     if (!school) {
@@ -26,6 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const schoolName = school.name;
+    const schoolIds = [schoolId, ...(school.annexes?.map(annex => annex.id) || [])];
 
     // Contar OS relacionadas à escola
     const [osExternas, osAntigas, osAssinadas, internalOs, memorandos, items] = await Promise.all([
@@ -79,9 +85,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }),
       
-      // Itens cadastrados na escola
+      // Itens cadastrados na escola principal e anexos
       prisma.item.count({
-        where: { schoolId: schoolId }
+        where: { 
+          schoolId: { 
+            in: schoolIds 
+          } 
+        }
       })
     ]);
 

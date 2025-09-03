@@ -27,6 +27,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             in: administrativeUnits
           }
         }
+      },
+      include: {
+        annexes: true, // Incluir anexos vinculados
+        parentSchool: true // Incluir escola principal (caso seja um anexo)
       }
     });
     

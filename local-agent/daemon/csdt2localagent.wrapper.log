@@ -94,3 +94,9 @@ Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInter
    em winsw.WrapperService.OnShutdown()
 2025-09-01 23:51:46 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
 2025-09-01 23:51:46 - Started 5008
+2025-09-03 10:53:07 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-09-03 10:53:07 - Started 4452
+2025-09-03 11:08:18 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-09-03 11:08:19 - Started 4672
+2025-09-03 11:09:27 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-09-03 11:09:27 - Started 4612

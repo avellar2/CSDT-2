@@ -29,9 +29,10 @@ import { PDFDocument, rgb } from "pdf-lib";
 import Modal from "@/components/Modal";
 
 type ChadaStatus = 'PENDENTE' | 'RECEBIDO' | 'EM_ANALISE' | 'CONSERTADO' | 'SEM_CONSERTO' | 'DEVOLVIDO';
-type TabType = 'na_chada' | 'devolvidos' | 'todos';
+type TabType = 'na_chada' | 'devolvidos' | 'todos' | 'diagnosticos';
 type SortField = 'createdAt' | 'updatedAt' | 'sector' | 'problem';
 type SortDirection = 'asc' | 'desc';
+type DiagnosticStatus = 'AGUARDANDO_PECA' | 'PECA_CHEGOU' | 'INSTALADO' | 'CANCELADO';
 
 interface ChadaItem {
   id: string;
@@ -54,11 +55,45 @@ interface ChadaItem {
   dataDevolucao?: string;
 }
 
+interface ChadaDiagnostic {
+  id: string;
+  itemId: number;
+  sectorId: number;
+  sectorName: string;
+  technicianChada: string;
+  diagnostic: string;
+  requestedPart: string;
+  status: DiagnosticStatus;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  createdBy: string;
+  daysWaiting?: number;
+  timeWaiting?: string;
+  isDelayed?: boolean;
+  Item: {
+    id: number;
+    name: string;
+    brand: string;
+    serialNumber: string;
+  };
+  Sector: {
+    id: number;
+    name: string;
+  };
+}
+
 const ChadaPage: React.FC = () => {
   // Estados principais
   const [items, setItems] = useState<ChadaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Estados para diagnósticos
+  const [diagnostics, setDiagnostics] = useState<ChadaDiagnostic[]>([]);
+  const [loadingDiagnostics, setLoadingDiagnostics] = useState(true);
+  const [printers, setPrinters] = useState<any[]>([]);
+  const [sectors, setSectors] = useState<any[]>([]);
   
   // Estados do modal de adicionar
   const [modalIsOpen, setModalIsOpen] = useState(false);
@@ -75,6 +110,14 @@ const ChadaPage: React.FC = () => {
   const [novoSerial, setNovoSerial] = useState("");
   const [chadaStatus, setChadaStatus] = useState<ChadaStatus>('CONSERTADO');
   const [observacoes, setObservacoes] = useState("");
+  
+  // Estados do modal de diagnóstico
+  const [showDiagnosticModal, setShowDiagnosticModal] = useState(false);
+  const [selectedPrinter, setSelectedPrinter] = useState<any>(null);
+  const [selectedSector, setSelectedSector] = useState<any>(null);
+  const [technicianChada, setTechnicianChada] = useState("");
+  const [diagnostic, setDiagnostic] = useState("");
+  const [requestedPart, setRequestedPart] = useState("");
   
   // Estados de UI
   const [activeTab, setActiveTab] = useState<TabType>('na_chada');
@@ -225,6 +268,47 @@ const ChadaPage: React.FC = () => {
     return [...new Set(items.map(item => item.statusChada))].sort();
   }, [items]);
 
+  // Função para carregar diagnósticos
+  const fetchDiagnostics = async () => {
+    try {
+      const response = await fetch("/api/chada-diagnostics");
+      if (response.ok) {
+        const data = await response.json();
+        setDiagnostics(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar diagnósticos:', error);
+    } finally {
+      setLoadingDiagnostics(false);
+    }
+  };
+
+  // Função para carregar impressoras
+  const fetchPrinters = async () => {
+    try {
+      const response = await fetch("/api/chada-diagnostics/printers");
+      if (response.ok) {
+        const data = await response.json();
+        setPrinters(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar impressoras:', error);
+    }
+  };
+
+  // Função para carregar setores
+  const fetchSectors = async () => {
+    try {
+      const response = await fetch("/api/chada-diagnostics/sectors");
+      if (response.ok) {
+        const data = await response.json();
+        setSectors(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar setores:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -268,6 +352,9 @@ const ChadaPage: React.FC = () => {
     };
 
     fetchChadaItems();
+    fetchDiagnostics();
+    fetchPrinters();
+    fetchSectors();
   }, []);
 
   const fetchAllItems = async () => {
@@ -322,6 +409,75 @@ const ChadaPage: React.FC = () => {
       setItems(updatedItems);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  // Função para adicionar diagnóstico
+  const handleAddDiagnostic = async () => {
+    if (!selectedPrinter || !selectedSector || !technicianChada || !diagnostic || !requestedPart) {
+      alert("Todos os campos são obrigatórios.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/chada-diagnostics", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          itemId: selectedPrinter.printer.id,
+          sectorId: selectedSector.sector.id,
+          sectorName: selectedSector.sector.name,
+          technicianChada,
+          diagnostic,
+          requestedPart,
+          createdBy: userName
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao adicionar diagnóstico");
+      }
+
+      alert("Diagnóstico cadastrado com sucesso!");
+      setShowDiagnosticModal(false);
+      
+      // Limpar campos
+      setSelectedPrinter(null);
+      setSelectedSector(null);
+      setTechnicianChada("");
+      setDiagnostic("");
+      setRequestedPart("");
+
+      // Atualizar lista
+      fetchDiagnostics();
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao cadastrar diagnóstico. Tente novamente.");
+    }
+  };
+
+  // Função para atualizar status do diagnóstico
+  const handleUpdateDiagnosticStatus = async (id: string, status: DiagnosticStatus) => {
+    try {
+      const response = await fetch("/api/chada-diagnostics", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, status }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao atualizar status");
+      }
+
+      alert("Status atualizado com sucesso!");
+      fetchDiagnostics();
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao atualizar status. Tente novamente.");
     }
   };
 
@@ -784,8 +940,25 @@ const ChadaPage: React.FC = () => {
           </div>
         )}
 
+        {/* Alerta para diagnósticos atrasados (3+ dias) */}
+        {diagnostics.filter(d => d.isDelayed && d.status === 'AGUARDANDO_PECA').length > 0 && (
+          <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 rounded-r-xl">
+            <div className="flex items-center">
+              <Printer size={20} className="text-orange-500 mr-2" />
+              <div>
+                <p className="text-orange-800 font-medium">
+                  🚨 {diagnostics.filter(d => d.isDelayed && d.status === 'AGUARDANDO_PECA').length} impressora(s) aguardando peças há mais de 3 dias!
+                </p>
+                <p className="text-orange-600 text-sm">
+                  Verifique o status das peças solicitadas na aba "Diagnósticos"
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl border border-gray-200">
             <div className="flex items-center">
               <ClipboardText size={20} className="text-gray-500 mr-2" />
@@ -825,29 +998,61 @@ const ChadaPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <div className="bg-white p-4 rounded-xl border border-gray-200">
+            <div className="flex items-center">
+              <Printer size={20} className="text-purple-500 mr-2" />
+              <div>
+                <p className="text-2xl font-bold text-purple-600">
+                  {diagnostics.filter(d => d.status === 'AGUARDANDO_PECA').length}
+                </p>
+                <p className="text-sm text-gray-600">Esperando Peças</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Abas */}
-        <div className="flex space-x-1 mb-6">
-          {[
-            { key: 'na_chada', label: 'Na CHADA', count: stats.naChada },
-            { key: 'devolvidos', label: 'Devolvidos', count: stats.devolvidos },
-            { key: 'todos', label: 'Todos', count: stats.totalEnviados }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as TabType)}
-              className={`
-                px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                ${activeTab === tab.key 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-                }
-              `}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
+        <div className="bg-white rounded-xl border border-gray-200 dark:border-zinc-700 p-1 mb-6 shadow-sm">
+          <div className="grid grid-cols-4 gap-1">
+            {[
+              { key: 'na_chada', label: 'Na CHADA', count: stats.naChada, icon: '📦', color: 'orange' },
+              { key: 'devolvidos', label: 'Devolvidos', count: stats.devolvidos, icon: '✅', color: 'green' },
+              { key: 'todos', label: 'Todos', count: stats.totalEnviados, icon: '📊', color: 'blue' },
+              { key: 'diagnosticos', label: 'Diagnósticos', count: diagnostics.length, icon: '🔧', color: 'purple', alert: diagnostics.filter(d => d.isDelayed && d.status === 'AGUARDANDO_PECA').length > 0 }
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as TabType)}
+                className={`
+                  relative flex flex-col items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200
+                  ${activeTab === tab.key 
+                    ? tab.color === 'orange' ? 'bg-orange-500 text-white shadow-md' :
+                      tab.color === 'green' ? 'bg-green-500 text-white shadow-md' :
+                      tab.color === 'blue' ? 'bg-blue-500 text-white shadow-md' :
+                      'bg-purple-500 text-white shadow-md'
+                    : `bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200`
+                  }
+                `}
+              >
+                {/* Indicador de alerta para diagnósticos */}
+                {tab.alert && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                )}
+
+                {/* Ícone */}
+                <span className="text-lg">{tab.icon}</span>
+                
+                {/* Texto */}
+                <div className="text-center">
+                  <div className="text-sm font-semibold leading-tight">{tab.label}</div>
+                  <div className={`text-xs mt-1 ${activeTab === tab.key ? 'text-white/90' : 'text-gray-500'}`}>
+                    ({tab.count})
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Controles */}
@@ -865,6 +1070,15 @@ const ChadaPage: React.FC = () => {
                 <Plus size={16} />
                 <span className="hidden sm:inline">Enviar para CHADA</span>
                 <span className="sm:hidden">Enviar</span>
+              </button>
+
+              <button
+                onClick={() => setShowDiagnosticModal(true)}
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm sm:text-base"
+              >
+                <Printer size={16} />
+                <span className="hidden sm:inline">Novo Diagnóstico</span>
+                <span className="sm:hidden">Diagnóstico</span>
               </button>
 
               <button
@@ -955,9 +1169,119 @@ const ChadaPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Lista de Itens */}
-        <div className="space-y-4">
-          {filteredAndSortedItems.length === 0 ? (
+        {/* Conteúdo da aba ativa */}
+        {activeTab === 'diagnosticos' ? (
+          // Seção de Diagnósticos
+          <div className="space-y-4">
+            {loadingDiagnostics ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-500">Carregando diagnósticos...</p>
+              </div>
+            ) : diagnostics.length === 0 ? (
+              <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
+                <Printer size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 text-lg">Nenhum diagnóstico cadastrado</p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Clique em "Novo Diagnóstico" para começar
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {diagnostics.map((diagnostic) => (
+                  <div key={diagnostic.id} className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {diagnostic.Item.name} - {diagnostic.Item.brand}
+                          </h3>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            diagnostic.status === 'AGUARDANDO_PECA' 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : diagnostic.status === 'PECA_CHEGOU'
+                              ? 'bg-blue-100 text-blue-800'
+                              : diagnostic.status === 'INSTALADO'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {diagnostic.status === 'AGUARDANDO_PECA' && '⏳ Aguardando Peça'}
+                            {diagnostic.status === 'PECA_CHEGOU' && '📦 Peça Chegou'}
+                            {diagnostic.status === 'INSTALADO' && '✅ Instalado'}
+                            {diagnostic.status === 'CANCELADO' && '❌ Cancelado'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <p><strong>Serial:</strong> {diagnostic.Item.serialNumber}</p>
+                          <p><strong>Setor:</strong> {diagnostic.sectorName}</p>
+                          <p><strong>Técnico CHADA:</strong> {diagnostic.technicianChada}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-sm font-medium ${
+                          diagnostic.isDelayed ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {diagnostic.isDelayed && '⚠️ '}{diagnostic.timeWaiting || `${diagnostic.daysWaiting} dias`}
+                        </span>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(diagnostic.createdAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Diagnóstico */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Diagnóstico:</h4>
+                      <p className="text-gray-900 bg-gray-50 p-3 rounded-lg text-sm">
+                        {diagnostic.diagnostic}
+                      </p>
+                    </div>
+
+                    {/* Peça Solicitada */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Peça Solicitada:</h4>
+                      <p className="text-gray-900 bg-blue-50 p-3 rounded-lg text-sm border-l-4 border-blue-400">
+                        {diagnostic.requestedPart}
+                      </p>
+                    </div>
+
+                    {/* Ações */}
+                    {diagnostic.status !== 'INSTALADO' && diagnostic.status !== 'CANCELADO' && (
+                      <div className="flex gap-2 flex-wrap">
+                        {diagnostic.status === 'AGUARDANDO_PECA' && (
+                          <button
+                            onClick={() => handleUpdateDiagnosticStatus(diagnostic.id, 'PECA_CHEGOU')}
+                            className="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                          >
+                            📦 Peça Chegou
+                          </button>
+                        )}
+                        {diagnostic.status === 'PECA_CHEGOU' && (
+                          <button
+                            onClick={() => handleUpdateDiagnosticStatus(diagnostic.id, 'INSTALADO')}
+                            className="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                          >
+                            ✅ Marcar como Instalado
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleUpdateDiagnosticStatus(diagnostic.id, 'CANCELADO')}
+                          className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                        >
+                          ❌ Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          // Lista de Itens CHADA (aba original)
+          <div className="space-y-4">
+            {filteredAndSortedItems.length === 0 ? (
             <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
               <Package size={48} className="mx-auto text-gray-300 mb-4" />
               <p className="text-gray-500 text-lg">
@@ -1140,6 +1464,7 @@ const ChadaPage: React.FC = () => {
             </div>
           )}
         </div>
+        )}
       </div>
       {modalIsOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -1296,6 +1621,104 @@ const ChadaPage: React.FC = () => {
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors order-1 sm:order-2"
               >
                 Atualizar Status
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Diagnóstico */}
+      {showDiagnosticModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-6 text-zinc-700 flex items-center gap-2">
+              <Printer size={24} />
+              Novo Diagnóstico de Impressora
+            </h2>
+
+            {/* Impressora */}
+            <div className="mb-4">
+              <label className="block mb-2 font-medium text-zinc-600">Impressora *</label>
+              <Select
+                options={printers}
+                value={selectedPrinter}
+                onChange={setSelectedPrinter}
+                placeholder="Selecione uma impressora"
+                className="text-zinc-800"
+                isSearchable
+              />
+            </div>
+
+            {/* Setor */}
+            <div className="mb-4">
+              <label className="block mb-2 font-medium text-zinc-600">Setor *</label>
+              <Select
+                options={sectors}
+                value={selectedSector}
+                onChange={setSelectedSector}
+                placeholder="Selecione o setor"
+                className="text-zinc-800"
+                isSearchable
+              />
+            </div>
+
+            {/* Técnico CHADA */}
+            <div className="mb-4">
+              <label className="block mb-2 font-medium text-zinc-600">Técnico da CHADA *</label>
+              <input
+                type="text"
+                value={technicianChada}
+                onChange={(e) => setTechnicianChada(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Nome do técnico que fez o diagnóstico"
+              />
+            </div>
+
+            {/* Diagnóstico/Laudo */}
+            <div className="mb-4">
+              <label className="block mb-2 font-medium text-zinc-600">Diagnóstico/Laudo *</label>
+              <textarea
+                value={diagnostic}
+                onChange={(e) => setDiagnostic(e.target.value)}
+                rows={4}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                placeholder="Descreva o problema encontrado e o diagnóstico..."
+              />
+            </div>
+
+            {/* Peça Solicitada */}
+            <div className="mb-6">
+              <label className="block mb-2 font-medium text-zinc-600">Peça Solicitada *</label>
+              <input
+                type="text"
+                value={requestedPart}
+                onChange={(e) => setRequestedPart(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Qual peça foi solicitada para o reparo?"
+              />
+            </div>
+
+            {/* Botões */}
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDiagnosticModal(false);
+                  setSelectedPrinter(null);
+                  setSelectedSector(null);
+                  setTechnicianChada("");
+                  setDiagnostic("");
+                  setRequestedPart("");
+                }}
+                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors order-2 sm:order-1"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddDiagnostic}
+                disabled={!selectedPrinter || !selectedSector || !technicianChada || !diagnostic || !requestedPart}
+                className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
+              >
+                Cadastrar Diagnóstico
               </button>
             </div>
           </div>
