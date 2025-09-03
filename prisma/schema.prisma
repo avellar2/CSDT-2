@@ -44,6 +44,7 @@ model Item {
   ItemHistory       ItemHistory[]
   MemorandumItem    MemorandumItem[]
   NewMemorandumItem NewMemorandumItem[]
+  ChadaDiagnostics  ChadaDiagnostic[]   // Diagnósticos da CHADA
 
   @@map("Item")
 }
@@ -254,12 +255,16 @@ model School {
   email            String?
   students         Int?              @default(0)
   laboratorio      Int?              @default(0) // Quantidade de itens no laboratório de informática
+  parentSchoolId   Int?              // ID da escola principal (para anexos)
+  parentSchool     School?           @relation("SchoolAnnexes", fields: [parentSchoolId], references: [id])
+  annexes          School[]          @relation("SchoolAnnexes") // Anexos desta escola
   Item             Item[]
   SchoolDemand     SchoolDemand[]
   ScheduleEvent    ScheduleEvent[]
   Profile          Profile[]         // Relacionamento com usuários vinculados
   TechnicalTicket  TechnicalTicket[] // Chamados técnicos da escola
   InternalTickets  InternalTicket[]  @relation("InternalTickets") // Chamados internos
+  ChadaDiagnostics ChadaDiagnostic[] @relation("ChadaDiagnostics") // Diagnósticos da CHADA
 }
 
 model SchoolDemand {
@@ -729,4 +734,31 @@ enum InternalTicketStatus {
   RESOLVED      // Resolvido (aguardando confirmação)
   CLOSED        // Fechado/Concluído
   CANCELLED     // Cancelado
+}
+
+// Tabela para diagnósticos de impressoras da CHADA
+model ChadaDiagnostic {
+  id              String    @id @default(uuid())
+  itemId          Int       // ID da impressora (da tabela Item)
+  sectorId        Int       // ID do setor (da tabela School)
+  sectorName      String    // Nome do setor para facilitar consultas
+  technicianChada String    // Nome do técnico da CHADA que fez o diagnóstico
+  diagnostic      String    // Laudo/diagnóstico
+  requestedPart   String    // Peça solicitada
+  status          ChadaDiagnosticStatus @default(AGUARDANDO_PECA)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  completedAt     DateTime? // Data que a peça chegou/foi instalada
+  createdBy       String    // Usuário que cadastrou
+  
+  // Relacionamentos
+  Item            Item      @relation(fields: [itemId], references: [id])
+  Sector          School    @relation("ChadaDiagnostics", fields: [sectorId], references: [id])
+}
+
+enum ChadaDiagnosticStatus {
+  AGUARDANDO_PECA    // Aguardando peça chegar
+  PECA_CHEGOU        // Peça chegou
+  INSTALADO          // Peça instalada/finalizado
+  CANCELADO          // Cancelado por algum motivo
 }

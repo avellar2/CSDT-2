@@ -46,7 +46,8 @@ const Dashboard: React.FC = () => {
     pendingOS: 0,
     newDemands: 0,
     alerts: 0,
-    internalChat: 0
+    internalChat: 0,
+    delayedDiagnostics: 0
   });
   const [showRegisterForm, setShowRegisterForm] = useState(false);
 
@@ -151,11 +152,24 @@ const Dashboard: React.FC = () => {
           internalChatCount = internalChatData.success ? internalChatData.needsAttention : 0;
         }
 
+        // Buscar diagnósticos atrasados (3+ dias)
+        let delayedDiagnosticsCount = 0;
+        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
+          try {
+            const delayedResponse = await fetch('/api/chada-diagnostics/delayed');
+            const delayedData = await delayedResponse.json();
+            delayedDiagnosticsCount = delayedData.stats ? delayedData.stats.total : 0;
+          } catch (error) {
+            console.error('Erro ao buscar diagnósticos atrasados:', error);
+          }
+        }
+
         const newNotifications = {
           pendingOS: pendingOSData.success ? pendingOSData.data.totalPendingOS : 0,
           newDemands: dailyDemandsData.success ? dailyDemandsData.data.dailyDemandsCount : 0,
           alerts: 0, // Pode implementar depois
-          internalChat: internalChatCount
+          internalChat: internalChatCount,
+          delayedDiagnostics: delayedDiagnosticsCount
         };
 
         setNotifications(newNotifications);
@@ -168,7 +182,8 @@ const Dashboard: React.FC = () => {
           pendingOS: 0,
           newDemands: 0,
           alerts: 0,
-          internalChat: 0
+          internalChat: 0,
+          delayedDiagnostics: 0
         });
       }
     };
@@ -384,7 +399,7 @@ const Dashboard: React.FC = () => {
       path: '/chada',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
       category: 'Outros',
-      badge: null
+      badge: notifications.delayedDiagnostics
     },
     {
       id: 'locados',
@@ -560,6 +575,12 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
                     <Calendar size={16} />
                     <span>{notifications.newDemands} novas demandas</span>
+                  </div>
+                )}
+                {notifications.delayedDiagnostics > 0 && (
+                  <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm">
+                    <Printer size={16} />
+                    <span>{notifications.delayedDiagnostics} impressoras atrasadas</span>
                   </div>
                 )}
               </div>
