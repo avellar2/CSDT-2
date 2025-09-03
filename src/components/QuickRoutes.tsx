@@ -3,10 +3,10 @@ import {
   MapPin, 
   Clock, 
   Car, 
-  Navigation,
+  NavigationArrow,
   Copy,
   CheckCircle,
-  AlertTriangle,
+  WaveTriangle,
   Plus,
   X,
   ArrowRight,
@@ -180,13 +180,9 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
   const copyUrlToClipboard = async (url: string, technicianId: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      setCopiedUrls(prev => new Set(prev).add(technicianId));
+      setCopiedUrls(prev => [...prev.filter(id => id !== technicianId), technicianId]);
       setTimeout(() => {
-        setCopiedUrls(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(technicianId);
-          return newSet;
-        });
+        setCopiedUrls(prev => prev.filter(id => id !== technicianId));
       }, 2000);
     } catch (error) {
       console.error('Erro ao copiar URL:', error);
@@ -297,7 +293,7 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
                           disabled={loading}
                           className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-sm font-medium disabled:opacity-50"
                         >
-                          <Navigation size={14} className="inline mr-1" />
+                          <NavigationArrow size={14} className="inline mr-1" />
                           Otimizar
                         </button>
                       )}
@@ -308,7 +304,7 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
                             onClick={() => copyUrlToClipboard(route.googleMapsUrl!, route.technician.id)}
                             className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                           >
-                            {copiedUrls.has(route.technician.id) ? (
+                            {copiedUrls.includes(route.technician.id) ? (
                               <CheckCircle size={14} className="text-green-600" />
                             ) : (
                               <Copy size={14} />

@@ -30976,3 +30976,410 @@
 2025-09-03T12:34:30.029Z [INFO]: Iniciando verificação de impressoras...
 2025-09-03T12:34:30.237Z [INFO]: Obtidas 52 impressoras da Vercel
 2025-09-03T12:34:30.237Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:34:36.251Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:34:36.251Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:34:36.251Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:34:36.252Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:34:36.252Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:34:36.252Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:34:36.252Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:34:36.252Z [INFO]: Verificação concluída: 52 impressoras, 14 com problemas
+2025-09-03T12:34:36.252Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:34:36.252Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:34:36.252Z [INFO]: API Key: b23b561b...
+2025-09-03T12:34:36.324Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:35:00.234Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:35:00.371Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:35:00.371Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:35:06.377Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:35:06.377Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:35:06.377Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:35:06.378Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:35:06.378Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:35:06.378Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:35:06.378Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:35:06.378Z [INFO]: Verificação concluída: 52 impressoras, 14 com problemas
+2025-09-03T12:35:06.378Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:35:06.378Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:35:06.378Z [INFO]: API Key: b23b561b...
+2025-09-03T12:35:06.437Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:35:30.444Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:35:30.632Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:35:30.632Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:35:36.635Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:35:36.635Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:35:36.636Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:35:36.636Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:35:36.636Z [WARN]: Erro SNMP para impressora 10.0.2.56: Socket forcibly closed
+2025-09-03T12:35:36.636Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:35:36.636Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:35:36.636Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:35:36.636Z [INFO]: Verificação concluída: 52 impressoras, 16 com problemas
+2025-09-03T12:35:36.636Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:35:36.636Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:35:36.637Z [INFO]: API Key: b23b561b...
+2025-09-03T12:35:36.702Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:36:00.626Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:36:00.882Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:36:00.882Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:36:06.885Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:36:06.885Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:36:06.886Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:36:06.886Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:36:06.886Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:36:06.886Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:36:06.886Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:36:06.886Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:36:06.886Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:36:06.886Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:36:06.886Z [INFO]: API Key: b23b561b...
+2025-09-03T12:36:06.949Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:36:30.784Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:36:30.895Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:36:30.895Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:36:36.896Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:36:36.897Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:36:36.897Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:36:36.897Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:36:36.898Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:36:36.898Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:36:36.898Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:36:36.898Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:36:36.898Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:36:36.898Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:36:36.898Z [INFO]: API Key: b23b561b...
+2025-09-03T12:36:36.969Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:37:00.906Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:37:01.012Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:37:01.012Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:37:07.017Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:37:07.018Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:37:07.018Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:37:07.018Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:37:07.019Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:37:07.019Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:37:07.019Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:37:07.019Z [INFO]: Verificação concluída: 52 impressoras, 14 com problemas
+2025-09-03T12:37:07.019Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:37:07.019Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:37:07.019Z [INFO]: API Key: b23b561b...
+2025-09-03T12:37:07.083Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:37:30.116Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:37:30.257Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:37:30.257Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:37:36.266Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:37:36.267Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:37:36.267Z [WARN]: Erro SNMP para impressora 10.0.2.35: Socket forcibly closed
+2025-09-03T12:37:36.267Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:37:36.268Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:37:36.268Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:37:36.268Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:37:36.268Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:37:36.268Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:37:36.268Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:37:36.268Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:37:36.268Z [INFO]: API Key: b23b561b...
+2025-09-03T12:37:36.345Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:38:00.311Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:38:00.475Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:38:00.475Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:38:06.483Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:38:06.484Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:38:06.484Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:38:06.485Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:38:06.485Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:38:06.485Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:38:06.485Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:38:06.485Z [WARN]: Erro SNMP para impressora 10.0.2.55: Socket forcibly closed
+2025-09-03T12:38:06.485Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:38:06.485Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:38:06.485Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:38:06.485Z [INFO]: API Key: b23b561b...
+2025-09-03T12:38:06.549Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:38:30.541Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:38:30.664Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:38:30.664Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:38:36.674Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:38:36.674Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:38:36.674Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:38:36.675Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:38:36.675Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:38:36.675Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:38:36.675Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:38:36.675Z [INFO]: Verificação concluída: 52 impressoras, 14 com problemas
+2025-09-03T12:38:36.675Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:38:36.675Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:38:36.675Z [INFO]: API Key: b23b561b...
+2025-09-03T12:38:36.742Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:39:00.781Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:39:00.915Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:39:00.915Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:39:06.923Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:39:06.923Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:39:06.923Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:39:06.924Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:39:06.924Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:39:06.924Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:39:06.924Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:39:06.924Z [INFO]: Verificação concluída: 52 impressoras, 14 com problemas
+2025-09-03T12:39:06.924Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:39:06.924Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:39:06.924Z [INFO]: API Key: b23b561b...
+2025-09-03T12:39:06.988Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:39:30.977Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:39:31.098Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:39:31.098Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:39:37.112Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:39:37.113Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:39:37.113Z [WARN]: Erro SNMP para impressora 10.0.2.35: Socket forcibly closed
+2025-09-03T12:39:37.113Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:39:37.113Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:39:37.114Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:39:37.114Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:39:37.114Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:39:37.114Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:39:37.114Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:39:37.114Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:39:37.114Z [INFO]: API Key: b23b561b...
+2025-09-03T12:39:37.179Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:40:00.185Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:40:00.315Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:40:00.315Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:40:06.318Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:40:06.319Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:40:06.319Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:40:06.319Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:40:06.320Z [WARN]: Erro SNMP para impressora 10.0.2.56: Socket forcibly closed
+2025-09-03T12:40:06.320Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:40:06.320Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:40:06.320Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:40:06.320Z [WARN]: Erro SNMP para impressora 10.0.2.55: Socket forcibly closed
+2025-09-03T12:40:06.320Z [INFO]: Verificação concluída: 52 impressoras, 16 com problemas
+2025-09-03T12:40:06.320Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:40:06.320Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:40:06.320Z [INFO]: API Key: b23b561b...
+2025-09-03T12:40:06.390Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:40:30.450Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:40:30.639Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:40:30.639Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:40:36.648Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:40:36.648Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:40:36.648Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:40:36.649Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:40:36.649Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:40:36.649Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:40:36.649Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:40:36.649Z [INFO]: Verificação concluída: 52 impressoras, 14 com problemas
+2025-09-03T12:40:36.649Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:40:36.649Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:40:36.649Z [INFO]: API Key: b23b561b...
+2025-09-03T12:40:36.720Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:41:00.695Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:41:00.826Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:41:00.826Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:41:06.836Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:41:06.836Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:41:06.836Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:41:06.837Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:41:06.837Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:41:06.837Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:41:06.837Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:41:06.837Z [INFO]: Verificação concluída: 52 impressoras, 14 com problemas
+2025-09-03T12:41:06.837Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:41:06.837Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:41:06.837Z [INFO]: API Key: b23b561b...
+2025-09-03T12:41:06.906Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:41:30.891Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:41:31.081Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:41:31.081Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:41:37.087Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:41:37.087Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:41:37.087Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:41:37.088Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:41:37.088Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:41:37.088Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:41:37.088Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:41:37.088Z [WARN]: Erro SNMP para impressora 10.0.2.55: Socket forcibly closed
+2025-09-03T12:41:37.088Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:41:37.088Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:41:37.088Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:41:37.088Z [INFO]: API Key: b23b561b...
+2025-09-03T12:41:37.149Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:42:00.067Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:42:00.317Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:42:00.317Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:42:06.332Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:42:06.332Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:42:06.333Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:42:06.333Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:42:06.333Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:42:06.333Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:42:06.334Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:42:06.334Z [INFO]: Verificação concluída: 52 impressoras, 14 com problemas
+2025-09-03T12:42:06.334Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:42:06.334Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:42:06.334Z [INFO]: API Key: b23b561b...
+2025-09-03T12:42:06.399Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:42:30.293Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:42:30.445Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:42:30.445Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:42:36.454Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:42:36.454Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:42:36.455Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:42:36.455Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:42:36.455Z [WARN]: Erro SNMP para impressora 10.0.2.56: Socket forcibly closed
+2025-09-03T12:42:36.455Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:42:36.455Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:42:36.456Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:42:36.456Z [INFO]: Verificação concluída: 52 impressoras, 16 com problemas
+2025-09-03T12:42:36.456Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:42:36.456Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:42:36.456Z [INFO]: API Key: b23b561b...
+2025-09-03T12:42:36.513Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:43:00.487Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:43:00.849Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:43:00.849Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:43:06.864Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:43:06.864Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:43:06.865Z [WARN]: Erro SNMP para impressora 10.0.2.33: Socket forcibly closed
+2025-09-03T12:43:06.865Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:43:06.865Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:43:06.865Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:43:06.865Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:43:06.866Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:43:06.866Z [INFO]: Verificação concluída: 52 impressoras, 16 com problemas
+2025-09-03T12:43:06.866Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:43:06.866Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:43:06.866Z [INFO]: API Key: b23b561b...
+2025-09-03T12:43:06.923Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:43:30.693Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:43:30.847Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:43:30.847Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:43:36.857Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:43:36.857Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:43:36.857Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:43:36.858Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:43:36.858Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:43:36.858Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:43:36.858Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:43:36.858Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:43:36.858Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:43:36.858Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:43:36.858Z [INFO]: API Key: b23b561b...
+2025-09-03T12:43:36.923Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:44:00.896Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:44:01.040Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:44:01.040Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:44:07.049Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:44:07.049Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:44:07.050Z [WARN]: Erro SNMP para impressora 10.0.2.35: Socket forcibly closed
+2025-09-03T12:44:07.050Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:44:07.050Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:44:07.050Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:44:07.050Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:44:07.051Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:44:07.051Z [WARN]: Erro SNMP para impressora 10.0.2.55: Socket forcibly closed
+2025-09-03T12:44:07.051Z [INFO]: Verificação concluída: 52 impressoras, 17 com problemas
+2025-09-03T12:44:07.051Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:44:07.051Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:44:07.051Z [INFO]: API Key: b23b561b...
+2025-09-03T12:44:07.115Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:44:30.136Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:44:30.277Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:44:30.277Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:44:36.286Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:44:36.286Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:44:36.287Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:44:36.287Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:44:36.287Z [WARN]: Erro SNMP para impressora 10.0.2.56: Socket forcibly closed
+2025-09-03T12:44:36.287Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:44:36.287Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:44:36.287Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:44:36.288Z [INFO]: Verificação concluída: 52 impressoras, 16 com problemas
+2025-09-03T12:44:36.288Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:44:36.288Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:44:36.288Z [INFO]: API Key: b23b561b...
+2025-09-03T12:44:36.442Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:45:00.357Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:45:01.024Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:45:01.024Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:45:07.024Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:45:07.024Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:45:07.039Z [WARN]: Erro SNMP para impressora 10.0.2.33: Socket forcibly closed
+2025-09-03T12:45:07.040Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:45:07.040Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:45:07.040Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:45:07.040Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:45:07.040Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:45:07.040Z [INFO]: Verificação concluída: 52 impressoras, 16 com problemas
+2025-09-03T12:45:07.040Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:45:07.040Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:45:07.040Z [INFO]: API Key: b23b561b...
+2025-09-03T12:45:07.114Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:45:30.548Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:45:31.203Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:45:31.203Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:45:37.217Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:45:37.217Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:45:37.217Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:45:37.218Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:45:37.218Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:45:37.218Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:45:37.218Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:45:37.218Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:45:37.218Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:45:37.218Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:45:37.218Z [INFO]: API Key: b23b561b...
+2025-09-03T12:45:37.303Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:46:00.730Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:46:00.912Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:46:00.912Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:46:06.919Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:46:06.919Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:46:06.920Z [WARN]: Erro SNMP para impressora 10.0.2.35: Socket forcibly closed
+2025-09-03T12:46:06.920Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:46:06.920Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:46:06.920Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:46:06.920Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:46:06.921Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:46:06.921Z [WARN]: Erro SNMP para impressora 10.0.2.55: Socket forcibly closed
+2025-09-03T12:46:06.921Z [INFO]: Verificação concluída: 52 impressoras, 17 com problemas
+2025-09-03T12:46:06.921Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:46:06.921Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:46:06.921Z [INFO]: API Key: b23b561b...
+2025-09-03T12:46:07.001Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:46:30.932Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:46:31.096Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:46:31.096Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:46:37.098Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:46:37.098Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:46:37.098Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:46:37.099Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:46:37.099Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:46:37.099Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:46:37.099Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:46:37.099Z [INFO]: Verificação concluída: 52 impressoras, 15 com problemas
+2025-09-03T12:46:37.099Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:46:37.099Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:46:37.099Z [INFO]: API Key: b23b561b...
+2025-09-03T12:46:37.171Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:47:00.134Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:47:00.314Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:47:00.314Z [INFO]: Verificando status de 52 impressoras
+2025-09-03T12:47:06.327Z [WARN]: Erro SNMP para impressora 10.0.2.24: Socket forcibly closed
+2025-09-03T12:47:06.327Z [WARN]: Erro SNMP para impressora 10.0.6.73: Socket forcibly closed
+2025-09-03T12:47:06.328Z [WARN]: Erro SNMP para impressora 10.0.2.33: Socket forcibly closed
+2025-09-03T12:47:06.328Z [WARN]: Erro SNMP para impressora 10.0.2.75: Socket forcibly closed
+2025-09-03T12:47:06.328Z [WARN]: Erro SNMP para impressora 10.0.2.48: Socket forcibly closed
+2025-09-03T12:47:06.328Z [WARN]: Erro SNMP para impressora 10.0.2.56: Socket forcibly closed
+2025-09-03T12:47:06.328Z [WARN]: Erro SNMP para impressora 10.0.2.79: Socket forcibly closed
+2025-09-03T12:47:06.328Z [WARN]: Erro SNMP para impressora 10.0.2.41: Socket forcibly closed
+2025-09-03T12:47:06.328Z [WARN]: Erro SNMP para impressora 10.0.2.50: Socket forcibly closed
+2025-09-03T12:47:06.329Z [INFO]: Verificação concluída: 52 impressoras, 17 com problemas
+2025-09-03T12:47:06.329Z [INFO]: Tentando enviar dados para Vercel...
+2025-09-03T12:47:06.329Z [INFO]: URL: https://csdt.vercel.app/api/printer-status-from-agent
+2025-09-03T12:47:06.329Z [INFO]: API Key: b23b561b...
+2025-09-03T12:47:06.397Z [INFO]: Status enviado para Vercel com sucesso. Response: 200
+2025-09-03T12:47:30.300Z [INFO]: Iniciando verificação de impressoras...
+2025-09-03T12:47:31.976Z [INFO]: Obtidas 52 impressoras da Vercel
+2025-09-03T12:47:31.976Z [INFO]: Verificando status de 52 impressoras
