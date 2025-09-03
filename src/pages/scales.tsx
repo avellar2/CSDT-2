@@ -37,9 +37,11 @@ import {
   TrendUp,
   ChartLineUp,
   Wrench,
+  Path,
 } from 'phosphor-react';
 import { Settings } from "lucide-react";
 import GoogleCalendar from '@/components/GoogleCalendar';
+import QuickRoutes from '@/components/QuickRoutes';
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -229,6 +231,9 @@ const Scales: React.FC = () => {
   const [scheduleTime, setScheduleTime] = useState<string>('');
   const [scheduleNotes, setScheduleNotes] = useState<string>('');
   const [scheduling, setScheduling] = useState(false);
+  
+  // Quick Routes
+  const [showQuickRoutes, setShowQuickRoutes] = useState(false);
   
   // Error and Success
   const [conflictingTechnicians, setConflictingTechnicians] = useState<
@@ -1760,6 +1765,7 @@ const Scales: React.FC = () => {
             <div className="flex items-center gap-2 bg-gray-100 dark:bg-zinc-700 rounded-lg p-1">
               {[
                 { id: 'create', label: 'Criar Escala', icon: <Plus size={16} /> },
+                { id: 'routes', label: 'Rotas Rápidas', icon: <Path size={16} />, action: 'modal' },
                 { id: 'dashboard', label: 'Dashboard', icon: <ChartBar size={16} /> },
                 { id: 'history', label: 'Histórico', icon: <Clock size={16} /> },
                 { id: 'analytics', label: 'Analytics', icon: <TrendUp size={16} /> },
@@ -1768,7 +1774,13 @@ const Scales: React.FC = () => {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveView(tab.id as any)}
+                  onClick={() => {
+                    if (tab.action === 'modal' && tab.id === 'routes') {
+                      setShowQuickRoutes(true);
+                    } else {
+                      setActiveView(tab.id as any);
+                    }
+                  }}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm font-medium ${
                     activeView === tab.id
                       ? 'bg-blue-500 text-white shadow-sm'
@@ -3564,6 +3576,18 @@ const Scales: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Quick Routes Modal */}
+      {showQuickRoutes && (
+        <QuickRoutes 
+          technicians={visitTechnicians.map(id => ({
+            id,
+            name: technicians.find(t => t.id === id)?.displayName || `Técnico ${id}`,
+            technicianId: parseInt(id) || 0
+          }))}
+          onClose={() => setShowQuickRoutes(false)}
+        />
       )}
     </div>
   );

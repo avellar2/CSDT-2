@@ -52,7 +52,7 @@ const DashboardRegisterForm: React.FC<DashboardRegisterFormProps> = ({ onClose }
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        const response = await fetch("/api/schools");
+        const response = await fetch("/api/all-schools");
         if (response.ok) {
           const schoolData = await response.json();
           setSchools(schoolData);

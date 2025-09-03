@@ -39,7 +39,7 @@ const ItemForm: React.FC = () => {
     // Função para buscar as escolas do endpoint de API
     const fetchSchools = async () => {
       try {
-        const response = await fetch('/api/schools');
+        const response = await fetch('/api/all-schools');
         const data = await response.json();
         console.log('Dados das escolas recebidos:', data); // Log para depuração
         if (Array.isArray(data)) {

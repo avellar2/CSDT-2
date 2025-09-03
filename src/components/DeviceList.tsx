@@ -208,7 +208,7 @@ const DeviceList: React.FC = () => {
   useEffect(() => {
     async function fetchItems() {
       try {
-        const response = await axios.get("/api/schools");
+        const response = await axios.get("/api/all-schools");
         setSchools(response.data);
       } catch (error) {
         console.log("Error fetching schools:", error);
@@ -430,7 +430,7 @@ const DeviceList: React.FC = () => {
       // Buscar todos os dados para backup
       const [itemsRes, schoolsRes, historiesRes] = await Promise.all([
         fetch("/api/items", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/schools", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/all-schools", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/backup/histories", { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
