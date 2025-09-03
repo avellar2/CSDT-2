@@ -107,7 +107,7 @@ export const ItemFormModern: React.FC<ItemFormModernProps> = ({ onToast }) => {
       
       if (!schoolOptions) {
         // If not in cache, fetch from API
-        const response = await fetch('/api/schools');
+        const response = await fetch('/api/all-schools');
         const data = await response.json();
         
         if (Array.isArray(data)) {
