@@ -60,6 +60,8 @@ const SchoolsPage: React.FC = () => {
     director: '',
     minStudents: '',
     maxStudents: '',
+    laboratorio: '',
+    anexos: '',
     sortBy: 'name',
     sortOrder: 'asc' as 'asc' | 'desc'
   });
@@ -143,8 +145,18 @@ const SchoolsPage: React.FC = () => {
     const matchesMaxStudents = !filters.maxStudents || 
       studentCount <= parseInt(filters.maxStudents);
     
+    // Filtro por laboratório
+    const matchesLaboratorio = !filters.laboratorio || 
+      (filters.laboratorio === 'com' && school.laboratorio && school.laboratorio > 0) ||
+      (filters.laboratorio === 'sem' && (!school.laboratorio || school.laboratorio === 0));
+    
+    // Filtro por anexos
+    const matchesAnexos = !filters.anexos || 
+      (filters.anexos === 'com' && school.annexes && school.annexes.length > 0) ||
+      (filters.anexos === 'sem' && (!school.annexes || school.annexes.length === 0));
+    
     return matchesSearch && matchesDistrict && matchesDirector && 
-           matchesMinStudents && matchesMaxStudents;
+           matchesMinStudents && matchesMaxStudents && matchesLaboratorio && matchesAnexos;
   }).sort((a, b) => {
     // Ordenação
     let valueA: any, valueB: any;
@@ -285,6 +297,8 @@ const SchoolsPage: React.FC = () => {
                     director: '',
                     minStudents: '',
                     maxStudents: '',
+                    laboratorio: '',
+                    anexos: '',
                     sortBy: 'name',
                     sortOrder: 'asc'
                   });
@@ -296,7 +310,7 @@ const SchoolsPage: React.FC = () => {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {/* Filtro por Distrito */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -311,6 +325,40 @@ const SchoolsPage: React.FC = () => {
                   {Array.from(new Set(schools.map(school => school.district).filter(Boolean))).map(district => (
                     <option key={district} value={district}>Distrito {district}</option>
                   ))}
+                </select>
+              </div>
+              
+              {/* Filtro por Laboratório */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Desktop size={14} className="inline mr-1" />
+                  Laboratório
+                </label>
+                <select
+                  value={filters.laboratorio}
+                  onChange={(e) => setFilters({...filters, laboratorio: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Todas as escolas</option>
+                  <option value="com">Com laboratório</option>
+                  <option value="sem">Sem laboratório</option>
+                </select>
+              </div>
+              
+              {/* Filtro por Anexos */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="mr-1">📍</span>
+                  Anexos
+                </label>
+                <select
+                  value={filters.anexos}
+                  onChange={(e) => setFilters({...filters, anexos: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Todas as escolas</option>
+                  <option value="com">Com anexos</option>
+                  <option value="sem">Sem anexos</option>
                 </select>
               </div>
               
