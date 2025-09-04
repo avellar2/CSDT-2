@@ -1,0 +1,463 @@
+{
+  "mappingResults": [
+    {
+      "pdfFile": "ALVARO ALBERTO 2.pdf",
+      "pdfName": "ALVARO ALBERTO",
+      "schoolName": "Creche-escola Municipal Dr Alvaro Alberto",
+      "method": "manual",
+      "confidence": 1
+    },
+    {
+      "pdfFile": "ALVARO ALBERTO.pdf",
+      "pdfName": "ALVARO ALBERTO",
+      "schoolName": "Creche-escola Municipal Dr Alvaro Alberto",
+      "method": "manual",
+      "confidence": 1
+    },
+    {
+      "pdfFile": "AMELIA CAMARA.pdf",
+      "pdfName": "AMELIA CAMARA",
+      "schoolName": "Escola Municipal Profª Amelia Camara dos Santos",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "ANA NERY.pdf",
+      "pdfName": "ANA NERY",
+      "schoolName": "Escola Municipal Ana Nery",
+      "method": "manual",
+      "confidence": 1
+    },
+    {
+      "pdfFile": "ANTON.pdf",
+      "pdfName": "ANTON",
+      "schoolName": "Escola Municipal Anton Dworsak",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "BAIRRO CALIFORNIA.pdf",
+      "pdfName": "BAIRRO CALIFORNIA",
+      "schoolName": "Escola Estadual Municipalizada Bairro California",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "BARRO BRANCO.pdf",
+      "pdfName": "BARRO BRANCO",
+      "schoolName": "Escola Municipal Barro Branco",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "BARÃO DO AMAPÁ.pdf",
+      "pdfName": "BARÃO DO AMAPÁ",
+      "schoolName": "Escola Municipal Barão do Amapa",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "BOM RETIRO.pdf",
+      "pdfName": "BOM RETIRO",
+      "schoolName": "Escola Municipal Bom Retiro",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "CCAIC JARDIM GRAMACHO.pdf",
+      "pdfName": "CCAIC JARDIM GRAMACHO",
+      "schoolName": "CCAIC - JARDIM GRAMACHO",
+      "method": "manual",
+      "confidence": 1
+    },
+    {
+      "pdfFile": "CELIA RABELO.pdf",
+      "pdfName": "CELIA RABELO",
+      "schoolName": "Centro Integrado de Educação Pública 338-escola Municipalizada Celia Rabelo",
+      "method": "manual",
+      "confidence": 1
+    },
+    {
+      "pdfFile": "COSTA E SILVA 2.pdf",
+      "pdfName": "COSTA E SILVA",
+      "schoolName": "Escola Municipal Presidente Costa e Silva",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "COSTA E SILVA.pdf",
+      "pdfName": "COSTA E SILVA",
+      "schoolName": "Escola Municipal Presidente Costa e Silva",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "DARCY RIBEIRO.pdf",
+      "pdfName": "DARCY RIBEIRO",
+      "schoolName": "Escola Municipal Darcy Ribeiro",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "DARCY VARGAS.pdf",
+      "pdfName": "DARCY VARGAS",
+      "schoolName": "Escola Municipal Darcy Vargas",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "ELISABETH LOPES CABRAL 2.pdf",
+      "pdfName": "ELISABETH LOPES CABRAL",
+      "schoolName": "Escola Municipal Profª Elisabeth Lopes Cabral",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "ELISABETH LOPES CABRAL.pdf",
+      "pdfName": "ELISABETH LOPES CABRAL",
+      "schoolName": "Escola Municipal Profª Elisabeth Lopes Cabral",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "FAUSTINO.pdf",
+      "pdfName": "FAUSTINO",
+      "schoolName": "Escola Municipal Professor João Faustino de Franca Sobrinho",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "GASTÃO REIS.pdf",
+      "pdfName": "GASTÃO REIS",
+      "schoolName": "Escola Municipal Dr Gastao Reis",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "GRACIESSE.pdf",
+      "pdfName": "GRACIESSE",
+      "schoolName": "Creche e Pre Escola Municipal Graciesse Luiza Silva Lourenco",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "IMACULADA.pdf",
+      "pdfName": "IMACULADA",
+      "schoolName": "Escola Municipal Imaculada Conceicao",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "JARDIM GRAMACHO 2.pdf",
+      "pdfName": "JARDIM GRAMACHO",
+      "schoolName": "Escola Municipal Jardim Gramacho",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "JARDIM GRAMACHO.pdf",
+      "pdfName": "JARDIM GRAMACHO",
+      "schoolName": "Escola Municipal Jardim Gramacho",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "JOAQUIM SALGUEIRO.pdf",
+      "pdfName": "JOAQUIM SALGUEIRO",
+      "schoolName": "Escola Municipal Manoel Joaquim Salgueiro - Municipalizada",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "JOSÉ CARLOS COUTINHO 2.pdf",
+      "pdfName": "JOSÉ CARLOS COUTINHO",
+      "schoolName": "Creche e Pre Escola Municipal Deputado José Carlos Coutinho",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "JOSÉ CARLOS COUTINHO.pdf",
+      "pdfName": "JOSÉ CARLOS COUTINHO",
+      "schoolName": "Creche e Pre Escola Municipal Deputado José Carlos Coutinho",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "JOSÉ DE SOUZA HERDY.pdf",
+      "pdfName": "JOSÉ DE SOUZA HERDY",
+      "schoolName": "Escola Municipal Professor José de Souza Herdy",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "JOSÉ MEDEIROS.pdf",
+      "pdfName": "JOSÉ MEDEIROS",
+      "schoolName": "Escola Municipal José Medeiros Cabral",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "LAURA MENEZES.pdf",
+      "pdfName": "LAURA MENEZES",
+      "schoolName": "Creche Laura Menezes de Freitas Lima",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "LAURENTINA DUARTE.pdf",
+      "pdfName": "LAURENTINA DUARTE",
+      "schoolName": "Escola Municipal Laurentina Cardoso Duarte",
+      "method": "auto",
+      "confidence": 0.4
+    },
+    {
+      "pdfFile": "MARCIO FIAT.pdf",
+      "pdfName": "MARCIO FIAT",
+      "schoolName": "Escola Municipal Marcio Fiat",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "MARIA DE ARAUJO.pdf",
+      "pdfName": "MARIA DE ARAUJO",
+      "schoolName": "E e M Professora Maria de Araujo da Silva",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "MARIA JOSÉ DE OLIVEIRA.pdf",
+      "pdfName": "MARIA JOSÉ DE OLIVEIRA",
+      "schoolName": "Escola Municipal Professora Maria José de Oliveira",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "MARILIA DA SILVA SIQUEIRA.pdf",
+      "pdfName": "MARILIA DA SILVA SIQUEIRA",
+      "schoolName": "Creche e Pre Escola Municipal Professora Marilia da Silva Siqueira",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "MOACYR PADILHA.pdf",
+      "pdfName": "MOACYR PADILHA",
+      "schoolName": "Escola Municipal Jornalista Moacyr Padilha",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "MONTEIRO LOBATO.pdf",
+      "pdfName": "MONTEIRO LOBATO",
+      "schoolName": "Escola Municipal Monteiro Lobato",
+      "method": "manual",
+      "confidence": 1
+    },
+    {
+      "pdfFile": "NOVA CAMPINAS.pdf",
+      "pdfName": "NOVA CAMPINAS",
+      "schoolName": "Escola Municipal Nova Campinas",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "ODUVALDO VIANA.pdf",
+      "pdfName": "ODUVALDO VIANA",
+      "schoolName": "Centro Integrado de Educação Pública Brizolao 319 Oduvaldo Viana Filho",
+      "method": "manual",
+      "confidence": 1
+    },
+    {
+      "pdfFile": "OSWALDO ARANHA.pdf",
+      "pdfName": "OSWALDO ARANHA",
+      "schoolName": "Escola Municipal Emb Oswaldo Aranha",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "OSWALDO CRUZ.pdf",
+      "pdfName": "OSWALDO CRUZ",
+      "schoolName": "Escola Municipal Oswaldo Cruz - Municipalizada",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "PARTEIRA ODETE.pdf",
+      "pdfName": "PARTEIRA ODETE",
+      "schoolName": "Creche Municipal Parteira Odete",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "PAULO MENDES.pdf",
+      "pdfName": "PAULO MENDES",
+      "schoolName": "Centro Integrado de Educação Pública Brizolao Municipalizado 318 - Paulo Mendes Campos",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "PEDRO RODRIGUES.pdf",
+      "pdfName": "PEDRO RODRIGUES",
+      "schoolName": "Escola Municipal Pedro Rodrigues do Carmo",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "PEQUENO GUERREIRO.pdf",
+      "pdfName": "PEQUENO GUERREIRO",
+      "schoolName": "Creche e Pre Escola Municipal Pequeno Guerreiro",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "PROCOPIO.pdf",
+      "pdfName": "PROCOPIO",
+      "schoolName": "Centro Integrado de Educação Pública Brizolao Municipalizado 227 Procopio Ferreira",
+      "method": "manual",
+      "confidence": 1
+    },
+    {
+      "pdfFile": "RICARDO AUGUSTO.pdf",
+      "pdfName": "RICARDO AUGUSTO",
+      "schoolName": "Escola Municipal Dr Ricardo Augusto de Azeredo Vianna",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "RIO BRANCO.pdf",
+      "pdfName": "RIO BRANCO",
+      "schoolName": "Escola Municipal Barão do Rio Branco",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "ROMEU MENEZES.pdf",
+      "pdfName": "ROMEU MENEZES",
+      "schoolName": "Escola Municipal Professor Romeu Menezes dos Santos",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "SERGIPE 2.pdf",
+      "pdfName": "SERGIPE",
+      "schoolName": "Escola Municipal Sergipe",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "SERGIPE.pdf",
+      "pdfName": "SERGIPE",
+      "schoolName": "Escola Municipal Sergipe",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "TANCREDO NEVES.pdf",
+      "pdfName": "TANCREDO NEVES",
+      "schoolName": "Escola Municipal Tancredo Neves",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "VILMAR BASTOS.pdf",
+      "pdfName": "VILMAR BASTOS",
+      "schoolName": "Escola Municipal Professor Vilmar Bastos Furtado",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "VISCONDE DE ITABORAÍ.pdf",
+      "pdfName": "VISCONDE DE ITABORAÍ",
+      "schoolName": "Escola Municipal Visconde de Itaborai",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "WEGUELIN 2.pdf",
+      "pdfName": "WEGUELIN",
+      "schoolName": "Escola Municipal Roberto Weguelin de Abreu",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "WEGUELIN.pdf",
+      "pdfName": "WEGUELIN",
+      "schoolName": "Escola Municipal Roberto Weguelin de Abreu",
+      "method": "auto",
+      "confidence": 0.9
+    },
+    {
+      "pdfFile": "YOLANDA BORGES.pdf",
+      "pdfName": "YOLANDA BORGES",
+      "schoolName": "Centro Integrado de Educação Pública Brizolao Municipalizado 220 Yolanda Borges",
+      "method": "manual",
+      "confidence": 1
+    }
+  ],
+  "notFound": [
+    {
+      "pdfFile": "BOMFIM DE CASTRO.pdf",
+      "pdfName": "BOMFIM DE CASTRO",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "CARMEM LUCIA.pdf",
+      "pdfName": "CARMEM LUCIA",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "CCAIC AMAPÁ.pdf",
+      "pdfName": "CCAIC AMAPÁ",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "DORNELLES.pdf",
+      "pdfName": "DORNELLES",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "HIDEKEL.pdf",
+      "pdfName": "HIDEKEL",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "ITAMAR FRANCO.pdf",
+      "pdfName": "ITAMAR FRANCO",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "MARECHAL FLORIANO.pdf",
+      "pdfName": "MARECHAL FLORIANO",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "MARIE CURRIE.pdf",
+      "pdfName": "MARIE CURRIE",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "OLGA TEXEIRA 2.pdf",
+      "pdfName": "OLGA TEXEIRA",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "OLGA TEXEIRA.pdf",
+      "pdfName": "OLGA TEXEIRA",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "SETE DE SETEMBRO.pdf",
+      "pdfName": "SETE DE SETEMBRO",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "TEREZA LISIEUX 2.pdf",
+      "pdfName": "TEREZA LISIEUX",
+      "reason": "Não encontrado na base de escolas"
+    },
+    {
+      "pdfFile": "TEREZA LISIEUX.pdf",
+      "pdfName": "TEREZA LISIEUX",
+      "reason": "Não encontrado na base de escolas"
+    }
+  ]
+}

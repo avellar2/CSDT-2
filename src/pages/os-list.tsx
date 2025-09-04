@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, Users } from "phosphor-react";
+import { GraduationCap, Users, FilePdf } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import Link from 'next/link';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -14,121 +14,119 @@ interface OS {
   status?: string;
 }
 
+interface OSAntiga {
+  escola: string;
+  pdfUrl: string;
+}
+
 const OSList: React.FC = () => {
-  const [pendentes, setPendentes] = useState<OS[]>([]);
-  const [confirmadas, setConfirmadas] = useState<OS[]>([]);
+  const [antigas, setAntigas] = useState<OSAntiga[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [currentPagePendentes, setCurrentPagePendentes] = useState(1);
-  const [currentPageConfirmadas, setCurrentPageConfirmadas] = useState(1);
-  const itemsPerPage = 5; // Número de itens por página
 
   useEffect(() => {
-    const fetchOS = async () => {
+    // OS Antigas - Apenas nome da escola e link do PDF
+    // Carrega do JSON ao invés de hardcode
+    const loadOSAntigas = async () => {
       try {
-        const response = await fetch("/api/get-os");
-        if (!response.ok) {
-          throw new Error("Erro ao buscar OS");
-        }
-        const data = await response.json();
-
-        // Ordenar as OS pendentes e confirmadas pelas mais recentes
-        const sortedPendentes = data.pendentes.sort((a: OS, b: OS) => new Date(b.data).getTime() - new Date(a.data).getTime());
-        const sortedConfirmadas = data.confirmadas.sort((a: OS, b: OS) => new Date(b.data).getTime() - new Date(a.data).getTime());
-
-        setPendentes(sortedPendentes);
-        setConfirmadas(sortedConfirmadas);
+        const response = await fetch('/os-antigas.json');
+        const osAntigas: OSAntiga[] = await response.json();
+        setAntigas(osAntigas);
+        console.log('✅ Carregadas', osAntigas.length, 'escolas do JSON');
       } catch (error) {
-        console.error("Erro ao buscar OS:", error);
+        console.error('❌ Erro ao carregar JSON:', error);
       }
     };
-
-    fetchOS();
+    
+    loadOSAntigas();
   }, []);
 
-  const filteredPendentes = pendentes.filter(os =>
-    os.unidadeEscolar.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    os.tecnicoResponsavel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    os.numeroOs.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    os.data.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    os.hora.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredConfirmadas = confirmadas.filter(os =>
-    os.unidadeEscolar.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    os.tecnicoResponsavel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    os.numeroOs.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    os.data.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    os.hora.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAntigas = antigas.filter(os =>
+    os.escola.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-4xl font-bold mb-8 text-center">Lista de OS</h1>
-      <div className="mb-8 text-center">
-        <input
-          type="text"
-          placeholder="Pesquisar OS"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="p-2 border border-gray-400 dark:bg-zinc-200 rounded w-full"
-        />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="flex flex-col text-center border bg-white dark:bg-gray-900 border-gray-600 rounded-xl p-6">
-          <h2 className="text-3xl font-thin mb-4">OS Pendentes</h2>
-          <ul className="space-y-4">
-            {filteredPendentes.map((os) => (
-              <li key={os.id} className="transform transition-transform hover:scale-105">
-                <Link href={`/os/${os.id}?status=pendente`}>
-                  <Card className="bg-yellow-500 hover:bg-yellow-700 text-white rounded-lg shadow-lg cursor-pointer">
-                    <CardHeader>
-                      <CardTitle className="text-center flex justify-center items-center gap-3 p-4 bg-zinc-800 rounded-t-lg">
-                        <GraduationCap size={30} />{os.unidadeEscolar}
-                      </CardTitle>
-                      <CardDescription>
-                        <strong className="text-gray-300 flex justify-center items-center gap-2 text-base">
-                          <Users />{os.tecnicoResponsavel}
-                        </strong>
-                      </CardDescription>
-                      <CardContent className="flex gap-6 items-center justify-center">
-                        <p><strong>Número OS:</strong> {os.numeroOs}</p>
-                        <p><strong>Data:</strong> {os.data}</p>
-                        <p><strong>Hora:</strong> {os.hora}</p>
-                      </CardContent>
-                    </CardHeader>
-                  </Card>
-                </Link>
-              </li>
-            ))}
-          </ul>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800">
+      <div className="container mx-auto p-8">
+        {/* Header moderno */}
+        <div className="text-center mb-12">
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+            Arquivo Digital
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400">
+            Acesso rápido aos documentos das instituições
+          </p>
         </div>
-        <div className="flex flex-col text-center border bg-white dark:bg-gray-900 border-gray-600 rounded-xl p-6">
-          <h2 className="text-3xl font-thin mb-4">OS Confirmadas</h2>
-          <ul className="space-y-4">
-            {filteredConfirmadas.map((os) => (
-              <li key={os.id} className="transform transition-transform hover:scale-105">
-                <Link href={`/os/${os.id}?status=confirmada`}>
-                  <Card className="bg-green-500 hover:bg-green-700 text-white rounded-lg shadow-lg cursor-pointer">
-                    <CardHeader>
-                      <CardTitle className="text-center flex justify-center items-center gap-3 p-4 bg-zinc-800 rounded-t-lg">
-                        <GraduationCap size={30} />{os.unidadeEscolar}
-                      </CardTitle>
-                      <CardDescription>
-                        <strong className="text-gray-300 flex justify-center items-center gap-2 text-base">
-                          <Users />{os.tecnicoResponsavel}
-                        </strong>
-                      </CardDescription>
-                      <CardContent className="flex gap-6 items-center justify-center">
-                        <p><strong>Número OS:</strong> {os.numeroOs}</p>
-                        <p><strong>Data:</strong> {os.data}</p>
-                        <p><strong>Hora:</strong> {os.hora}</p>
-                      </CardContent>
-                    </CardHeader>
-                  </Card>
-                </Link>
-              </li>
-            ))}
-          </ul>
+
+        {/* Barra de pesquisa moderna */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <GraduationCap className="h-6 w-6 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar por escola..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 text-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+            />
+          </div>
+        </div>
+
+        {/* Grid de cards moderno */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredAntigas.map((os, index) => (
+            <div 
+              key={index} 
+              className="group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2"
+              onClick={() => window.open(os.pdfUrl, '_blank')}
+            >
+              <div className="relative bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all duration-300">
+                {/* Gradiente de fundo */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {/* Conteúdo do card */}
+                <div className="relative z-10">
+                  <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6 mx-auto group-hover:scale-110 transition-transform duration-300">
+                    <FilePdf size={32} className="text-white" />
+                  </div>
+                  
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white text-center leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                    {os.escola}
+                  </h3>
+                  
+                  <div className="mt-4 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <span>Clique para abrir</span>
+                  </div>
+                </div>
+
+                {/* Efeito de borda animada */}
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-blue-500 to-purple-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300 -z-10"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mensagem quando não há resultados */}
+        {filteredAntigas.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-6">
+              <GraduationCap size={40} className="text-gray-500" />
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+              Nenhuma escola encontrada
+            </h3>
+            <p className="text-gray-500 dark:text-gray-500">
+              Tente buscar por outro termo
+            </p>
+          </div>
+        )}
+
+        {/* Footer informativo */}
+        <div className="text-center mt-16 p-8 bg-white/50 dark:bg-slate-800/50 rounded-2xl backdrop-blur-sm">
+          <p className="text-gray-600 dark:text-gray-400">
+            Total de {antigas.length} instituições no arquivo digital
+          </p>
         </div>
       </div>
     </div>
