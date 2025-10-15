@@ -1,0 +1,1244 @@
+{
+  "timestamp": "2025-09-08T13:36:34.396Z",
+  "summary": {
+    "total_existing": 188,
+    "total_maps": 79,
+    "matches": 28,
+    "existing_only": 160,
+    "maps_only": 52
+  },
+  "matches": [
+    {
+      "existing_name": "Centro Integrado de Educação Pública Brizolao Municipalizado 227 Procopio Ferreira",
+      "maps_name": "CIEP 227 - PROCÓPIO FERREIRA",
+      "district": "3º Distrito",
+      "confidence": 0.875
+    },
+    {
+      "existing_name": "Centro Integrado de Educação Pública Brizolao Municipalizado 328 Marie Curie",
+      "maps_name": "CIEP 328 - MARIE CURIE",
+      "district": "3º Distrito",
+      "confidence": 0.875
+    },
+    {
+      "existing_name": "Creche e Pre Escola Profa Armanda A Alberto",
+      "maps_name": "CRECHE e PRÉ-ESC PROFª ARMANDA ÁLVARO ALBERTO",
+      "district": "3º Distrito",
+      "confidence": 0.7692307692307693
+    },
+    {
+      "existing_name": "Creche e Pre Escola Municipal Irma Arnalda da Silva Neves",
+      "maps_name": "CRECHE IRMÃ ARNALDA DA SILVA",
+      "district": "3º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Creche e Pre Escola Municipal Graciesse Luiza Silva Lourenco",
+      "maps_name": "CRECHE GRACIESSE LUIZA DA SILVA",
+      "district": "1º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Creche e Pre Escola Municipal Iracy Moreira Theodoro",
+      "maps_name": "CRECHE IRACY MOREIRA THEODORO",
+      "district": "1º Distrito",
+      "confidence": 0.7272727272727273
+    },
+    {
+      "existing_name": "Creche e Pre Escola Municipal Professora Maria Lucia Andrade Ribeiro",
+      "maps_name": "CRECHE e PRE-ESC PROFª MARIA LUCIA ANDRADE RIBEIRO",
+      "district": "2º Distrito",
+      "confidence": 0.7058823529411765
+    },
+    {
+      "existing_name": "Creche e Pre Escola Municipal Professora Marilia da Silva Siqueira",
+      "maps_name": "E.M. PROFESSORA MARÍLIA DA SILVA SIQUEIRA",
+      "district": "1º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Creche Municipal Ayrton Senna",
+      "maps_name": "CRECHE AYRTON SENNA",
+      "district": "2º Distrito",
+      "confidence": 0.8571428571428571
+    },
+    {
+      "existing_name": "Creche Municipal Parteira Odete",
+      "maps_name": "E.M. PARTEIRA ODETE",
+      "district": "2º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Creche Municipal Profª Jesuina de Fatima de Andrade",
+      "maps_name": "CRECHE PROFª JESUÍNA FATIMA",
+      "district": "2º Distrito",
+      "confidence": 0.8
+    },
+    {
+      "existing_name": "Creche Pre Escola Municipal Elisa Mathias de Araujo",
+      "maps_name": "CRECHE e PRE-ESC ELISA MATHIAS DE ARAÚJO",
+      "district": "1º Distrito",
+      "confidence": 0.7692307692307693
+    },
+    {
+      "existing_name": "Creche-escola Municipal Gandur Assed",
+      "maps_name": "CRECHE e PRÉ-ESC GANDUR ASSED",
+      "district": "1º Distrito",
+      "confidence": 0.6
+    },
+    {
+      "existing_name": "E e Municipalizada Castro Alves",
+      "maps_name": "E.M. CASTRO ALVES",
+      "district": "1º Distrito",
+      "confidence": 0.8
+    },
+    {
+      "existing_name": "Escola Municipal Ana Nery",
+      "maps_name": "E.M. ANA NERY",
+      "district": "1º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Barão do Amapa",
+      "maps_name": "E.M. BARÃO DO AMAPÁ",
+      "district": "2º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Bom Retiro",
+      "maps_name": "E.M. BOM RETIRO",
+      "district": "2º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Carlos Drummond de Andrade",
+      "maps_name": "E.M. CARLOS DRUMMOND DE ANDRADE",
+      "district": "1º Distrito",
+      "confidence": 0.75
+    },
+    {
+      "existing_name": "Escola Municipal Castro Alves",
+      "maps_name": "E.M. CASTRO ALVES",
+      "district": "1º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Darcy Ribeiro",
+      "maps_name": "E.M. DARCY RIBEIRO",
+      "district": "2º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Darcy Vargas",
+      "maps_name": "E.M. DARCY VARGAS",
+      "district": "2º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Imaculada Conceicao",
+      "maps_name": "E.M. IMACULADA CONCEIÇÃO",
+      "district": "2º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Monteiro Lobato",
+      "maps_name": "E.M. MONTEIRO LOBATO",
+      "district": "1º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Nova Campinas",
+      "maps_name": "E.M. NOVA CAMPINAS",
+      "district": "2º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Pedro Rodrigues do Carmo",
+      "maps_name": "E.M. PEDRO RODRIGUES DO CARMO",
+      "district": "1º Distrito",
+      "confidence": 0.75
+    },
+    {
+      "existing_name": "Escola Municipal Professora Maria José de Oliveira",
+      "maps_name": "E.M. MARIA JOSÉ DE OLIVEIRA",
+      "district": "2º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Visconde de Itaborai",
+      "maps_name": "E.M. VISCONDE DE ITABORAÍ",
+      "district": "1º Distrito",
+      "confidence": 0.6666666666666666
+    },
+    {
+      "existing_name": "Escola Municipal Professor José de Souza Herdy",
+      "maps_name": "E.M. JOSÉ DE SOUZA HERDY",
+      "district": "3º Distrito",
+      "confidence": 0.6666666666666666
+    }
+  ],
+  "existing_only": [
+    {
+      "id": 1,
+      "name": "Centro Integrado de Educação Pública 330 Brizolao Municipalizado Maria da Gloria Correa Lemos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 2,
+      "name": "Centro Integrado de Educação Pública 338-escola Municipalizada Celia Rabelo",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 3,
+      "name": "Centro Integrado de Educação Pública Brizolao 319 Oduvaldo Viana Filho",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 4,
+      "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 097 Carlos Chagas",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 5,
+      "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 120 Monteiro Lobato",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 6,
+      "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 220 Yolanda Borges",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 8,
+      "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 318 - Paulo Mendes Campos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 10,
+      "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 405 Ministro Santiago Dantas",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 11,
+      "name": "Centro Integrado de Educação Pública Brizolao Municipalizado 407 Neusa Goulart Brizola",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 12,
+      "name": "Centro Integrado de Educação Pública Municipalizado Brizolao 015 Henrique de S Filho Henfil",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 13,
+      "name": "Creche - Escola Municipal Benizio José da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 14,
+      "name": "Creche Centro de Atendimento A Infancia Caxiense - Amapa",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 15,
+      "name": "Creche Centro de Atendimento A Infancia Caxiense de Campos Eliseos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 16,
+      "name": "Creche Centro de Atendimento A Infancia Caxiense de Xerem",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 17,
+      "name": "Creche Centro de Atendimento A Infancia Caxiense Jd Gramacho",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 18,
+      "name": "Creche Centro de Atendimento A Infancia Caxiense Parque Muisa",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 19,
+      "name": "Creche Com São Sebastiao",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 20,
+      "name": "Creche e Centro de Atendimento A Infancia Caxiense -jd Anhanga",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 21,
+      "name": "Creche e Centro de Atendimento A Infancia Caxiense Olavo Bilac",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 22,
+      "name": "Creche e Escola Municipal Dona Leda Granja Victer",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 25,
+      "name": "Creche e Pre Escola Municipal Abne Marques de Abreu",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 26,
+      "name": "Creche e Pre Escola Municipal Deputado José Carlos Coutinho",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 29,
+      "name": "Creche e Pre Escola Municipal Maria José da Conceicao",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 30,
+      "name": "Creche e Pre Escola Municipal Pequeno Guerreiro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 33,
+      "name": "Creche e Pre Escola Municipal Severina dos Ramos da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 34,
+      "name": "Creche e Pre Escola Municipal Teresa de Lisieux",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 35,
+      "name": "Creche e Pre Escola Municipal Ubaldina Alves da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 36,
+      "name": "Creche e Pre-escola Municipal José Ataide da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 37,
+      "name": "Creche e Pre-escola Municipal Professora Rosalita da Silva Netto",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 38,
+      "name": "Creche Escola Municipal Poetisa Cecilia Meireles",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 39,
+      "name": "Creche Laura Menezes de Freitas Lima",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 41,
+      "name": "Creche Municipal Monsenhor Librelotto",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 43,
+      "name": "Creche Municipal Professor João de Oliveira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 45,
+      "name": "Creche Municipal Profª Rosa Angelica Fonseca de Oliveira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 46,
+      "name": "Creche Municipal Professora Laura D Aquino Longo",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 47,
+      "name": "Creche Municipal Vereador José Carlos Theodoro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 49,
+      "name": "Creche Pre Escola Municipal Professora Dalva Lazaroni de Moraes",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 50,
+      "name": "Creche Pre-escola Municipal Jornalista Susana Naspolini",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 51,
+      "name": "Creche-escola Municipal Bairro Tabuleiro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 52,
+      "name": "Creche-escola Municipal Dr Alvaro Alberto",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 54,
+      "name": "Creche-escola Municipal Professor Maria Anger Dias Guarino",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 55,
+      "name": "E e M Marechal Mascarenhas de Moraes",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 56,
+      "name": "E e M Professora Maria de Araujo da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 58,
+      "name": "Escola Municipal 7 de Setembro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 59,
+      "name": "Escola Municipal Albert Sabin",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 60,
+      "name": "Escola Municipal Alberto Santos Dumont",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 61,
+      "name": "Escola Municipal Aline Goncalves de Lima",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 62,
+      "name": "Escola Municipal Almirante Tamandare",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 63,
+      "name": "Escola Municipal Alto da Boa Vista",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 65,
+      "name": "Escola Municipal Anisio Spinola Teixeira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 66,
+      "name": "Escola Municipal Anton Dworsak",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 67,
+      "name": "Escola Municipal Barão da Taquara",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 69,
+      "name": "Escola Municipal Barro Branco",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 71,
+      "name": "Escola Municipal Brasil Italia",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 72,
+      "name": "Escola Municipal Brasilia",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 73,
+      "name": "Escola Municipal Capitao Fuzileiro Naval Eduardo Gomes de Oliveira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 75,
+      "name": "Escola Municipal Carlota Machado",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 77,
+      "name": "Escola Municipal Cora Coralina",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 78,
+      "name": "Escola Municipal Coracao de Jesus",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 79,
+      "name": "Escola Municipal Coronel Eliseu",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 82,
+      "name": "Escola Municipal Dr Ely Combat",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 83,
+      "name": "Escola Municipal Dr Gastao Reis",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 84,
+      "name": "Escola Municipal Dr Manoel Reis",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 85,
+      "name": "Escola Municipal Dr Ricardo Augusto de Azeredo Vianna",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 86,
+      "name": "Escola Municipal Emb Oswaldo Aranha",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 87,
+      "name": "Escola Municipal Eulina Pinto de Barros",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 88,
+      "name": "Escola Municipal Exp Aquino de Araujo",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 89,
+      "name": "Escola Municipal Francisco Barboza Leite",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 90,
+      "name": "Escola Municipal General Mourao Filho",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 91,
+      "name": "Escola Municipal General Tiburcio",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 92,
+      "name": "Escola Municipal Governador Mario Covas Junior",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 93,
+      "name": "Escola Municipal Gustavo Armbrust",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 94,
+      "name": "Escola Municipal Helena Aguiar de Medeiros",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 95,
+      "name": "Escola Municipal Herminia Caldas da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 97,
+      "name": "Escola Municipal Intercultural Mexico Professora Nilcelina dos Santos Ferreira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 98,
+      "name": "Escola Municipal Jardim Anhanga",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 99,
+      "name": "Escola Municipal Jardim Gramacho",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 100,
+      "name": "Escola Municipal Jayme Fichman",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 101,
+      "name": "Escola Municipal Joaquim da Silva Pecanha",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 102,
+      "name": "Escola Municipal Jornalista Moacyr Padilha",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 103,
+      "name": "Escola Municipal José Camilo dos Santos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 104,
+      "name": "Escola Municipal José Medeiros Cabral",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 105,
+      "name": "Escola Municipal Leni Fernandes do Nascimento",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 106,
+      "name": "Escola Municipal Lions",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 107,
+      "name": "Escola Municipal Luiz Gama Borges",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 108,
+      "name": "Escola Municipal Mal Floriano Peixoto",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 109,
+      "name": "Escola Municipal Marcio Fiat",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 110,
+      "name": "Escola Municipal Marechal Mallet",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 111,
+      "name": "Escola Municipal Maria Clara Machado",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 112,
+      "name": "Escola Municipal Maria das Gracas Cardoso Bighi",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 113,
+      "name": "Escola Municipal Mauro de Castro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 115,
+      "name": "Escola Municipal Montese",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 116,
+      "name": "Escola Municipal N S Aparecida",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 117,
+      "name": "Escola Municipal Nisia Vilela Fernandes",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 119,
+      "name": "Escola Municipal Parque Capivari",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 120,
+      "name": "Escola Municipal Paulo Roberto de Moraes Loureiro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 121,
+      "name": "Escola Municipal Paulo Rodrigues Pereira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 122,
+      "name": "Escola Municipal Pedro Paulo da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 124,
+      "name": "Escola Municipal Presidente Vargas",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 125,
+      "name": "Escola Municipal Professor Carmem Correa de C Reis Braz",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 126,
+      "name": "Escola Municipal Professor Carmen Lucia Resende Alvim da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 127,
+      "name": "Escola Municipal Professor Hilda do Carmo Siqueira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 128,
+      "name": "Escola Municipal Professor Motta Sobrinho",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 129,
+      "name": "Escola Municipal Professor Olga Teixeira de Oliveira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 130,
+      "name": "Escola Municipal Professor Raul de Oliveira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 131,
+      "name": "Escola Municipal Professor Sonia Regina Scudese Dessemone Pinto",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 132,
+      "name": "Escola Municipal Professor Zilla Junger da Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 133,
+      "name": "Escola Municipal Profª Aila Saldanha do Couto",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 134,
+      "name": "Escola Municipal Profª Amelia Camara dos Santos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 135,
+      "name": "Escola Municipal Professor Alberto Ribeiro Vasconcelos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 136,
+      "name": "Escola Municipal Professor Jair Alves de Freitas",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 137,
+      "name": "Escola Municipal Professor João Faustino de Franca Sobrinho",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 138,
+      "name": "Escola Municipal Professor Oneres Nunes Oliveira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 139,
+      "name": "Escola Municipal Professor Paulo Freire",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 140,
+      "name": "Escola Municipal Professor Romeu Menezes dos Santos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 141,
+      "name": "Escola Municipal Professor Vilmar Bastos Furtado",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 142,
+      "name": "Escola Municipal Professor Walter Russo de Souza",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 144,
+      "name": "Escola Municipal Professora Wanda Gomes Soares",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 145,
+      "name": "Escola Municipal Regina Celi da Silva Cerdeira",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 146,
+      "name": "Escola Municipal Roberto Weguelin de Abreu",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 147,
+      "name": "Escola Municipal Rotary",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 148,
+      "name": "Escola Municipal Ruy Barbosa",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 149,
+      "name": "Escola Municipal Santa Terezinha",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 150,
+      "name": "Escola Municipal Senador Afonso Arinos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 151,
+      "name": "Escola Municipal Sergipe",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 152,
+      "name": "Escola Municipal Sergipe - Municipalizada",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 153,
+      "name": "Escola Municipal Sg João Delio dos Santos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 154,
+      "name": "Escola Municipal Solano Trindade",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 155,
+      "name": "Escola Municipal Sta Rita",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 156,
+      "name": "Escola Municipal Sto Amaro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 157,
+      "name": "Escola Municipal Sto Izidro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 158,
+      "name": "Escola Municipal Tancredo Neves",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 159,
+      "name": "Escola Municipal Vila Operaria",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 160,
+      "name": "Escola Municipal Vinte e Um de Abril",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 162,
+      "name": "Escola Municipal Wilson de Oliveira Simoes",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 163,
+      "name": "E Municipalizada Professora Mariana Nunes Passos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 164,
+      "name": "Escola Municipal Campos Eliseos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 165,
+      "name": "Escola Municipal Dra Zilda Arns Neumann",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 166,
+      "name": "Escola Municipal Profª Elisabeth Lopes Cabral",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 168,
+      "name": "Escola Municipal Professora Dalva Borges da Cunha",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 169,
+      "name": "Escola Estadual Municipalizada Bairro California",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 170,
+      "name": "Escola Municipal Ana de Souza Herdy",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 171,
+      "name": "Escola Municipal Barão do Rio Branco",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 172,
+      "name": "Escola Municipal Cidade dos Meninos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 173,
+      "name": "Escola Municipal General Sampaio",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 174,
+      "name": "Escola Municipal Laurentina Cardoso Duarte",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 175,
+      "name": "Escola Municipal Manoel Joaquim Salgueiro - Municipalizada",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 176,
+      "name": "Escola Municipal Marcilio Dias",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 177,
+      "name": "Escola Municipal Marilandia",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 178,
+      "name": "Escola Municipal Minas Gerais",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 179,
+      "name": "Escola Municipal Nossa Senhora do Pilar",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 180,
+      "name": "Escola Municipal Olinda Bonturi Bolsonaro",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 181,
+      "name": "Escola Municipal Oswaldo Cruz - Municipalizada",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 182,
+      "name": "Escola Municipal Pastor Ernani Batista de Lima",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 183,
+      "name": "Escola Municipal Presidente Costa e Silva",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 184,
+      "name": "Escola Municipal Professora Dulce Trindade Braga",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 185,
+      "name": "Escola Municipal Santa Luzia",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 186,
+      "name": "Escola Municipal Santo Agostinho",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 187,
+      "name": "Escola Municipal Todos Os Santos",
+      "status": "Nova escola (pós-2020)"
+    },
+    {
+      "id": 188,
+      "name": "Fundec Escola Tecnica",
+      "status": "Nova escola (pós-2020)"
+    }
+  ],
+  "maps_only": [
+    {
+      "name": "CRECHE IRMÃ ZILDA ARNS",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "CRECHE JESUS MENINO",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "CRECHE JESUS NAZARENO",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "CRECHE PROF. ARMANDA ÁLVARO ALBERTO",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "CRECHE PROFª MARTA DE VASCONCELLOS",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. BARONESA DE MESQUITA",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. GASTÃO DOS REIS PONTES",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. HONÓRIO BICALHO",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. JOSÉ CARLOS COUTINHO",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. JOSÉ MEDEIROS",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. LEOPOLDO FRÓES",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. MARIO QUINTANA",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. NILO PEÇANHA",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. OSWALDO CRUZ",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. RIO BRANCO",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. SETE DE SETEMBRO",
+      "district": "1º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "CCAIC - CAMPOS ELÍSEOS",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "CCAIC - PARQUE MUÍSA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. ALVARO ALBERTO",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. AMÉLIA CÂMARA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. ANTONIO GRANJA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. CALIFÓRNIA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. CARMEN LUCIA ABRANTES",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. COSTA E SILVA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. DORNELLAS",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. ELIZABETH LOPES CABRAL",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. FAUSTINO JOSÉ DA SILVA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. HÉLIO RANGEL",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. ITAMAR FRANCO",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. JOAQUIM SALGUEIRO",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. LAURA DE ARAÚJO MENEZES",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. LAURENTINA DUARTE",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. MÁRCIO CANELA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. MARECHAL FLORIANO",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. MARIA DE ARAÚJO",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. OLGA TEIXEIRA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. OSWALDO ARANHA",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. PEQUENO GUERREIRO",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. PRES. TANCREDO NEVES",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. RICARDO AUGUSTO DA SILVA CARVALHO",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. ROMEU DE ARAÚJO MENEZES",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. SERGIPE",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. TERESA DE LISIEUX",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. VILMAR BASTOS",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. WEGUELIN",
+      "district": "2º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "CCAIC - JARDIM ANHANGÁ",
+      "district": "3º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "CRECHE MONSENHOR LIBRELLOTO",
+      "district": "3º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. BOMFIM DE CASTRO",
+      "district": "3º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. CELIA RABELO",
+      "district": "3º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. HIDEKEL DE FREITAS TORRES",
+      "district": "3º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. MOACYR PADILHA",
+      "district": "3º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    },
+    {
+      "name": "E.M. PAULO MENDES CAMPOS",
+      "district": "3º Distrito",
+      "status": "Pode ter sido fechada ou renomeada"
+    }
+  ]
+}

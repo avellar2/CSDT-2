@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Vanderson/Documents/CSDT-2-original/src/pages/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

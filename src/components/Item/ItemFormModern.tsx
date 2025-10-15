@@ -37,7 +37,7 @@ interface RecentItem {
 
 const predefinedItems = [
   "COMPUTADOR", "MONITOR", "MOUSE", "TECLADO", "ESTABILIZADOR", 
-  "IMPRESSORA", "NOTEBOOK", "TABLET", "PROJETOR", "SWITCH"
+  "IMPRESSORA", "NOTEBOOK", "TABLET", "PROJETOR", "SWITCH", "FONTE DE NOTEBOOK", "CABO DE FORÇA"
 ];
 
 const commonBrands = {

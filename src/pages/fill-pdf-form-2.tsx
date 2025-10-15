@@ -6,7 +6,7 @@ import { PDFDocument, PDFCheckBox, PDFTextField } from "pdf-lib";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
 import initialFormData from "../utils/itens";
-import { CheckCircle, FileText, Upload, Check, Warning, X, Info, Buildings, User, Calendar, Clock } from "phosphor-react";
+import { CheckCircle, FileText, Upload, Check, Warning, X, Info, Buildings, User, Calendar, Clock, Plus } from "phosphor-react";
 import { useHeaderContext } from "../context/HeaderContext";
 import InputsItens from "@/components/InputsItens";
 import { ButtonLoading } from "@/components/ui/ButtonLoading";
@@ -126,6 +126,14 @@ const FillPdfForm: React.FC = () => {
   const [escolas, setEscolas] = useState<Escola[]>([]);
   const [alertDialog, setAlertDialog] = useState<{ title: string; description: string; success: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showChamadoModal, setShowChamadoModal] = useState(false);
+  const [osNumero, setOsNumero] = useState<string>("");
+  const [chamadoData, setChamadoData] = useState({
+    escola: "",
+    titulo: "",
+    descricao: "",
+    categoria: ""
+  });
 
   // 🚀 UX States
   const [showToast, setShowToast] = useState<{
@@ -644,14 +652,42 @@ const FillPdfForm: React.FC = () => {
         throw new Error("Erro ao enviar e-mail");
       }
 
+      // Guardar dados para o modal de chamados
+      setOsNumero(updatedDataFromDb.numeroOs);
+      setChamadoData(prev => ({
+        ...prev,
+        escola: updatedDataFromDb.unidadeEscolar || ""
+      }));
+
+      // Verificar se problema foi solucionado
+      const problemaResolvido = formData.solucionado === "Sim";
+
       // LIMPAR O FORMULÁRIO APÓS SUCESSO
       clearForm();
 
-      setAlertDialog({
-        title: "Sucesso",
-        description: `OS Externa ${updatedDataFromDb.numeroOs} enviada por e-mail para ${updatedDataFromDb.unidadeEscolar}! O responsável receberá um e-mail para confirmação.`,
-        success: true
-      });
+      if (!problemaResolvido) {
+        // Se problema não foi solucionado, criar chamado automático
+        await criarChamadoAutomatico(updatedDataFromDb);
+
+        setAlertDialog({
+          title: "Sucesso",
+          description: `OS Externa ${updatedDataFromDb.numeroOs} enviada por e-mail para ${updatedDataFromDb.unidadeEscolar}! Como o problema não foi solucionado, um chamado foi criado automaticamente para reagendamento.`,
+          success: true
+        });
+      } else {
+        // Se problema foi solucionado, perguntar se quer abrir chamado
+        setAlertDialog({
+          title: "Sucesso",
+          description: `OS Externa ${updatedDataFromDb.numeroOs} enviada por e-mail para ${updatedDataFromDb.unidadeEscolar}! O responsável receberá um e-mail para confirmação.`,
+          success: true
+        });
+
+        // Após fechar o alert de sucesso, mostrar modal de chamados
+        setTimeout(() => {
+          setAlertDialog(null);
+          setShowChamadoModal(true);
+        }, 2000);
+      }
     } catch (error) {
       console.error("Erro ao enviar o formulário:", error);
       showToastMessage('Erro ao processar a OS. Tente novamente.', 'error');
@@ -752,6 +788,84 @@ const FillPdfForm: React.FC = () => {
     } catch (error) {
       console.error("Erro ao salvar os dados e obter o número da OS:", error);
       throw error;
+    }
+  };
+
+  // Função para criar chamado automático quando problema não foi solucionado
+  const criarChamadoAutomatico = async (osData: any) => {
+    try {
+      const chamadoAutomatico = {
+        escola: osData.unidadeEscolar,
+        titulo: `Reagendamento - OS ${osData.numeroOs}`,
+        descricao: `Problema não solucionado na OS ${osData.numeroOs}. Solicitação original: ${osData.solicitacaoDaVisita}. Relatório: ${osData.relatorio}`,
+        categoria: "Reagendamento",
+        tecnico: osData.tecnicoResponsavel,
+        osOriginal: osData.numeroOs,
+        automatico: true
+      };
+
+      const response = await fetch('/api/chamados-escalas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(chamadoAutomatico)
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar chamado automático');
+      }
+
+      console.log('Chamado automático criado com sucesso');
+    } catch (error) {
+      console.error('Erro ao criar chamado automático:', error);
+      showToastMessage('Aviso: Erro ao criar chamado automático', 'warning');
+    }
+  };
+
+  // Função para criar chamado manual
+  const criarChamadoManual = async () => {
+    try {
+      if (!chamadoData.titulo || !chamadoData.descricao || !chamadoData.categoria) {
+        showToastMessage('Preencha todos os campos obrigatórios', 'warning');
+        return;
+      }
+
+      const chamadoManual = {
+        escola: chamadoData.escola,
+        titulo: chamadoData.titulo,
+        descricao: chamadoData.descricao,
+        categoria: chamadoData.categoria,
+        tecnico: localTecnicoName,
+        osOriginal: osNumero,
+        automatico: false
+      };
+
+      const response = await fetch('/api/chamados-escalas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(chamadoManual)
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar chamado');
+      }
+
+      showToastMessage('Chamado criado com sucesso!', 'success');
+      setShowChamadoModal(false);
+
+      // Limpar dados do chamado
+      setChamadoData({
+        escola: "",
+        titulo: "",
+        descricao: "",
+        categoria: ""
+      });
+    } catch (error) {
+      console.error('Erro ao criar chamado manual:', error);
+      showToastMessage('Erro ao criar chamado. Tente novamente.', 'error');
     }
   };
 
@@ -1041,6 +1155,121 @@ const FillPdfForm: React.FC = () => {
                 transition={{ delay: 0.5 }}
               >
                 Continuar
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Modal de Chamados */}
+      {showChamadoModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="bg-slate-800/95 border border-blue-400/30 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+          >
+            <div className="text-center mb-6">
+              <motion.div
+                className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              >
+                <Plus size={32} className="text-blue-400" />
+              </motion.div>
+
+              <h3 className="text-2xl font-bold text-blue-400 mb-2">
+                Criar Novo Chamado?
+              </h3>
+
+              <p className="text-slate-300 text-sm">
+                Você encontrou algum serviço adicional que precisa ser agendado para esta escola?
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Escola
+                </label>
+                <input
+                  type="text"
+                  value={chamadoData.escola}
+                  disabled
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Título do Chamado *
+                </label>
+                <input
+                  type="text"
+                  value={chamadoData.titulo}
+                  onChange={(e) => setChamadoData(prev => ({ ...prev, titulo: e.target.value }))}
+                  placeholder="Ex: Instalação de impressora"
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Categoria *
+                </label>
+                <select
+                  value={chamadoData.categoria}
+                  onChange={(e) => setChamadoData(prev => ({ ...prev, categoria: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:border-blue-400 focus:outline-none"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="Instalação">Instalação</option>
+                  <option value="Manutenção">Manutenção</option>
+                  <option value="Configuração">Configuração</option>
+                  <option value="Troca de Equipamento">Troca de Equipamento</option>
+                  <option value="Problema de Rede">Problema de Rede</option>
+                  <option value="Impressora">Impressora</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Descrição *
+                </label>
+                <textarea
+                  value={chamadoData.descricao}
+                  onChange={(e) => setChamadoData(prev => ({ ...prev, descricao: e.target.value }))}
+                  placeholder="Descreva o serviço que precisa ser agendado..."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:border-blue-400 focus:outline-none resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <motion.button
+                onClick={() => setShowChamadoModal(false)}
+                className="flex-1 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Não, obrigado
+              </motion.button>
+
+              <motion.button
+                onClick={criarChamadoManual}
+                className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Criar Chamado
               </motion.button>
             </div>
           </motion.div>

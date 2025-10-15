@@ -258,6 +258,12 @@ model School {
   parentSchoolId   Int?              // ID da escola principal (para anexos)
   parentSchool     School?           @relation("SchoolAnnexes", fields: [parentSchoolId], references: [id])
   annexes          School[]          @relation("SchoolAnnexes") // Anexos desta escola
+  
+  // Coordenadas geográficas para otimização de rotas
+  latitude         Float?
+  longitude        Float?
+  geocoded         Boolean           @default(false)
+  
   Item             Item[]
   SchoolDemand     SchoolDemand[]
   ScheduleEvent    ScheduleEvent[]
@@ -265,6 +271,10 @@ model School {
   TechnicalTicket  TechnicalTicket[] // Chamados técnicos da escola
   InternalTickets  InternalTicket[]  @relation("InternalTickets") // Chamados internos
   ChadaDiagnostics ChadaDiagnostic[] @relation("ChadaDiagnostics") // Diagnósticos da CHADA
+  RouteVisit       RouteVisit[]      // Visitas em rotas otimizadas
+  ChamadosEscola   ChamadoEscola[]   @relation("ChamadosEscola") // Chamados das escolas
+
+  @@index([geocoded])
 }
 
 model SchoolDemand {
@@ -761,4 +771,144 @@ enum ChadaDiagnosticStatus {
   PECA_CHEGOU        // Peça chegou
   INSTALADO          // Peça instalada/finalizado
   CANCELADO          // Cancelado por algum motivo
+}
+
+// === SISTEMA DE OTIMIZAÇÃO DE ROTAS ===
+
+model RouteOptimization {
+  id            String      @id @default(uuid())
+  technicianId  Int         // ID do técnico responsável
+  date          DateTime    // Data da rota
+  totalDistance Float?      // Distância total em quilômetros
+  totalTime     Int?        // Tempo total estimado em minutos
+  optimized     Boolean     @default(false) // Se foi otimizada
+  algorithm     String?     // Algoritmo usado (nearest_neighbor, genetic, google)
+  startLocation Json?       // Ponto de partida (lat, lng)
+  notes         String?     // Observações da rota
+  status        RouteStatus @default(PLANNED) // Status da rota
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relacionamentos
+  visits        RouteVisit[] // Visitas da rota
+  
+  @@index([technicianId, date])
+  @@index([status])
+}
+
+model RouteVisit {
+  id            String    @id @default(uuid())
+  routeId       String    // ID da rota
+  schoolId      Int       // ID da escola
+  visitOrder    Int       // Ordem da visita na rota (1, 2, 3...)
+  estimatedTime Int       // Tempo estimado na escola (minutos)
+  actualTime    Int?      // Tempo real gasto (minutos)
+  arrivalTime   DateTime? // Hora real de chegada
+  departureTime DateTime? // Hora real de saída
+  distance      Float?    // Distância até esta escola (km)
+  status        VisitStatus @default(PENDING) // Status da visita
+  notes         String?   // Observações da visita
+  
+  // Relacionamentos
+  route         RouteOptimization @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  school        School            @relation(fields: [schoolId], references: [id])
+  
+  @@index([routeId, visitOrder])
+  @@index([schoolId])
+  @@index([status])
+}
+
+enum RouteStatus {
+  PLANNED     // Rota planejada
+  IN_PROGRESS // Rota em andamento
+  COMPLETED   // Rota concluída
+  CANCELLED   // Rota cancelada
+}
+
+enum VisitStatus {
+  PENDING    // Aguardando visita
+  TRAVELING  // A caminho
+  ARRIVED    // Chegou na escola
+  WORKING    // Trabalhando na escola
+  COMPLETED  // Visita concluída
+  SKIPPED    // Visita pulada
+}
+
+// Chamados das escolas para o CSDT
+model ChamadoEscola {
+  id          String              @id @default(uuid())
+  schoolId    Int                 // ID da escola que ligou
+  schoolName  String              // Nome da escola para facilitar consultas
+  title       String              // Título/resumo do chamado
+  description String              // Descrição detalhada do problema
+  category    ChamadoCategory     @default(OTHER) // Categoria do chamado
+  priority    ChamadoPriority     @default(MEDIUM) // Prioridade
+  status      ChamadoStatus       @default(OPEN) // Status do chamado
+  phone       String?             // Telefone de contato
+  contact     String?             // Pessoa de contato na escola
+  createdBy   String              // Usuário que cadastrou o chamado
+  assignedTo  String?             // Técnico responsável (quando atribuído)
+  notes       String?             // Observações internas
+  resolvedAt  DateTime?           // Data de resolução
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  // Relacionamento com a escola
+  School      School              @relation("ChamadosEscola", fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([assignedTo])
+  @@map("chamados_escola")
+}
+
+enum ChamadoCategory {
+  COMPUTER      // Computador/Desktop
+  NOTEBOOK      // Notebook
+  TABLET        // Tablet
+  PRINTER       // Impressora
+  NETWORK       // Rede/Internet
+  SOFTWARE      // Software
+  MAINTENANCE   // Manutenção geral
+  PHONE         // Telefone/Ramal
+  PROJECTOR     // Projetor/Datashow
+  AUDIO         // Sistema de som
+  OTHER         // Outros
+}
+
+enum ChamadoPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ChamadoStatus {
+  OPEN          // Aberto
+  ASSIGNED      // Atribuído a técnico
+  IN_PROGRESS   // Em andamento
+  RESOLVED      // Resolvido
+  CLOSED        // Fechado
+  CANCELLED     // Cancelado
+}
+
+// Chamados para escalas (reagendamentos e novos serviços)
+model ChamadoEscala {
+  id              Int      @id @default(autoincrement())
+  escola          String   // Nome da escola
+  titulo          String   // Título do chamado
+  descricao       String   // Descrição do serviço
+  categoria       String   // Categoria do serviço
+  tecnico         String   // Técnico que criou
+  osOriginal      String?  // OS original (se veio de reagendamento)
+  automatico      Boolean  @default(false) // Se foi criado automaticamente
+  status          String   @default("PENDENTE") // PENDENTE, AGENDADO, CONCLUIDO
+  dataCriacao     DateTime @default(now())
+  dataAgendamento DateTime? // Quando foi agendado para a rota
+  observacoes     String?  // Observações do administrativo
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("chamados_escalas")
 }
