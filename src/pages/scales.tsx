@@ -214,6 +214,7 @@ const Scales: React.FC = () => {
   
   // Technical Tickets States
   const [technicalTickets, setTechnicalTickets] = useState<any[]>([]);
+  const [chamadosEscala, setChamadosEscala] = useState<any[]>([]); // NOVO: Chamados de Escala
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [ticketStats, setTicketStats] = useState<any>(null);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -345,6 +346,7 @@ const Scales: React.FC = () => {
       fetchCalendars();
     } else if (activeView === 'tickets') {
       fetchTechnicalTickets();
+      fetchChamadosEscala(); // NOVO: Buscar também chamados de escala
       fetchAdminUsers();
     }
   }, [activeView]);
@@ -441,6 +443,7 @@ const Scales: React.FC = () => {
   useEffect(() => {
     if (activeView === 'tickets') {
       fetchTechnicalTickets();
+      fetchChamadosEscala(); // NOVO: Atualizar também chamados de escala
     }
   }, [ticketFilter]);
 
@@ -476,6 +479,24 @@ const Scales: React.FC = () => {
       console.error('Erro ao buscar chamados técnicos:', error);
     } finally {
       setLoadingTickets(false);
+    }
+  };
+
+  // NOVO: Função para buscar chamados de escala
+  const fetchChamadosEscala = async () => {
+    try {
+      const statusFilter = ticketFilter === 'all' ? '' : `?status=${ticketFilter}`;
+      const response = await fetch(`/api/chamados-escalas${statusFilter}`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar chamados de escala');
+      }
+      const data = await response.json();
+      if (data.success) {
+        setChamadosEscala(data.data || []);
+        console.log('Chamados de escala carregados:', data.data);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar chamados de escala:', error);
     }
   };
 
@@ -2844,8 +2865,22 @@ const Scales: React.FC = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
               ) : (() => {
+                // MODIFICADO: Combinar chamados técnicos e chamados de escala
+                const allTickets = [
+                  ...technicalTickets,
+                  ...chamadosEscala.map(chamado => ({
+                    ...chamado,
+                    title: chamado.titulo,
+                    description: chamado.descricao,
+                    category: chamado.categoria,
+                    School: { name: chamado.escola },
+                    isChamadoEscala: true, // Flag para identificar tipo
+                    status: chamado.status
+                  }))
+                ];
+
                 // Filtrar chamados baseado no termo de pesquisa
-                const filteredTickets = technicalTickets.filter(ticket => {
+                const filteredTickets = allTickets.filter(ticket => {
                   const searchLower = ticketSearchTerm.toLowerCase();
                   return (
                     ticket.title.toLowerCase().includes(searchLower) ||
