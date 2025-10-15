@@ -20,7 +20,8 @@ import {
   Trash,
   CheckCircle,
   ChatCircle,
-  CloudArrowDown
+  CloudArrowDown,
+  Phone
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -28,6 +29,8 @@ import { Header } from "./Header";
 import { useHeaderContext } from "../context/HeaderContext";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardRegisterForm from "./DashboardRegisterForm";
+// import ChamadosEscolaCard from "./ChamadosEscolaCard";
+// import NovoChamadoModal from "./NovoChamadoModal";
 
 interface DecodedToken {
   userId: string;
@@ -48,10 +51,14 @@ const Dashboard: React.FC = () => {
     newDemands: 0,
     alerts: 0,
     internalChat: 0,
-    delayedDiagnostics: 0
+    delayedDiagnostics: 0,
+    chamadosPendentes: 0
   });
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  // const [showNovoChamadoModal, setShowNovoChamadoModal] = useState(false);
+  // const [chamadosEscola, setChamadosEscola] = useState([]);
+  // const [isLoadingChamados, setIsLoadingChamados] = useState(false);
 
   // Lógica para buscar o usuário do Supabase e consultar a role no Prisma
   useEffect(() => {
@@ -166,12 +173,28 @@ const Dashboard: React.FC = () => {
           }
         }
 
+        // Buscar chamados pendentes das escolas - COMENTADO TEMPORARIAMENTE
+        /*
+        let chamadosPendentesCount = 0;
+        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
+          try {
+            const chamadosResponse = await fetch('/api/dashboard/chamados-pendentes');
+            const chamadosData = await chamadosResponse.json();
+            chamadosPendentesCount = chamadosData.success ? chamadosData.data.totalPending : 0;
+          } catch (error) {
+            console.error('Erro ao buscar chamados pendentes:', error);
+          }
+        }
+        */
+        let chamadosPendentesCount = 0;
+
         const newNotifications = {
           pendingOS: pendingOSData.success ? pendingOSData.data.totalPendingOS : 0,
           newDemands: dailyDemandsData.success ? dailyDemandsData.data.dailyDemandsCount : 0,
           alerts: 0, // Pode implementar depois
           internalChat: internalChatCount,
-          delayedDiagnostics: delayedDiagnosticsCount
+          delayedDiagnostics: delayedDiagnosticsCount,
+          chamadosPendentes: chamadosPendentesCount
         };
 
         setNotifications(newNotifications);
@@ -185,13 +208,145 @@ const Dashboard: React.FC = () => {
           newDemands: 0,
           alerts: 0,
           internalChat: 0,
-          delayedDiagnostics: 0
+          delayedDiagnostics: 0,
+          chamadosPendentes: 0
         });
       }
     };
 
     fetchNotifications();
   }, [userRole]);
+
+  // Buscar chamados das escolas - COMENTADO TEMPORARIAMENTE
+  /*
+  useEffect(() => {
+    if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole || '')) {
+      fetchChamadosEscola();
+    }
+  }, [userRole]);
+  */
+
+  // FUNÇÃO COMENTADA TEMPORARIAMENTE
+  /*
+  const fetchChamadosEscola = async () => {
+    try {
+      const response = await fetch('/api/chamados-escola');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Filtrar apenas chamados pendentes
+          const pendentes = data.data.filter((chamado: any) =>
+            ['OPEN', 'ASSIGNED', 'IN_PROGRESS'].includes(chamado.status)
+          );
+          setChamadosEscola(pendentes);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar chamados das escolas:', error);
+    }
+  };
+  */
+
+  // FUNÇÃO COMENTADA TEMPORARIAMENTE
+  /*
+  const handleCreateChamado = async (chamadoData: any) => {
+    setIsLoadingChamados(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const response = await fetch('/api/chamados-escola', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(chamadoData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar chamado');
+      }
+
+      // Atualizar lista de chamados
+      await fetchChamadosEscola();
+
+      // Atualizar notificações
+      const fetchNotifications = async () => {
+        try {
+          const chamadosResponse = await fetch('/api/dashboard/chamados-pendentes');
+          const chamadosData = await chamadosResponse.json();
+
+          setNotifications(prev => ({
+            ...prev,
+            chamadosPendentes: chamadosData.success ? chamadosData.data.totalPending : 0
+          }));
+        } catch (error) {
+          console.error('Erro ao atualizar notificações:', error);
+        }
+      };
+      await fetchNotifications();
+
+    } catch (error) {
+      console.error('Erro ao criar chamado:', error);
+      throw error;
+    } finally {
+      setIsLoadingChamados(false);
+    }
+  };
+  */
+
+  // FUNÇÃO COMENTADA TEMPORARIAMENTE
+  /*
+  const handleUpdateChamado = async (id: string, updateData: any) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const response = await fetch(`/api/chamados-escola/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar chamado');
+      }
+
+      // Atualizar lista de chamados
+      await fetchChamadosEscola();
+
+      // Atualizar notificações
+      const fetchNotifications = async () => {
+        try {
+          const chamadosResponse = await fetch('/api/dashboard/chamados-pendentes');
+          const chamadosData = await chamadosResponse.json();
+
+          setNotifications(prev => ({
+            ...prev,
+            chamadosPendentes: chamadosData.success ? chamadosData.data.totalPending : 0
+          }));
+        } catch (error) {
+          console.error('Erro ao atualizar notificações:', error);
+        }
+      };
+      await fetchNotifications();
+
+    } catch (error) {
+      console.error('Erro ao atualizar chamado:', error);
+      throw error;
+    }
+  };
+  */
 
   const toggleFavorite = (cardId: string) => {
     const newFavorites = favorites.includes(cardId)
@@ -636,7 +791,16 @@ const Dashboard: React.FC = () => {
                     <span>{notifications.delayedDiagnostics} impressoras atrasadas</span>
                   </div>
                 )}
-                
+                {/* Notificação de chamados removida temporariamente */}
+                {/*
+                {notifications.chamadosPendentes > 0 && (
+                  <div className="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full text-sm">
+                    <Phone size={16} />
+                    <span>{notifications.chamadosPendentes} chamados pendentes</span>
+                  </div>
+                )}
+                */}
+
                 {/* Botão de backup - apenas para Vanderson */}
                 {supabaseUserId === 'c7b74239-4188-4218-8390-063e0ad58871' && (
                   <button
@@ -668,7 +832,20 @@ const Dashboard: React.FC = () => {
               />
             </div>
           </div>
-          
+
+          {/* Card de Chamados Pendentes - REMOVIDO TEMPORARIAMENTE
+          {['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole || '') && (
+            <div className="mb-8">
+              <ChamadosEscolaCard
+                chamados={chamadosEscola}
+                totalPending={notifications.chamadosPendentes}
+                onCreateChamado={() => setShowNovoChamadoModal(true)}
+                onUpdateChamado={handleUpdateChamado}
+              />
+            </div>
+          )}
+          */}
+
           {/* Cards organizados por categoria */}
           <div className="space-y-8">
             {Object.entries(groupedCards).map(([category, cards]) => (
@@ -700,6 +877,16 @@ const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modal de Novo Chamado - REMOVIDO TEMPORARIAMENTE */}
+      {/*
+      <NovoChamadoModal
+        isOpen={showNovoChamadoModal}
+        onClose={() => setShowNovoChamadoModal(false)}
+        onSubmit={handleCreateChamado}
+        isLoading={isLoadingChamados}
+      />
+      */}
     </>
   );
 };
