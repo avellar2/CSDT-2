@@ -118,6 +118,9 @@ const ChadaPage: React.FC = () => {
   const [technicianChada, setTechnicianChada] = useState("");
   const [diagnostic, setDiagnostic] = useState("");
   const [requestedPart, setRequestedPart] = useState("");
+
+  // Estado do modal de aviso CSDT
+  const [showCsdtWarningModal, setShowCsdtWarningModal] = useState(false);
   
   // Estados de UI
   const [activeTab, setActiveTab] = useState<TabType>('na_chada');
@@ -396,7 +399,16 @@ const ChadaPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao adicionar item à CHADA");
+        const errorData = await response.json();
+
+        // Verificar se o erro é porque o item não está no CSDT
+        if (errorData.error === "ITEM_NAO_NO_CSDT") {
+          setModalIsOpen(false);
+          setShowCsdtWarningModal(true);
+          return;
+        }
+
+        throw new Error(errorData.message || "Erro ao adicionar item à CHADA");
       }
 
       alert("Item adicionado à CHADA com sucesso!");
@@ -409,6 +421,7 @@ const ChadaPage: React.FC = () => {
       setItems(updatedItems);
     } catch (error) {
       console.error(error);
+      alert("Erro ao adicionar item à CHADA. Tente novamente.");
     }
   };
 
@@ -1721,6 +1734,44 @@ const ChadaPage: React.FC = () => {
                 Cadastrar Diagnóstico
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Aviso - Item não está no CSDT */}
+      {showCsdtWarningModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-yellow-100 p-4 rounded-full">
+                <WarningCircle size={48} className="text-yellow-600" weight="fill" />
+              </div>
+            </div>
+
+            <h2 className="text-xl font-bold mb-4 text-center text-gray-900">
+              Item não está no CSDT
+            </h2>
+
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
+              <p className="text-gray-800 text-center leading-relaxed">
+                O item precisa estar no <strong>CSDT</strong> primeiro antes de poder enviar para a CHADA.
+              </p>
+              <p className="text-gray-700 text-center mt-3 font-medium">
+                Por favor, consulte o <strong>Aurélio</strong> para fazer o memorando e trazer o item para o CSDT.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowCsdtWarningModal(false);
+                setProblem("");
+                setSector("");
+                setSelectedItem(null);
+              }}
+              className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+            >
+              Entendi
+            </button>
           </div>
         </div>
       )}
