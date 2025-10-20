@@ -28,6 +28,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Item não encontrado" });
     }
 
+    // Validar se o item está no CSDT (schoolId = 225)
+    if (item.schoolId !== 225) {
+      return res.status(400).json({
+        error: "ITEM_NAO_NO_CSDT",
+        message: "O item precisa estar no CSDT primeiro. Consulte o Aurélio para fazer o memorando e trazer o item para o CSDT antes de enviar à CHADA."
+      });
+    }
+
     const fromSchool = item.School?.name || "Escola desconhecida";
     const toSchool = "CHADA"; // Nome da escola de destino
 

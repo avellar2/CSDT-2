@@ -52,7 +52,8 @@ const Dashboard: React.FC = () => {
     alerts: 0,
     internalChat: 0,
     delayedDiagnostics: 0,
-    chamadosPendentes: 0
+    chamadosPendentes: 0,
+    chamadosAbertos: 0
   });
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -188,13 +189,26 @@ const Dashboard: React.FC = () => {
         */
         let chamadosPendentesCount = 0;
 
+        // Buscar chamados abertos (TechnicalTicket + ChamadoEscala)
+        let chamadosAbertosCount = 0;
+        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
+          try {
+            const chamadosAbertosResponse = await fetch('/api/dashboard/chamados-abertos');
+            const chamadosAbertosData = await chamadosAbertosResponse.json();
+            chamadosAbertosCount = chamadosAbertosData.success ? chamadosAbertosData.data.total : 0;
+          } catch (error) {
+            console.error('Erro ao buscar chamados abertos:', error);
+          }
+        }
+
         const newNotifications = {
           pendingOS: pendingOSData.success ? pendingOSData.data.totalPendingOS : 0,
           newDemands: dailyDemandsData.success ? dailyDemandsData.data.dailyDemandsCount : 0,
           alerts: 0, // Pode implementar depois
           internalChat: internalChatCount,
           delayedDiagnostics: delayedDiagnosticsCount,
-          chamadosPendentes: chamadosPendentesCount
+          chamadosPendentes: chamadosPendentesCount,
+          chamadosAbertos: chamadosAbertosCount
         };
 
         setNotifications(newNotifications);
@@ -209,7 +223,8 @@ const Dashboard: React.FC = () => {
           alerts: 0,
           internalChat: 0,
           delayedDiagnostics: 0,
-          chamadosPendentes: 0
+          chamadosPendentes: 0,
+          chamadosAbertos: 0
         });
       }
     };
@@ -564,10 +579,10 @@ const Dashboard: React.FC = () => {
       title: 'Escalas',
       icon: Users,
       color: 'bg-gray-500 hover:bg-gray-700',
-      path: '/scales',
+      path: notifications.chamadosAbertos > 0 ? '/scales?view=tickets' : '/scales',
       roles: ['ADMTOTAL', 'ADMIN'],
       category: 'Gestão Diária',
-      badge: null
+      badge: notifications.chamadosAbertos > 0 ? notifications.chamadosAbertos : null
     },
     {
       id: 'daily-demands',
@@ -774,22 +789,40 @@ const Dashboard: React.FC = () => {
               {/* Notificações rápidas */}
               <div className="flex items-center gap-4">
                 {notifications.pendingOS > 0 && (
-                  <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-1 rounded-full text-sm">
+                  <button
+                    onClick={() => handleNavigate('/os-externas-list')}
+                    className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-1 rounded-full text-sm hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
+                  >
                     <Bell size={16} />
                     <span>{notifications.pendingOS} OS pendentes</span>
-                  </div>
+                  </button>
                 )}
                 {notifications.newDemands > 0 && (
-                  <div className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
+                  <button
+                    onClick={() => handleNavigate('/daily-demands')}
+                    className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                  >
                     <Calendar size={16} />
                     <span>{notifications.newDemands} novas demandas</span>
-                  </div>
+                  </button>
                 )}
                 {notifications.delayedDiagnostics > 0 && (
-                  <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm">
+                  <button
+                    onClick={() => handleNavigate('/chada')}
+                    className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors cursor-pointer"
+                  >
                     <Printer size={16} />
                     <span>{notifications.delayedDiagnostics} impressoras atrasadas</span>
-                  </div>
+                  </button>
+                )}
+                {notifications.chamadosAbertos > 0 && (
+                  <button
+                    onClick={() => handleNavigate('/scales?view=tickets')}
+                    className="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors cursor-pointer"
+                  >
+                    <Wrench size={16} />
+                    <span>{notifications.chamadosAbertos} chamados abertos</span>
+                  </button>
                 )}
                 {/* Notificação de chamados removida temporariamente */}
                 {/*
