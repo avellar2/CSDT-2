@@ -27,10 +27,64 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         numeroOs: true,
         unidadeEscolar: true,
         tecnicoResponsavel: true,
+        emailResponsavel: true,
         data: true,
         hora: true,
         status: true,
-        assinado: true
+        assinado: true,
+        cpf: true,
+        cargoResponsavel: true,
+        // Informações adicionais
+        solicitacaoDaVisita: true,
+        relatorio: true,
+        solucionado: true,
+        pecasOuMaterial: true,
+        temLaboratorio: true,
+        // Fotos
+        fotosAntes: true,
+        fotosDepois: true,
+        // Equipamentos Próprios
+        pcsProprio: true,
+        notebooksProprio: true,
+        tabletsProprio: true,
+        monitoresProprio: true,
+        estabilizadoresProprio: true,
+        // Equipamentos Locados
+        pcsLocado: true,
+        notebooksLocado: true,
+        tabletsLocado: true,
+        monitoresLocado: true,
+        estabilizadoresLocado: true,
+        // Equipamentos Outros Locais - Próprios
+        pcsProprioOutrosLocais: true,
+        notebooksProprioOutrosLocais: true,
+        tabletsProprioOutrosLocais: true,
+        monitoresProprioOutrosLocais: true,
+        estabilizadoresProprioOutrosLocais: true,
+        // Equipamentos Outros Locais - Locados
+        pcsLocadoOutrosLocais: true,
+        notebooksLocadoOutrosLocais: true,
+        tabletsLocadoOutrosLocais: true,
+        monitoresLocadoOutrosLocais: true,
+        estabilizadoresLocadoOutrosLocais: true,
+        // Impressoras
+        oki: true,
+        kyocera: true,
+        hp: true,
+        ricoh: true,
+        outrasImpressoras: true,
+        // Internet
+        redeBr: true,
+        educacaoConectada: true,
+        naoHaProvedor: true,
+        // Rede
+        rack: true,
+        switch: true,
+        roteador: true,
+        // Datas
+        createdAt: true,
+        updatedAt: true,
+        lastEmailSent: true
       }
     });
 
