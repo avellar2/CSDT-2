@@ -21,7 +21,8 @@ import {
   CheckCircle,
   ChatCircle,
   CloudArrowDown,
-  Phone
+  Phone,
+  BookOpen
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -449,6 +450,7 @@ const Dashboard: React.FC = () => {
     'Documentos': ['memorandums', 'new-memorandums'],
     'Administração': ['register-users'],
     'Chamados Técnicos': ['open-technical-ticket', 'view-deleted-tickets', 'internal-chat', 'accepted-tickets'],
+    'Ajuda e Suporte': ['manual-usuario'],
     'Outros': ['chada']
   };
 
@@ -683,6 +685,16 @@ const Dashboard: React.FC = () => {
       roles: ['ADMIN', 'ADMTOTAL', 'TECH', 'SCHOOL'],
       category: 'Chamados Técnicos',
       badge: notifications.internalChat > 0 ? notifications.internalChat : null
+    },
+    {
+      id: 'manual-usuario',
+      title: 'Manual do Usuário',
+      icon: BookOpen,
+      color: 'bg-purple-600 hover:bg-purple-800',
+      action: () => window.open('/manual-usuario.html', '_blank'),
+      roles: ['ADMIN', 'ADMTOTAL', 'TECH', 'SCHOOL', 'ONLYREAD'],
+      category: 'Ajuda e Suporte',
+      badge: null
     }
   ];
 

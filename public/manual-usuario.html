@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Usuário - CSDT-2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+        }
+
+        .header .version {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            margin-top: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Sidebar Navigation */
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            margin-top: -50px;
+            position: relative;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+            max-height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #64748b;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .nav-menu a i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Content */
+        .content {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 2rem;
+        }
+
+        .section h2 {
+            color: var(--primary);
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--primary);
+            display: flex;
+            align-items: center;
+        }
+
+        .section h2 i {
+            margin-right: 1rem;
+            font-size: 2rem;
+        }
+
+        .section h3 {
+            color: var(--secondary);
+            font-size: 1.6rem;
+            margin: 2rem 0 1rem;
+        }
+
+        .section h4 {
+            color: var(--dark);
+            font-size: 1.3rem;
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        /* Cards */
+        .card {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border-left: 5px solid var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .card-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card h4 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-item {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+            border-color: var(--primary);
+        }
+
+        .feature-item i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .feature-item h4 {
+            color: var(--dark);
+            margin: 0.5rem 0;
+        }
+
+        .feature-item p {
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            margin: 2rem 0;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            position: relative;
+            padding-left: 4rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .steps li:last-child {
+            border-bottom: none;
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Info Boxes */
+        .info-box {
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .info-box i {
+            font-size: 1.5rem;
+            margin-top: 0.2rem;
+        }
+
+        .info-success {
+            background: #d1fae5;
+            border-left: 5px solid var(--success);
+            color: #065f46;
+        }
+
+        .info-success i {
+            color: var(--success);
+        }
+
+        .info-warning {
+            background: #fef3c7;
+            border-left: 5px solid var(--warning);
+            color: #92400e;
+        }
+
+        .info-warning i {
+            color: var(--warning);
+        }
+
+        .info-danger {
+            background: #fee2e2;
+            border-left: 5px solid var(--danger);
+            color: #991b1b;
+        }
+
+        .info-danger i {
+            color: var(--danger);
+        }
+
+        .info-primary {
+            background: #dbeafe;
+            border-left: 5px solid var(--primary);
+            color: #1e40af;
+        }
+
+        .info-primary i {
+            color: var(--primary);
+        }
+
+        /* Status Badges */
+        .status-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .badge i {
+            margin-right: 0.5rem;
+        }
+
+        .badge-gray {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-purple {
+            background: #e9d5ff;
+            color: #6b21a8;
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 2rem 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        /* FAQ */
+        .faq-item {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--dark);
+            background: #f8fafc;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: #e0e7ff;
+        }
+
+        .faq-question i {
+            color: var(--primary);
+            transition: transform 0.3s ease;
+        }
+
+        .faq-answer {
+            padding: 0 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item.active .faq-answer {
+            padding: 1.5rem;
+            max-height: 500px;
+        }
+
+        .faq-item.active .faq-question i {
+            transform: rotate(180deg);
+        }
+
+        /* Search Box */
+        .search-box {
+            background: white;
+            border-radius: 50px;
+            padding: 1rem 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-box i {
+            color: var(--gray);
+            font-size: 1.2rem;
+        }
+
+        .search-box input {
+            border: none;
+            outline: none;
+            flex: 1;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark);
+            color: white;
+            text-align: center;
+            padding: 3rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer p {
+            opacity: 0.8;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+                margin-bottom: 2rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scroll to top button */
+        .scroll-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .scroll-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .scroll-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1><i class="fas fa-book-open"></i> Manual do Usuário</h1>
+        <p>Sistema CSDT-2 - Plataforma de Gestão Educacional</p>
+        <div class="version">Versão 2.0 - 2025</div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="layout">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <h3><i class="fas fa-compass"></i> Navegação</h3>
+                <ul class="nav-menu">
+                    <li><a href="#introducao"><i class="fas fa-home"></i> Introdução</a></li>
+                    <li><a href="#primeiro-acesso"><i class="fas fa-user-plus"></i> Primeiro Acesso</a></li>
+                    <li><a href="#dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+                    <li><a href="#escolas"><i class="fas fa-school"></i> Escolas</a></li>
+                    <li><a href="#demandas"><i class="fas fa-clipboard-list"></i> Demandas Diárias</a></li>
+                    <li><a href="#escalas"><i class="fas fa-calendar-alt"></i> Escalas</a></li>
+                    <li><a href="#os"><i class="fas fa-file-alt"></i> Ordens de Serviço</a></li>
+                    <li><a href="#chada"><i class="fas fa-tools"></i> CHADA</a></li>
+                    <li><a href="#chamados"><i class="fas fa-phone"></i> Chamados</a></li>
+                    <li><a href="#chat"><i class="fas fa-comments"></i> Chat Interno</a></li>
+                    <li><a href="#memorandos"><i class="fas fa-file-signature"></i> Memorandos</a></li>
+                    <li><a href="#itens"><i class="fas fa-laptop"></i> Itens</a></li>
+                    <li><a href="#impressoras"><i class="fas fa-print"></i> Impressoras</a></li>
+                    <li><a href="#estatisticas"><i class="fas fa-chart-bar"></i> Estatísticas</a></li>
+                    <li><a href="#faq"><i class="fas fa-question-circle"></i> Perguntas Frequentes</a></li>
+                </ul>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="content">
+                <!-- Search Box -->
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar no manual...">
+                </div>
+
+                <!-- Introdução -->
+                <section id="introducao" class="section">
+                    <h2><i class="fas fa-home"></i> Bem-vindo ao CSDT-2</h2>
+
+                    <p>O <strong>CSDT-2</strong> é uma plataforma completa e moderna para gerenciar serviços técnicos em instituições de ensino. Desenvolvido com tecnologia de ponta, o sistema oferece uma solução integrada para todas as necessidades de gestão tecnológica educacional.</p>
+
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-school"></i>
+                            <h4>Gestão de Escolas</h4>
+                            <p>Controle completo de todas as instituições da rede</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h4>Demandas Organizadas</h4>
+                            <p>Acompanhe solicitações diárias de forma eficiente</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-file-alt"></i>
+                            <h4>Ordens de Serviço</h4>
+                            <p>Crie e gerencie OS digitalmente</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-tools"></i>
+                            <h4>Controle de Consertos</h4>
+                            <p>Rastreie equipamentos enviados para reparo</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-laptop"></i>
+                            <h4>Gestão de Equipamentos</h4>
+                            <p>Inventário completo de itens e localização</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-chart-line"></i>
+                            <h4>Relatórios e Métricas</h4>
+                            <p>Estatísticas detalhadas e exportação de dados</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Primeiro Acesso -->
+                <section id="primeiro-acesso" class="section">
+                    <h2><i class="fas fa-user-plus"></i> Primeiro Acesso</h2>
+
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-sign-in-alt"></i></div>
+                        <h4>Como fazer Login</h4>
+                        <ol class="steps">
+                            <li>Abra seu navegador preferido (Chrome, Firefox ou Edge)</li>
+                            <li>Digite o endereço do sistema CSDT-2</li>
+                            <li>Na tela de login, insira seu <strong>e-mail</strong> e <strong>senha</strong></li>
+                            <li>Clique no botão <strong>"Entrar"</strong></li>
+                        </ol>
+                    </div>
+
+                    <div class="info-box info-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>Esqueceu sua senha?</strong><br>
+                            Entre em contato com o administrador do sistema para recuperar ou redefinir sua senha.
+                        </div>
+                    </div>
+
+                    <h3>Perfis de Usuário</h3>
+                    <p>O sistema possui diferentes níveis de acesso para garantir a segurança das informações:</p>
+
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-crown"></i>
+                            <h4>ADMTOTAL</h4>
+                            <p>Acesso total ao sistema. Pode executar todas as operações.</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-user-shield"></i>
+                            <h4>ADMIN</h4>
+                            <p>Acesso administrativo com algumas restrições.</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-user-cog"></i>
+                            <h4>TECH</h4>
+                            <p>Técnico - pode visualizar e executar tarefas técnicas.</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-school"></i>
+                            <h4>SCHOOL</h4>
+                            <p>Usuário de escola - acesso às funcionalidades da instituição.</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-eye"></i>
+                            <h4>ONLYREAD</h4>
+                            <p>Apenas visualização - não pode editar ou criar registros.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Dashboard -->
+                <section id="dashboard" class="section">
+                    <h2><i class="fas fa-th-large"></i> Dashboard - Painel Principal</h2>
+
+                    <p>O <strong>Dashboard</strong> é sua central de controle. Ao fazer login, você será direcionado para esta tela que apresenta todas as funcionalidades do sistema de forma organizada e intuitiva.</p>
+
+                    <h3>Elementos do Dashboard</h3>
+
+                    <div class="card">
+                        <h4><i class="fas fa-bell"></i> Notificações</h4>
+                        <p>No topo do dashboard, você encontrará alertas importantes:</p>
+                        <ul>
+                            <li><strong>OS Pendentes:</strong> Ordens de serviço aguardando assinatura</li>
+                            <li><strong>Novas Demandas:</strong> Solicitações recebidas hoje</li>
+                            <li><strong>Chamados Abertos:</strong> Chamados técnicos ativos</li>
+                            <li><strong>Alertas CHADA:</strong> Equipamentos com atrasos</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4><i class="fas fa-star"></i> Sistema de Favoritos</h4>
+                        <p>Marque suas funcionalidades mais usadas como favoritas clicando na estrela do card. Elas aparecerão destacadas no topo do dashboard para acesso rápido.</p>
+                    </div>
+
+                    <div class="card">
+                        <h4><i class="fas fa-search"></i> Busca Rápida</h4>
+                        <p>Use a barra de pesquisa no topo para encontrar rapidamente qualquer funcionalidade. Digite palavras-chave como "escola", "demanda" ou "OS".</p>
+                    </div>
+
+                    <div class="info-box info-success">
+                        <i class="fas fa-lightbulb"></i>
+                        <div>
+                            <strong>Dica:</strong> Mantenha seu dashboard organizado marcando apenas as funcionalidades que você usa diariamente como favoritas!
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Escolas -->
+                <section id="escolas" class="section">
+                    <h2><i class="fas fa-school"></i> Gestão de Escolas</h2>
+
+                    <p>Visualize e gerencie todas as escolas da rede educacional. Esta seção permite acessar informações detalhadas de cada instituição.</p>
+
+                    <h3>Como usar</h3>
+                    <ol class="steps">
+                        <li>No Dashboard, clique no card <strong>"Escolas"</strong></li>
+                        <li>Você verá a lista completa de todas as escolas cadastradas</li>
+                        <li>Use a barra de busca para encontrar uma escola específica</li>
+                        <li>Clique em qualquer card para ver detalhes completos</li>
+                    </ol>
+
+                    <h3>Informações Disponíveis</h3>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <h4>Localização</h4>
+                            <p>Endereço completo e distrito</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-user-tie"></i>
+                            <h4>Direção</h4>
+                            <p>Nome do diretor(a)</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-phone"></i>
+                            <h4>Contato</h4>
+                            <p>Telefone e e-mail</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-users"></i>
+                            <h4>Alunos</h4>
+                            <p>Número total de estudantes</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-desktop"></i>
+                            <h4>Laboratório</h4>
+                            <p>Quantidade de equipamentos</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-building"></i>
+                            <h4>Anexos</h4>
+                            <p>Unidades anexas à escola</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h4><i class="fas fa-filter"></i> Filtros Avançados</h4>
+                        <p>Clique em "Filtros" para refinar sua busca:</p>
+                        <ul>
+                            <li><strong>Por Distrito:</strong> Filtre escolas de um distrito específico</li>
+                            <li><strong>Por Diretor:</strong> Busque pelo nome do diretor</li>
+                            <li><strong>Por Alunos:</strong> Defina faixa mínima/máxima de alunos</li>
+                            <li><strong>Com/Sem Laboratório:</strong> Identifique escolas com infraestrutura</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box info-primary">
+                        <i class="fas fa-map"></i>
+                        <div>
+                            <strong>Abrir no Mapa:</strong> Clique no ícone de localização para abrir o endereço da escola no Google Maps.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Demandas Diárias -->
+                <section id="demandas" class="section">
+                    <h2><i class="fas fa-clipboard-list"></i> Demandas Diárias</h2>
+
+                    <p>Gerencie todas as solicitações de serviço das escolas de forma organizada e eficiente.</p>
+
+                    <div class="card">
+                        <h4>O que são Demandas?</h4>
+                        <p>Demandas são solicitações de atendimento técnico feitas pelas escolas. Exemplos:</p>
+                        <ul>
+                            <li>"Notebook não liga"</li>
+                            <li>"Internet sem funcionar"</li>
+                            <li>"Impressora com erro"</li>
+                            <li>"Computadores do laboratório travando"</li>
+                        </ul>
+                    </div>
+
+                    <h3>Visualizando Demandas</h3>
+                    <ol class="steps">
+                        <li>Acesse <strong>"Demandas Diárias"</strong> no Dashboard</li>
+                        <li>Use o calendário para selecionar a data desejada</li>
+                        <li>As demandas do dia selecionado serão exibidas</li>
+                        <li>Veja também a escala de técnicos (Base, Visita, Folga)</li>
+                    </ol>
+
+                    <h3>Status das Demandas</h3>
+                    <div class="status-badges">
+                        <span class="badge badge-gray"><i class="fas fa-circle"></i> Sem OS</span>
+                        <span class="badge badge-yellow"><i class="fas fa-circle"></i> OS Criada</span>
+                        <span class="badge badge-green"><i class="fas fa-circle"></i> OS Assinada</span>
+                    </div>
+
+                    <h3>Adicionar Nova Demanda</h3>
+                    <div class="info-box info-warning">
+                        <i class="fas fa-user-shield"></i>
+                        <div>
+                            <strong>Atenção:</strong> Apenas usuários ADMIN e ADMTOTAL podem adicionar demandas manualmente.
+                        </div>
+                    </div>
+
+                    <ol class="steps">
+                        <li>Clique no botão <strong>"Adicionar Demanda"</strong></li>
+                        <li>Selecione a escola da lista</li>
+                        <li>Descreva o problema de forma clara e detalhada</li>
+                        <li>Clique em <strong>"Salvar"</strong></li>
+                    </ol>
+
+                    <h3>Criar OS a partir de Demanda</h3>
+                    <ol class="steps">
+                        <li>Encontre a demanda na lista</li>
+                        <li>Clique no botão <strong>"Criar OS"</strong></li>
+                        <li>Você será direcionado ao formulário de OS pré-preenchido</li>
+                        <li>Complete as informações e envie</li>
+                    </ol>
+                </section>
+
+                <!-- Escalas -->
+                <section id="escalas" class="section">
+                    <h2><i class="fas fa-calendar-alt"></i> Escalas de Técnicos</h2>
+
+                    <p>Organize a escala diária dos técnicos de forma visual e prática.</p>
+
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-building"></i>
+                            <h4>Base</h4>
+                            <p>Técnicos trabalhando na sede do CSDT</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-car"></i>
+                            <h4>Visita</h4>
+                            <p>Técnicos em campo visitando escolas</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-coffee"></i>
+                            <h4>Folga</h4>
+                            <p>Técnicos de folga ou afastados</p>
+                        </div>
+                    </div>
+
+                    <h3>Gerenciando a Escala</h3>
+                    <ol class="steps">
+                        <li>Acesse <strong>"Escalas"</strong> no Dashboard</li>
+                        <li>Clique em <strong>"Adicionar"</strong> na categoria desejada</li>
+                        <li>Selecione o técnico da lista</li>
+                        <li>Confirme a adição</li>
+                    </ol>
+
+                    <div class="card">
+                        <h4><i class="fas fa-arrows-alt"></i> Mover Técnicos</h4>
+                        <p>Para mover um técnico entre categorias:</p>
+                        <ul>
+                            <li>Arraste o card do técnico para outra coluna, OU</li>
+                            <li>Clique em "Mover para..." e selecione a categoria</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box info-danger">
+                        <i class="fas fa-trash-alt"></i>
+                        <div>
+                            <strong>Atenção ao Apagar Escala:</strong> O botão "Apagar Escala" remove TODA a escala do dia atual. Use com cuidado e sempre confirme antes de executar esta ação.
+                        </div>
+                    </div>
+
+                    <div class="info-box info-success">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong>Boa Prática:</strong> Atualize a escala todos os dias no início do expediente!
+                        </div>
+                    </div>
+                </section>
+
+                <!-- OS -->
+                <section id="os" class="section">
+                    <h2><i class="fas fa-file-alt"></i> Ordens de Serviço (OS)</h2>
+
+                    <p>As Ordens de Serviço são documentos digitais que registram todos os atendimentos técnicos realizados nas escolas.</p>
+
+                    <h3>Criar Nova OS (Escolas)</h3>
+                    <ol class="steps">
+                        <li>No Dashboard, clique em <strong>"Nova OS"</strong> ou <strong>"Preencher OS"</strong></li>
+                        <li>Preencha as <strong>Informações Gerais</strong>:
+                            <ul>
+                                <li>Escola atendida</li>
+                                <li>Data e hora da visita</li>
+                                <li>Técnico responsável</li>
+                                <li>Motivo da visita</li>
+                            </ul>
+                        </li>
+                        <li>Registre os <strong>Equipamentos Atendidos</strong>:
+                            <ul>
+                                <li>SIEDUCA (laboratório)</li>
+                                <li>Secretaria</li>
+                                <li>Outros locais</li>
+                            </ul>
+                        </li>
+                        <li>Informe dados de <strong>Internet e Rede</strong>:
+                            <ul>
+                                <li>Provedor (Rede.br, Internet nas Escolas, etc.)</li>
+                                <li>Equipamentos (rack, switch, roteador)</li>
+                            </ul>
+                        </li>
+                        <li>Registre <strong>Impressoras</strong> atendidas</li>
+                        <li>Escreva o <strong>Relatório</strong>:
+                            <ul>
+                                <li>Descrição do problema</li>
+                                <li>Solução aplicada</li>
+                                <li>Se foi solucionado</li>
+                            </ul>
+                        </li>
+                        <li>Adicione <strong>Fotos</strong> (ANTES e DEPOIS)</li>
+                        <li>Clique em <strong>"Enviar"</strong></li>
+                    </ol>
+
+                    <div class="card">
+                        <h4><i class="fas fa-envelope"></i> Envio Automático por Email</h4>
+                        <p>Quando você cria uma OS, o sistema automaticamente:</p>
+                        <ul>
+                            <li><strong>Gera um PDF preenchido</strong> com todos os dados da OS</li>
+                            <li><strong>Envia por email</strong> para a escola atendida</li>
+                            <li>A escola recebe o <strong>PDF completo com o relatório</strong> do atendimento</li>
+                            <li>A escola pode <strong>visualizar, confirmar e assinar digitalmente</strong></li>
+                        </ul>
+                    </div>
+
+                    <h3>Status da OS</h3>
+                    <div class="status-badges">
+                        <span class="badge badge-yellow"><i class="fas fa-clock"></i> Pendente - Aguardando assinatura</span>
+                        <span class="badge badge-green"><i class="fas fa-check-circle"></i> Assinada - Concluída</span>
+                    </div>
+
+                    <h3>Como a Escola Confirma/Assina a OS</h3>
+
+                    <div class="card">
+                        <h4><i class="fas fa-inbox"></i> Processo Completo</h4>
+                        <ol style="margin-left: 1.5rem;">
+                            <li><strong>Email Recebido:</strong> A escola recebe um email com o PDF da OS preenchido</li>
+                            <li><strong>Link de Confirmação:</strong> No email há um link para confirmar/assinar digitalmente</li>
+                            <li><strong>Acesso ao Sistema:</strong> Ao clicar no link, a escola é direcionada para uma página de confirmação</li>
+                            <li><strong>Visualização:</strong> A escola visualiza todo o relatório do atendimento com fotos</li>
+                            <li><strong>Assinatura Digital:</strong> A escola preenche:
+                                <ul>
+                                    <li>Nome do responsável na escola</li>
+                                    <li>CPF ou matrícula</li>
+                                    <li>Assinatura digital (desenhada com mouse/dedo)</li>
+                                </ul>
+                            </li>
+                            <li><strong>Confirmação:</strong> Ao clicar em "Confirmar", a OS é assinada</li>
+                            <li><strong>Retorno Automático:</strong> A OS assinada volta para o sistema em outra aba (aba "Confirmar OS")</li>
+                            <li><strong>Arquivamento:</strong> A OS assinada é automaticamente arquivada no "Arquivo Digital"</li>
+                        </ol>
+                    </div>
+
+                    <h3>Visualizar OS Assinadas (CSDT)</h3>
+                    <ol class="steps">
+                        <li>Acesse <strong>"Confirmar OS"</strong> no Dashboard</li>
+                        <li>Visualize a lista de OS pendentes e assinadas</li>
+                        <li>As OS assinadas aparecem com status verde</li>
+                        <li>Clique para visualizar o PDF com a assinatura da escola</li>
+                    </ol>
+
+                    <div class="info-box info-success">
+                        <i class="fas fa-camera"></i>
+                        <div>
+                            <strong>Importante:</strong> Sempre tire fotos ANTES e DEPOIS do atendimento. As fotos são essenciais para comprovar o serviço realizado!
+                        </div>
+                    </div>
+
+                    <h3>Arquivo Digital</h3>
+                    <p>Todas as OS assinadas são automaticamente arquivadas. Para acessá-las:</p>
+                    <ol class="steps">
+                        <li>Clique em <strong>"Arquivo Digital"</strong> ou <strong>"Lista de OS"</strong></li>
+                        <li>Busque pela escola desejada</li>
+                        <li>Clique no card para abrir o PDF da OS</li>
+                    </ol>
+
+                    <h3>OS Internas (Setores da SME)</h3>
+
+                    <div class="card">
+                        <h4><i class="fas fa-building"></i> O que são OS Internas?</h4>
+                        <p>As <strong>OS Internas</strong> funcionam exatamente como as OS das escolas, porém são destinadas aos <strong>setores internos da Secretaria Municipal de Educação (SME)</strong>.</p>
+                        <p>Exemplos de setores: Departamento de Informática, Biblioteca, Secretaria Administrativa, Recursos Humanos, etc.</p>
+                    </div>
+
+                    <h4>Criar OS Interna</h4>
+                    <ol class="steps">
+                        <li>No Dashboard, clique em <strong>"Nova OS Interna"</strong> ou acesse a opção específica</li>
+                        <li>Selecione o <strong>setor interno</strong> atendido</li>
+                        <li>Preencha todos os campos igual a uma OS normal:
+                            <ul>
+                                <li>Data e hora do atendimento</li>
+                                <li>Técnico responsável</li>
+                                <li>Problema relatado</li>
+                                <li>Solução aplicada</li>
+                                <li>Equipamentos atendidos</li>
+                                <li>Fotos antes e depois</li>
+                            </ul>
+                        </li>
+                        <li>Clique em <strong>"Enviar"</strong></li>
+                    </ol>
+
+                    <div class="card">
+                        <h4><i class="fas fa-paper-plane"></i> Envio e Confirmação</h4>
+                        <p>O processo é idêntico às OS de escolas:</p>
+                        <ul>
+                            <li><strong>PDF Gerado:</strong> Sistema gera PDF preenchido automaticamente</li>
+                            <li><strong>Email Enviado:</strong> O setor interno recebe por email</li>
+                            <li><strong>Link de Confirmação:</strong> Setor acessa para confirmar e assinar</li>
+                            <li><strong>Assinatura Digital:</strong> Responsável do setor assina digitalmente</li>
+                            <li><strong>Retorno ao Sistema:</strong> OS assinada volta para outra aba</li>
+                            <li><strong>Arquivamento:</strong> Documento arquivado automaticamente</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box info-primary">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>Diferença Principal:</strong> A única diferença é que as OS Internas são para setores da própria SME, enquanto as OS normais são para escolas da rede. O funcionamento e fluxo são idênticos!
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CHADA -->
+                <section id="chada" class="section">
+                    <h2><i class="fas fa-tools"></i> CHADA - Controle de Consertos</h2>
+
+                    <p>O módulo CHADA gerencia equipamentos enviados para conserto externo, permitindo rastreamento completo desde o envio até o retorno.</p>
+
+                    <div class="card">
+                        <h4>O que é a CHADA?</h4>
+                        <p>CHADA é o local externo especializado onde equipamentos (computadores, notebooks, impressoras) são enviados quando não podem ser reparados no CSDT.</p>
+                    </div>
+
+                    <h3>Abas do Sistema</h3>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-box"></i>
+                            <h4>Na CHADA</h4>
+                            <p>Equipamentos enviados aguardando retorno</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-check-circle"></i>
+                            <h4>Devolvidos</h4>
+                            <p>Equipamentos que já retornaram</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-list"></i>
+                            <h4>Todos</h4>
+                            <p>Visualização completa do histórico</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-stethoscope"></i>
+                            <h4>Diagnósticos</h4>
+                            <p>Diagnósticos de impressoras</p>
+                        </div>
+                    </div>
+
+                    <h3>Enviar Equipamento para CHADA</h3>
+                    <ol class="steps">
+                        <li>Clique em <strong>"Enviar para CHADA"</strong></li>
+                        <li>Selecione o item da lista de equipamentos</li>
+                        <li>Informe o setor ou escola de origem</li>
+                        <li>Descreva detalhadamente o problema</li>
+                        <li>Clique em <strong>"Adicionar"</strong></li>
+                    </ol>
+
+                    <div class="info-box info-warning">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>
+                            <strong>Importante:</strong> O equipamento precisa estar cadastrado no sistema e fisicamente localizado no CSDT. Se receber o erro "Item não está no CSDT", será necessário fazer um memorando para trazer o equipamento primeiro.
+                        </div>
+                    </div>
+
+                    <h3>Status dos Equipamentos</h3>
+                    <div class="status-badges">
+                        <span class="badge badge-blue">📦 Enviado</span>
+                        <span class="badge badge-purple">📥 Recebido</span>
+                        <span class="badge badge-yellow">🔍 Em Análise</span>
+                        <span class="badge badge-green">✅ Consertado</span>
+                        <span class="badge badge-red">❌ Sem Conserto</span>
+                        <span class="badge badge-green">📤 Devolvido</span>
+                    </div>
+
+                    <h3>Atualizar Status</h3>
+                    <ol class="steps">
+                        <li>Encontre o item na lista</li>
+                        <li>Clique em <strong>"Atualizar Status"</strong></li>
+                        <li>Selecione o novo status no dropdown</li>
+                        <li>Adicione observações (ex: "Placa-mãe queimada", "Tela trincada")</li>
+                        <li>Se houve troca de modelo ou serial, informe os novos dados</li>
+                        <li>Clique em <strong>"Atualizar Status"</strong></li>
+                    </ol>
+
+                    <h3>Alertas Importantes</h3>
+                    <div class="info-box info-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>⚠️ Alerta Vermelho:</strong> Equipamento está há mais de 15 dias na CHADA. Verifique o andamento!
+                        </div>
+                    </div>
+
+                    <div class="info-box info-warning">
+                        <i class="fas fa-print"></i>
+                        <div>
+                            <strong>🚨 Alerta Laranja:</strong> Impressora aguardando peça há mais de 3 dias. Confira o status da solicitação!
+                        </div>
+                    </div>
+
+                    <h3>Funcionalidades Adicionais</h3>
+
+                    <div class="card">
+                        <h4><i class="fas fa-upload"></i> Subir Laudo/Fotos</h4>
+                        <ol>
+                            <li>Clique em <strong>"Subir Laudo"</strong> no item</li>
+                            <li>Selecione as fotos do laudo da CHADA</li>
+                            <li>As imagens serão enviadas automaticamente</li>
+                        </ol>
+                    </div>
+
+                    <div class="card">
+                        <h4><i class="fas fa-print"></i> Imprimir OS Interna</h4>
+                        <p>Clique em "Imprimir OS" para gerar automaticamente um PDF da ordem de serviço interna.</p>
+                    </div>
+
+                    <div class="card">
+                        <h4><i class="fas fa-download"></i> Exportar Relatórios</h4>
+                        <p>Configure os filtros e exporte os dados em:</p>
+                        <ul>
+                            <li><strong>CSV:</strong> Para Excel/Google Sheets</li>
+                            <li><strong>PDF:</strong> Documento formatado para impressão</li>
+                        </ul>
+                    </div>
+
+                    <h3>Diagnósticos de Impressoras</h3>
+                    <p>Sistema específico para gerenciar peças e reparos de impressoras:</p>
+
+                    <h4>Cadastrar Novo Diagnóstico</h4>
+                    <ol class="steps">
+                        <li>Clique na aba <strong>"Diagnósticos"</strong></li>
+                        <li>Clique em <strong>"Novo Diagnóstico"</strong></li>
+                        <li>Selecione a impressora</li>
+                        <li>Selecione o setor</li>
+                        <li>Informe o nome do técnico da CHADA</li>
+                        <li>Descreva o diagnóstico/laudo técnico</li>
+                        <li>Informe a peça solicitada</li>
+                        <li>Clique em <strong>"Cadastrar Diagnóstico"</strong></li>
+                    </ol>
+
+                    <h4>Status do Diagnóstico</h4>
+                    <div class="status-badges">
+                        <span class="badge badge-yellow">⏳ Aguardando Peça</span>
+                        <span class="badge badge-blue">📦 Peça Chegou</span>
+                        <span class="badge badge-green">✅ Instalado</span>
+                        <span class="badge badge-red">❌ Cancelado</span>
+                    </div>
+                </section>
+
+                <!-- Chamados -->
+                <section id="chamados" class="section">
+                    <h2><i class="fas fa-phone"></i> Chamados Técnicos</h2>
+
+                    <p>Sistema completo de chamados técnicos que conecta escolas e técnicos de forma eficiente.</p>
+
+                    <h3>Para Escolas: Abrir Chamado</h3>
+                    <ol class="steps">
+                        <li>Acesse o sistema com login de escola</li>
+                        <li>Clique em <strong>"Novo Chamado"</strong></li>
+                        <li>Preencha o formulário:
+                            <ul>
+                                <li><strong>Título:</strong> Resumo do problema</li>
+                                <li><strong>Descrição:</strong> Detalhes completos</li>
+                                <li><strong>Categoria:</strong> Tipo de equipamento/problema</li>
+                                <li><strong>Equipamentos Afetados:</strong> Quantidade e modelos</li>
+                                <li><strong>Fotos:</strong> Imagens do problema (opcional)</li>
+                            </ul>
+                        </li>
+                        <li>Clique em <strong>"Enviar Chamado"</strong></li>
+                    </ol>
+
+                    <h3>Para Técnicos: Gerenciar Chamados</h3>
+
+                    <h4>Visualizar Chamados</h4>
+                    <ol class="steps">
+                        <li>No Dashboard, veja o contador de <strong>"Chamados Abertos"</strong></li>
+                        <li>Clique para acessar a lista completa</li>
+                        <li>Filtre por status, escola ou categoria</li>
+                    </ol>
+
+                    <h4>Status dos Chamados</h4>
+                    <div class="status-badges">
+                        <span class="badge badge-blue"><i class="fas fa-circle"></i> Aberto</span>
+                        <span class="badge badge-yellow"><i class="fas fa-circle"></i> Aceito</span>
+                        <span class="badge badge-purple"><i class="fas fa-circle"></i> Agendado</span>
+                        <span class="badge badge-blue"><i class="fas fa-circle"></i> Em Andamento</span>
+                        <span class="badge badge-green"><i class="fas fa-circle"></i> Resolvido</span>
+                    </div>
+
+                    <h4>Aceitar Chamado</h4>
+                    <ol class="steps">
+                        <li>Clique no chamado desejado</li>
+                        <li>Analise as informações</li>
+                        <li>Clique em <strong>"Aceitar Chamado"</strong></li>
+                        <li>O chamado agora é sua responsabilidade</li>
+                    </ol>
+
+                    <h4>Definir Prioridade</h4>
+                    <div class="status-badges">
+                        <span class="badge badge-gray">Baixa</span>
+                        <span class="badge badge-yellow">Média</span>
+                        <span class="badge badge-red">Alta</span>
+                        <span class="badge badge-danger">Urgente</span>
+                    </div>
+
+                    <h4>Agendar Visita</h4>
+                    <ol class="steps">
+                        <li>Abra o chamado aceito</li>
+                        <li>Clique em <strong>"Agendar Visita"</strong></li>
+                        <li>Selecione data e horário</li>
+                        <li>O agendamento será adicionado ao calendário</li>
+                    </ol>
+
+                    <h4>Comentar no Chamado</h4>
+                    <ol class="steps">
+                        <li>Abra o chamado</li>
+                        <li>Digite seu comentário na caixa de texto</li>
+                        <li>Marque "Comentário Interno" se for apenas para técnicos</li>
+                        <li>Clique em <strong>"Enviar"</strong></li>
+                    </ol>
+
+                    <h4>Resolver Chamado</h4>
+                    <ol class="steps">
+                        <li>Após resolver o problema</li>
+                        <li>Clique em <strong>"Marcar como Resolvido"</strong></li>
+                        <li>Adicione observações finais sobre a solução</li>
+                        <li>Clique em <strong>"Confirmar"</strong></li>
+                        <li>A escola receberá notificação</li>
+                    </ol>
+                </section>
+
+                <!-- Chat Interno -->
+                <section id="chat" class="section">
+                    <h2><i class="fas fa-comments"></i> Chat Interno</h2>
+
+                    <p>Sistema de comunicação em tempo real entre setores do prédio e a equipe técnica.</p>
+
+                    <div class="card">
+                        <h4>Como Funciona</h4>
+                        <p>Os setores internos (Biblioteca, Secretaria, Diretoria, etc.) podem abrir chamados e conversar diretamente com os técnicos através do chat integrado.</p>
+                    </div>
+
+                    <h3>Para Setores: Abrir Chamado Interno</h3>
+                    <ol class="steps">
+                        <li>Acesse <strong>"Chat Interno"</strong></li>
+                        <li>Clique em <strong>"Novo Chamado"</strong></li>
+                        <li>Preencha:
+                            <ul>
+                                <li>Título do problema</li>
+                                <li>Descrição detalhada</li>
+                                <li>Categoria do problema</li>
+                                <li>Prioridade</li>
+                            </ul>
+                        </li>
+                        <li>Clique em <strong>"Abrir Chamado"</strong></li>
+                    </ol>
+
+                    <h3>Para Técnicos: Atender Chamados</h3>
+                    <ol class="steps">
+                        <li>Acesse <strong>"Chat Interno"</strong></li>
+                        <li>Visualize todos os chamados abertos</li>
+                        <li>Clique em um chamado para ver detalhes</li>
+                        <li>Clique em <strong>"Aceitar"</strong> para assumir o atendimento</li>
+                    </ol>
+
+                    <h3>Conversando no Chat</h3>
+                    <div class="card">
+                        <h4><i class="fas fa-comment"></i> Enviar Mensagens</h4>
+                        <ul>
+                            <li>Digite sua mensagem na caixa de texto</li>
+                            <li>Envie textos, fotos ou arquivos</li>
+                            <li>As mensagens aparecem em tempo real</li>
+                            <li>Veja quando o outro usuário está digitando</li>
+                        </ul>
+                    </div>
+
+                    <h3>Encerrar Chamado</h3>
+                    <ol class="steps">
+                        <li>Após resolver o problema</li>
+                        <li>Clique em <strong>"Resolver"</strong></li>
+                        <li>O setor confirma a resolução</li>
+                        <li>O chamado é marcado como <strong>"Fechado"</strong></li>
+                    </ol>
+
+                    <div class="info-box info-success">
+                        <i class="fas fa-bolt"></i>
+                        <div>
+                            <strong>Comunicação Instantânea:</strong> O chat interno é ideal para problemas urgentes que precisam de resposta rápida!
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Memorandos -->
+                <section id="memorandos" class="section">
+                    <h2><i class="fas fa-file-signature"></i> Memorandos</h2>
+
+                    <p>Crie documentos oficiais para transferência de equipamentos entre escolas ou para entregas.</p>
+
+                    <h3>Tipos de Memorando</h3>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-truck"></i>
+                            <h4>Entrega</h4>
+                            <p>Entregar equipamentos do CSDT para uma escola</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-exchange-alt"></i>
+                            <h4>Troca</h4>
+                            <p>Transferir equipamentos entre duas escolas</p>
+                        </div>
+                    </div>
+
+                    <h3>Criar Memorando de Entrega</h3>
+                    <ol class="steps">
+                        <li>Acesse <strong>"Memorandos"</strong> ou <strong>"Novos Memorandos"</strong></li>
+                        <li>Clique em <strong>"Novo Memorando de Entrega"</strong></li>
+                        <li>Selecione a escola destino</li>
+                        <li>Adicione os itens:
+                            <ul>
+                                <li>Clique em "Adicionar Item"</li>
+                                <li>Selecione o equipamento</li>
+                                <li>Repita para adicionar mais itens</li>
+                            </ul>
+                        </li>
+                        <li>Clique em <strong>"Gerar Memorando"</strong></li>
+                        <li>O PDF será gerado automaticamente</li>
+                    </ol>
+
+                    <h3>Criar Memorando de Troca</h3>
+                    <ol class="steps">
+                        <li>Clique em <strong>"Novo Memorando de Troca"</strong></li>
+                        <li>Selecione a escola de origem</li>
+                        <li>Selecione a escola de destino</li>
+                        <li>Adicione os itens a serem transferidos</li>
+                        <li>Clique em <strong>"Gerar Memorando"</strong></li>
+                    </ol>
+
+                    <div class="card">
+                        <h4><i class="fas fa-hashtag"></i> Numeração Automática</h4>
+                        <p>O sistema gera automaticamente um número único para cada memorando no formato: <strong>001/2025</strong>, <strong>002/2025</strong>, etc.</p>
+                    </div>
+
+                    <div class="info-box info-success">
+                        <i class="fas fa-magic"></i>
+                        <div>
+                            <strong>Atualização Automática:</strong> Ao gerar um memorando, o sistema atualiza automaticamente a localização dos itens no banco de dados!
+                        </div>
+                    </div>
+
+                    <h3>Visualizar Memorandos Anteriores</h3>
+                    <ol class="steps">
+                        <li>Na tela de memorandos, veja a lista de documentos criados</li>
+                        <li>Use os filtros para buscar por data, escola ou tipo</li>
+                        <li>Clique em qualquer memorando para visualizar</li>
+                        <li>Reimprima se necessário</li>
+                    </ol>
+                </section>
+
+                <!-- Itens -->
+                <section id="itens" class="section">
+                    <h2><i class="fas fa-laptop"></i> Itens e Equipamentos</h2>
+
+                    <p>Controle completo do inventário de equipamentos de toda a rede educacional.</p>
+
+                    <h3>Visualizar Itens</h3>
+                    <ol class="steps">
+                        <li>No Dashboard, clique em <strong>"Itens"</strong> ou <strong>"Lista de Itens"</strong></li>
+                        <li>Visualize todos os equipamentos cadastrados</li>
+                        <li>Use filtros para refinar a busca</li>
+                    </ol>
+
+                    <h3>Adicionar Novo Item</h3>
+                    <ol class="steps">
+                        <li>Clique em <strong>"Adicionar Item"</strong></li>
+                        <li>Preencha os dados:
+                            <ul>
+                                <li><strong>Nome:</strong> Tipo do equipamento (ex: "Notebook Dell")</li>
+                                <li><strong>Marca:</strong> Fabricante (ex: "Dell", "HP", "Positivo")</li>
+                                <li><strong>Número de Série:</strong> Serial único do equipamento</li>
+                                <li><strong>Localização:</strong> Escola atual ou CSDT</li>
+                                <li><strong>Status:</strong> Estado atual do item</li>
+                            </ul>
+                        </li>
+                        <li>Clique em <strong>"Salvar"</strong></li>
+                    </ol>
+
+                    <h3>Status dos Itens</h3>
+                    <div class="status-badges">
+                        <span class="badge badge-green">DISPONIVEL</span>
+                        <span class="badge badge-blue">EM_USO</span>
+                        <span class="badge badge-yellow">MANUTENCAO</span>
+                        <span class="badge badge-purple">CHADA</span>
+                        <span class="badge badge-red">BAIXADO</span>
+                    </div>
+
+                    <h3>Buscar Item</h3>
+                    <div class="card">
+                        <h4><i class="fas fa-search"></i> Busca Inteligente</h4>
+                        <p>Digite qualquer informação do item:</p>
+                        <ul>
+                            <li>Nome do equipamento</li>
+                            <li>Marca</li>
+                            <li>Número de série</li>
+                            <li>Escola onde está localizado</li>
+                        </ul>
+                    </div>
+
+                    <h3>Editar Item</h3>
+                    <ol class="steps">
+                        <li>Encontre o item na lista</li>
+                        <li>Clique em <strong>"Editar"</strong></li>
+                        <li>Altere as informações necessárias</li>
+                        <li>Clique em <strong>"Salvar"</strong></li>
+                    </ol>
+
+                    <h3>Ver Histórico</h3>
+                    <ol class="steps">
+                        <li>Clique no item desejado</li>
+                        <li>Clique em <strong>"Ver Histórico"</strong></li>
+                        <li>Visualize todas as movimentações:
+                            <ul>
+                                <li>Data da movimentação</li>
+                                <li>Local de origem</li>
+                                <li>Local de destino</li>
+                                <li>Responsável pela movimentação</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <div class="info-box info-warning">
+                        <i class="fas fa-file-signature"></i>
+                        <div>
+                            <strong>Movimentações Oficiais:</strong> Para transferências oficiais entre escolas, sempre use o módulo de Memorandos!
+                        </div>
+                    </div>
+
+                    <h3>Filtros Disponíveis</h3>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-school"></i>
+                            <h4>Por Escola</h4>
+                            <p>Veja todos os itens de uma escola</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-tag"></i>
+                            <h4>Por Status</h4>
+                            <p>Filtre por disponibilidade</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-laptop"></i>
+                            <h4>Por Tipo</h4>
+                            <p>Notebooks, desktops, tablets, etc.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Impressoras -->
+                <section id="impressoras" class="section">
+                    <h2><i class="fas fa-print"></i> Impressoras</h2>
+
+                    <p>Cadastro e gerenciamento de todas as impressoras da rede educacional.</p>
+
+                    <h3>Informações das Impressoras</h3>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-code"></i>
+                            <h4>Sigla</h4>
+                            <p>Código de identificação (ex: "SED", "CSDT")</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-building"></i>
+                            <h4>Setor</h4>
+                            <p>Local onde está instalada</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-info-circle"></i>
+                            <h4>Modelo</h4>
+                            <p>Modelo específico da impressora</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-industry"></i>
+                            <h4>Fabricante</h4>
+                            <p>Marca (Kyocera, HP, Ricoh, Oki)</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-barcode"></i>
+                            <h4>Serial</h4>
+                            <p>Número de série único</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-network-wired"></i>
+                            <h4>IP</h4>
+                            <p>Endereço IP na rede</p>
+                        </div>
+                    </div>
+
+                    <h3>Adicionar Nova Impressora</h3>
+                    <ol class="steps">
+                        <li>Clique em <strong>"Adicionar Impressora"</strong></li>
+                        <li>Preencha todos os campos obrigatórios</li>
+                        <li>Verifique as informações</li>
+                        <li>Clique em <strong>"Salvar"</strong></li>
+                    </ol>
+
+                    <h3>Buscar Impressora</h3>
+                    <div class="card">
+                        <h4><i class="fas fa-search"></i> Busca Avançada</h4>
+                        <p>Encontre rapidamente por:</p>
+                        <ul>
+                            <li>Modelo ou fabricante</li>
+                            <li>Setor ou local</li>
+                            <li>Número de série</li>
+                            <li>Endereço IP</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box info-primary">
+                        <i class="fas fa-link"></i>
+                        <div>
+                            <strong>Integração com CHADA:</strong> As impressoras cadastradas aqui aparecem automaticamente no módulo de Diagnósticos da CHADA!
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Estatísticas -->
+                <section id="estatisticas" class="section">
+                    <h2><i class="fas fa-chart-bar"></i> Estatísticas e Relatórios</h2>
+
+                    <p>Visualize dados, gráficos e métricas detalhadas sobre todas as operações do sistema.</p>
+
+                    <h3>Como Acessar</h3>
+                    <ol class="steps">
+                        <li>No Dashboard, clique em <strong>"Estatísticas"</strong> ou <strong>"Estatísticas Avançadas"</strong></li>
+                        <li>Selecione o período desejado</li>
+                        <li>Configure os filtros</li>
+                        <li>Visualize gráficos e indicadores</li>
+                    </ol>
+
+                    <h3>Indicadores Disponíveis</h3>
+
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-file-alt"></i>
+                            <h4>OS Criadas</h4>
+                            <p>Total de ordens de serviço por período</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-clock"></i>
+                            <h4>OS Pendentes</h4>
+                            <p>Ordens aguardando assinatura</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h4>Demandas</h4>
+                            <p>Solicitações abertas e fechadas</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-phone"></i>
+                            <h4>Chamados</h4>
+                            <p>Status e tempo médio de atendimento</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-school"></i>
+                            <h4>Por Escola</h4>
+                            <p>Escolas mais atendidas</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-user-cog"></i>
+                            <h4>Por Técnico</h4>
+                            <p>Produtividade individual</p>
+                        </div>
+                    </div>
+
+                    <h3>Tipos de Gráficos</h3>
+                    <div class="card">
+                        <ul>
+                            <li><strong>Gráficos de Barra:</strong> Comparações entre períodos ou categorias</li>
+                            <li><strong>Gráficos de Pizza:</strong> Distribuição percentual</li>
+                            <li><strong>Linhas de Tendência:</strong> Evolução ao longo do tempo</li>
+                            <li><strong>Mapas de Calor:</strong> Visualização geográfica de atendimentos</li>
+                        </ul>
+                    </div>
+
+                    <h3>Exportar Relatórios</h3>
+                    <ol class="steps">
+                        <li>Configure os filtros desejados (período, escola, técnico, etc.)</li>
+                        <li>Clique em <strong>"Exportar"</strong></li>
+                        <li>Escolha o formato:
+                            <ul>
+                                <li><strong>PDF:</strong> Documento pronto para impressão</li>
+                                <li><strong>Excel:</strong> Planilha editável</li>
+                                <li><strong>CSV:</strong> Dados brutos para análise</li>
+                            </ul>
+                        </li>
+                        <li>O arquivo será baixado automaticamente</li>
+                    </ol>
+
+                    <div class="info-box info-success">
+                        <i class="fas fa-chart-line"></i>
+                        <div>
+                            <strong>Análise de Dados:</strong> Use as estatísticas para identificar padrões, escolas que precisam mais atenção e otimizar a distribuição de técnicos!
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FAQ -->
+                <section id="faq" class="section">
+                    <h2><i class="fas fa-question-circle"></i> Perguntas Frequentes</h2>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Esqueci minha senha. O que faço?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Entre em contato com o administrador do sistema para recuperar ou redefinir sua senha.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Como sei se uma demanda já virou OS?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>A demanda ficará com a cor amarela (OS criada, aguardando assinatura) ou verde (OS já assinada e concluída).</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Posso criar OS sem ter demanda?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Sim! Você pode criar OS diretamente pelo menu "Nova OS" no Dashboard.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Posso enviar qualquer item para CHADA?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Não. O item precisa estar cadastrado no sistema e fisicamente localizado no CSDT. Se o item ainda está na escola, é necessário fazer um memorando primeiro para trazê-lo ao CSDT.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Como sei há quanto tempo um item está na CHADA?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>O sistema mostra automaticamente os dias na tela de CHADA. Itens com mais de 15 dias aparecem com um alerta vermelho para chamar atenção.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Posso deletar um item do inventário?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Apenas administradores podem deletar itens. O recomendado é usar o status "BAIXADO" ao invés de deletar, para manter o histórico.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Preciso atualizar a escala todos os dias?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Sim! A escala deve ser atualizada diariamente no início do expediente para refletir a organização do dia.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Posso acessar o sistema de qualquer lugar?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Sim, o sistema é baseado na web e pode ser acessado de qualquer lugar com conexão à internet, usando um navegador moderno.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Quem pode abrir chamados técnicos?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>As escolas (perfil SCHOOL) e os setores internos do prédio podem abrir chamados técnicos.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <span>Como faço para transferir um equipamento entre escolas?</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>O ideal é criar um Memorando de Troca. Isso gera o documento oficial e atualiza o sistema automaticamente com a nova localização do equipamento.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Dicas -->
+                <section class="section">
+                    <h2><i class="fas fa-lightbulb"></i> Dicas e Boas Práticas</h2>
+
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-camera"></i>
+                            <h4>Tire Fotos Sempre</h4>
+                            <p>Fotos antes e depois são essenciais para comprovar o serviço realizado</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-file-alt"></i>
+                            <h4>Seja Descritivo</h4>
+                            <p>Quanto mais detalhes nos relatórios, melhor o acompanhamento</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-sync-alt"></i>
+                            <h4>Atualize Status</h4>
+                            <p>Mantenha as informações sempre atualizadas no sistema</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-star"></i>
+                            <h4>Use Favoritos</h4>
+                            <p>Marque suas funcionalidades mais usadas para acesso rápido</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-calendar-check"></i>
+                            <h4>Escala Diária</h4>
+                            <p>Atualize a escala todo início de expediente</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-bolt"></i>
+                            <h4>Responda Rápido</h4>
+                            <p>Atenda chamados urgentes o mais rápido possível</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h4><i class="fas fa-trophy"></i> Boas Práticas para Técnicos</h4>
+                        <ul>
+                            <li>Crie a OS logo após atender a escola</li>
+                            <li>Sempre tire fotos antes e depois do atendimento</li>
+                            <li>Atualize status dos equipamentos na CHADA regularmente</li>
+                            <li>Responda comentários em chamados prontamente</li>
+                            <li>Verifique alertas de itens atrasados</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4><i class="fas fa-school"></i> Boas Práticas para Escolas</h4>
+                        <ul>
+                            <li>Abra chamados com o máximo de detalhes possível</li>
+                            <li>Adicione fotos do problema sempre que possível</li>
+                            <li>Acompanhe o status do seu chamado</li>
+                            <li>Confirme quando o problema for realmente resolvido</li>
+                            <li>Mantenha dados de contato atualizados</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Glossário -->
+                <section class="section">
+                    <h2><i class="fas fa-book"></i> Glossário</h2>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Termo</th>
+                                    <th>Significado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>OS</strong></td>
+                                    <td>Ordem de Serviço - documento que registra o atendimento técnico</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CHADA</strong></td>
+                                    <td>Local externo onde equipamentos são enviados para conserto</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Dashboard</strong></td>
+                                    <td>Painel principal do sistema com todas as funcionalidades</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Card</strong></td>
+                                    <td>Cartão/botão que representa uma funcionalidade</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CSDT</strong></td>
+                                    <td>Centro de Suporte e Desenvolvimento Tecnológico</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>SIEDUCA</strong></td>
+                                    <td>Sistema Integrado de Educação - equipamentos do programa estadual</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Serial</strong></td>
+                                    <td>Número de série único do equipamento</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status</strong></td>
+                                    <td>Estado/situação atual (pendente, concluído, etc.)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Demanda</strong></td>
+                                    <td>Solicitação de atendimento técnico</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Memorando</strong></td>
+                                    <td>Documento oficial de transferência de equipamentos</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Escala</strong></td>
+                                    <td>Organização diária dos técnicos (base, visita, folga)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Suporte -->
+                <section class="section">
+                    <h2><i class="fas fa-life-ring"></i> Suporte e Contato</h2>
+
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-question-circle"></i>
+                            <h4>Dúvidas Técnicas</h4>
+                            <p>Entre em contato com a equipe do CSDT</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-lock"></i>
+                            <h4>Problemas de Acesso</h4>
+                            <p>Fale com o administrador do sistema</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-lightbulb"></i>
+                            <h4>Sugestões</h4>
+                            <p>Sua opinião é importante! Entre em contato com a equipe</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-book-open"></i>
+                            <h4>Treinamento</h4>
+                            <p>Solicite treinamento adicional se necessário</p>
+                        </div>
+                    </div>
+
+                    <div class="info-box info-primary">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>Horário de Suporte:</strong> Segunda a Sexta, das 8h às 17h
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Atalhos -->
+                <section class="section">
+                    <h2><i class="fas fa-keyboard"></i> Atalhos Úteis</h2>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ação</th>
+                                    <th>Como Fazer</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Voltar ao Dashboard</td>
+                                    <td>Clique no logo CSDT no topo</td>
+                                </tr>
+                                <tr>
+                                    <td>Buscar funcionalidade</td>
+                                    <td>Use a barra de busca no Dashboard</td>
+                                </tr>
+                                <tr>
+                                    <td>Atualizar página</td>
+                                    <td>F5 ou Ctrl+R</td>
+                                </tr>
+                                <tr>
+                                    <td>Abrir em nova aba</td>
+                                    <td>Ctrl+Clique no card</td>
+                                </tr>
+                                <tr>
+                                    <td>Imprimir</td>
+                                    <td>Ctrl+P</td>
+                                </tr>
+                                <tr>
+                                    <td>Buscar na página</td>
+                                    <td>Ctrl+F</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <h3>Sistema CSDT-2</h3>
+        <p>Plataforma de Gestão Educacional - Versão 2.0</p>
+        <p style="margin-top: 1rem;">Desenvolvido para facilitar a gestão de serviços técnicos educacionais</p>
+        <p style="margin-top: 1rem; opacity: 0.6;">© 2025 CSDT - Todos os direitos reservados</p>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <div class="scroll-top" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // FAQ Toggle
+        function toggleFaq(element) {
+            const faqItem = element.parentElement;
+            faqItem.classList.toggle('active');
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const sections = document.querySelectorAll('.section');
+
+            sections.forEach(section => {
+                const text = section.textContent.toLowerCase();
+                if (text.includes(searchTerm) || searchTerm === '') {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        });
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('.nav-menu a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        // Scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.querySelector('.scroll-top');
+            if (window.pageYOffset > 300) {
+                scrollTop.classList.add('show');
+            } else {
+                scrollTop.classList.remove('show');
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Highlight active section in navigation
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('.section');
+            const navLinks = document.querySelectorAll('.nav-menu a');
+
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (window.pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Print functionality
+        function printManual() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
