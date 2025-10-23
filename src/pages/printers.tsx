@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MagnifyingGlass, Warning, CheckCircle, XCircle, Clock, Printer as PrinterIcon, Bell } from 'phosphor-react';
+import { supabase } from "@/lib/supabaseClient";
+import { jwtDecode } from "jwt-decode";
 
 interface Printer {
   id: number;
@@ -53,7 +55,7 @@ const Printers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
   const [showNotifications, setShowNotifications] = useState(true);
-  const [monitoringMode, setMonitoringMode] = useState<'snmp' | 'ping'>('ping'); // Começar com ping por ser mais simples
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   const fetchPrinters = async () => {
     try {
@@ -73,37 +75,12 @@ const Printers: React.FC = () => {
 
   const fetchPrinterStatus = async () => {
     if (printers.length === 0) return;
-    
+
     setStatusLoading(true);
     try {
-      const endpoint = monitoringMode === 'snmp' ? '/api/printer-status' : '/api/printer-ping';
-      const response = await fetch(endpoint);
+      const response = await fetch('/api/printer-status');
       const data = await response.json();
-      
-      if (monitoringMode === 'ping') {
-        // Adaptar dados do ping para o formato esperado
-        const adaptedData = {
-          timestamp: data.timestamp,
-          total: data.total,
-          withIssues: data.unreachable + data.noIP,
-          printers: data.printers.map((p: any) => ({
-            id: p.id,
-            ip: p.ip,
-            sigla: p.sigla,
-            status: p.status === 'reachable' ? 'online' : p.status,
-            errorState: p.status === 'reachable' ? 'ok' : 'error',
-            errors: p.status === 'reachable' ? ['Sem Erro'] : 
-                   p.status === 'no-ip' ? ['IP não configurado'] : ['Não responde ao ping'],
-            paperStatus: 'unknown',
-            isOnline: p.isReachable,
-            lastChecked: p.lastChecked,
-            responseTime: p.responseTime
-          }))
-        };
-        setPrinterStatus(adaptedData);
-      } else {
-        setPrinterStatus(data);
-      }
+      setPrinterStatus(data);
     } catch (error) {
       console.error('Erro ao buscar status das impressoras:', error);
     } finally {
@@ -111,19 +88,44 @@ const Printers: React.FC = () => {
     }
   };
 
+  const fetchUserRole = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const decoded = jwtDecode<{ userId: string }>(token);
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (error || !user) return;
+
+      const response = await fetch(`/api/get-role?userId=${user.id}`);
+      const data = await response.json();
+
+      if (response.ok && data.role) {
+        setUserRole(data.role);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar role do usuário:", error);
+    }
+  };
+
   useEffect(() => {
-    fetchPrinters();
+    const initializeData = async () => {
+      await fetchPrinters();
+      await fetchUserRole();
+    };
+    initializeData();
   }, []);
 
   useEffect(() => {
     if (printers.length > 0) {
       fetchPrinterStatus();
-      
+
       // Atualizar status a cada 30 segundos
       const interval = setInterval(fetchPrinterStatus, 30000);
       return () => clearInterval(interval);
     }
-  }, [printers, monitoringMode]); // Reagir também à mudança do modo de monitoramento
+  }, [printers]);
 
   const filteredPrinters = printers.filter((printer) =>
     printer.sigla.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -407,30 +409,6 @@ const Printers: React.FC = () => {
               )}
             </div>
           )}
-          
-          {/* Seletor de Modo de Monitoramento */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setMonitoringMode('ping')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                monitoringMode === 'ping' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-transparent text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Ping
-            </button>
-            <button
-              onClick={() => setMonitoringMode('snmp')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                monitoringMode === 'snmp' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-transparent text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              SNMP
-            </button>
-          </div>
 
           <button
             onClick={() => setShowNotifications(!showNotifications)}
@@ -450,8 +428,8 @@ const Printers: React.FC = () => {
         </div>
       </div>
 
-      {/* Painel de Notificações */}
-      {showNotifications && printersWithIssues.length > 0 && (
+      {/* Painel de Notificações - Apenas para ADMIN e ADMTOTAL */}
+      {showNotifications && printersWithIssues.length > 0 && (userRole === 'ADMIN' || userRole === 'ADMTOTAL') && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
           <div className="flex items-center mb-2">
             <Warning className="text-red-500 mr-2" size={24} />
@@ -460,40 +438,53 @@ const Printers: React.FC = () => {
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {printersWithIssues.map((printer) => (
-              <div key={printer.id} className="bg-white p-3 rounded border border-red-200">
-                <div className="font-medium text-red-800">{printer.sigla}</div>
-                <div className="text-sm text-red-600">
-                  {printer.isOnline ? (
-                    <ul className="list-disc list-inside">
-                      {printer.errors.filter(error => error !== 'No Error').map((error, idx) => (
-                        <li key={idx}>{error}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    'Offline'
-                  )}
+            {printersWithIssues.map((printer) => {
+              const printerInfo = printers.find(p => p.id === printer.id);
+              return (
+                <div key={printer.id} className="bg-white p-3 rounded border border-red-200">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="font-medium text-red-800">{printer.sigla}</div>
+                    {printerInfo && printerInfo.ip && printerInfo.ip !== 'não informado' && (
+                      <a
+                        href={`http://${printerInfo.ip}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        title="Abrir interface da impressora"
+                      >
+                        🔗 {printerInfo.ip}
+                      </a>
+                    )}
+                  </div>
+                  <div className="text-sm text-red-600">
+                    {printer.isOnline ? (
+                      <ul className="list-disc list-inside">
+                        {printer.errors.filter(error => error !== 'No Error' && error !== 'Sem Erro').map((error, idx) => (
+                          <li key={idx}>{error}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      'Offline'
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Indicador do Modo de Monitoramento */}
+      {/* Indicador de Status */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded-full ${statusLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
             <span className="text-sm font-medium text-blue-800">
-              Modo: {monitoringMode === 'ping' ? 'Ping (Conectividade Básica)' : 'SNMP (Status Detalhado)'}
+              Modo: SNMP (Status Detalhado)
             </span>
           </div>
           <div className="text-xs text-blue-600">
-            {monitoringMode === 'ping' 
-              ? 'Verifica apenas se a impressora responde na rede' 
-              : 'Obtém informações detalhadas sobre papel, toner e erros'
-            }
+            Obtém informações detalhadas sobre papel, toner e erros via protocolo SNMP
           </div>
         </div>
       </div>
@@ -680,12 +671,6 @@ const Printers: React.FC = () => {
                       <div className="col-span-2">
                         <span className="text-gray-500">Uptime:</span>
                         <span className="ml-1 text-gray-700">{status.uptime}</span>
-                      </div>
-                    )}
-                    {monitoringMode === 'ping' && (status as any).responseTime && (
-                      <div className="col-span-2">
-                        <span className="text-gray-500">Ping:</span>
-                        <span className="ml-1 text-gray-700">{(status as any).responseTime}ms</span>
                       </div>
                     )}
                   </div>
