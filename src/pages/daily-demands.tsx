@@ -2,15 +2,17 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import { jwtDecode } from "jwt-decode";
-import { 
-  Trash, 
-  ArrowClockwise, 
+import {
+  Trash,
+  ArrowClockwise,
   Plus,
-  Users, 
-  User, 
+  Users,
+  User,
   Coffee,
   CalendarCheck,
-  Funnel
+  Funnel,
+  X,
+  ArrowsLeftRight
 } from "phosphor-react";
 
 // Components
@@ -295,11 +297,95 @@ const DailyDemands: React.FC = () => {
       setBaseTechnicians([]);
       setVisitTechnicians([]);
       setOffTechnicians([]);
-      
+
       alert("Escala do dia apagada com sucesso!");
     } catch (error) {
       console.error("Erro ao apagar escala:", error);
       alert("Erro ao apagar escala. Tente novamente.");
+    }
+  };
+
+  const handleRemoveTechnician = async (id: string, type: 'base' | 'visit' | 'off', technicianName?: string) => {
+    if (!confirm(`Tem certeza que deseja remover ${technicianName || 'este técnico'} da escala?`)) return;
+
+    try {
+      const response = await fetch("/api/technicians/remove-technician", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, type }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao remover técnico");
+
+      // Atualizar o estado removendo o técnico
+      switch (type) {
+        case 'base':
+          setBaseTechnicians(prev => prev.filter(tech => tech.id !== id));
+          break;
+        case 'visit':
+          setVisitTechnicians(prev => prev.filter(tech => tech.id !== id));
+          break;
+        case 'off':
+          setOffTechnicians(prev => prev.filter(tech => tech.id !== id));
+          break;
+      }
+
+      alert("Técnico removido com sucesso!");
+    } catch (error) {
+      console.error("Erro ao remover técnico:", error);
+      alert("Erro ao remover técnico. Tente novamente.");
+    }
+  };
+
+  const handleMoveTechnician = async (id: string, fromType: 'base' | 'visit' | 'off', toType: 'base' | 'visit' | 'off', technicianData: Technician) => {
+    try {
+      const response = await fetch("/api/technicians/move-technician", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, fromType, toType }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao mover técnico");
+
+      const result = await response.json();
+
+      // Atualizar o estado movendo o técnico
+      // Remover da origem
+      switch (fromType) {
+        case 'base':
+          setBaseTechnicians(prev => prev.filter(tech => tech.id !== id));
+          break;
+        case 'visit':
+          setVisitTechnicians(prev => prev.filter(tech => tech.id !== id));
+          break;
+        case 'off':
+          setOffTechnicians(prev => prev.filter(tech => tech.id !== id));
+          break;
+      }
+
+      // Adicionar no destino
+      const newTechnician = {
+        id: result.data.id,
+        technicianId: technicianData.technicianId,
+        name: technicianData.name,
+      };
+
+      switch (toType) {
+        case 'base':
+          setBaseTechnicians(prev => [...prev, newTechnician]);
+          break;
+        case 'visit':
+          setVisitTechnicians(prev => [...prev, newTechnician]);
+          break;
+        case 'off':
+          setOffTechnicians(prev => [...prev, newTechnician]);
+          break;
+      }
+
+      alert("Técnico movido com sucesso!");
+    } catch (error) {
+      console.error("Erro ao mover técnico:", error);
+      alert("Erro ao mover técnico. Tente novamente.");
     }
   };
 
@@ -504,16 +590,28 @@ Veja o console para mais detalhes!`);
                   title="Técnicos na Base"
                   icon={<Users size={20} className="text-blue-500" />}
                   technicians={baseTechnicians}
+                  type="base"
+                  userRole={userRole}
+                  onRemove={handleRemoveTechnician}
+                  onMove={handleMoveTechnician}
                 />
                 <TechnicianCard
                   title="Técnicos em Visita"
                   icon={<User size={20} className="text-green-500" />}
                   technicians={visitTechnicians}
+                  type="visit"
+                  userRole={userRole}
+                  onRemove={handleRemoveTechnician}
+                  onMove={handleMoveTechnician}
                 />
                 <TechnicianCard
                   title="Técnicos de Folga"
                   icon={<Coffee size={20} className="text-orange-500" />}
                   technicians={offTechnicians}
+                  type="off"
+                  userRole={userRole}
+                  onRemove={handleRemoveTechnician}
+                  onMove={handleMoveTechnician}
                 />
               </div>
             )}
@@ -607,27 +705,99 @@ interface TechnicianCardProps {
   title: string;
   icon: React.ReactNode;
   technicians: Technician[];
+  type: 'base' | 'visit' | 'off';
+  userRole: string | null;
+  onRemove: (id: string, type: 'base' | 'visit' | 'off', technicianName?: string) => void;
+  onMove: (id: string, fromType: 'base' | 'visit' | 'off', toType: 'base' | 'visit' | 'off', technicianData: Technician) => void;
 }
 
-const TechnicianCard: React.FC<TechnicianCardProps> = ({ title, icon, technicians }) => (
-  <div className="bg-white rounded-xl p-6 shadow-sm">
-    <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
-      {icon}
-      {title}
-    </h3>
-    {technicians.length > 0 ? (
-      <ul className="space-y-2">
-        {technicians.map((tech) => (
-          <li key={tech.id} className="text-gray-600 text-sm flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            {tech.name || tech.technicianId}
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p className="text-gray-500 text-sm">Nenhum técnico alocado</p>
-    )}
-  </div>
-);
+const TechnicianCard: React.FC<TechnicianCardProps> = ({
+  title,
+  icon,
+  technicians,
+  type,
+  userRole,
+  onRemove,
+  onMove
+}) => {
+  const [showMoveMenuFor, setShowMoveMenuFor] = useState<string | null>(null);
+
+  const getMoveOptions = (currentType: 'base' | 'visit' | 'off') => {
+    const options = [
+      { value: 'base', label: 'Base' },
+      { value: 'visit', label: 'Visita' },
+      { value: 'off', label: 'Folga' },
+    ];
+    return options.filter(opt => opt.value !== currentType);
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm">
+      <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+        {icon}
+        {title}
+      </h3>
+      {technicians.length > 0 ? (
+        <ul className="space-y-2">
+          {technicians.map((tech) => (
+            <li key={tech.id} className="text-gray-600 text-sm">
+              <div className="flex items-center justify-between gap-2 p-2 rounded hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
+                  <span className="truncate">{tech.name || tech.technicianId}</span>
+                </div>
+
+                {(userRole === 'ADMTOTAL' || userRole === 'ADMIN') && (
+                  <div className="flex items-center gap-1 relative">
+                    {/* Botão de mover */}
+                    <button
+                      onClick={() => setShowMoveMenuFor(showMoveMenuFor === tech.id ? null : tech.id)}
+                      className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Mover para outra categoria"
+                    >
+                      <ArrowsLeftRight size={14} />
+                    </button>
+
+                    {/* Botão de remover */}
+                    <button
+                      onClick={() => onRemove(tech.id, type, tech.name)}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="Remover técnico"
+                    >
+                      <X size={14} />
+                    </button>
+
+                    {/* Menu de movimentação */}
+                    {showMoveMenuFor === tech.id && (
+                      <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1 min-w-[120px]">
+                        <div className="px-3 py-1 text-xs text-gray-500 border-b border-gray-100">
+                          Mover para:
+                        </div>
+                        {getMoveOptions(type).map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => {
+                              onMove(tech.id, type, option.value as 'base' | 'visit' | 'off', tech);
+                              setShowMoveMenuFor(null);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors"
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500 text-sm">Nenhum técnico alocado</p>
+      )}
+    </div>
+  );
+};
 
 export default DailyDemands;

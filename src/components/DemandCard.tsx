@@ -8,6 +8,10 @@ interface Demand {
   createdAt: string;
   osStatus?: 'pending' | 'created' | 'signed';
   numeroOs?: string;
+  isReagendamento?: boolean;
+  categoria?: string;
+  tecnico?: string;
+  osOriginal?: string;
 }
 
 interface School {
@@ -34,7 +38,11 @@ const DemandCard: React.FC<DemandCardProps> = ({
   onDelete,
   onCreateOS,
 }) => {
-  const getStatusColor = (status?: string) => {
+  const getStatusColor = (status?: string, isReagendamento?: boolean) => {
+    // Se for reagendamento, usar cor laranja
+    if (isReagendamento) {
+      return 'bg-orange-50 border-orange-500 shadow-orange-100';
+    }
     switch (status) {
       case 'signed': return 'bg-green-50 border-green-500 shadow-green-100';
       case 'created': return 'bg-yellow-50 border-yellow-500 shadow-yellow-100';
@@ -50,7 +58,16 @@ const DemandCard: React.FC<DemandCardProps> = ({
     }
   };
 
-  const getStatusBadge = (status?: string) => {
+  const getStatusBadge = (status?: string, isReagendamento?: boolean) => {
+    // Se for reagendamento, mostrar badge especial
+    if (isReagendamento) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-orange-800 bg-orange-200 rounded-full">
+          🔄 Reagendamento
+        </span>
+      );
+    }
+
     switch (status) {
       case 'signed':
         return (
@@ -76,7 +93,7 @@ const DemandCard: React.FC<DemandCardProps> = ({
   return (
     <div className={`
       p-6 rounded-xl border-l-4 transition-all duration-200 hover:shadow-lg
-      ${getStatusColor(demand.osStatus)}
+      ${getStatusColor(demand.osStatus, demand.isReagendamento)}
     `}>
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         {/* Main content */}
@@ -89,7 +106,14 @@ const DemandCard: React.FC<DemandCardProps> = ({
                 {school ? `${school.district} Distrito - ${school.name}` : demand.title}
               </h3>
             </div>
-            {getStatusBadge(demand.osStatus)}
+            <div className="flex items-center gap-2">
+              {getStatusBadge(demand.osStatus, demand.isReagendamento)}
+              {demand.categoria && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
+                  {demand.categoria}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* School address */}
@@ -106,25 +130,41 @@ const DemandCard: React.FC<DemandCardProps> = ({
 
           {/* Footer info */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-gray-100">
-            <span className="text-xs text-gray-500">
-              🕒 {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-            
-            {demand.numeroOs && (
-              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                📄 OS: {demand.numeroOs}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">
+                🕒 {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </span>
-            )}
+
+              {demand.tecnico && (
+                <span className="text-xs text-gray-600">
+                  👤 {demand.tecnico}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {demand.numeroOs && (
+                <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  📄 OS: {demand.numeroOs}
+                </span>
+              )}
+
+              {demand.osOriginal && (
+                <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                  🔄 OS Original: {demand.osOriginal}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2 lg:flex-col lg:items-stretch lg:w-auto">
-          {/* Create OS button */}
-          {demand.osStatus === 'pending' && (
+          {/* Create OS button - apenas para demandas normais pendentes */}
+          {demand.osStatus === 'pending' && !demand.isReagendamento && (
             <button
               onClick={() => onCreateOS(demand)}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
@@ -136,28 +176,41 @@ const DemandCard: React.FC<DemandCardProps> = ({
             </button>
           )}
 
+          {/* Botão para reagendamentos - direciona para /fill-pdf-form-2 */}
+          {demand.isReagendamento && (
+            <button
+              onClick={() => onCreateOS(demand)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
+              title="Preencher OS de Reagendamento"
+            >
+              <ClipboardText size={16} />
+              <span className="hidden sm:inline">Preencher OS</span>
+              <span className="sm:hidden">OS</span>
+            </button>
+          )}
+
           {/* Edit and Delete buttons */}
-          <div className="flex gap-2">
-            {(userRole === 'ADMTOTAL' || userRole === 'ADMIN') && (
+          {(userRole === 'ADMTOTAL' || userRole === 'ADMIN') && (
+            <div className="flex flex-col gap-2 lg:flex-row">
               <button
                 onClick={() => onEdit(demand)}
-                className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-sm font-medium"
                 title="Editar demanda"
               >
-                <Pencil size={18} />
+                <Pencil size={16} />
+                <span className="hidden sm:inline">Editar</span>
               </button>
-            )}
-            
-            {(userRole === 'ADMTOTAL' || userRole === 'ADMIN') && (
+
               <button
                 onClick={() => onDelete(demand.id)}
-                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium"
                 title="Apagar demanda"
               >
-                <Trash size={18} />
+                <Trash size={16} />
+                <span className="hidden sm:inline">Apagar</span>
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
