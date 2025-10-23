@@ -224,13 +224,36 @@ model OsAssinada {
 }
 
 model Printer {
-  id         Int    @id @default(autoincrement())
-  sigla      String
-  setor      String
-  modelo     String
-  fabricante String
-  serial     String @unique
-  ip         String
+  id            Int             @id @default(autoincrement())
+  sigla         String
+  setor         String
+  modelo        String
+  fabricante    String
+  serial        String          @unique
+  ip            String
+  PrinterStatus PrinterStatus[]
+}
+
+model PrinterStatus {
+  id              Int      @id @default(autoincrement())
+  printerId       Int
+  status          String
+  errorState      String
+  errors          Json
+  errorDetails    Json
+  tonerLevel      Int?
+  paperStatus     String
+  isOnline        Boolean
+  uptime          String?
+  pageCount       Int?
+  hasCriticalErrors Boolean @default(false)
+  responseTime    Int?
+  lastChecked     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Printer         Printer  @relation(fields: [printerId], references: [id])
+
+  @@index([printerId])
+  @@index([updatedAt])
 }
 
 model Profile {
@@ -912,3 +935,4 @@ model ChamadoEscala {
 
   @@map("chamados_escalas")
 }
+

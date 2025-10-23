@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import prisma from '@/utils/prisma';
 
 // Interface para os dados recebidos do agente local
 interface AgentPrinterStatus {
@@ -120,16 +121,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ...agentData,
       timestamp: new Date().toISOString() // Usar timestamp do servidor
     };
-    
+
     printerCache.setData(processedData);
 
     console.log(`[Agent] Recebidos dados de ${agentData.printers.length} impressoras do agente local`);
     console.log(`[Agent] ${agentData.withIssues} impressoras com problemas detectadas`);
 
+    // Salvar dados no banco de dados
+    try {
+      // Usar transaction para garantir atomicidade
+      await prisma.$transaction(async (tx) => {
+        // Deletar status antigos (mais de 1 hora)
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        await tx.printerStatus.deleteMany({
+          where: {
+            updatedAt: {
+              lt: oneHourAgo
+            }
+          }
+        });
+
+        // Salvar novo status para cada impressora
+        for (const printer of agentData.printers) {
+          // Verificar se já existe status para esta impressora
+          const existing = await tx.printerStatus.findFirst({
+            where: { printerId: printer.id }
+          });
+
+          const statusData = {
+            status: printer.status,
+            errorState: printer.errorState,
+            errors: printer.errors,
+            errorDetails: printer.errorDetails,
+            tonerLevel: printer.tonerLevel,
+            paperStatus: printer.paperStatus,
+            isOnline: printer.isOnline,
+            uptime: printer.uptime,
+            pageCount: printer.pageCount,
+            hasCriticalErrors: printer.hasCriticalErrors,
+            responseTime: undefined,
+            lastChecked: new Date(printer.lastChecked)
+          };
+
+          if (existing) {
+            // Atualizar status existente
+            await tx.printerStatus.update({
+              where: { id: existing.id },
+              data: statusData
+            });
+          } else {
+            // Criar novo status
+            await tx.printerStatus.create({
+              data: {
+                printerId: printer.id,
+                ...statusData
+              }
+            });
+          }
+        }
+      });
+
+      console.log(`[Agent] Status salvo no banco de dados para ${agentData.printers.length} impressoras`);
+    } catch (dbError) {
+      console.error('[Agent] Erro ao salvar status no banco:', dbError);
+      // Não falhar a requisição por erro de banco
+    }
+
     // Log de impressoras com problemas críticos para monitoramento
     const criticalPrinters = agentData.printers.filter(p => p.hasCriticalErrors);
     if (criticalPrinters.length > 0) {
-      console.warn(`[Agent] ALERTA: ${criticalPrinters.length} impressoras com erros críticos:`, 
+      console.warn(`[Agent] ALERTA: ${criticalPrinters.length} impressoras com erros críticos:`,
         criticalPrinters.map(p => `${p.sigla} (${p.ip})`).join(', ')
       );
     }
