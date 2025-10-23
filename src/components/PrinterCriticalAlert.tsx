@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Warning, X, Printer, Clock } from 'phosphor-react';
+import { Warning, X, Printer, Clock, Globe } from 'phosphor-react';
 import { usePrinterNotifications } from '@/context/PrinterNotificationContext';
 
 export const PrinterCriticalAlert: React.FC = () => {
@@ -150,12 +150,21 @@ export const PrinterCriticalAlert: React.FC = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3">
+            <a
+              href={`http://${currentError.printerIP}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <Globe size={20} />
+              Abrir Interface da Impressora
+            </a>
             <button
               onClick={() => handleAcknowledge(errorId)}
-              className={`flex-1 py-3 px-4 rounded-lg font-medium text-white transition-colors ${
-                currentError.severity === 'critical' 
-                  ? 'bg-red-600 hover:bg-red-700' 
+              className={`py-3 px-4 rounded-lg font-medium text-white transition-colors ${
+                currentError.severity === 'critical'
+                  ? 'bg-red-600 hover:bg-red-700'
                   : 'bg-orange-600 hover:bg-orange-700'
               }`}
             >
