@@ -191,104 +191,99 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Verificar se temos dados do agente local primeiro
-    let cachedStatus;
-    try {
-      // Tentar importar dinamicamente a função do agente local
-      const agentModule = await import('./printer-status-from-agent');
-      cachedStatus = agentModule.getCachedPrinterStatus();
-      
-      if (cachedStatus.data && !cachedStatus.isStale) {
-        console.log(`[Hybrid] Retornando dados do agente local (${cachedStatus.age}s atrás)`);
-        return res.status(200).json({
-          ...cachedStatus.data,
-          source: 'local-agent',
-          dataAge: cachedStatus.age
-        });
+    console.log('[API] Buscando status das impressoras do banco de dados...');
+
+    // Buscar todas as impressoras com seus status mais recentes
+    const allPrinters = await prisma.printer.findMany({
+      include: {
+        PrinterStatus: {
+          orderBy: {
+            updatedAt: 'desc'
+          },
+          take: 1
+        }
       }
-    } catch (importError) {
-      console.log('[Hybrid] Agente local não disponível, usando verificação SNMP padrão');
-      cachedStatus = { data: null, isStale: true, age: 0 };
-    }
+    });
 
-    // Se não temos dados do agente ou estão desatualizados, usar verificação local
-    console.log(cachedStatus.data 
-      ? `[Hybrid] Dados do agente desatualizados (${cachedStatus.age}s), usando verificação local`
-      : '[Hybrid] Nenhum dado do agente disponível, usando verificação local'
-    );
-
-    // Buscar todas as impressoras
-    const allPrinters = await prisma.printer.findMany();
-    
     if (allPrinters.length === 0) {
       return res.status(200).json({
         timestamp: new Date().toISOString(),
         total: 0,
         withIssues: 0,
-        printers: []
+        printers: [],
+        source: 'database'
       });
     }
 
-    // Filtrar impressoras com IPs válidos e inválidos
-    const printersWithValidIPs = allPrinters.filter(p => 
-      p.ip && p.ip.trim() !== '' && p.ip !== 'não informado'
-    );
-    
-    const printersWithInvalidIPs = allPrinters.filter(p => 
-      !p.ip || p.ip.trim() === '' || p.ip === 'não informado'
-    );
+    // Mapear os dados para o formato esperado
+    const statusResults = allPrinters.map(printer => {
+      const latestStatus = printer.PrinterStatus[0];
 
-    console.log(`Verificando status de ${allPrinters.length} impressoras (${printersWithValidIPs.length} com IP válido, ${printersWithInvalidIPs.length} sem IP)...`);
+      if (!latestStatus) {
+        // Impressora sem status no banco (ainda não foi verificada pelo agente)
+        return {
+          id: printer.id,
+          ip: printer.ip || 'N/A',
+          sigla: printer.sigla,
+          status: 'awaiting-check',
+          errorState: 'no-data',
+          errors: ['Aguardando primeira verificação do agente'],
+          errorDetails: [{
+            error: 'Aguardando primeira verificação',
+            severity: 'warning' as const,
+            action: 'Aguardar próxima atualização do agente local',
+            description: 'Esta impressora ainda não foi verificada pelo agente local'
+          }],
+          paperStatus: 'unknown',
+          isOnline: false,
+          lastChecked: new Date().toISOString(),
+          hasCriticalErrors: false
+        };
+      }
 
-    // Verificar status das impressoras com IP válido
-    const statusPromises = printersWithValidIPs.map(printer => checkPrinterStatus(printer));
-    
-    // Adicionar impressoras sem IP como "problemas de configuração"
-    const invalidIPStatuses = printersWithInvalidIPs.map(printer => ({
-      id: printer.id,
-      ip: printer.ip || 'N/A',
-      sigla: printer.sigla,
-      status: 'no-ip-configured',
-      errorState: 'configuration-error',
-      errors: ['IP não configurado no sistema'],
-      errorDetails: [{
-        error: 'IP não configurado no sistema',
-        severity: 'error' as const,
-        action: 'Configurar endereço IP válido no cadastro da impressora',
-        description: 'Impossível monitorar impressora sem endereço IP'
-      }],
-      paperStatus: 'unknown',
-      isOnline: false,
-      lastChecked: new Date().toISOString(),
-      hasCriticalErrors: false
-    }));
+      // Retornar status do banco
+      return {
+        id: printer.id,
+        ip: printer.ip,
+        sigla: printer.sigla,
+        status: latestStatus.status,
+        errorState: latestStatus.errorState,
+        errors: latestStatus.errors as string[],
+        errorDetails: latestStatus.errorDetails as any[],
+        tonerLevel: latestStatus.tonerLevel,
+        paperStatus: latestStatus.paperStatus,
+        isOnline: latestStatus.isOnline,
+        lastChecked: latestStatus.lastChecked.toISOString(),
+        uptime: latestStatus.uptime,
+        pageCount: latestStatus.pageCount,
+        hasCriticalErrors: latestStatus.hasCriticalErrors,
+        responseTime: latestStatus.responseTime
+      };
+    });
 
-    const validIPResults = await Promise.all(statusPromises);
-    const statusResults = [...validIPResults, ...invalidIPStatuses];
-
-    // Filtrar impressoras com problemas
-    const printersWithIssues = statusResults.filter(printer => 
-      !printer.isOnline || 
-      printer.errors.some(error => error !== 'No Error') ||
+    // Calcular estatísticas
+    const printersWithIssues = statusResults.filter(printer =>
+      !printer.isOnline ||
+      printer.errors.some(error => error !== 'No Error' && error !== 'Sem Erro') ||
       printer.status === 'offline' ||
       printer.status === 'stopped printing'
     );
 
-    console.log(`[Local] Status verificado: ${statusResults.length} impressoras, ${printersWithIssues.length} com problemas`);
+    console.log(`[API] Status retornado do banco: ${statusResults.length} impressoras, ${printersWithIssues.length} com problemas`);
 
-    res.status(200).json({
+    return res.status(200).json({
       timestamp: new Date().toISOString(),
       total: statusResults.length,
       withIssues: printersWithIssues.length,
       printers: statusResults,
-      source: 'vercel-snmp',
-      fallback: cachedStatus && cachedStatus.data ? 'stale-agent-data' : 'no-agent-data'
+      source: 'database'
     });
 
   } catch (error) {
-    console.error('Erro ao verificar status das impressoras:', error);
-    res.status(500).json({ 
-      error: 'Erro ao verificar status das impressoras',
+    console.error('Erro ao buscar status das impressoras do banco:', error);
+
+    res.status(500).json({
+      error: 'Erro ao buscar status das impressoras',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   } finally {
