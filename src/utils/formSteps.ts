@@ -7,7 +7,7 @@ export const formSteps: FormStep[] = [
     title: "Principal",
     description: "Informações básicas da OS",
     icon: FileText,
-    fields: ["unidadeEscolar", "tecnicoResponsavel", "emailResponsavel", "solicitacaoDaVisita"]
+    fields: ["unidadeEscolar", "tecnicoResponsavel", "emailResponsavel", "solicitacaoDaVisita", "diretoraNaEscola"]
   },
   {
     id: "laboratorio",
@@ -35,7 +35,7 @@ export const formSteps: FormStep[] = [
     title: "Impressoras",
     description: "Equipamentos de impressão",
     icon: Printer,
-    fields: ["oki", "kyocera", "hp", "ricoh", "outrasImpressoras"]
+    fields: ["oki", "kyocera", "hp", "ricoh", "outrasImpressoras", "temImpressoraComProblema", "relatorioImpressora", "impressoraComProblema"]
   },
   {
     id: "relatorio",

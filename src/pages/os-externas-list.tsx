@@ -40,6 +40,7 @@ interface OsExterna {
   relatorio?: string;
   solicitacaoDaVisita?: string;
   temLaboratorio?: boolean;
+  diretoraNaEscola?: boolean;
   redeBr?: string;
   educacaoConectada?: string;
   naoHaProvedor?: string;
@@ -51,6 +52,9 @@ interface OsExterna {
   hp?: number;
   ricoh?: number;
   outrasImpressoras?: number;
+  temImpressoraComProblema?: boolean;
+  relatorioImpressora?: string;
+  impressoraComProblema?: string;
   solucionado?: string;
   status: string;
   assinado?: string;
@@ -593,6 +597,24 @@ const OsExternasList: React.FC = () => {
                         {selectedOs.temLaboratorio ? 'Sim' : 'Não'}
                       </td>
                     </tr>
+                    <tr className="border-b border-gray-200">
+                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
+                        Diretora Estava na Escola?
+                      </td>
+                      <td className="px-4 py-3">
+                        {selectedOs.diretoraNaEscola === true ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            ✅ Sim
+                          </span>
+                        ) : selectedOs.diretoraNaEscola === false ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            ❌ Não
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">Não informado</span>
+                        )}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -775,6 +797,76 @@ const OsExternasList: React.FC = () => {
                   </table>
                 </div>
               </div>
+
+              {/* Problemas com Impressoras */}
+              {selectedOs.temImpressoraComProblema !== undefined && (
+                <div className="bg-white border border-gray-200 rounded-lg mb-6">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                    <h4 className="font-bold text-gray-700">Problemas com Impressoras</h4>
+                  </div>
+                  <div className="px-4 py-3">
+                    <div className="mb-3">
+                      <span className="font-medium text-gray-700">Existe impressora com problema?</span>
+                      <span className="ml-3">
+                        {selectedOs.temImpressoraComProblema === true ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            ⚠️ Sim - Há problema
+                          </span>
+                        ) : selectedOs.temImpressoraComProblema === false ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            ✅ Não - Tudo funcionando
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">Não informado</span>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Mostrar detalhes se houver problema */}
+                    {selectedOs.temImpressoraComProblema === true && (
+                      <div className="mt-4 space-y-4">
+                        {/* Relatório do Problema */}
+                        {selectedOs.relatorioImpressora && (
+                          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0">
+                                <span className="text-lg">📝</span>
+                              </div>
+                              <div className="ml-3 flex-1">
+                                <h5 className="text-sm font-bold text-red-900 mb-2">
+                                  Relatório do Problema
+                                </h5>
+                                <p className="text-sm text-red-800 whitespace-pre-wrap">
+                                  {selectedOs.relatorioImpressora}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Identificação da Impressora */}
+                        {selectedOs.impressoraComProblema && (
+                          <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0">
+                                <span className="text-lg">🖨️</span>
+                              </div>
+                              <div className="ml-3 flex-1">
+                                <h5 className="text-sm font-bold text-orange-900 mb-2">
+                                  Identificação da Impressora
+                                </h5>
+                                <p className="text-sm text-orange-800 font-mono">
+                                  {selectedOs.impressoraComProblema}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Internet e Rede */}
               <div className="bg-white border border-gray-200 rounded-lg mb-6">

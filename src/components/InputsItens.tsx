@@ -302,6 +302,102 @@ const
           </motion.div>
         )}
 
+        {shouldRenderField('diretoraNaEscola') && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-400/30 rounded-xl p-6 mb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">👤</span>
+                </div>
+                <label className="text-lg font-bold text-white">
+                  A diretora estava na escola?
+                  <span className="text-red-400 ml-1">*</span>
+                </label>
+              </div>
+
+              <p className="text-slate-300 text-sm mb-6 italic">
+                Confirme a presença da diretora no momento da visita
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label className={`
+                  flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:scale-105
+                  ${formData.diretoraNaEscola === true
+                    ? 'bg-green-500/30 border-green-400 text-green-100 shadow-lg shadow-green-500/20'
+                    : 'bg-slate-700/50 border-slate-600 text-slate-200 hover:border-green-400/50 hover:bg-green-500/10'
+                  }
+                `}>
+                  <input
+                    type="radio"
+                    name="diretoraNaEscola"
+                    value="true"
+                    checked={formData.diretoraNaEscola === true}
+                    onChange={() => handleInputChange({
+                      target: { name: 'diretoraNaEscola', value: true }
+                    } as any)}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      formData.diretoraNaEscola === true
+                        ? 'border-green-400 bg-green-500'
+                        : 'border-slate-400'
+                    }`}>
+                      {formData.diretoraNaEscola === true && (
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className="text-lg font-semibold">✅ Sim</span>
+                  </div>
+                </label>
+
+                <label className={`
+                  flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:scale-105
+                  ${formData.diretoraNaEscola === false
+                    ? 'bg-red-500/30 border-red-400 text-red-100 shadow-lg shadow-red-500/20'
+                    : 'bg-slate-700/50 border-slate-600 text-slate-200 hover:border-red-400/50 hover:bg-red-500/10'
+                  }
+                `}>
+                  <input
+                    type="radio"
+                    name="diretoraNaEscola"
+                    value="false"
+                    checked={formData.diretoraNaEscola === false}
+                    onChange={() => handleInputChange({
+                      target: { name: 'diretoraNaEscola', value: false }
+                    } as any)}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      formData.diretoraNaEscola === false
+                        ? 'border-red-400 bg-red-500'
+                        : 'border-slate-400'
+                    }`}>
+                      {formData.diretoraNaEscola === false && (
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className="text-lg font-semibold">❌ Não</span>
+                  </div>
+                </label>
+              </div>
+
+              {formData.diretoraNaEscola === undefined && (
+                <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-400/50 rounded-lg">
+                  <p className="text-yellow-200 text-sm font-medium text-center">
+                    ⚠️ Por favor, confirme a presença da diretora
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {/* ===== STEP 1 - LABORATÓRIO ===== */}
         {shouldRenderField('temLaboratorio') && (
           <motion.div
@@ -1049,6 +1145,159 @@ const
               </div>
             </motion.div>
           )}
+
+        {/* Checklist: Existe impressora com problema? */}
+        {shouldRenderField('temImpressoraComProblema') && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border-2 border-orange-400/30 rounded-xl p-6 mb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">⚠️</span>
+                </div>
+                <label className="text-lg font-bold text-white">
+                  Existe alguma impressora com problema?
+                  <span className="text-red-400 ml-1">*</span>
+                </label>
+              </div>
+
+              <p className="text-slate-300 text-sm mb-6 italic">
+                Informe se alguma impressora está com defeito ou apresentando problemas
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label className={`
+                  flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:scale-105
+                  ${formData.temImpressoraComProblema === true
+                    ? 'bg-red-500/30 border-red-400 text-red-100 shadow-lg shadow-red-500/20'
+                    : 'bg-slate-700/50 border-slate-600 text-slate-200 hover:border-red-400/50 hover:bg-red-500/10'
+                  }
+                `}>
+                  <input
+                    type="radio"
+                    name="temImpressoraComProblema"
+                    value="true"
+                    checked={formData.temImpressoraComProblema === true}
+                    onChange={() => handleInputChange({
+                      target: { name: 'temImpressoraComProblema', value: true }
+                    } as any)}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      formData.temImpressoraComProblema === true
+                        ? 'border-red-400 bg-red-500'
+                        : 'border-slate-400'
+                    }`}>
+                      {formData.temImpressoraComProblema === true && (
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className="text-lg font-semibold">⚠️ Sim</span>
+                  </div>
+                </label>
+
+                <label className={`
+                  flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:scale-105
+                  ${formData.temImpressoraComProblema === false
+                    ? 'bg-green-500/30 border-green-400 text-green-100 shadow-lg shadow-green-500/20'
+                    : 'bg-slate-700/50 border-slate-600 text-slate-200 hover:border-green-400/50 hover:bg-green-500/10'
+                  }
+                `}>
+                  <input
+                    type="radio"
+                    name="temImpressoraComProblema"
+                    value="false"
+                    checked={formData.temImpressoraComProblema === false}
+                    onChange={() => handleInputChange({
+                      target: { name: 'temImpressoraComProblema', value: false }
+                    } as any)}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      formData.temImpressoraComProblema === false
+                        ? 'border-green-400 bg-green-500'
+                        : 'border-slate-400'
+                    }`}>
+                      {formData.temImpressoraComProblema === false && (
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className="text-lg font-semibold">✅ Não</span>
+                  </div>
+                </label>
+              </div>
+
+              {formData.temImpressoraComProblema === undefined && (
+                <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-400/50 rounded-lg">
+                  <p className="text-yellow-200 text-sm font-medium text-center">
+                    ⚠️ Por favor, informe se há impressora com problema
+                  </p>
+                </div>
+              )}
+
+              {formData.temImpressoraComProblema === false && (
+                <div className="mt-4 p-3 bg-green-500/20 border border-green-400/50 rounded-lg">
+                  <p className="text-green-200 text-sm font-medium text-center">
+                    ✅ Ótimo! Todas as impressoras estão funcionando corretamente
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Campos condicionais - Só aparecem se houver impressora com problema */}
+        {formData.temImpressoraComProblema === true && shouldRenderField('relatorioImpressora') && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="bg-red-500/10 border border-red-400/30 rounded-lg p-4 mb-3">
+              <p className="text-red-200 text-sm font-medium flex items-center gap-2">
+                <span className="text-lg">📝</span>
+                Preencha os dados da impressora com problema abaixo
+              </p>
+            </div>
+
+            <label className="block text-sm font-medium text-slate-200 mb-2">
+              Relatório da Impressora com Problema *
+            </label>
+            <textarea
+              name="relatorioImpressora"
+              value={formData.relatorioImpressora || ''}
+              onChange={handleInputChange}
+              rows={4}
+              className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 resize-none"
+              placeholder="Descreva detalhadamente o problema da impressora (não imprime, atolamento, erro, etc)..."
+            />
+          </motion.div>
+        )}
+
+        {formData.temImpressoraComProblema === true && shouldRenderField('impressoraComProblema') && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <label className="block text-sm font-medium text-slate-200 mb-2">
+              Identificação da Impressora (Nome, Modelo e Número de Serial) *
+            </label>
+            <input
+              type="text"
+              name="impressoraComProblema"
+              value={formData.impressoraComProblema || ''}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+              placeholder="Ex: HP LaserJet Pro M404dn - Serial: ABC123XYZ"
+            />
+          </motion.div>
+        )}
 
         {/* ===== STEP 5 - RELATÓRIO E FOTOS ===== */}
         {shouldRenderField('pecasOuMaterial') && (

@@ -418,6 +418,7 @@ model OSExterna {
   relatorio                          String?
   solicitacaoDaVisita                String?
   temLaboratorio                     Boolean?
+  diretoraNaEscola                   Boolean?
   redeBr                             String?
   educacaoConectada                  String?
   naoHaProvedor                      String?
@@ -429,6 +430,9 @@ model OSExterna {
   hp                                 Int?
   ricoh                              Int?
   outrasImpressoras                  Int?
+  temImpressoraComProblema           Boolean?
+  relatorioImpressora                String?
+  impressoraComProblema              String?
   solucionado                        String?
   status                             String   @default("Pendente")
   assinado                           String?
