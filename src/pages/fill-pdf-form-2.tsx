@@ -62,6 +62,7 @@ const FillPdfForm: React.FC = () => {
     relatorio: string;
     solicitacaoDaVisita: string;
     temLaboratorio: boolean | undefined;
+    diretoraNaEscola: boolean | undefined;
     redeBr: string;
     educacaoConectada: string;
     naoHaProvedor: string;
@@ -73,6 +74,9 @@ const FillPdfForm: React.FC = () => {
     hp: NumberConstructor;
     ricoh: NumberConstructor;
     outrasImpressoras: NumberConstructor;
+    temImpressoraComProblema: boolean | undefined;
+    relatorioImpressora: string;
+    impressoraComProblema: string;
     solucionado: string;
   }
 
@@ -106,6 +110,7 @@ const FillPdfForm: React.FC = () => {
     relatorio: "",
     solicitacaoDaVisita: "",
     temLaboratorio: undefined,
+    diretoraNaEscola: undefined,
     redeBr: "",
     educacaoConectada: "",
     naoHaProvedor: "",
@@ -117,6 +122,9 @@ const FillPdfForm: React.FC = () => {
     hp: Number,
     ricoh: Number,
     outrasImpressoras: Number,
+    temImpressoraComProblema: undefined,
+    relatorioImpressora: "",
+    impressoraComProblema: "",
     solucionado: "",
   });
 
@@ -460,6 +468,7 @@ const FillPdfForm: React.FC = () => {
       relatorio: "",
       solicitacaoDaVisita: "",
       temLaboratorio: undefined,
+      diretoraNaEscola: undefined,
       redeBr: "",
       educacaoConectada: "",
       naoHaProvedor: "",
@@ -471,6 +480,9 @@ const FillPdfForm: React.FC = () => {
       hp: Number,
       ricoh: Number,
       outrasImpressoras: Number,
+      temImpressoraComProblema: undefined,
+      relatorioImpressora: "",
+      impressoraComProblema: "",
       solucionado: "",
     });
 
@@ -796,7 +808,7 @@ const FillPdfForm: React.FC = () => {
     try {
       const chamadoAutomatico = {
         escola: osData.unidadeEscolar,
-        titulo: `Reagendamento - OS ${osData.numeroOs}`,
+        titulo: `Reagendamento - OS ${osData.numeroOs} - ${osData.unidadeEscolar}`,
         descricao: `Problema não solucionado na OS ${osData.numeroOs}. Solicitação original: ${osData.solicitacaoDaVisita}. Relatório: ${osData.relatorio}`,
         categoria: "Reagendamento",
         tecnico: osData.tecnicoResponsavel,
