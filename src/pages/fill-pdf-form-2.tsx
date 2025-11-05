@@ -13,6 +13,7 @@ import { ButtonLoading } from "@/components/ui/ButtonLoading";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/lib/supabaseClient";
+import { uploadFiles } from "@/utils/storageProvider";
 import { StepIndicator } from "@/components/StepIndicator";
 import { NavigationButtons } from "@/components/NavigationButtons";
 import { useMultiStepForm } from "@/hooks/useMultiStepForm";
@@ -512,13 +513,13 @@ const FillPdfForm: React.FC = () => {
 
       console.log("Dados salvos:", updatedDataFromDb);
 
-      const fotosAntesUrls = await uploadFilesToSupabase(
+      const fotosAntesUrls = await uploadFiles(
         formData.fotosAntes as File[],
         "fotos-antes",
         updatedDataFromDb.numeroOs
       );
 
-      const fotosDepoisUrls = await uploadFilesToSupabase(
+      const fotosDepoisUrls = await uploadFiles(
         formData.fotosDepois as File[],
         "fotos-depois",
         updatedDataFromDb.numeroOs
@@ -881,6 +882,9 @@ const FillPdfForm: React.FC = () => {
     }
   };
 
+  // FUNÇÃO DE BACKUP - UPLOAD PARA SUPABASE (MANTIDA COMO STANDBY)
+  // Para usar Supabase novamente, altere NEXT_PUBLIC_STORAGE_PROVIDER="supabase" no .env
+  /*
   const uploadFilesToSupabase = async (files: File[], folder: string, numeroOs: string) => {
     const urls: string[] = [];
 
@@ -933,6 +937,7 @@ const FillPdfForm: React.FC = () => {
     console.log("URLs finais geradas:", urls);
     return urls;
   };
+  */
 
   const escolaOptions = escolas.map((escola) => ({
     value: escola.name,

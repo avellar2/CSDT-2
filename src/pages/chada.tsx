@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { uploadChadaFiles } from "@/utils/storageProvider";
 import React, { useEffect, useState, useMemo } from "react";
 import Select from "react-select";
 import { 
@@ -580,29 +581,12 @@ const ChadaPage: React.FC = () => {
       }
 
       try {
-        const uploadedUrls: string[] = [];
+        // Upload usando o novo sistema de storage (Cloudinary ou Supabase)
+        const uploadedUrls = await uploadChadaFiles(Array.from(files), id);
 
-        for (const file of files) {
-          const fileName = `${id}-${Date.now()}-${file.name}`;
-          const { data: uploadData, error } = await supabase.storage
-            .from("os-images")
-            .upload(fileName, file, {
-              cacheControl: "3600",
-              upsert: false,
-            });
-
-          if (error) {
-            console.error("Erro ao fazer upload da imagem:", error);
-            alert("Erro ao fazer upload da imagem.");
-            return;
-          }
-
-          const { data: publicUrlData } = supabase.storage
-            .from("os-images")
-            .getPublicUrl(fileName);
-
-          const publicUrl = publicUrlData.publicUrl;
-          uploadedUrls.push(publicUrl);
+        if (uploadedUrls.length === 0) {
+          alert("Erro ao fazer upload das imagens.");
+          return;
         }
 
         console.log("URLs enviadas para osImages:", uploadedUrls);
