@@ -201,18 +201,24 @@ const FillPdfForm: React.FC = () => {
         if (Array.isArray(value)) {
           return value.length > 0;
         }
-        if (field === 'temLaboratorio') {
+        if (field === 'temLaboratorio' || field === 'temImpressoraComProblema') {
           return value !== undefined && value !== null && typeof value === 'boolean';
         }
         
         // Se a escola não tem laboratório, considerar campos do laboratório como preenchidos
-        const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado', 
-                          'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio', 
+        const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado',
+                          'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio',
                           'estabilizadoresLocado', 'tabletsProprio', 'tabletsLocado'];
         if (labFields.includes(field) && formData.temLaboratorio === false) {
           return true;
         }
-        
+
+        // Se não tem impressora com problema, considerar campos de problema como preenchidos
+        const printerProblemFields = ['relatorioImpressora', 'impressoraComProblema'];
+        if (printerProblemFields.includes(field) && formData.temImpressoraComProblema === false) {
+          return true;
+        }
+
         return value && value.toString().trim() !== '';
       });
       return acc + stepFilledFields.length;
@@ -230,18 +236,24 @@ const FillPdfForm: React.FC = () => {
       if (Array.isArray(value)) {
         return true; // Arrays são opcionais
       }
-      if (field === 'temLaboratorio') {
+      if (field === 'temLaboratorio' || field === 'temImpressoraComProblema') {
         return value !== undefined && value !== null && typeof value === 'boolean';
       }
       
       // Se a escola não tem laboratório, considerar campos do laboratório como preenchidos
-      const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado', 
-                        'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio', 
+      const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado',
+                        'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio',
                         'estabilizadoresLocado', 'tabletsProprio', 'tabletsLocado'];
       if (labFields.includes(field) && formData.temLaboratorio === false) {
         return true;
       }
-      
+
+      // Se não tem impressora com problema, considerar campos de problema como preenchidos
+      const printerProblemFields = ['relatorioImpressora', 'impressoraComProblema'];
+      if (printerProblemFields.includes(field) && formData.temImpressoraComProblema === false) {
+        return true;
+      }
+
       return value && value.toString().trim() !== '';
     });
 
