@@ -22,6 +22,6 @@
   },
   "crons": [{
     "path": "/api/chada/check-emails",
-    "schedule": "0 10,14,16 * * *"
+    "schedule": "0 14 * * *"
   }]
 }
