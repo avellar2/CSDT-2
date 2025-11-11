@@ -36,7 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         equipmentAffected: equipmentAffected?.trim() || null,
         createdBy,
         attachments: attachments || [],
-        status: 'OPEN'
+        status: 'OPEN',
+        updatedAt: new Date()
       },
       include: {
         School: true

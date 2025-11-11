@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const school = await prisma.school.findUnique({
       where: { id: Number(id) },
       include: {
-        annexes: true // Incluir anexos
+        other_School: true // Incluir anexos
       }
     });
 
@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // IDs da escola principal + anexos
-    const schoolIds = [school.id, ...(school.annexes?.map(annex => annex.id) || [])];
+    const schoolIds = [school.id, ...(school.other_School?.map(annex => annex.id) || [])];
 
     // Buscar itens da escola principal e de todos os anexos
     const items = await prisma.item.findMany({

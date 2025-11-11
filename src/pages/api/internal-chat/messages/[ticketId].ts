@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
     }
 
-    const messages = await prisma.internalChatMessage.findMany({
+    const messages = await prisma.internal_chat_messages.findMany({
       where: whereClause,
       orderBy: { sentAt: 'asc' },
       take: parseInt(limit as string)

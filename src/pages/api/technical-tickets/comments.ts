@@ -49,7 +49,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           authorName,
           authorRole,
           content: content.trim(),
-          isInternal: isInternal || false
+          isInternal: isInternal || false,
+          updatedAt: new Date()
         }
       });
 

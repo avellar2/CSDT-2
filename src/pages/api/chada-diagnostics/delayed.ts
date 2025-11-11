@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             serialNumber: true
           }
         },
-        Sector: {
+        School: {
           select: {
             id: true,
             name: true

@@ -28,6 +28,7 @@ import {
 } from "phosphor-react";
 import { PDFDocument, rgb } from "pdf-lib";
 import Modal from "@/components/Modal";
+import * as XLSX from 'xlsx';
 
 type ChadaStatus = 'PENDENTE' | 'RECEBIDO' | 'EM_ANALISE' | 'CONSERTADO' | 'SEM_CONSERTO' | 'DEVOLVIDO';
 type TabType = 'na_chada' | 'devolvidos' | 'todos' | 'diagnosticos';
@@ -54,6 +55,9 @@ interface ChadaItem {
   custoConserto?: number;
   dataEnvio?: string;
   dataDevolucao?: string;
+  numeroChadaOS?: string | null;
+  emailSentAt?: string | null;
+  emailMessageId?: string | null;
 }
 
 interface ChadaDiagnostic {
@@ -89,7 +93,8 @@ const ChadaPage: React.FC = () => {
   const [items, setItems] = useState<ChadaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+  const [checkingEmails, setCheckingEmails] = useState(false);
+
   // Estados para diagnósticos
   const [diagnostics, setDiagnostics] = useState<ChadaDiagnostic[]>([]);
   const [loadingDiagnostics, setLoadingDiagnostics] = useState(true);
@@ -710,6 +715,101 @@ const ChadaPage: React.FC = () => {
     }
   };
 
+  // Função para exportar Excel (XLSX) - Bonito e completo
+  const exportToExcel = () => {
+    try {
+      // Criar workbook
+      const wb = XLSX.utils.book_new();
+
+      // === ABA 1: DADOS PRINCIPAIS ===
+      const mainData = filteredAndSortedItems.map(item => ({
+        'Nome': item.name || '',
+        'Marca/Modelo': item.brand || '',
+        'Número de Série': item.serialNumber || '',
+        'Status': item.statusChada || '',
+        'OS CHADA': item.numeroChadaOS || 'Aguardando',
+        'Problema': item.problem || '',
+        'Setor/Escola': item.sector || '',
+        'Enviado por': item.userName || '',
+        'Data Envio': item.createdAt ? new Date(item.createdAt).toLocaleDateString('pt-BR') : '',
+        'Email Enviado': item.emailSentAt ? new Date(item.emailSentAt).toLocaleString('pt-BR') : 'Não enviado',
+        'Última Atualização': item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('pt-BR') : '',
+        'Dias na CHADA': getDaysInChada(item.createdAt, item.updatedAt),
+        'Atualizado por': item.updateBy || ''
+      }));
+
+      const ws1 = XLSX.utils.json_to_sheet(mainData);
+
+      // Ajustar larguras das colunas
+      const colWidths = [
+        { wch: 20 }, // Nome
+        { wch: 25 }, // Marca/Modelo
+        { wch: 20 }, // Serial
+        { wch: 15 }, // Status
+        { wch: 15 }, // OS CHADA
+        { wch: 40 }, // Problema
+        { wch: 30 }, // Setor
+        { wch: 20 }, // Enviado por
+        { wch: 15 }, // Data Envio
+        { wch: 20 }, // Email Enviado
+        { wch: 18 }, // Última Atualização
+        { wch: 15 }, // Dias na CHADA
+        { wch: 20 }, // Atualizado por
+      ];
+      ws1['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws1, 'Itens CHADA');
+
+      // === ABA 2: ESTATÍSTICAS ===
+      const statsData = [
+        { 'Métrica': 'Total de Itens Enviados', 'Valor': stats.totalEnviados },
+        { 'Métrica': 'Itens na CHADA', 'Valor': stats.naChada },
+        { 'Métrica': 'Itens Devolvidos', 'Valor': stats.devolvidos },
+        { 'Métrica': 'Tempo Médio (dias)', 'Valor': stats.tempoMedioDias },
+        { 'Métrica': '', 'Valor': '' },
+        { 'Métrica': 'Status PENDENTE', 'Valor': items.filter(i => i.statusChada === 'PENDENTE').length },
+        { 'Métrica': 'Status RECEBIDO', 'Valor': items.filter(i => i.statusChada === 'RECEBIDO').length },
+        { 'Métrica': 'Status EM_ANALISE', 'Valor': items.filter(i => i.statusChada === 'EM_ANALISE').length },
+        { 'Métrica': 'Status CONSERTADO', 'Valor': items.filter(i => i.statusChada === 'CONSERTADO').length },
+        { 'Métrica': 'Status SEM_CONSERTO', 'Valor': items.filter(i => i.statusChada === 'SEM_CONSERTO').length },
+        { 'Métrica': 'Status DEVOLVIDO', 'Valor': items.filter(i => i.statusChada === 'DEVOLVIDO').length },
+        { 'Métrica': '', 'Valor': '' },
+        { 'Métrica': 'Com Número de OS', 'Valor': items.filter(i => i.numeroChadaOS).length },
+        { 'Métrica': 'Aguardando OS', 'Valor': items.filter(i => !i.numeroChadaOS).length },
+      ];
+
+      const ws2 = XLSX.utils.json_to_sheet(statsData);
+      ws2['!cols'] = [{ wch: 30 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws2, 'Estatísticas');
+
+      // === ABA 3: POR SETOR ===
+      const setores = [...new Set(items.map(i => i.sector))];
+      const setorData = setores.map(setor => {
+        const itensSetor = items.filter(i => i.sector === setor);
+        return {
+          'Setor': setor,
+          'Total Itens': itensSetor.length,
+          'Na CHADA': itensSetor.filter(i => ['PENDENTE', 'RECEBIDO', 'EM_ANALISE'].includes(i.statusChada)).length,
+          'Devolvidos': itensSetor.filter(i => ['CONSERTADO', 'SEM_CONSERTO', 'DEVOLVIDO'].includes(i.statusChada)).length,
+          'Com OS': itensSetor.filter(i => i.numeroChadaOS).length,
+        };
+      });
+
+      const ws3 = XLSX.utils.json_to_sheet(setorData);
+      ws3['!cols'] = [{ wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, ws3, 'Por Setor');
+
+      // Gerar e baixar o arquivo
+      const fileName = `Relatorio_CHADA_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      alert('Relatório Excel gerado com sucesso! ✅');
+    } catch (error) {
+      console.error('Erro ao gerar Excel:', error);
+      alert('Erro ao gerar relatório Excel. Tente novamente.');
+    }
+  };
+
   // Função para exportar PDF
   const exportToPDF = async () => {
     try {
@@ -797,6 +897,31 @@ const ChadaPage: React.FC = () => {
       alert('Erro ao atualizar dados. Tente novamente.');
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  // Função para verificar emails e capturar números de OS
+  const handleCheckEmails = async () => {
+    setCheckingEmails(true);
+    try {
+      const response = await fetch("/api/chada/check-emails", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Verificação concluída!\n\nEmails processados: ${result.processed}\nItens atualizados: ${result.updated}\n\nAtualizando lista...`);
+        // Atualizar lista após verificar emails
+        await handleRefresh();
+      } else {
+        const error = await response.json();
+        alert(`Erro ao verificar emails: ${error.error || 'Erro desconhecido'}`);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar emails:', error);
+      alert('Erro ao verificar emails. Verifique as configurações de email no .env');
+    } finally {
+      setCheckingEmails(false);
     }
   };
 
@@ -1089,6 +1214,27 @@ const ChadaPage: React.FC = () => {
 
               <div className="flex gap-2 flex-1 sm:flex-initial">
                 <button
+                  onClick={handleCheckEmails}
+                  disabled={checkingEmails}
+                  className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-sm flex-1 sm:flex-initial disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  title="Verificar emails da CHADA e capturar números de OS"
+                >
+                  <span className="text-lg">{checkingEmails ? '⏳' : '📧'}</span>
+                  <span className="hidden sm:inline">{checkingEmails ? 'Verificando...' : 'Verificar Emails'}</span>
+                  <span className="sm:hidden">{checkingEmails ? '...' : 'Email'}</span>
+                </button>
+
+                <button
+                  onClick={exportToExcel}
+                  className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm flex-1 sm:flex-initial"
+                  title="Exportar relatório completo em Excel"
+                >
+                  <span className="text-lg">📊</span>
+                  <span className="hidden sm:inline">Exportar Excel</span>
+                  <span className="sm:hidden">Excel</span>
+                </button>
+
+                <button
                   onClick={exportToCSV}
                   className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm flex-1 sm:flex-initial"
                 >
@@ -1096,7 +1242,7 @@ const ChadaPage: React.FC = () => {
                   <span className="hidden sm:inline">Exportar CSV</span>
                   <span className="sm:hidden">CSV</span>
                 </button>
-                
+
                 <button
                   onClick={exportToPDF}
                   className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm flex-1 sm:flex-initial"
@@ -1367,6 +1513,35 @@ const ChadaPage: React.FC = () => {
                         <p className="font-bold text-gray-900 text-sm sm:text-base">{item.userName}</p>
                       </div>
                     </div>
+
+                    {/* Número de OS da CHADA */}
+                    {(item.numeroChadaOS || item.emailSentAt) && (
+                      <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {item.numeroChadaOS && (
+                          <div className="bg-white rounded-md p-3 border-l-4 border-yellow-400">
+                            <div className="flex items-center mb-1">
+                              <span className="text-yellow-500 mr-2">📋</span>
+                              <p className="text-xs font-semibold text-yellow-700 uppercase tracking-wide">OS CHADA</p>
+                            </div>
+                            <p className="font-bold text-gray-900 text-lg">{item.numeroChadaOS}</p>
+                          </div>
+                        )}
+                        {item.emailSentAt && (
+                          <div className="bg-white rounded-md p-3 border-l-4 border-indigo-400">
+                            <div className="flex items-center mb-1">
+                              <span className="text-indigo-500 mr-2">📧</span>
+                              <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Email Enviado</p>
+                            </div>
+                            <p className="text-sm text-gray-700">
+                              {new Date(item.emailSentAt).toLocaleString('pt-BR')}
+                            </p>
+                            {!item.numeroChadaOS && (
+                              <p className="text-xs text-orange-600 mt-1">⏳ Aguardando resposta da CHADA</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Problema */}

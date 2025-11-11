@@ -122,6 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         estabilizadoresLocadoOutrosLocais: parseInt(estabilizadoresLocadoOutrosLocais, 10),
         tabletsProprioOutrosLocais: parseInt(tabletsProprioOutrosLocais, 10),
         tabletsLocadoOutrosLocais: parseInt(tabletsLocadoOutrosLocais, 10),
+        updatedAt: new Date()
       },
     });
 

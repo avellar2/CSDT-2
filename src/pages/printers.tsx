@@ -159,7 +159,7 @@ const Printers: React.FC = () => {
     return date.toLocaleTimeString('pt-BR');
   };
 
-  const printersWithIssues = printerStatus?.printers.filter(p => 
+  const printersWithIssues = printerStatus?.printers?.filter(p =>
     !p.isOnline || p.errors.some(error => error !== 'Sem Erro')
   ) || [];
 
@@ -490,7 +490,7 @@ const Printers: React.FC = () => {
       </div>
 
       {/* Aviso sobre Problemas de Conectividade */}
-      {printerStatus && printerStatus.printers.filter(p => p.isOnline).length === 0 && (
+      {printerStatus && printerStatus.printers?.filter(p => p.isOnline).length === 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-red-600 text-lg">⚠️</span>
@@ -521,7 +521,7 @@ const Printers: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total</p>
-                <p className="text-2xl font-bold">{printerStatus.total}</p>
+                <p className="text-2xl font-bold text-gray-400">{printerStatus.total}</p>
               </div>
               <PrinterIcon className="text-gray-400" size={32} />
             </div>
@@ -531,7 +531,7 @@ const Printers: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Online</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {printerStatus.printers.filter(p => p.isOnline).length}
+                  {printerStatus.printers?.filter(p => p.isOnline).length || 0}
                 </p>
               </div>
               <CheckCircle className="text-green-400" size={32} />
@@ -551,7 +551,7 @@ const Printers: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Offline</p>
                 <p className="text-2xl font-bold text-gray-600">
-                  {printerStatus.printers.filter(p => !p.isOnline).length}
+                  {printerStatus.printers?.filter(p => !p.isOnline).length || 0}
                 </p>
               </div>
               <XCircle className="text-gray-400" size={32} />

@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Contar chamados pendentes (abertos e atribuídos)
-    const pendingCount = await prisma.chamadoEscola.count({
+    const pendingCount = await prisma.chamados_escola.count({
       where: {
         status: {
           in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS']
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Buscar detalhes dos chamados pendentes mais recentes
-    const recentChamados = await prisma.chamadoEscola.findMany({
+    const recentChamados = await prisma.chamados_escola.findMany({
       where: {
         status: {
           in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS']
@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Contar por prioridade
-    const priorityStats = await prisma.chamadoEscola.groupBy({
+    const priorityStats = await prisma.chamados_escola.groupBy({
       by: ['priority'],
       where: {
         status: {
@@ -52,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Contar por categoria
-    const categoryStats = await prisma.chamadoEscola.groupBy({
+    const categoryStats = await prisma.chamados_escola.groupBy({
       by: ['category'],
       where: {
         status: {

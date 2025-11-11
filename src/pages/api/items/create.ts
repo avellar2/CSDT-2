@@ -105,7 +105,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         serialNumber: serialNumber.toUpperCase().trim(),
         userId: user.id,
         schoolId: schoolId,
-        status: 'DISPONIVEL'
+        status: 'DISPONIVEL',
+        updatedAt: new Date()
       },
       include: {
         School: {

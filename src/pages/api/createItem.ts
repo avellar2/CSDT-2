@@ -93,6 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           Profile: {
             connect: { userId: uid },
           },
+          updatedAt: new Date()
         },
       });
 

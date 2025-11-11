@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         where: ownerId ? { ownerId: ownerId as string } : {},
         include: {
           _count: {
-            select: { events: true }
+            select: { ScheduleEvent: true }
           }
         },
         orderBy: [
@@ -60,11 +60,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           isDefault: isDefault || false,
           ownerId,
           isPublic: isPublic || false,
-          timezone: timezone || 'America/Sao_Paulo'
+          timezone: timezone || 'America/Sao_Paulo',
+          updatedAt: new Date()
         },
         include: {
           _count: {
-            select: { events: true }
+            select: { ScheduleEvent: true }
           }
         }
       });

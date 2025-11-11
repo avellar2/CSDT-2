@@ -228,7 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       generatedBy: userProfile.displayName,
       number: automaticMemorandumNumber,
       type: type, // AGORA PODE INCLUIR
-      items: {
+      NewMemorandumItem: {
         create: itemIds.map((id: number) => ({
           Item: { connect: { id } },
         })),
@@ -251,7 +251,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const memorandum = await prisma.newMemorandum.create({
       data: memorandumData,
       include: {
-        items: {
+        NewMemorandumItem: {
           include: {
             Item: true,
           },
@@ -449,7 +449,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Preencher itens
-      memorandum.items.forEach((item, index) => {
+      memorandum.NewMemorandumItem.forEach((item, index) => {
         if (index >= 13) return; // Limite de 13 itens
         const itemWithBrand = `${item.Item.brand}`;
         form.getTextField(`item${index + 1}`).setText(itemWithBrand);

@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               serialNumber: true
             }
           },
-          Sector: {
+          School: {
             select: {
               id: true,
               name: true
@@ -86,6 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const newDiagnostic = await prisma.chadaDiagnostic.create({
         data: {
+          id: `chada-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           itemId: parseInt(itemId),
           sectorId: parseInt(sectorId),
           sectorName,
@@ -93,7 +94,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           diagnostic,
           requestedPart,
           createdBy,
-          status: 'AGUARDANDO_PECA'
+          status: 'AGUARDANDO_PECA',
+          updatedAt: new Date()
         },
         include: {
           Item: {
@@ -104,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               serialNumber: true
             }
           },
-          Sector: {
+          School: {
             select: {
               id: true,
               name: true
@@ -151,7 +153,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               serialNumber: true
             }
           },
-          Sector: {
+          School: {
             select: {
               id: true,
               name: true

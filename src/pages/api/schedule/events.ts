@@ -39,8 +39,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         include: {
           School: true,
           Calendar: true,
-          reminders: true,
-          participants: true
+          EventReminder: true,
+          EventParticipant: true
         },
         orderBy: {
           startDate: 'asc'
@@ -96,7 +96,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               color: '#2563eb',
               isDefault: true,
               isVisible: true,
-              ownerId: createdBy || 'system'
+              ownerId: createdBy || 'system',
+              updatedAt: new Date()
             }
           });
         }
@@ -124,15 +125,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           attachments: attachments || [],
           tags: tags || [],
           timezone: timezone || 'America/Sao_Paulo',
+          updatedAt: new Date(),
           // Criar lembretes relacionados
-          reminders: {
+          EventReminder: {
             create: Array.isArray(reminders) ? reminders.map(reminder => ({
               minutes: reminder.minutes || 15,
               type: reminder.type || 'POPUP'
             })) : []
           },
           // Criar participantes relacionados
-          participants: {
+          EventParticipant: {
             create: Array.isArray(participants) ? participants.map(participant => ({
               email: participant.email,
               name: participant.name || null,
@@ -141,15 +143,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               status: participant.status === 'accepted' ? 'ACCEPTED' as const :
                       participant.status === 'declined' ? 'DECLINED' as const :
                       participant.status === 'tentative' ? 'TENTATIVE' as const : 'PENDING' as const,
-              isOrganizer: participant.role === 'organizer'
+              isOrganizer: participant.role === 'organizer',
+              updatedAt: new Date()
             })).filter(p => p.email?.trim()) : []
           }
         },
         include: {
           School: true,
           Calendar: true,
-          reminders: true,
-          participants: true
+          EventReminder: true,
+          EventParticipant: true
         }
       });
 
@@ -214,31 +217,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           attachments,
           tags,
           // Criar novos lembretes
-          reminders: {
+          EventReminder: {
             create: Array.isArray(reminders) ? reminders.map(reminder => ({
               minutes: reminder.minutes || 15,
               type: reminder.type || 'POPUP'
             })) : []
           },
           // Criar novos participantes
-          participants: {
+          EventParticipant: {
             create: Array.isArray(participants) ? participants.map(participant => ({
               email: participant.email,
               name: participant.name || null,
-              role: participant.role === 'organizer' ? 'ORGANIZER' as const : 
+              role: participant.role === 'organizer' ? 'ORGANIZER' as const :
                     participant.role === 'optional' ? 'OPTIONAL' as const : 'ATTENDEE' as const,
               status: participant.status === 'accepted' ? 'ACCEPTED' as const :
                       participant.status === 'declined' ? 'DECLINED' as const :
                       participant.status === 'tentative' ? 'TENTATIVE' as const : 'PENDING' as const,
-              isOrganizer: participant.role === 'organizer'
+              isOrganizer: participant.role === 'organizer',
+              updatedAt: new Date()
             })).filter(p => p.email?.trim()) : []
           }
         },
         include: {
           School: true,
           Calendar: true,
-          reminders: true,
-          participants: true
+          EventReminder: true,
+          EventParticipant: true
         }
       });
 

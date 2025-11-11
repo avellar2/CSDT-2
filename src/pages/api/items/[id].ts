@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         NewMemorandumItem: {
           include: {
-            Memorandum: true
+            NewMemorandum: true
           }
         }
       },
@@ -68,9 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         date: mi.Memorandum.createdAt
       })),
       newMemorandums: item.NewMemorandumItem.map(mi => ({
-        id: mi.Memorandum.id,
-        number: mi.Memorandum.number,
-        date: mi.Memorandum.createdAt
+        id: mi.NewMemorandum.id,
+        number: mi.NewMemorandum.number,
+        date: mi.NewMemorandum.createdAt
       }))
     };
     

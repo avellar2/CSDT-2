@@ -2064,27 +2064,82 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    {selectedEvent.title}
-                    {(selectedEvent as any).scaleData && (
-                      <span className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs px-2 py-1 rounded-full font-normal">
-                        Escala
-                      </span>
-                    )}
-                  </h4>
-                  
-                  {/* Layout especial para eventos de escala */}
-                  {(selectedEvent as any).scaleData ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                {/* Título do Evento */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white text-xl">
+                        📅
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-1 break-words">
+                        {selectedEvent.title}
+                      </h4>
+                      {(selectedEvent as any).scaleData && (
+                        <span className="inline-block bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs px-2 py-1 rounded-full font-medium">
+                          📋 Escala
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Descrição */}
+                {selectedEvent.description && !((selectedEvent as any).scaleData) && (
+                  <div className="bg-gray-50 dark:bg-zinc-700/50 rounded-lg p-4 border border-gray-200 dark:border-zinc-600">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-line leading-relaxed">
+                      {selectedEvent.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Informações de Data/Hora/Local em Cards */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 border border-orange-200 dark:border-orange-800">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xl">📅</span>
+                      <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">DATA</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{formatDate(selectedEvent.startDate)}</p>
+                  </div>
+
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xl">⏰</span>
+                      <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">HORÁRIO</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatEventTime(selectedEvent.startDate, selectedEvent.endDate, selectedEvent.timezone || getCurrentTimezone(), selectedEvent.allDay)}
+                    </p>
+                  </div>
+
+                  {selectedEvent.location && (
+                    <div className="col-span-2 bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xl">📍</span>
+                        <span className="text-xs font-semibold text-green-700 dark:text-green-300">LOCAL</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedEvent.location}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Layout especial para eventos de escala */}
+                {(selectedEvent as any).scaleData && (
+                  <div className="space-y-4">
+                    <div className="border-t border-gray-200 dark:border-zinc-700 pt-4">
+                      <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                        👥 Distribuição de Técnicos
+                      </h5>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                           <div className="text-center">
                             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                               {(selectedEvent as any).scaleData.baseTechnicians.length}
                             </div>
                             <div className="text-sm font-medium text-blue-800 dark:text-blue-300">Base</div>
-                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 space-y-1">
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-2 space-y-1">
                               {(selectedEvent as any).scaleData.baseTechnicians.slice(0, 2).map((tech: any) => (
                                 <div key={tech.id}>• {tech.displayName}</div>
                               ))}
@@ -2094,14 +2149,14 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+
+                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
                           <div className="text-center">
                             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                               {(selectedEvent as any).scaleData.visitTechnicians.length}
                             </div>
                             <div className="text-sm font-medium text-green-800 dark:text-green-300">Visitas</div>
-                            <div className="text-xs text-green-600 dark:text-green-400 mt-1 space-y-1">
+                            <div className="text-xs text-green-600 dark:text-green-400 mt-2 space-y-1">
                               {(selectedEvent as any).scaleData.visitTechnicians.slice(0, 2).map((tech: any) => (
                                 <div key={tech.id}>• {tech.displayName}</div>
                               ))}
@@ -2111,14 +2166,14 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-3">
+
+                        <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
                           <div className="text-center">
                             <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
                               {(selectedEvent as any).scaleData.offTechnicians.length}
                             </div>
                             <div className="text-sm font-medium text-gray-800 dark:text-gray-300">Folga</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 space-y-1">
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 space-y-1">
                               {(selectedEvent as any).scaleData.offTechnicians.slice(0, 2).map((tech: any) => (
                                 <div key={tech.id}>• {tech.displayName}</div>
                               ))}
@@ -2129,70 +2184,45 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Demandas do dia */}
-                      {(selectedEvent as any).scaleData && (selectedEvent as any).scaleData.demands && (selectedEvent as any).scaleData.demands.length > 0 && (
-                        <div className="mt-6">
-                          <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
-                            📋 Demandas do Dia
-                            <span className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs px-2 py-1 rounded-full">
-                              {(selectedEvent as any).scaleData.demands.length}
-                            </span>
-                          </h5>
-                          <div className="space-y-3 max-h-48 overflow-y-auto">
-                            {(selectedEvent as any).scaleData.demands.map((demand: any) => (
-                              <div key={demand.id} className="border border-gray-200 dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700/50">
-                                <div className="flex items-start justify-between mb-2">
-                                  <h6 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-1">
-                                    🏫 {demand.school}
-                                  </h6>
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                    demand.priority === 'URGENT' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                    demand.priority === 'HIGH' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                                    demand.priority === 'MEDIUM' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                  }`}>
-                                    {demand.priority === 'URGENT' ? 'Urgente' :
-                                     demand.priority === 'HIGH' ? 'Alta' :
-                                     demand.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
-                                  </span>
-                                </div>
-                                <p className="text-gray-600 dark:text-gray-300 text-sm">
-                                  {demand.description}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  ) : (
-                    selectedEvent.description && (
-                      <p className="text-gray-600 dark:text-gray-300 mb-4 whitespace-pre-line">
-                        {selectedEvent.description}
-                      </p>
-                    )
-                  )}
-                </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Data:</span>
-                    <p className="text-gray-900 dark:text-white">{formatDate(selectedEvent.startDate)}</p>
+                    {/* Demandas do dia */}
+                    {(selectedEvent as any).scaleData.demands && (selectedEvent as any).scaleData.demands.length > 0 && (
+                      <div className="border-t border-gray-200 dark:border-zinc-700 pt-4">
+                        <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                          📋 Demandas do Dia
+                          <span className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs px-2 py-1 rounded-full">
+                            {(selectedEvent as any).scaleData.demands.length}
+                          </span>
+                        </h5>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                          {(selectedEvent as any).scaleData.demands.map((demand: any) => (
+                            <div key={demand.id} className="border border-gray-200 dark:border-zinc-600 rounded-lg p-3 bg-white dark:bg-zinc-800/50">
+                              <div className="flex items-start justify-between mb-1">
+                                <h6 className="font-semibold text-gray-900 dark:text-white text-sm flex items-center gap-1">
+                                  🏫 {demand.school}
+                                </h6>
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${
+                                  demand.priority === 'URGENT' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                  demand.priority === 'HIGH' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                  demand.priority === 'MEDIUM' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                }`}>
+                                  {demand.priority === 'URGENT' ? 'Urgente' :
+                                   demand.priority === 'HIGH' ? 'Alta' :
+                                   demand.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
+                                </span>
+                              </div>
+                              <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                                {demand.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Hora:</span>
-                    <p className="text-gray-900 dark:text-white">
-                      {formatEventTime(selectedEvent.startDate, selectedEvent.endDate, selectedEvent.timezone || getCurrentTimezone(), selectedEvent.allDay)}
-                    </p>
-                  </div>
-                  {selectedEvent.location && (
-                    <div className="col-span-2">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Local:</span>
-                      <p className="text-gray-900 dark:text-white">{selectedEvent.location}</p>
-                    </div>
-                  )}
-                </div>
+                )}
 
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-zinc-700">
                   <button

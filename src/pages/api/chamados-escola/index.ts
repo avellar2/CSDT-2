@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     try {
       // Buscar todos os chamados com informações da escola
-      const chamados = await prisma.chamadoEscola.findMany({
+      const chamados = await prisma.chamados_escola.findMany({
         include: {
           School: {
             select: {
@@ -82,8 +82,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Criar o chamado
-      const chamado = await prisma.chamadoEscola.create({
+      const chamado = await prisma.chamados_escola.create({
         data: {
+          id: `chamado-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           schoolId: parseInt(schoolId),
           schoolName,
           title,
@@ -93,7 +94,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           phone,
           contact,
           notes,
-          createdBy: user.id
+          createdBy: user.id,
+          updatedAt: new Date()
         },
         include: {
           School: {

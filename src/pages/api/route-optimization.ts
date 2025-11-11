@@ -220,16 +220,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Salva no banco
     const routeOptimization = await prisma.routeOptimization.create({
       data: {
+        id: `route-${Date.now()}`,
         technicianId,
         date: new Date(date),
         totalDistance,
         totalTime: estimatedTime,
         optimized: true,
-        visits: {
+        updatedAt: new Date(),
+        RouteVisit: {
           create: optimizedRoute.map((school, index) => ({
-            school: {
-              connect: { id: school.id }
-            },
+            id: `visit-${Date.now()}-${index}`,
+            schoolId: school.id,
             visitOrder: index + 1,
             estimatedTime: 30, // 30 minutos por escola
             status: 'PENDING'
@@ -237,8 +238,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       },
       include: {
-        visits: {
-          include: { school: true },
+        RouteVisit: {
+          include: { School: true },
           orderBy: { visitOrder: 'asc' }
         }
       }

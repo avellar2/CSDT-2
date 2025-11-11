@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Criar o chamado
-      const chamado = await prisma.chamadoEscala.create({
+      const chamado = await prisma.chamados_escalas.create({
         data: {
           escola,
           titulo,
@@ -37,7 +37,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: 'PENDENTE',
           dataCriacao: new Date(),
           dataAgendamento: null,
-          observacoes: null
+          observacoes: null,
+          updatedAt: new Date()
         }
       });
 
@@ -73,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         whereClause.tecnico = tecnico;
       }
 
-      const chamados = await prisma.chamadoEscala.findMany({
+      const chamados = await prisma.chamados_escalas.findMany({
         where: whereClause,
         orderBy: {
           dataCriacao: 'desc'
@@ -107,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const chamadoAtualizado = await prisma.chamadoEscala.update({
+      const chamadoAtualizado = await prisma.chamados_escalas.update({
         where: { id: parseInt(id) },
         data: {
           status: status || undefined,
@@ -143,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      await prisma.chamadoEscala.delete({
+      await prisma.chamados_escalas.delete({
         where: { id: parseInt(id as string) }
       });
 

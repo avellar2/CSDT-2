@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
-      const chamado = await prisma.chamadoEscola.findUnique({
+      const chamado = await prisma.chamados_escola.findUnique({
         where: { id },
         include: {
           School: {
@@ -96,7 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const chamado = await prisma.chamadoEscola.update({
+      const chamado = await prisma.chamados_escola.update({
         where: { id },
         data: updateData,
         include: {
@@ -147,7 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      await prisma.chamadoEscola.delete({
+      await prisma.chamados_escola.delete({
         where: { id }
       });
 

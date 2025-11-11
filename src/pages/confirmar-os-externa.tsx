@@ -544,6 +544,8 @@ const ConfirmarOsExterna: React.FC = () => {
         <div className="text-center mt-6 text-gray-600 text-sm">
           <p>Sistema CSDT - Coordenadoria de Suporte e Desenvolvimento Tecnológico</p>
         </div>
+
+        
       </div>
 
       {/* Modal de Imagem */}
