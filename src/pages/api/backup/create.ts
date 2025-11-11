@@ -85,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { name: 'OsAssinada', model: prisma.osAssinada },
       { name: 'Printer', model: prisma.printer },
       { name: 'Profile', model: prisma.profile, include: { School: { select: { name: true } } } },
-      { name: 'School', model: prisma.school, include: { parentSchool: { select: { name: true } }, annexes: { select: { name: true } } } },
+      { name: 'School', model: prisma.school, include: { School: { select: { name: true } }, other_School: { select: { name: true } } } },
       { name: 'SchoolDemand', model: prisma.schoolDemand, include: { School: { select: { name: true } } } },
       { name: 'ServiceOrder', model: prisma.serviceOrder },
       { name: 'User', model: prisma.user },
@@ -100,8 +100,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { name: 'EventParticipant', model: prisma.eventParticipant },
       { name: 'TechnicalTicket', model: prisma.technicalTicket, include: { School: { select: { name: true } } } },
       { name: 'TicketComment', model: prisma.ticketComment },
-      { name: 'InternalTicket', model: prisma.internalTicket, include: { School: { select: { name: true } } } },
-      { name: 'InternalChatMessage', model: prisma.internalChatMessage },
+      { name: 'InternalTicket', model: prisma.internal_tickets, include: { School: { select: { name: true } } } },
+      { name: 'InternalChatMessage', model: prisma.internal_chat_messages },
       { name: 'ChadaDiagnostic', model: prisma.chadaDiagnostic, include: { Item: { select: { name: true, brand: true } }, Sector: { select: { name: true } } } }
     ];
 

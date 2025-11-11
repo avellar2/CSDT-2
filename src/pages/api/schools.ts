@@ -29,8 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       },
       include: {
-        annexes: true, // Incluir anexos vinculados
-        parentSchool: true // Incluir escola principal (caso seja um anexo)
+        other_School: true, // Incluir anexos vinculados
+        School: true // Incluir escola principal (caso seja um anexo)
       }
     });
     

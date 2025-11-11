@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Buscar o chamado atual
     const currentTicket = await prisma.technicalTicket.findUnique({
       where: { id: parseInt(ticketId as string) },
-      include: { School: true, Event: true }
+      include: { School: true, ScheduleEvent: true }
     });
 
     if (!currentTicket) {
@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       include: {
         School: true,
-        Event: true
+        ScheduleEvent: true
       }
     });
 

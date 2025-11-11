@@ -35,6 +35,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updateBy: chadaItem.updatedBy, // Nome do usuário que atualizou
           sector: chadaItem.setor, // Setor da tabela ItemsChada
           osImages: chadaItem.osImages, // Imagens da tabela ItemsChada
+          numeroChadaOS: chadaItem.numeroChadaOS, // Número da OS da CHADA
+          emailSentAt: chadaItem.emailSentAt, // Data/hora do envio do email
+          emailMessageId: chadaItem.emailMessageId, // ID da mensagem do email
         };
       });
 

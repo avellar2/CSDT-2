@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
 
-    // Consulta com tratamento de erros específico
+    // Consulta SchoolDemands (demandas normais)
     const demands = await prisma.schoolDemand.findMany({
       where: {
         createdAt: {
@@ -81,13 +81,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
+    // Buscar ChamadosEscala agendados para esta data
+    const chamadosAgendados = await prisma.chamados_escalas.findMany({
+      where: {
+        status: 'AGENDADO',
+        dataAgendamento: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      orderBy: {
+        dataAgendamento: "desc",
+      },
+    });
+
     console.log('Debug - Raw demands found:', demands.length);
+    console.log('Debug - Chamados agendados found:', chamadosAgendados.length);
     console.log('Debug - Sample demand:', demands[0] ? {
       id: demands[0].id,
       createdAt: demands[0].createdAt,
       schoolName: demands[0].School?.name
     } : 'No demands');
-    
+
     // Debug específico para escola EM OLINDA BONTURI BOLSONARO
     const olindaDemand = demands.find(d => d.School?.name?.includes('OLINDA BONTURI BOLSONARO'));
     if (olindaDemand) {
@@ -100,22 +115,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('🏫 OLINDA BONTURI BOLSONARO NÃO encontrada nas demandas do dia');
     }
 
-    // Formatação segura dos dados
+    // Formatação segura dos dados das demandas normais
     const safeDemands = demands.map((demand) => ({
-      id: demand.id.toString(), // Garante que o ID seja string
+      id: demand.id.toString(),
       title: `Demanda - ${demand.School?.name || "Escola não especificada"}`,
       description: demand.demand || "Sem descrição fornecida",
-      createdAt: demand.createdAt.toISOString(), // Formato padrão para datas
+      createdAt: demand.createdAt.toISOString(),
+      isReagendamento: false, // Flag para identificar tipo
     }));
+
+    // Formatação dos chamados agendados (reagendamentos)
+    const safeChamados = chamadosAgendados.map((chamado) => ({
+      id: `chamado-${chamado.id}`, // Prefixo para diferenciar de demands normais
+      title: chamado.titulo,
+      description: chamado.descricao,
+      createdAt: chamado.dataAgendamento?.toISOString() || chamado.dataCriacao.toISOString(),
+      isReagendamento: true, // Flag para identificar tipo
+      categoria: chamado.categoria,
+      tecnico: chamado.tecnico,
+      osOriginal: chamado.osOriginal,
+    }));
+
+    // Combinar ambos os tipos
+    const allDemands = [...safeDemands, ...safeChamados].sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
     res.status(200).json({
       success: true,
-      data: safeDemands,
-      message: `Encontradas ${safeDemands.length} demandas`,
+      data: allDemands,
+      message: `Encontradas ${allDemands.length} demandas (${safeDemands.length} normais + ${safeChamados.length} reagendamentos)`,
       debug: {
         startOfDay: startOfDay.toISOString(),
         endOfDay: endOfDay.toISOString(),
-        totalFound: demands.length
+        totalNormalDemands: demands.length,
+        totalReagendamentos: chamadosAgendados.length,
+        totalCombined: allDemands.length
       }
     });
   } catch (error) {

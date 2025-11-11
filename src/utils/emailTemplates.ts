@@ -279,3 +279,141 @@ CSDT - Coordenação de Suporte de Desenvolvimento e Tecnológico
 
   return { subject, html, text };
 };
+
+export interface ChadaRequestEmailData {
+  itemId: number;
+  itemName: string;
+  brand: string;
+  serialNumber: string;
+  problem: string;
+  userName: string;
+  setor: string;
+}
+
+export const generateChadaRequestEmail = (data: ChadaRequestEmailData): { subject: string; html: string; text: string } => {
+  const subject = `CHAMADO TÉCNICO CSDT - ${data.itemName} - Serial: ${data.serialNumber}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chamado Técnico CHADA</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .info-badge { background: #dbeafe; color: #1e40af; padding: 10px 15px; border-radius: 8px; margin: 20px 0; text-align: center; font-weight: 600; }
+        .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .info-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+        .info-label { font-weight: 600; color: #374151; }
+        .info-value { color: #6b7280; }
+        .problem-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+        .problem-box h3 { color: #92400e; margin: 0 0 10px 0; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; }
+        .footer p { margin: 5px 0; color: #6b7280; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 CSDT - Chamado Técnico para CHADA</h1>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Solicitação de Reparo de Equipamento</p>
+        </div>
+
+        <div class="content">
+            <div class="info-badge">
+                📦 NOVO EQUIPAMENTO PARA ANÁLISE
+            </div>
+
+            <p>Prezados,</p>
+
+            <p>Encaminhamos equipamento para análise e reparo conforme dados abaixo:</p>
+
+            <div class="info-box">
+                <h3 style="margin-top: 0; color: #374151;">🖥️ Dados do Equipamento</h3>
+                <div class="info-row">
+                    <span class="info-label">Tipo:</span>
+                    <span class="info-value">${data.itemName}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Marca/Modelo:</span>
+                    <span class="info-value">${data.brand}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Número de Série:</span>
+                    <span class="info-value" style="font-weight: 600; color: #1e40af;">${data.serialNumber}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ID do Item:</span>
+                    <span class="info-value">#${data.itemId}</span>
+                </div>
+            </div>
+
+            <div class="problem-box">
+                <h3>⚠️ Problema Relatado</h3>
+                <p style="color: #92400e; margin: 0;">${data.problem}</p>
+            </div>
+
+            <div class="info-box">
+                <h3 style="margin-top: 0; color: #374151;">📍 Informações de Origem</h3>
+                <div class="info-row">
+                    <span class="info-label">Setor/Escola:</span>
+                    <span class="info-value">${data.setor}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Solicitante:</span>
+                    <span class="info-value">${data.userName}</span>
+                </div>
+            </div>
+
+            <div style="background: #dbeafe; border: 1px solid #3b82f6; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; color: #1e40af;">
+                    <strong>📋 Solicitação:</strong> Por favor, nos encaminhe o número da Ordem de Serviço (OS) referente a este chamado para nosso controle interno.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>CSDT - Coordenação de Suporte de Desenvolvimento e Tecnológico</strong></p>
+            <p>Secretaria Municipal de Educação de Duque de Caxias</p>
+            <p style="font-size: 12px; color: #9ca3af;">Enviado em ${new Date().toLocaleString('pt-BR')}</p>
+        </div>
+    </div>
+</body>
+</html>
+  `;
+
+  const text = `
+CSDT - CHAMADO TÉCNICO PARA CHADA
+
+Prezados,
+
+Encaminhamos equipamento para análise e reparo:
+
+DADOS DO EQUIPAMENTO:
+Tipo: ${data.itemName}
+Marca/Modelo: ${data.brand}
+Número de Série: ${data.serialNumber}
+ID do Item: #${data.itemId}
+
+PROBLEMA RELATADO:
+${data.problem}
+
+INFORMAÇÕES DE ORIGEM:
+Setor/Escola: ${data.setor}
+Solicitante: ${data.userName}
+
+Por favor, nos encaminhe o número da Ordem de Serviço (OS) referente a este chamado para nosso controle interno.
+
+---
+CSDT - Coordenação de Suporte de Desenvolvimento e Tecnológico
+Secretaria Municipal de Educação de Duque de Caxias
+Enviado em ${new Date().toLocaleString('pt-BR')}
+  `;
+
+  return { subject, html, text };
+};

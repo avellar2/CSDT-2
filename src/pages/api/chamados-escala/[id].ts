@@ -44,7 +44,7 @@ async function handlePatch(
   if (dataAgendamento) updateData.dataAgendamento = new Date(dataAgendamento);
   if (observacoes !== undefined) updateData.observacoes = observacoes;
 
-  const chamado = await prisma.chamadoEscala.update({
+  const chamado = await prisma.chamados_escalas.update({
     where: { id },
     data: updateData
   });

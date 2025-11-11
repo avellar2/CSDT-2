@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         NewMemorandumItem: {
           include: {
-            Memorandum: {
+            NewMemorandum: {
               select: {
                 id: true,
                 number: true,
@@ -113,11 +113,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         newMemorandums: {
           count: item.NewMemorandumItem.length,
           list: item.NewMemorandumItem.map(mi => ({
-            memorandumId: mi.Memorandum.id,
-            number: mi.Memorandum.number,
-            school: mi.Memorandum.schoolName,
-            type: mi.Memorandum.type,
-            date: mi.Memorandum.createdAt
+            memorandumId: mi.NewMemorandum.id,
+            number: mi.NewMemorandum.number,
+            school: mi.NewMemorandum.schoolName,
+            type: mi.NewMemorandum.type,
+            date: mi.NewMemorandum.createdAt
           }))
         },
         chada: {

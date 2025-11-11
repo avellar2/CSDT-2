@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Contar apenas chamados de escala com status PENDENTE
-    const chamadosEscalaCount = await prisma.chamadoEscala.count({
+    const chamadosEscalaCount = await prisma.chamados_escalas.count({
       where: {
         status: 'PENDENTE'
       }

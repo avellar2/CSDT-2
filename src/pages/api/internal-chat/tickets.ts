@@ -42,7 +42,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
     whereClause.assignedTo = assignedTo;
   }
 
-  const tickets = await prisma.internalTicket.findMany({
+  const tickets = await prisma.internal_tickets.findMany({
     where: whereClause,
     include: {
       School: {
@@ -52,13 +52,13 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
           phone: true
         }
       },
-      messages: {
+      internal_chat_messages: {
         orderBy: { sentAt: 'desc' },
         take: 1 // Última mensagem para preview
       },
       _count: {
         select: {
-          messages: true
+          internal_chat_messages: true
         }
       }
     },
@@ -100,13 +100,14 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
-  const ticket = await prisma.internalTicket.create({
+  const ticket = await prisma.internal_tickets.create({
     data: {
       schoolId: parseInt(schoolId),
       title,
       description,
       category,
-      priority: 'NORMAL' // Prioridade padrão, será definida pelo TI
+      priority: 'NORMAL', // Prioridade padrão, será definida pelo TI
+      updatedAt: new Date()
     },
     include: {
       School: {

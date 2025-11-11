@@ -56,7 +56,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         location: ticket.School.name,
         schoolId: ticket.schoolId,
         calendarId: calendarId || 1, // Usar calendário padrão se não especificado
-        tags: ['chamado-tecnico', ticket.category.toLowerCase()]
+        tags: ['chamado-tecnico', ticket.category.toLowerCase()],
+        updatedAt: new Date()
       }
     });
 
@@ -74,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       include: {
         School: true,
-        Event: true
+        ScheduleEvent: true
       }
     });
 

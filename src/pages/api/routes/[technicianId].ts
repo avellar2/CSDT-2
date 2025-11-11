@@ -21,9 +21,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           })
         },
         include: {
-          visits: {
+          RouteVisit: {
             include: {
-              school: {
+              School: {
                 select: {
                   id: true,
                   name: true,

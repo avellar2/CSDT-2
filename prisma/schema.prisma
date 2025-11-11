@@ -14,6 +14,71 @@ model BaseTechnician {
   createdAt    DateTime @default(now())
 }
 
+model Calendar {
+  id            Int             @id @default(autoincrement())
+  name          String
+  description   String?
+  color         String          @default("#3b82f6")
+  isVisible     Boolean         @default(true)
+  isDefault     Boolean         @default(false)
+  ownerId       String
+  isPublic      Boolean         @default(false)
+  timezone      String          @default("America/Sao_Paulo")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  ScheduleEvent ScheduleEvent[]
+
+  @@unique([ownerId, name])
+}
+
+model ChadaDiagnostic {
+  id              String                @id
+  itemId          Int
+  sectorId        Int
+  sectorName      String
+  technicianChada String
+  diagnostic      String
+  requestedPart   String
+  status          ChadaDiagnosticStatus @default(AGUARDANDO_PECA)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime
+  completedAt     DateTime?
+  createdBy       String
+  Item            Item                  @relation(fields: [itemId], references: [id])
+  School          School                @relation(fields: [sectorId], references: [id])
+}
+
+model EventParticipant {
+  id            Int               @id @default(autoincrement())
+  eventId       Int
+  email         String
+  name          String?
+  role          ParticipantRole   @default(ATTENDEE)
+  status        ParticipantStatus @default(PENDING)
+  isOrganizer   Boolean           @default(false)
+  canEdit       Boolean           @default(false)
+  inviteSent    Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime
+  ScheduleEvent ScheduleEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, email])
+  @@index([email])
+  @@index([eventId])
+}
+
+model EventReminder {
+  id            Int           @id @default(autoincrement())
+  eventId       Int
+  minutes       Int
+  type          ReminderType  @default(POPUP)
+  sent          Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  ScheduleEvent ScheduleEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
 model InternalOS {
   id        Int      @id @default(autoincrement())
   setorId   String
@@ -26,50 +91,25 @@ model InternalOS {
   cpf       String?
   peca      String   @default("---------")
   status    String   @default("Pendente")
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime
 }
 
 model Item {
-  id             Int              @id @default(autoincrement())
-  name           String
-  brand          String
-  serialNumber   String           @unique
-  userId         String
-  schoolId       Int?
-  status         String           @default("DISPONIVEL")
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id                Int                 @id @default(autoincrement())
+  name              String
+  brand             String
+  serialNumber      String              @unique
+  userId            String
+  schoolId          Int?
+  status            String              @default("DISPONIVEL")
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  ChadaDiagnostic   ChadaDiagnostic[]
   School            School?             @relation(fields: [schoolId], references: [id])
   Profile           Profile             @relation(fields: [userId], references: [userId])
   ItemHistory       ItemHistory[]
   MemorandumItem    MemorandumItem[]
   NewMemorandumItem NewMemorandumItem[]
-  ChadaDiagnostics  ChadaDiagnostic[]   // Diagnósticos da CHADA
-
-  @@map("Item")
-}
-
-model ItemsChada {
-  id        String           @id @default(uuid())
-  itemId    Int // ID do item enviado para CHADA
-  problem   String // Descrição do problema
-  userName  String // Nome do usuário que enviou o item
-  status    ItemsChadaStatus @default(PENDENTE) // Status do item (ex: "Pendente", "Resolvido")
-  createdAt DateTime         @default(now()) // Data de envio
-  updatedAt DateTime         @updatedAt // Data de atualização
-  setor     String
-  updatedBy String? // Nome do usuário que atualizou o status
-  osImages  Json[] // Imagens do OS
-}
-
-enum ItemsChadaStatus {
-  PENDENTE
-  RECEBIDO
-  EM_ANALISE
-  CONSERTADO
-  SEM_CONSERTO
-  DEVOLVIDO
-  RESOLVIDO
 }
 
 model ItemHistory {
@@ -84,6 +124,22 @@ model ItemHistory {
   @@index([itemId])
 }
 
+model ItemsChada {
+  id             String           @id @default(uuid())
+  itemId         Int
+  problem        String
+  userName       String
+  status         ItemsChadaStatus @default(PENDENTE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  setor          String
+  updatedBy      String?
+  osImages       Json[]
+  emailMessageId String?
+  emailSentAt    DateTime?
+  numeroChadaOS  String?
+}
+
 model ItemsHistoryChada {
   id         Int      @id @default(autoincrement())
   itemId     Int
@@ -92,18 +148,38 @@ model ItemsHistoryChada {
   images     String[]
 }
 
+model Locados {
+  id               Int      @id @default(autoincrement())
+  name             String
+  pcs              Int?
+  notebooks        Int?
+  tablets          Int?
+  estabilizadores  Int?
+  monitors         Int?
+  impressoras      Int?
+  name2            String?
+  pcs2             Int?
+  notebooks2       Int?
+  tablets2         Int?
+  estabilizadores2 Int?
+  monitors2        Int?
+  impressoras2     Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+}
+
 model Memorandum {
   id             Int              @id @default(autoincrement())
-  number         String           @unique // Número do memorando
+  number         String           @unique
   schoolName     String
   district       String
   generatedBy    String
-  type           String           @default("entrega") // NOVO: tipo do memorando
-  fromSchoolName String? // NOVO: escola de origem (para troca)
-  toSchoolName   String? // NOVO: escola de destino (para troca)
-  items          MemorandumItem[] // Relacionamento com MemorandumItem
+  type           String           @default("entrega")
+  fromSchoolName String?
+  toSchoolName   String?
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  updatedAt      DateTime
+  MemorandumItem MemorandumItem[]
 }
 
 model MemorandumItem {
@@ -115,6 +191,90 @@ model MemorandumItem {
   Memorandum   Memorandum @relation(fields: [memorandumId], references: [id])
 
   @@unique([memorandumId, itemId])
+}
+
+model NewMemorandum {
+  id                Int                 @id @default(autoincrement())
+  number            String              @unique
+  schoolName        String
+  district          String
+  generatedBy       String
+  type              String              @default("entrega")
+  fromSchoolName    String?
+  toSchoolName      String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  NewMemorandumItem NewMemorandumItem[]
+}
+
+model NewMemorandumItem {
+  id            Int           @id @default(autoincrement())
+  memorandumId  Int
+  itemId        Int
+  createdAt     DateTime      @default(now())
+  Item          Item          @relation(fields: [itemId], references: [id])
+  NewMemorandum NewMemorandum @relation(fields: [memorandumId], references: [id])
+
+  @@unique([memorandumId, itemId])
+}
+
+model OSExterna {
+  id                                 Int       @id @default(autoincrement())
+  numeroOs                           String?   @unique
+  data                               String
+  hora                               String
+  unidadeEscolar                     String?
+  tecnicoResponsavel                 String?
+  emailResponsavel                   String?
+  fotosAntes                         String[]
+  fotosDepois                        String[]
+  pcsProprio                         Int?
+  pcsLocado                          Int?
+  notebooksProprio                   Int?
+  notebooksLocado                    Int?
+  monitoresProprio                   Int?
+  monitoresLocado                    Int?
+  estabilizadoresProprio             Int?
+  estabilizadoresLocado              Int?
+  tabletsProprio                     Int?
+  tabletsLocado                      Int?
+  pcsProprioOutrosLocais             Int?
+  pcsLocadoOutrosLocais              Int?
+  notebooksProprioOutrosLocais       Int?
+  notebooksLocadoOutrosLocais        Int?
+  monitoresProprioOutrosLocais       Int?
+  monitoresLocadoOutrosLocais        Int?
+  estabilizadoresProprioOutrosLocais Int?
+  estabilizadoresLocadoOutrosLocais  Int?
+  tabletsProprioOutrosLocais         Int?
+  tabletsLocadoOutrosLocais          Int?
+  pecasOuMaterial                    String?
+  relatorio                          String?
+  solicitacaoDaVisita                String?
+  temLaboratorio                     Boolean?
+  redeBr                             String?
+  educacaoConectada                  String?
+  naoHaProvedor                      String?
+  rack                               Int?
+  switch                             Int?
+  roteador                           Int?
+  oki                                Int?
+  kyocera                            Int?
+  hp                                 Int?
+  ricoh                              Int?
+  outrasImpressoras                  Int?
+  solucionado                        String?
+  status                             String    @default("Pendente")
+  assinado                           String?
+  cpf                                String?
+  cargoResponsavel                   String?
+  lastEmailSent                      DateTime?
+  updatedAt                          DateTime
+  createdAt                          DateTime  @default(now())
+  diretoraNaEscola                   Boolean?
+  impressoraComProblema              String?
+  relatorioImpressora                String?
+  temImpressoraComProblema           Boolean?
 }
 
 model OffTechnician {
@@ -168,7 +328,7 @@ model Os {
   fotosDepois               String[]
   status                    String   @default("Pendente")
   createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @default(now()) @updatedAt
+  updatedAt                 DateTime @default(now())
 }
 
 model OsAssinada {
@@ -235,22 +395,22 @@ model Printer {
 }
 
 model PrinterStatus {
-  id              Int      @id @default(autoincrement())
-  printerId       Int
-  status          String
-  errorState      String
-  errors          Json
-  errorDetails    Json
-  tonerLevel      Int?
-  paperStatus     String
-  isOnline        Boolean
-  uptime          String?
-  pageCount       Int?
-  hasCriticalErrors Boolean @default(false)
-  responseTime    Int?
-  lastChecked     DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  Printer         Printer  @relation(fields: [printerId], references: [id])
+  id                Int      @id @default(autoincrement())
+  printerId         Int
+  status            String
+  errorState        String
+  errors            Json
+  errorDetails      Json
+  tonerLevel        Int?
+  paperStatus       String
+  isOnline          Boolean
+  uptime            String?
+  pageCount         Int?
+  hasCriticalErrors Boolean  @default(false)
+  responseTime      Int?
+  lastChecked       DateTime @default(now())
+  updatedAt         DateTime
+  Printer           Printer  @relation(fields: [printerId], references: [id])
 
   @@index([printerId])
   @@index([updatedAt])
@@ -262,40 +422,116 @@ model Profile {
   displayName String
   photoUrl    String?
   role        Role    @default(TECH)
-  schoolId    Int     @default(225) // Campo obrigatório para vincular usuário a uma escola (CSDT)
+  schoolId    Int     @default(225)
   Item        Item[]
   School      School  @relation(fields: [schoolId], references: [id])
 }
 
+model RouteOptimization {
+  id            String       @id
+  technicianId  Int
+  date          DateTime
+  totalDistance Float?
+  totalTime     Int?
+  optimized     Boolean      @default(false)
+  algorithm     String?
+  startLocation Json?
+  notes         String?
+  status        RouteStatus  @default(PLANNED)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime
+  RouteVisit    RouteVisit[]
+
+  @@index([status])
+  @@index([technicianId, date])
+}
+
+model RouteVisit {
+  id                String            @id
+  routeId           String
+  schoolId          Int
+  visitOrder        Int
+  estimatedTime     Int
+  actualTime        Int?
+  arrivalTime       DateTime?
+  departureTime     DateTime?
+  distance          Float?
+  status            VisitStatus       @default(PENDING)
+  notes             String?
+  RouteOptimization RouteOptimization @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  School            School            @relation(fields: [schoolId], references: [id])
+
+  @@index([routeId, visitOrder])
+  @@index([schoolId])
+  @@index([status])
+}
+
+model ScheduleEvent {
+  id                  Int                @id @default(autoincrement())
+  title               String
+  description         String?
+  startDate           DateTime
+  endDate             DateTime
+  allDay              Boolean            @default(false)
+  type                EventType          @default(TASK)
+  priority            Priority           @default(MEDIUM)
+  status              EventStatus        @default(PENDING)
+  createdBy           String
+  assignedTo          String?
+  location            String?
+  schoolId            Int?
+  calendarId          Int
+  recurring           Boolean            @default(false)
+  recurrence          Json?
+  parentEventId       Int?
+  isException         Boolean            @default(false)
+  attachments         String[]
+  tags                String[]
+  timezone            String             @default("America/Sao_Paulo")
+  url                 String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime
+  EventParticipant    EventParticipant[]
+  EventReminder       EventReminder[]
+  Calendar            Calendar           @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  ScheduleEvent       ScheduleEvent?     @relation("ScheduleEventToScheduleEvent", fields: [parentEventId], references: [id])
+  other_ScheduleEvent ScheduleEvent[]    @relation("ScheduleEventToScheduleEvent")
+  School              School?            @relation(fields: [schoolId], references: [id])
+  TechnicalTicket     TechnicalTicket[]
+
+  @@index([assignedTo])
+  @@index([calendarId])
+  @@index([createdBy])
+  @@index([parentEventId])
+  @@index([startDate, endDate])
+}
+
 model School {
-  id               Int               @id @default(autoincrement())
-  name             String            @unique
-  inep             Int               @default(0)
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  inep             Int                @default(0)
   district         String?
   address          String?
   director         String?
   phone            String?
   email            String?
-  students         Int?              @default(0)
-  laboratorio      Int?              @default(0) // Quantidade de itens no laboratório de informática
-  parentSchoolId   Int?              // ID da escola principal (para anexos)
-  parentSchool     School?           @relation("SchoolAnnexes", fields: [parentSchoolId], references: [id])
-  annexes          School[]          @relation("SchoolAnnexes") // Anexos desta escola
-  
-  // Coordenadas geográficas para otimização de rotas
+  students         Int?               @default(0)
+  laboratorio      Int?               @default(0)
+  parentSchoolId   Int?
+  geocoded         Boolean            @default(false)
   latitude         Float?
   longitude        Float?
-  geocoded         Boolean           @default(false)
-  
+  ChadaDiagnostic  ChadaDiagnostic[]
   Item             Item[]
-  SchoolDemand     SchoolDemand[]
+  Profile          Profile[]
+  RouteVisit       RouteVisit[]
   ScheduleEvent    ScheduleEvent[]
-  Profile          Profile[]         // Relacionamento com usuários vinculados
-  TechnicalTicket  TechnicalTicket[] // Chamados técnicos da escola
-  InternalTickets  InternalTicket[]  @relation("InternalTickets") // Chamados internos
-  ChadaDiagnostics ChadaDiagnostic[] @relation("ChadaDiagnostics") // Diagnósticos da CHADA
-  RouteVisit       RouteVisit[]      // Visitas em rotas otimizadas
-  ChamadosEscola   ChamadoEscola[]   @relation("ChamadosEscola") // Chamados das escolas
+  School           School?            @relation("SchoolToSchool", fields: [parentSchoolId], references: [id])
+  other_School     School[]           @relation("SchoolToSchool")
+  SchoolDemand     SchoolDemand[]
+  TechnicalTicket  TechnicalTicket[]
+  chamados_escola  chamados_escola[]
+  internal_tickets internal_tickets[]
 
   @@index([geocoded])
 }
@@ -342,6 +578,53 @@ model ServiceOrder {
   signedPhoto                    String[]
 }
 
+model TechnicalTicket {
+  id                Int             @id @default(autoincrement())
+  schoolId          Int
+  title             String
+  description       String
+  priority          TicketPriority?
+  category          TicketCategory  @default(OTHER)
+  equipmentAffected String?
+  status            TicketStatus    @default(OPEN)
+  createdBy         String
+  assignedTo        String?
+  scheduledDate     DateTime?
+  scheduledTime     String?
+  eventId           Int?
+  notes             String?
+  attachments       String[]
+  deletedAt         DateTime?
+  deletedBy         String?
+  deletionReason    String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime
+  ScheduleEvent     ScheduleEvent?  @relation(fields: [eventId], references: [id])
+  School            School          @relation(fields: [schoolId], references: [id])
+  TicketComment     TicketComment[]
+
+  @@index([assignedTo])
+  @@index([createdAt])
+  @@index([schoolId])
+  @@index([status])
+}
+
+model TicketComment {
+  id              Int             @id @default(autoincrement())
+  ticketId        Int
+  authorId        String
+  authorName      String
+  authorRole      String
+  content         String
+  isInternal      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  TechnicalTicket TechnicalTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([ticketId])
+}
+
 model User {
   id       Int    @id @default(autoincrement())
   email    String @unique
@@ -355,553 +638,105 @@ model VisitTechnician {
   createdAt    DateTime @default(now())
 }
 
-enum Role {
-  ADMIN
-  TECH
-  ONLYREAD
-  ADMTOTAL
-  SCHOOL
-}
-
-model Locados {
-  id              Int    @id @default(autoincrement())
-  name            String
-  pcs             Int?
-  notebooks       Int?
-  tablets         Int?
-  estabilizadores Int?
-  monitors        Int?
-  impressoras     Int?
-
-  name2            String?
-  pcs2             Int?
-  notebooks2       Int?
-  tablets2         Int?
-  estabilizadores2 Int?
-  monitors2        Int?
-  impressoras2     Int?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @default(now()) @updatedAt
-}
-
-model OSExterna {
-  id                                 Int      @id @default(autoincrement())
-  numeroOs                           String?  @unique
-  data                               String
-  hora                               String
-  unidadeEscolar                     String?
-  tecnicoResponsavel                 String?
-  emailResponsavel                   String?
-  fotosAntes                         String[]
-  fotosDepois                        String[]
-  pcsProprio                         Int?
-  pcsLocado                          Int?
-  notebooksProprio                   Int?
-  notebooksLocado                    Int?
-  monitoresProprio                   Int?
-  monitoresLocado                    Int?
-  estabilizadoresProprio             Int?
-  estabilizadoresLocado              Int?
-  tabletsProprio                     Int?
-  tabletsLocado                      Int?
-  pcsProprioOutrosLocais             Int?
-  pcsLocadoOutrosLocais              Int?
-  notebooksProprioOutrosLocais       Int?
-  notebooksLocadoOutrosLocais        Int?
-  monitoresProprioOutrosLocais       Int?
-  monitoresLocadoOutrosLocais        Int?
-  estabilizadoresProprioOutrosLocais Int?
-  estabilizadoresLocadoOutrosLocais  Int?
-  tabletsProprioOutrosLocais         Int?
-  tabletsLocadoOutrosLocais          Int?
-  pecasOuMaterial                    String?
-  relatorio                          String?
-  solicitacaoDaVisita                String?
-  temLaboratorio                     Boolean?
-  diretoraNaEscola                   Boolean?
-  redeBr                             String?
-  educacaoConectada                  String?
-  naoHaProvedor                      String?
-  rack                               Int?
-  switch                             Int?
-  roteador                           Int?
-  oki                                Int?
-  kyocera                            Int?
-  hp                                 Int?
-  ricoh                              Int?
-  outrasImpressoras                  Int?
-  temImpressoraComProblema           Boolean?
-  relatorioImpressora                String?
-  impressoraComProblema              String?
-  solucionado                        String?
-  status                             String   @default("Pendente")
-  assinado                           String?
-  cpf                                String?
-  cargoResponsavel                   String?
-  lastEmailSent                      DateTime? // Data do último email enviado
-  updatedAt                          DateTime @updatedAt
-  createdAt                          DateTime @default(now())
-}
-
-// Nova tabela para memorandos com numeração automática
-model NewMemorandum {
-  id             Int                 @id @default(autoincrement())
-  number         String              @unique // Número do memorando (formato: sequencial/ano)
-  schoolName     String
-  district       String
-  generatedBy    String
-  type           String              @default("entrega") // tipo do memorando (entrega/troca)
-  fromSchoolName String? // escola de origem (para troca)
-  toSchoolName   String? // escola de destino (para troca)
-  items          NewMemorandumItem[] // Relacionamento com NewMemorandumItem
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-}
-
-model NewMemorandumItem {
-  id           Int           @id @default(autoincrement())
-  memorandumId Int
-  itemId       Int
-  createdAt    DateTime      @default(now())
-  Item         Item          @relation(fields: [itemId], references: [id])
-  Memorandum   NewMemorandum @relation(fields: [memorandumId], references: [id])
-
-  @@unique([memorandumId, itemId])
-}
-
-// Calendários separados
-model Calendar {
-  id          Int             @id @default(autoincrement())
-  name        String          // Nome do calendário
-  description String?         // Descrição
-  color       String          @default("#3b82f6") // Cor hexadecimal
-  isVisible   Boolean         @default(true) // Se está visível
-  isDefault   Boolean         @default(false) // Se é o padrão
-  ownerId     String          // Dono do calendário
-  isPublic    Boolean         @default(false) // Se é público
-  timezone    String          @default("America/Sao_Paulo") // Fuso horário
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  
-  events      ScheduleEvent[] // Eventos deste calendário
-  
-  @@unique([ownerId, name])
-}
-
-// Tabela para agendamentos e tarefas
-model ScheduleEvent {
-  id            Int               @id @default(autoincrement())
-  title         String            // Título do evento/tarefa
-  description   String?           // Descrição opcional
-  startDate     DateTime          // Data/hora de início
-  endDate       DateTime          // Data/hora de fim
-  allDay        Boolean           @default(false) // Se é evento de dia inteiro
-  type          EventType         @default(TASK) // Tipo do evento
-  priority      Priority          @default(MEDIUM) // Prioridade
-  status        EventStatus       @default(PENDING) // Status do evento
-  createdBy     String            // Usuário que criou
-  assignedTo    String?           // Usuário responsável (opcional)
-  location      String?           // Local do evento (opcional)
-  schoolId      Int?              // Escola relacionada (opcional)
-  calendarId    Int               // Calendário que contém este evento
-  
-  // Eventos recorrentes
-  recurring     Boolean           @default(false) // Se é recorrente
-  recurrence    Json?             // Padrão de recorrência (JSON)
-  parentEventId Int?              // Evento pai (para séries recorrentes)
-  isException   Boolean           @default(false) // Se é exceção na recorrência
-  
-  // Lembretes
-  reminders     EventReminder[]   // Lembretes do evento
-  
-  // Participantes
-  participants  EventParticipant[] // Participantes/convidados
-  
-  // Outros
-  attachments   String[]          // Anexos/links
-  tags          String[]          // Tags para categorização
-  timezone      String            @default("America/Sao_Paulo") // Fuso horário
-  url           String?           // URL relacionada
-  
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  
-  School          School?           @relation(fields: [schoolId], references: [id])
-  Calendar        Calendar          @relation(fields: [calendarId], references: [id], onDelete: Cascade)
-  ParentEvent     ScheduleEvent?    @relation("EventRecurrence", fields: [parentEventId], references: [id])
-  ChildEvents     ScheduleEvent[]   @relation("EventRecurrence")
-  TechnicalTicket TechnicalTicket[] // Chamados técnicos vinculados a este evento
-
-  @@index([startDate, endDate])
-  @@index([createdBy])
-  @@index([assignedTo])
-  @@index([calendarId])
-  @@index([parentEventId])
-}
-
-// Lembretes de eventos
-model EventReminder {
-  id        Int           @id @default(autoincrement())
-  eventId   Int           // Evento relacionado
-  minutes   Int           // Minutos antes do evento (15, 30, 60, etc.)
-  type      ReminderType  @default(POPUP) // Tipo do lembrete
-  sent      Boolean       @default(false) // Se já foi enviado
-  createdAt DateTime      @default(now())
-  
-  Event     ScheduleEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  
-  @@index([eventId])
-}
-
-// Participantes de eventos
-model EventParticipant {
-  id          Int                 @id @default(autoincrement())
-  eventId     Int                 // Evento relacionado
-  email       String              // Email do participante
-  name        String?             // Nome do participante
-  role        ParticipantRole     @default(ATTENDEE) // Papel no evento
-  status      ParticipantStatus   @default(PENDING) // Status de resposta
-  isOrganizer Boolean             @default(false) // Se é organizador
-  canEdit     Boolean             @default(false) // Se pode editar
-  inviteSent  Boolean             @default(false) // Se convite foi enviado
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  
-  Event       ScheduleEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  
-  @@unique([eventId, email])
-  @@index([eventId])
-  @@index([email])
-}
-
-enum EventType {
-  TASK          // Tarefa
-  MEETING       // Reunião
-  APPOINTMENT   // Agendamento/visita técnica
-  REMINDER      // Lembrete
-  DEADLINE      // Prazo
-  MAINTENANCE   // Manutenção
-}
-
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
-
-enum EventStatus {
-  PENDING       // Pendente
-  IN_PROGRESS   // Em andamento
-  COMPLETED     // Concluído
-  CANCELLED     // Cancelado
-  POSTPONED     // Adiado
-}
-
-enum ReminderType {
-  POPUP         // Pop-up na tela
-  EMAIL         // Email
-  SMS           // SMS (futuro)
-  PUSH          // Push notification
-}
-
-enum ParticipantRole {
-  ORGANIZER     // Organizador
-  ATTENDEE      // Participante
-  OPTIONAL      // Opcional
-  RESOURCE      // Recurso (sala, equipamento)
-}
-
-enum ParticipantStatus {
-  PENDING       // Aguardando resposta
-  ACCEPTED      // Confirmado
-  DECLINED      // Recusado
-  TENTATIVE     // Talvez
-}
-
-// Chamados técnicos das escolas
-model TechnicalTicket {
-  id                Int                    @id @default(autoincrement())
-  schoolId          Int                    // Escola que criou o chamado
-  title             String                 // Título do chamado
-  description       String                 // Descrição do problema
-  priority          TicketPriority?        // Prioridade (definida por quem aceita)
-  category          TicketCategory         @default(OTHER) // Categoria do problema
-  equipmentAffected String?                // Equipamentos afetados
-  status            TicketStatus           @default(OPEN) // Status do chamado
-  createdBy         String                 // Usuário da escola que criou
-  assignedTo        String?                // Técnico responsável (quando aceito)
-  scheduledDate     DateTime?              // Data agendada para visita
-  scheduledTime     String?                // Hora agendada
-  eventId           Int?                   // ID do evento na agenda (quando agendado)
-  notes             String?                // Observações internas
-  attachments       String[]               // Anexos/fotos
-  deletedAt         DateTime?              // Data de exclusão
-  deletedBy         String?                // Quem excluiu
-  deletionReason    String?                // Motivo da exclusão
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  
-  School            School                 @relation(fields: [schoolId], references: [id])
-  Event             ScheduleEvent?         @relation(fields: [eventId], references: [id])
-  Comments          TicketComment[]        // Comentários do chamado
-  
-  @@index([schoolId])
-  @@index([status])
-  @@index([createdAt])
-  @@index([assignedTo])
-}
-
-// Comentários dos chamados técnicos
-model TicketComment {
-  id           Int             @id @default(autoincrement())
-  ticketId     Int             // ID do chamado
-  authorId     String          // ID do usuário que comentou
-  authorName   String          // Nome do autor
-  authorRole   String          // Role do autor (SCHOOL/ADMIN/ADMTOTAL)
-  content      String          // Conteúdo do comentário
-  isInternal   Boolean         @default(false) // Se é comentário interno (só admins veem)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  
-  Ticket       TechnicalTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  
-  @@index([ticketId])
-  @@index([createdAt])
-}
-
-enum TicketPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
-
-enum TicketCategory {
-  COMPUTER          // Computador/Desktop
-  NOTEBOOK          // Notebook
-  TABLET            // Tablet
-  PRINTER           // Impressora
-  NETWORK           // Rede/Internet
-  SOFTWARE          // Software
-  MAINTENANCE       // Manutenção geral
-  OTHER             // Outros
-}
-
-enum TicketStatus {
-  OPEN              // Aberto (aguardando aceite)
-  ASSIGNED          // Aceito/Atribuído
-  SCHEDULED         // Agendado
-  IN_PROGRESS       // Em andamento
-  RESOLVED          // Resolvido
-  CLOSED            // Fechado
-  CANCELLED         // Cancelado
-  DELETED           // Excluído
-}
-
-// Modelos para Chamados Internos (setores do prédio)
-// Usando a tabela School existente para representar setores
-model InternalTicket {
-  id           Int                     @id @default(autoincrement())
-  schoolId     Int                     // Usando schoolId para referenciar o setor
-  title        String
-  description  String?
-  category     InternalTicketCategory  @default(OTHER)
-  priority     InternalTicketPriority  @default(NORMAL)
-  status       InternalTicketStatus    @default(OPEN)
-  assignedTo   String?                 // ID do técnico responsável (userId do Supabase)
-  assignedName String?                 // Nome do técnico para facilitar consultas
-  closedAt     DateTime?
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
-  
-  School       School                  @relation("InternalTickets", fields: [schoolId], references: [id])
-  messages     InternalChatMessage[]
-  
-  @@index([schoolId])
-  @@index([status])
-  @@index([assignedTo])
-  @@index([createdAt])
-  @@map("internal_tickets")
-}
-
-model InternalChatMessage {
-  id          Int      @id @default(autoincrement())
-  ticketId    Int
-  senderId    String   // ID do usuário (departmentId para setor, userId para técnico)
-  senderName  String   // Nome do remetente
-  senderType  String   // "DEPARTMENT" ou "TECH"
-  content     String
-  attachments String[] // URLs das imagens/arquivos
-  sentAt      DateTime @default(now())
-  readAt      DateTime?
-  
-  Ticket      InternalTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  
-  @@index([ticketId])
-  @@index([sentAt])
-  @@map("internal_chat_messages")
-}
-
-enum InternalTicketCategory {
-  COMPUTER      // Computador/Desktop
-  NOTEBOOK      // Notebook
-  TABLET        // Tablet
-  PRINTER       // Impressora
-  NETWORK       // Rede/Internet
-  SOFTWARE      // Software
-  PHONE         // Telefone/Ramal
-  MAINTENANCE   // Manutenção geral
-  ACCESS        // Acesso/Permissões
-  OTHER         // Outros
-}
-
-enum InternalTicketPriority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
-}
-
-enum InternalTicketStatus {
-  OPEN          // Aberto (aguardando aceite)
-  ASSIGNED      // Aceito/Atribuído
-  IN_PROGRESS   // Em andamento
-  WAITING       // Aguardando resposta do setor
-  RESOLVED      // Resolvido (aguardando confirmação)
-  CLOSED        // Fechado/Concluído
-  CANCELLED     // Cancelado
-}
-
-// Tabela para diagnósticos de impressoras da CHADA
-model ChadaDiagnostic {
-  id              String    @id @default(uuid())
-  itemId          Int       // ID da impressora (da tabela Item)
-  sectorId        Int       // ID do setor (da tabela School)
-  sectorName      String    // Nome do setor para facilitar consultas
-  technicianChada String    // Nome do técnico da CHADA que fez o diagnóstico
-  diagnostic      String    // Laudo/diagnóstico
-  requestedPart   String    // Peça solicitada
-  status          ChadaDiagnosticStatus @default(AGUARDANDO_PECA)
+model chamados_escalas {
+  id              Int       @id @default(autoincrement())
+  escola          String
+  titulo          String
+  descricao       String
+  categoria       String
+  tecnico         String
+  osOriginal      String?
+  automatico      Boolean   @default(false)
+  status          String    @default("PENDENTE")
+  dataCriacao     DateTime  @default(now())
+  dataAgendamento DateTime?
+  observacoes     String?
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  completedAt     DateTime? // Data que a peça chegou/foi instalada
-  createdBy       String    // Usuário que cadastrou
-  
-  // Relacionamentos
-  Item            Item      @relation(fields: [itemId], references: [id])
-  Sector          School    @relation("ChadaDiagnostics", fields: [sectorId], references: [id])
+  updatedAt       DateTime
+}
+
+model chamados_escola {
+  id          String          @id
+  schoolId    Int
+  schoolName  String
+  title       String
+  description String
+  category    ChamadoCategory @default(OTHER)
+  priority    ChamadoPriority @default(MEDIUM)
+  status      ChamadoStatus   @default(OPEN)
+  phone       String?
+  contact     String?
+  createdBy   String
+  assignedTo  String?
+  notes       String?
+  resolvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime
+  School      School          @relation(fields: [schoolId], references: [id])
+
+  @@index([assignedTo])
+  @@index([createdAt])
+  @@index([schoolId])
+  @@index([status])
+}
+
+model internal_chat_messages {
+  id               Int              @id @default(autoincrement())
+  ticketId         Int
+  senderId         String
+  senderName       String
+  senderType       String
+  content          String
+  attachments      String[]
+  sentAt           DateTime         @default(now())
+  readAt           DateTime?
+  internal_tickets internal_tickets @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([sentAt])
+  @@index([ticketId])
+}
+
+model internal_tickets {
+  id                     Int                      @id @default(autoincrement())
+  schoolId               Int
+  title                  String
+  description            String?
+  category               InternalTicketCategory   @default(OTHER)
+  priority               InternalTicketPriority   @default(NORMAL)
+  status                 InternalTicketStatus     @default(OPEN)
+  assignedTo             String?
+  assignedName           String?
+  closedAt               DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  internal_chat_messages internal_chat_messages[]
+  School                 School                   @relation(fields: [schoolId], references: [id])
+
+  @@index([assignedTo])
+  @@index([createdAt])
+  @@index([schoolId])
+  @@index([status])
 }
 
 enum ChadaDiagnosticStatus {
-  AGUARDANDO_PECA    // Aguardando peça chegar
-  PECA_CHEGOU        // Peça chegou
-  INSTALADO          // Peça instalada/finalizado
-  CANCELADO          // Cancelado por algum motivo
-}
-
-// === SISTEMA DE OTIMIZAÇÃO DE ROTAS ===
-
-model RouteOptimization {
-  id            String      @id @default(uuid())
-  technicianId  Int         // ID do técnico responsável
-  date          DateTime    // Data da rota
-  totalDistance Float?      // Distância total em quilômetros
-  totalTime     Int?        // Tempo total estimado em minutos
-  optimized     Boolean     @default(false) // Se foi otimizada
-  algorithm     String?     // Algoritmo usado (nearest_neighbor, genetic, google)
-  startLocation Json?       // Ponto de partida (lat, lng)
-  notes         String?     // Observações da rota
-  status        RouteStatus @default(PLANNED) // Status da rota
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  
-  // Relacionamentos
-  visits        RouteVisit[] // Visitas da rota
-  
-  @@index([technicianId, date])
-  @@index([status])
-}
-
-model RouteVisit {
-  id            String    @id @default(uuid())
-  routeId       String    // ID da rota
-  schoolId      Int       // ID da escola
-  visitOrder    Int       // Ordem da visita na rota (1, 2, 3...)
-  estimatedTime Int       // Tempo estimado na escola (minutos)
-  actualTime    Int?      // Tempo real gasto (minutos)
-  arrivalTime   DateTime? // Hora real de chegada
-  departureTime DateTime? // Hora real de saída
-  distance      Float?    // Distância até esta escola (km)
-  status        VisitStatus @default(PENDING) // Status da visita
-  notes         String?   // Observações da visita
-  
-  // Relacionamentos
-  route         RouteOptimization @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  school        School            @relation(fields: [schoolId], references: [id])
-  
-  @@index([routeId, visitOrder])
-  @@index([schoolId])
-  @@index([status])
-}
-
-enum RouteStatus {
-  PLANNED     // Rota planejada
-  IN_PROGRESS // Rota em andamento
-  COMPLETED   // Rota concluída
-  CANCELLED   // Rota cancelada
-}
-
-enum VisitStatus {
-  PENDING    // Aguardando visita
-  TRAVELING  // A caminho
-  ARRIVED    // Chegou na escola
-  WORKING    // Trabalhando na escola
-  COMPLETED  // Visita concluída
-  SKIPPED    // Visita pulada
-}
-
-// Chamados das escolas para o CSDT
-model ChamadoEscola {
-  id          String              @id @default(uuid())
-  schoolId    Int                 // ID da escola que ligou
-  schoolName  String              // Nome da escola para facilitar consultas
-  title       String              // Título/resumo do chamado
-  description String              // Descrição detalhada do problema
-  category    ChamadoCategory     @default(OTHER) // Categoria do chamado
-  priority    ChamadoPriority     @default(MEDIUM) // Prioridade
-  status      ChamadoStatus       @default(OPEN) // Status do chamado
-  phone       String?             // Telefone de contato
-  contact     String?             // Pessoa de contato na escola
-  createdBy   String              // Usuário que cadastrou o chamado
-  assignedTo  String?             // Técnico responsável (quando atribuído)
-  notes       String?             // Observações internas
-  resolvedAt  DateTime?           // Data de resolução
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-
-  // Relacionamento com a escola
-  School      School              @relation("ChamadosEscola", fields: [schoolId], references: [id])
-
-  @@index([schoolId])
-  @@index([status])
-  @@index([createdAt])
-  @@index([assignedTo])
-  @@map("chamados_escola")
+  AGUARDANDO_PECA
+  PECA_CHEGOU
+  INSTALADO
+  CANCELADO
 }
 
 enum ChamadoCategory {
-  COMPUTER      // Computador/Desktop
-  NOTEBOOK      // Notebook
-  TABLET        // Tablet
-  PRINTER       // Impressora
-  NETWORK       // Rede/Internet
-  SOFTWARE      // Software
-  MAINTENANCE   // Manutenção geral
-  PHONE         // Telefone/Ramal
-  PROJECTOR     // Projetor/Datashow
-  AUDIO         // Sistema de som
-  OTHER         // Outros
+  COMPUTER
+  NOTEBOOK
+  TABLET
+  PRINTER
+  NETWORK
+  SOFTWARE
+  MAINTENANCE
+  PHONE
+  PROJECTOR
+  AUDIO
+  OTHER
 }
 
 enum ChamadoPriority {
@@ -912,31 +747,148 @@ enum ChamadoPriority {
 }
 
 enum ChamadoStatus {
-  OPEN          // Aberto
-  ASSIGNED      // Atribuído a técnico
-  IN_PROGRESS   // Em andamento
-  RESOLVED      // Resolvido
-  CLOSED        // Fechado
-  CANCELLED     // Cancelado
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  CANCELLED
 }
 
-// Chamados para escalas (reagendamentos e novos serviços)
-model ChamadoEscala {
-  id              Int      @id @default(autoincrement())
-  escola          String   // Nome da escola
-  titulo          String   // Título do chamado
-  descricao       String   // Descrição do serviço
-  categoria       String   // Categoria do serviço
-  tecnico         String   // Técnico que criou
-  osOriginal      String?  // OS original (se veio de reagendamento)
-  automatico      Boolean  @default(false) // Se foi criado automaticamente
-  status          String   @default("PENDENTE") // PENDENTE, AGENDADO, CONCLUIDO
-  dataCriacao     DateTime @default(now())
-  dataAgendamento DateTime? // Quando foi agendado para a rota
-  observacoes     String?  // Observações do administrativo
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@map("chamados_escalas")
+enum EventStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  POSTPONED
 }
 
+enum EventType {
+  TASK
+  MEETING
+  APPOINTMENT
+  REMINDER
+  DEADLINE
+  MAINTENANCE
+}
+
+enum InternalTicketCategory {
+  COMPUTER
+  NOTEBOOK
+  TABLET
+  PRINTER
+  NETWORK
+  SOFTWARE
+  PHONE
+  MAINTENANCE
+  ACCESS
+  OTHER
+}
+
+enum InternalTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum InternalTicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+enum ItemsChadaStatus {
+  PENDENTE
+  RESOLVIDO
+  RECEBIDO
+  EM_ANALISE
+  CONSERTADO
+  SEM_CONSERTO
+  DEVOLVIDO
+}
+
+enum ParticipantRole {
+  ORGANIZER
+  ATTENDEE
+  OPTIONAL
+  RESOURCE
+}
+
+enum ParticipantStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  TENTATIVE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ReminderType {
+  POPUP
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum Role {
+  ADMIN
+  TECH
+  ONLYREAD
+  ADMTOTAL
+  SCHOOL
+}
+
+enum RouteStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TicketCategory {
+  COMPUTER
+  NOTEBOOK
+  TABLET
+  PRINTER
+  NETWORK
+  SOFTWARE
+  MAINTENANCE
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  SCHEDULED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  CANCELLED
+  DELETED
+}
+
+enum VisitStatus {
+  PENDING
+  TRAVELING
+  ARRIVED
+  WORKING
+  COMPLETED
+  SKIPPED
+}

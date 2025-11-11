@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const memorandum = await prisma.newMemorandum.findUnique({
       where: { id: memorandumId },
       include: {
-        items: {
+        NewMemorandumItem: {
           include: {
             Item: true,
           },
@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Para memorandos de troca, reconstruir a separação dos itens baseado no histórico
-      const itemIds = memorandum.items.map(item => item.Item.id);
+      const itemIds = memorandum.NewMemorandumItem.map(item => item.Item.id);
       
       // Buscar histórico dos itens no momento da criação do memorando
       const itemHistories = await prisma.itemHistory.findMany({
@@ -159,7 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Preencher itens
-      memorandum.items.forEach((item, index) => {
+      memorandum.NewMemorandumItem.forEach((item, index) => {
         if (index >= 13) return; // Limite de 13 itens
         const itemWithBrand = `${item.Item.brand}`;
         form.getTextField(`item${index + 1}`).setText(itemWithBrand);

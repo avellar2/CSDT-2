@@ -10,14 +10,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Contar chamados pendentes (OPEN = ainda não foram aceitos por um técnico)
-    const pendingCount = await prisma.internalTicket.count({
+    const pendingCount = await prisma.internal_tickets.count({
       where: {
         status: 'OPEN'
       }
     });
 
     // Contar chamados por status para estatísticas extras
-    const statusCounts = await prisma.internalTicket.groupBy({
+    const statusCounts = await prisma.internal_tickets.groupBy({
       by: ['status'],
       _count: {
         status: true

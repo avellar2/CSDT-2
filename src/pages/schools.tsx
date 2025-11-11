@@ -32,7 +32,9 @@ interface School {
   laboratorio?: number;
   parentSchoolId?: number;
   parentSchool?: School;
+  School?: School;
   annexes?: School[];
+  other_School?: School[];
 }
 
 const districtColors: { [key: string]: string } = {
@@ -152,8 +154,8 @@ const SchoolsPage: React.FC = () => {
     
     // Filtro por anexos
     const matchesAnexos = !filters.anexos || 
-      (filters.anexos === 'com' && school.annexes && school.annexes.length > 0) ||
-      (filters.anexos === 'sem' && (!school.annexes || school.annexes.length === 0));
+      (filters.anexos === 'com' && school.other_School && school.other_School.length > 0) ||
+      (filters.anexos === 'sem' && (!school.other_School || school.other_School.length === 0));
     
     return matchesSearch && matchesDistrict && matchesDirector && 
            matchesMinStudents && matchesMaxStudents && matchesLaboratorio && matchesAnexos;
@@ -534,13 +536,13 @@ const SchoolsPage: React.FC = () => {
                         Laboratório: {school.laboratorio} equipamentos
                       </div>
                     )}
-                    {school.annexes && school.annexes.length > 0 && (
+                    {school.other_School && school.other_School.length > 0 && (
                       <div className="flex items-start text-sm text-purple-600 dark:text-purple-400">
                         <span className="mr-2 mt-1">📍</span>
                         <div>
-                          <span className="font-medium">Anexos ({school.annexes.length}):</span>
+                          <span className="font-medium">Anexos ({school.other_School.length}):</span>
                           <div className="mt-1 space-y-1">
-                            {school.annexes.map((annex) => (
+                            {school.other_School.map((annex) => (
                               <div key={annex.id} className="text-xs bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
                                 {annex.name.replace(/^ANEXO\s*(\([^)]*\))?\s*:?\s*/i, '')}
                               </div>
@@ -674,18 +676,18 @@ const SchoolsPage: React.FC = () => {
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
                               {school.name}
-                              {school.annexes && school.annexes.length > 0 && (
+                              {school.other_School && school.other_School.length > 0 && (
                                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
-                                  {school.annexes.length} anexo{school.annexes.length > 1 ? 's' : ''}
+                                  {school.other_School.length} anexo{school.other_School.length > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
-                            {school.annexes && school.annexes.length > 0 && (
+                            {school.other_School && school.other_School.length > 0 && (
                               <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                                {school.annexes.map((annex, index) => (
+                                {school.other_School.map((annex, index) => (
                                   <span key={annex.id}>
                                     {annex.name.replace(/^ANEXO\s*(\([^)]*\))?\s*:?\s*/i, '')}
-                                    {index < school.annexes!.length - 1 && ', '}
+                                    {index < school.other_School!.length - 1 && ', '}
                                   </span>
                                 ))}
                               </div>

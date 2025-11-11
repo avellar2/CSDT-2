@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         include: {
           _count: {
-            select: { events: true }
+            select: { ScheduleEvent: true }
           }
         }
       });
@@ -103,7 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: { isVisible },
         include: {
           _count: {
-            select: { events: true }
+            select: { ScheduleEvent: true }
           }
         }
       });

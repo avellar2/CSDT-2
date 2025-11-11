@@ -174,7 +174,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             await tx.printerStatus.create({
               data: {
                 printerId: printer.id,
-                ...statusData
+                ...statusData,
+                updatedAt: new Date()
               }
             });
           }

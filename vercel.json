@@ -11,10 +11,17 @@
     },
     "src/pages/api/printer-ping.ts": {
       "maxDuration": 20
+    },
+    "src/pages/api/chada/check-emails.ts": {
+      "maxDuration": 60
     }
   },
   "regions": ["gru1"],
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "crons": [{
+    "path": "/api/chada/check-emails",
+    "schedule": "0 10,14,16 * * *"
+  }]
 }

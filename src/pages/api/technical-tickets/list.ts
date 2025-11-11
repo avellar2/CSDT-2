@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where,
       include: {
         School: true,
-        Event: true
+        ScheduleEvent: true
       },
       orderBy: [
         { status: 'asc' }, // OPEN primeiro

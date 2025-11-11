@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verificar se o ticket existe
-    const ticket = await prisma.internalTicket.findUnique({
+    const ticket = await prisma.internal_tickets.findUnique({
       where: { id: parseInt(ticketId) }
     });
 
@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Criar a mensagem
-    const message = await prisma.internalChatMessage.create({
+    const message = await prisma.internal_chat_messages.create({
       data: {
         ticketId: parseInt(ticketId),
         senderId: senderId.toString(),
@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Atualizar o timestamp do ticket
-    await prisma.internalTicket.update({
+    await prisma.internal_tickets.update({
       where: { id: parseInt(ticketId) },
       data: { updatedAt: new Date() }
     });

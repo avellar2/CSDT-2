@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: updateData,
       include: {
         School: true,
-        Event: true
+        ScheduleEvent: true
       }
     });
 
