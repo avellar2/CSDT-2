@@ -53,18 +53,24 @@ export const useMultiStepForm = (initialStep = 0) => {
       if (Array.isArray(value)) {
         return true; // Arrays podem estar vazios (fotos são opcionais)
       }
-      if (field === 'temLaboratorio') {
+      if (field === 'temLaboratorio' || field === 'temImpressoraComProblema') {
         return value !== undefined && value !== null && typeof value === 'boolean';
       }
       
       // Se a escola não tem laboratório, não exigir campos de equipamentos do laboratório
-      const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado', 
-                        'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio', 
+      const labFields = ['pcsProprio', 'pcsLocado', 'notebooksProprio', 'notebooksLocado',
+                        'monitoresProprio', 'monitoresLocado', 'estabilizadoresProprio',
                         'estabilizadoresLocado', 'tabletsProprio', 'tabletsLocado'];
       if (labFields.includes(field) && formData.temLaboratorio === false) {
         return true; // Não exigir campos do laboratório se a escola não tem laboratório
       }
-      
+
+      // Se não tem impressora com problema, não exigir campos de problema de impressora
+      const printerProblemFields = ['relatorioImpressora', 'impressoraComProblema'];
+      if (printerProblemFields.includes(field) && formData.temImpressoraComProblema === false) {
+        return true; // Não exigir campos se não há problema com impressora
+      }
+
       return value !== undefined && value !== null && value.toString().trim() !== '';
     });
   }, [currentStep]);
