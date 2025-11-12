@@ -1,17 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { Warning, X, Printer, Clock, Globe } from 'phosphor-react';
 import { usePrinterNotifications } from '@/context/PrinterNotificationContext';
+import { supabase } from '@/lib/supabaseClient';
 
 export const PrinterCriticalAlert: React.FC = () => {
   const { criticalErrors, acknowledgeError } = usePrinterNotifications();
   const [isVisible, setIsVisible] = useState(false);
   const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoadingRole, setIsLoadingRole] = useState(true);
+
+  // Buscar papel do usuário
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+          setIsLoadingRole(false);
+          return;
+        }
+
+        const response = await fetch(`/api/get-role?userId=${user.id}`);
+        const data = await response.json();
+        if (response.ok && data.role) {
+          setUserRole(data.role);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar papel do usuário:', error);
+      } finally {
+        setIsLoadingRole(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
 
   useEffect(() => {
     if (criticalErrors.length > 0) {
       setIsVisible(true);
       setCurrentErrorIndex(0);
-      
+
       // Reproduzir som de alerta (opcional)
       if (typeof window !== 'undefined') {
         try {
@@ -29,8 +57,8 @@ export const PrinterCriticalAlert: React.FC = () => {
     }
   }, [criticalErrors]);
 
-  const handleAcknowledge = (errorId: string) => {
-    acknowledgeError(errorId);
+  const handleAcknowledge = (errorId: string, printerId: number) => {
+    acknowledgeError(errorId, printerId);
   };
 
   const getCurrentError = () => {
@@ -53,7 +81,16 @@ export const PrinterCriticalAlert: React.FC = () => {
     setIsVisible(false);
   };
 
-  if (!isVisible || criticalErrors.length === 0) {
+  // Não mostrar o modal se:
+  // - Não está visível
+  // - Não há erros críticos
+  // - Ainda está carregando o papel
+  // - O usuário não é ADMTOTAL ou ADMIN
+  if (!isVisible || criticalErrors.length === 0 || isLoadingRole) {
+    return null;
+  }
+
+  if (userRole !== 'ADMTOTAL' && userRole !== 'ADMIN') {
     return null;
   }
 
@@ -161,7 +198,7 @@ export const PrinterCriticalAlert: React.FC = () => {
               Abrir Interface da Impressora
             </a>
             <button
-              onClick={() => handleAcknowledge(errorId)}
+              onClick={() => handleAcknowledge(errorId, currentError.printerId)}
               className={`py-3 px-4 rounded-lg font-medium text-white transition-colors ${
                 currentError.severity === 'critical'
                   ? 'bg-red-600 hover:bg-red-700'
