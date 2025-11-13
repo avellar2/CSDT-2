@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const [memorandums, totalCount] = await Promise.all([
       prisma.newMemorandum.findMany({
         include: {
-          NewMemorandumItem: {
+          items: {
             include: {
               Item: {
                 select: {

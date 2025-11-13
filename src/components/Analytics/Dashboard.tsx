@@ -197,7 +197,7 @@ const Dashboard: React.FC<DashboardProps> = ({ items, schools }) => {
                 outerRadius={120}
                 fill="#8884d8"
                 dataKey="value"
-                label={({ name, percentage }) => `${name}: ${percentage}%`}
+                label={({ name, percent }: any) => `${name}: ${(percent * 100).toFixed(0)}%`}
               >
                 {categoryData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

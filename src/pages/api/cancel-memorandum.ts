@@ -68,7 +68,7 @@ export default async function handler(
     const memorandum = await prisma.newMemorandum.findUnique({
       where: { id: memorandumId },
       include: {
-        NewMemorandumItem: {
+        items: {
           include: {
             Item: {
               include: {
@@ -84,7 +84,7 @@ export default async function handler(
       return res.status(404).json({ error: 'Memorando não encontrado' });
     }
 
-    const itemIds = memorandum.NewMemorandumItem.map(item => item.itemId);
+    const itemIds = memorandum.items.map(item => item.itemId);
 
     if (itemIds.length === 0) {
       return res.status(400).json({ error: 'Memorando não possui itens vinculados' });
@@ -116,7 +116,7 @@ export default async function handler(
     // Preparar atualizações de itens
     const itemUpdates: Array<{ itemId: number, previousSchoolName: string | null }> = [];
 
-    for (const item of memorandum.NewMemorandumItem) {
+    for (const item of memorandum.items) {
       const history = historyByItem.get(item.itemId);
 
       if (history) {
