@@ -194,17 +194,19 @@ model MemorandumItem {
 }
 
 model NewMemorandum {
-  id                Int                 @id @default(autoincrement())
-  number            String              @unique
-  schoolName        String
-  district          String
-  generatedBy       String
-  type              String              @default("entrega")
-  fromSchoolName    String?
-  toSchoolName      String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  NewMemorandumItem NewMemorandumItem[]
+  id             Int                 @id @default(autoincrement())
+  number         String              @unique
+  schoolName     String
+  district       String
+  generatedBy    String
+  type           String              @default("entrega")
+  fromSchoolName String?
+  toSchoolName   String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime
+  items          NewMemorandumItem[]
+
+  @@map("NewMemorandum")
 }
 
 model NewMemorandumItem {
@@ -216,6 +218,7 @@ model NewMemorandumItem {
   NewMemorandum NewMemorandum @relation(fields: [memorandumId], references: [id])
 
   @@unique([memorandumId, itemId])
+  @@map("NewMemorandumItem")
 }
 
 model OSExterna {
