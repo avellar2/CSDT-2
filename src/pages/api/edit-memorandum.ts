@@ -73,7 +73,7 @@ export default async function handler(
     const memorandum = await prisma.newMemorandum.findUnique({
       where: { id: memorandumId },
       include: {
-        NewMemorandumItem: {
+        items: {
           include: {
             Item: true,
           },

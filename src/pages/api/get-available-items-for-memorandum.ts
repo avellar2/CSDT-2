@@ -48,7 +48,7 @@ export default async function handler(
     const memorandum = await prisma.newMemorandum.findUnique({
       where: { id: memId },
       include: {
-        NewMemorandumItem: true,
+        items: true,
       },
     });
 
@@ -57,7 +57,7 @@ export default async function handler(
     }
 
     // IDs dos itens que já estão no memorando
-    const existingItemIds = memorandum.NewMemorandumItem.map(item => item.itemId);
+    const existingItemIds = memorandum.items.map(item => item.itemId);
 
     // Buscar todos os itens que NÃO estão no memorando
     const availableItems = await prisma.item.findMany({

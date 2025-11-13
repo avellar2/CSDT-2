@@ -545,8 +545,11 @@ const DeviceList: React.FC = () => {
   const handleGenerateMemorandum = async () => {
     console.log('=== INÍCIO DA GERAÇÃO DO MEMORANDO ===');
     console.log('Tipo:', memorandumType);
-    console.log('Escola destino:', exchangeToSchool);
-    
+    console.log('Escola destino (troca):', exchangeToSchool);
+    console.log('Escola destino (entrega):', schoolName);
+    console.log('Distrito:', district);
+    console.log('Itens selecionados:', selectedFromCSDT);
+
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Usuário não autenticado. Por favor, faça login.");
