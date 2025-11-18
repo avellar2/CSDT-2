@@ -108,6 +108,7 @@ const ChadaPage: React.FC = () => {
   const [problem, setProblem] = useState("");
   const [sector, setSector] = useState("");
   const [userName, setUserName] = useState<string | null>(null);
+  const [manutencaoSemMovimentacao, setManutencaoSemMovimentacao] = useState(false);
   
   // Estados do modal de baixa/atualização
   const [showBaixaModal, setShowBaixaModal] = useState(false);
@@ -401,6 +402,7 @@ const ChadaPage: React.FC = () => {
           problem, // Problema informado pelo usuário
           userName, // Nome do usuário logado
           sector, // Setor informado pelo usuário
+          manutencaoSemMovimentacao, // Manutenção sem movimentação física
         }),
       });
 
@@ -422,6 +424,7 @@ const ChadaPage: React.FC = () => {
       setProblem("");
       setSector("");
       setSelectedItem(null);
+      setManutencaoSemMovimentacao(false);
 
       const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
       setItems(updatedItems);
@@ -1666,9 +1669,37 @@ const ChadaPage: React.FC = () => {
               value={problem}
               onChange={(e) => setProblem(e.target.value)}
             />
+
+            {/* Checkbox para manutenção sem movimentação */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={manutencaoSemMovimentacao}
+                  onChange={(e) => setManutencaoSemMovimentacao(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <div className="flex-1">
+                  <span className="font-medium text-gray-900 block">
+                    Manutenção sem movimentação física
+                  </span>
+                  <span className="text-sm text-gray-600 block mt-1">
+                    Marque esta opção se o equipamento não será fisicamente movido para o CSDT.
+                    Ideal para <strong>impressoras fixas</strong> ou equipamentos que serão consertados no local.
+                  </span>
+                </div>
+              </label>
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-end gap-2">
               <button
-                onClick={() => setModalIsOpen(false)}
+                onClick={() => {
+                  setModalIsOpen(false);
+                  setProblem("");
+                  setSector("");
+                  setSelectedItem(null);
+                  setManutencaoSemMovimentacao(false);
+                }}
                 className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors order-2 sm:order-1"
               >
                 Cancelar

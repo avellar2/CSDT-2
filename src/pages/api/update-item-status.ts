@@ -48,10 +48,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Registro não encontrado na tabela Item." });
     }
 
+    // Determinar o schoolId de retorno baseado em manutenção sem movimentação
+    // Se foi manutenção sem movimentação, retorna para a localização original
+    // Senão, retorna para o CSDT (schoolId = 225)
+    const schoolIdRetorno = existingItem.manutencaoSemMovimentacao && existingItem.schoolIdOriginal
+      ? existingItem.schoolIdOriginal
+      : 225;
+
     // Atualizar o campo schoolId na tabela Item
     const updatedItemInItemTable = await prisma.item.update({
       where: { id: itemToUpdate.id },
-      data: { schoolId: 225 }, // Atualizar o campo schoolId para 225 (CSDT)
+      data: { schoolId: schoolIdRetorno },
     });
 
     console.log("schoolId atualizado com sucesso na tabela Item:", updatedItemInItemTable);
@@ -62,6 +69,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status,
         ...(novoModelo && { brand: novoModelo }),
         ...(novoSerial && { serialNumber: novoSerial }),
+      },
+    });
+
+    // Registrar retorno da CHADA no histórico
+    // Se foi manutenção sem movimentação, adiciona nota explicativa
+    const schoolDestino = await prisma.school.findUnique({
+      where: { id: schoolIdRetorno },
+    });
+
+    const toSchoolName = schoolDestino?.name || (schoolIdRetorno === 225 ? "CSDT" : "Escola");
+
+    await prisma.itemHistory.create({
+      data: {
+        itemId: itemToUpdate.id,
+        fromSchool: existingItem.manutencaoSemMovimentacao
+          ? "CHADA (Manutenção sem movimentação física)"
+          : "CHADA",
+        toSchool: existingItem.manutencaoSemMovimentacao
+          ? `${toSchoolName} (Retorno ao local original)`
+          : toSchoolName,
+        generatedBy: updatedBy,
       },
     });
 

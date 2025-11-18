@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método não permitido" });
   }
 
-  const { itemId, problem, userName, sector, status } = req.body;
+  const { itemId, problem, userName, sector, status, manutencaoSemMovimentacao } = req.body;
 
   console.log("Dados recebidos:", req.body); // Log dos dados recebidos
 
@@ -30,8 +30,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Item não encontrado" });
     }
 
+    // Verificar se é impressora (case-insensitive)
+    const isImpressora = item.name.toLowerCase().includes('impressora');
+
+    // Verificar se é manutenção sem movimentação física
+    const isManutencaoSemMovimentacao = manutencaoSemMovimentacao === true;
+
     // Validar se o item está no CSDT (schoolId = 225)
-    if (item.schoolId !== 225) {
+    // EXCEÇÕES: Impressoras podem ser enviadas de qualquer local OU quando marcado como manutenção sem movimentação
+    if (item.schoolId !== 225 && !isImpressora && !isManutencaoSemMovimentacao) {
       return res.status(400).json({
         error: "ITEM_NAO_NO_CSDT",
         message: "O item precisa estar no CSDT primeiro. Consulte o Aurélio para fazer o memorando e trazer o item para o CSDT antes de enviar à CHADA."
@@ -99,24 +106,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         osImages: [], // Inicializa o campo osImages como um array vazio
         emailSentAt: emailMessageId ? new Date() : null,
         emailMessageId: emailMessageId || null,
+        manutencaoSemMovimentacao: isManutencaoSemMovimentacao,
+        schoolIdOriginal: isManutencaoSemMovimentacao ? item.schoolId : null, // Salva localização original se for manutenção sem movimentação
       },
     });
 
     // Atualizar o status e o schoolId do item na tabela Item
+    // Se for manutenção sem movimentação, mantém o schoolId original (item não se move fisicamente)
     await prisma.item.update({
       where: { id: Number(itemId) },
       data: {
         status: "CHADA",
-        schoolId: 259, // Atualizar o schoolId para 259 (referente à CHADA)
+        ...(isManutencaoSemMovimentacao ? {} : { schoolId: 259 }), // Só muda schoolId se NÃO for manutenção sem movimentação
       },
     });
 
     // Registrar a movimentação na tabela ItemHistory
+    // Se for manutenção sem movimentação, adiciona nota explicativa
     await prisma.itemHistory.create({
       data: {
         itemId: Number(itemId),
-        fromSchool,
-        toSchool,
+        fromSchool: isManutencaoSemMovimentacao ? `${fromSchool} (Manutenção no local)` : fromSchool,
+        toSchool: isManutencaoSemMovimentacao ? `${toSchool} (Sem movimentação física)` : toSchool,
         generatedBy: userName,
       },
     });
