@@ -125,19 +125,21 @@ model ItemHistory {
 }
 
 model ItemsChada {
-  id             String           @id @default(uuid())
-  itemId         Int
-  problem        String
-  userName       String
-  status         ItemsChadaStatus @default(PENDENTE)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  setor          String
-  updatedBy      String?
-  osImages       Json[]
-  emailMessageId String?
-  emailSentAt    DateTime?
-  numeroChadaOS  String?
+  id                         String           @id @default(uuid())
+  itemId                     Int
+  problem                    String
+  userName                   String
+  status                     ItemsChadaStatus @default(PENDENTE)
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
+  setor                      String
+  updatedBy                  String?
+  osImages                   Json[]
+  emailMessageId             String?
+  emailSentAt                DateTime?
+  numeroChadaOS              String?
+  manutencaoSemMovimentacao  Boolean          @default(false)
+  schoolIdOriginal           Int?
 }
 
 model ItemsHistoryChada {
