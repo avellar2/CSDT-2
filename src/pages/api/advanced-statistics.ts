@@ -216,6 +216,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       prisma.internalOS.groupBy({
         by: ['setorId'],
         _count: { id: true },
+        where: createWhereClause(true, true, false, false),
         orderBy: { _count: { id: 'desc' } },
         take: 10
       })

@@ -705,6 +705,46 @@ const AdvancedStatisticsPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Setores Mais Atendidos - OS Internas */}
+            <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <Users size={20} className="text-indigo-500" />
+                Setores Mais Atendidos (OS Internas)
+              </h3>
+              <div className="h-96">
+                <Bar
+                  data={{
+                    labels: (data.schools?.internal || []).slice(0, 10).map(s => s.setorId || 'Não informado'),
+                    datasets: [{
+                      label: 'Quantidade de OS',
+                      data: (data.schools?.internal || []).slice(0, 10).map(s => s._count.id),
+                      backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                      borderColor: 'rgba(99, 102, 241, 1)',
+                      borderWidth: 1
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                      x: {
+                        beginAtZero: true,
+                        ticks: {
+                          stepSize: 1
+                        }
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        display: false
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
           </div>
         )}
 
