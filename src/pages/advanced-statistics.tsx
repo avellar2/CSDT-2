@@ -96,7 +96,7 @@ interface StatisticsData {
   };
   schools: {
     external: Array<{ unidadeEscolar: string; _count: { id: number } }>;
-    internal: Array<{ setorId: string; _count: { id: number } }>;
+    internal: Array<{ setorId: string; setorName: string; _count: { id: number } }>;
   };
   problems: {
     common: Array<{ problema: string; _count: { id: number } }>;
@@ -715,7 +715,7 @@ const AdvancedStatisticsPage: React.FC = () => {
               <div className="h-96">
                 <Bar
                   data={{
-                    labels: (data.schools?.internal || []).slice(0, 10).map(s => s.setorId || 'Não informado'),
+                    labels: (data.schools?.internal || []).slice(0, 10).map(s => s.setorName || 'Não informado'),
                     datasets: [{
                       label: 'Quantidade de OS',
                       data: (data.schools?.internal || []).slice(0, 10).map(s => s._count.id),

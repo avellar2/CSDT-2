@@ -212,7 +212,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         by: ['unidadeEscolar'],
         _count: { id: true }
       }),
-      // Setores - OS Internas
+      // Setores - OS Internas (agrupado)
       prisma.internalOS.groupBy({
         by: ['setorId'],
         _count: { id: true },
@@ -221,6 +221,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         take: 10
       })
     ]);
+
+    // Buscar nomes dos setores
+    const sectorIds = internalSectors.map(s => s.setorId).filter(id => id !== null);
+    const sectorNames = await prisma.school.findMany({
+      where: { id: { in: sectorIds.map(id => parseInt(id)) } },
+      select: { id: true, name: true }
+    });
+
+    // Mapear IDs para nomes
+    const sectorNameMap = new Map(sectorNames.map(s => [s.id.toString(), s.name]));
+    const internalSectorsWithNames = internalSectors.map(sector => ({
+      setorId: sector.setorId,
+      setorName: sector.setorId ? (sectorNameMap.get(sector.setorId) || sector.setorId) : 'Não informado',
+      _count: sector._count
+    }));
 
     // Agregar dados das 3 tabelas de OS externas por escola
     const schoolsMap = new Map();
@@ -255,7 +270,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .sort((a, b) => b._count.id - a._count.id)
       .slice(0, 10);
 
-    const schoolAnalysis = [aggregatedSchools, internalSectors];
+    const schoolAnalysis = [aggregatedSchools, internalSectorsWithNames];
 
     // 6. Análise de Problemas
     const problemAnalysis = await Promise.all([
