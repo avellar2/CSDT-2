@@ -3,7 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-// Colunas a desconsiderar
+// Colunas a desconsiderar (NÃO ignorar "1ª FASE" e "2ª FASE")
 const COLUNAS_IGNORADAS = [
   'LAPTOP - ADM',
   'Já Recebeu equipamentos',
@@ -16,7 +16,6 @@ const COLUNAS_IGNORADAS = [
   'data', // Ignorar qualquer coluna com "data"
   'qt', // Ignorar coluna de quantidade
   'pendência', // Ignorar coluna de pendência
-  'fase', // Ignorar coluna de fase
 ];
 
 async function importarLocados() {
@@ -32,8 +31,33 @@ async function importarLocados() {
 
     console.log(`📋 Planilha: ${sheetName}`);
 
-    // Converter para JSON
-    const data = XLSX.utils.sheet_to_json(worksheet);
+    // Converter para JSON (com header: 1 para pegar TODAS as colunas, defval para preencher vazios)
+    const dataWithHeaders = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+    const headers = dataWithHeaders[0];
+    const rows = dataWithHeaders.slice(1);
+
+    // Mapear índices das colunas importantes
+    const idxEscolas = headers.findIndex(h => h && h.toLowerCase().includes('escola'));
+    const idx1Fase = headers.findIndex(h => h === '1ª FASE');
+    const idx2Fase = headers.findIndex(h => h === '2ª FASE');
+    const idxNotebooks = headers.findIndex(h => h && h.toLowerCase().includes('quantidade entregue laptop'));
+
+    console.log(`\n📍 Índices das colunas:`);
+    console.log(`  Escolas: ${idxEscolas} (${headers[idxEscolas]})`);
+    console.log(`  1ª FASE: ${idx1Fase} (${headers[idx1Fase]})`);
+    console.log(`  2ª FASE: ${idx2Fase} (${headers[idx2Fase]})`);
+    console.log(`  Notebooks: ${idxNotebooks} (${headers[idxNotebooks]})`);
+
+    // Converter de volta para objetos
+    const data = rows.map((row, rowIdx) => {
+      const obj = {
+        _rawRow: row, // Guardar a linha raw para pegar por índice
+      };
+      headers.forEach((header, idx) => {
+        obj[header] = row[idx];
+      });
+      return obj;
+    });
 
     console.log(`📊 Total de linhas encontradas: ${data.length}`);
 
@@ -94,16 +118,17 @@ async function importarLocados() {
         return typeof val === 'number' || (typeof val === 'string' && !isNaN(parseInt(val)));
       };
 
-      // Mapear as colunas de equipamentos
-      // PCs/Desktops
-      const pcsCols = Object.keys(row).filter(col => {
-        const colLower = col.toLowerCase();
-        return !deveIgnorar(col) &&
-               isNumeroValido(row[col]) &&
-               (colLower.includes('desktop') ||
-                (colLower.includes('pc') && !colLower.includes('notebook'))) &&
-               !colLower.includes('laptop');
-      });
+      // PCs = 1ª FASE + 2ª FASE (pegando por índice direto)
+      const fase1 = parseInt(row._rawRow[idx1Fase]) || 0;
+      const fase2 = parseInt(row._rawRow[idx2Fase]) || 0;
+
+      // Debug para primeiras 3 linhas
+      if (dadosParaImportar.length < 3) {
+        console.log(`\nDEBUG Linha ${dadosParaImportar.length + 1}:`, item.name);
+        console.log(`  raw[${idx1Fase}] (1ª FASE):`, row._rawRow[idx1Fase], '→', fase1);
+        console.log(`  raw[${idx2Fase}] (2ª FASE):`, row._rawRow[idx2Fase], '→', fase2);
+        console.log(`  Total PCs:`, fase1 + fase2);
+      }
 
       // Notebooks/Laptops
       const notebooksCols = Object.keys(row).filter(col => {
@@ -147,8 +172,8 @@ async function importarLocados() {
                colLower.includes('impressora');
       });
 
-      // Somar valores (caso haja múltiplas colunas)
-      item.pcs = pcsCols.reduce((sum, col) => sum + (parseInt(row[col]) || 0), 0);
+      // Somar valores
+      item.pcs = fase1 + fase2; // PCs = 1ª FASE + 2ª FASE
       item.notebooks = notebooksCols.reduce((sum, col) => sum + (parseInt(row[col]) || 0), 0);
       item.tablets = tabletsCols.reduce((sum, col) => sum + (parseInt(row[col]) || 0), 0);
       item.monitors = monitorsCols.reduce((sum, col) => sum + (parseInt(row[col]) || 0), 0);
