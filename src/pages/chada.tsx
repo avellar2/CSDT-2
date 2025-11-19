@@ -137,6 +137,14 @@ const ChadaPage: React.FC = () => {
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
+  // Novos filtros
+  const [periodFilter, setPeriodFilter] = useState<string>('all'); // 7d, 15d, 30d, 60d, custom, all
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [daysInChadaFilter, setDaysInChadaFilter] = useState<string>('all'); // all, <15, >15, >30
+  const [itemTypeFilter, setItemTypeFilter] = useState<string>('all'); // all, impressora, computador, etc
+  const [quickFilter, setQuickFilter] = useState<string>('none'); // none, alert, withOS, withoutOS, emailSent, emailNotSent
+
   // Função para calcular dias na CHADA
   const getDaysInChada = (createdAt: string, updatedAt?: string) => {
     const start = new Date(createdAt);
@@ -160,7 +168,7 @@ const ChadaPage: React.FC = () => {
       };
 
       // Filtro por busca
-      const searchFilter = searchTerm === '' || 
+      const searchFilter = searchTerm === '' ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -172,7 +180,72 @@ const ChadaPage: React.FC = () => {
       // Filtro por status
       const statusFilterCheck = statusFilter === 'all' || item.statusChada === statusFilter;
 
-      return tabFilter() && searchFilter && sectorFilterCheck && statusFilterCheck;
+      // Filtro por período
+      const periodFilterCheck = () => {
+        if (periodFilter === 'all') return true;
+        const itemDate = new Date(item.createdAt);
+        const now = new Date();
+
+        if (periodFilter === 'custom') {
+          if (!customStartDate && !customEndDate) return true;
+          const start = customStartDate ? new Date(customStartDate) : new Date(0);
+          const end = customEndDate ? new Date(customEndDate) : new Date();
+          return itemDate >= start && itemDate <= end;
+        }
+
+        const days = parseInt(periodFilter);
+        const diffTime = now.getTime() - itemDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays <= days;
+      };
+
+      // Filtro por dias na CHADA
+      const daysInChadaCheck = () => {
+        if (daysInChadaFilter === 'all') return true;
+        const days = getDaysInChada(item.createdAt, item.updatedAt);
+
+        switch (daysInChadaFilter) {
+          case '<15': return days < 15;
+          case '>15': return days > 15;
+          case '>30': return days > 30;
+          default: return true;
+        }
+      };
+
+      // Filtro por tipo de item
+      const itemTypeCheck = () => {
+        if (itemTypeFilter === 'all') return true;
+        const nameLower = item.name.toLowerCase();
+
+        switch (itemTypeFilter) {
+          case 'impressora': return nameLower.includes('impressora') || nameLower.includes('printer');
+          case 'computador': return nameLower.includes('computador') || nameLower.includes('pc') || nameLower.includes('desktop');
+          case 'notebook': return nameLower.includes('notebook') || nameLower.includes('laptop');
+          case 'monitor': return nameLower.includes('monitor');
+          case 'projetor': return nameLower.includes('projetor') || nameLower.includes('datashow');
+          case 'outros': return !nameLower.includes('impressora') && !nameLower.includes('printer') &&
+                                !nameLower.includes('computador') && !nameLower.includes('pc') &&
+                                !nameLower.includes('notebook') && !nameLower.includes('laptop') &&
+                                !nameLower.includes('monitor') && !nameLower.includes('projetor');
+          default: return true;
+        }
+      };
+
+      // Filtros rápidos
+      const quickFilterCheck = () => {
+        switch (quickFilter) {
+          case 'alert': return needsAlert(item);
+          case 'withOS': return item.numeroChadaOS !== null && item.numeroChadaOS !== undefined && item.numeroChadaOS !== '';
+          case 'withoutOS': return !item.numeroChadaOS;
+          case 'emailSent': return item.emailSentAt !== null && item.emailSentAt !== undefined;
+          case 'emailNotSent': return !item.emailSentAt;
+          case 'none': return true;
+          default: return true;
+        }
+      };
+
+      return tabFilter() && searchFilter && sectorFilterCheck && statusFilterCheck &&
+             periodFilterCheck() && daysInChadaCheck() && itemTypeCheck() && quickFilterCheck();
     });
 
     // Ordenação
@@ -219,9 +292,9 @@ const ChadaPage: React.FC = () => {
         ).length
       });
     }
-    
+
     return filtered;
-  }, [items, activeTab, searchTerm, sectorFilter, statusFilter, sortField, sortDirection]);
+  }, [items, activeTab, searchTerm, sectorFilter, statusFilter, sortField, sortDirection, periodFilter, customStartDate, customEndDate, daysInChadaFilter, itemTypeFilter, quickFilter]);
 
   // Estatísticas
   const stats = useMemo(() => {
@@ -625,6 +698,50 @@ const ChadaPage: React.FC = () => {
     input.click();
   };
 
+  // Função para contar filtros ativos
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (sectorFilter !== 'all') count++;
+    if (statusFilter !== 'all') count++;
+    if (periodFilter !== 'all') count++;
+    if (daysInChadaFilter !== 'all') count++;
+    if (itemTypeFilter !== 'all') count++;
+    if (quickFilter !== 'none') count++;
+    return count;
+  };
+
+  // Função para obter resumo dos filtros ativos
+  const getActiveFiltersResume = () => {
+    const filters = [];
+    if (searchTerm) filters.push(`Busca: "${searchTerm}"`);
+    if (sectorFilter !== 'all') filters.push(`Setor: ${sectorFilter}`);
+    if (statusFilter !== 'all') filters.push(`Status: ${statusFilter}`);
+    if (periodFilter !== 'all') {
+      if (periodFilter === 'custom') {
+        filters.push(`Período: ${customStartDate || '...'} até ${customEndDate || '...'}`);
+      } else {
+        filters.push(`Período: Últimos ${periodFilter} dias`);
+      }
+    }
+    if (daysInChadaFilter !== 'all') {
+      const labels = { '<15': 'Menos de 15 dias', '>15': 'Mais de 15 dias', '>30': 'Mais de 30 dias' };
+      filters.push(`Tempo na CHADA: ${labels[daysInChadaFilter as keyof typeof labels]}`);
+    }
+    if (itemTypeFilter !== 'all') filters.push(`Tipo: ${itemTypeFilter}`);
+    if (quickFilter !== 'none') {
+      const labels = {
+        alert: 'Com alerta',
+        withOS: 'Com número de OS',
+        withoutOS: 'Sem número de OS',
+        emailSent: 'Email enviado',
+        emailNotSent: 'Email não enviado'
+      };
+      filters.push(`Filtro rápido: ${labels[quickFilter as keyof typeof labels]}`);
+    }
+    return filters;
+  };
+
   // Função para resetar filtros
   const resetFilters = () => {
     setSearchTerm('');
@@ -632,6 +749,12 @@ const ChadaPage: React.FC = () => {
     setStatusFilter('all');
     setSortField('createdAt');
     setSortDirection('desc');
+    setPeriodFilter('all');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setDaysInChadaFilter('all');
+    setItemTypeFilter('all');
+    setQuickFilter('none');
   };
 
   // Função para alterar ordenação
@@ -724,6 +847,10 @@ const ChadaPage: React.FC = () => {
       // Criar workbook
       const wb = XLSX.utils.book_new();
 
+      // Informações sobre filtros aplicados
+      const activeFiltersCount = getActiveFiltersCount();
+      const activeFiltersResume = getActiveFiltersResume();
+
       // === ABA 1: DADOS PRINCIPAIS ===
       const mainData = filteredAndSortedItems.map(item => ({
         'Nome': item.name || '',
@@ -802,8 +929,36 @@ const ChadaPage: React.FC = () => {
       ws3['!cols'] = [{ wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
       XLSX.utils.book_append_sheet(wb, ws3, 'Por Setor');
 
+      // === ABA 4: FILTROS APLICADOS ===
+      const filtersData = [
+        { 'Informação': '📊 RELATÓRIO COM FILTROS', 'Valor': '' },
+        { 'Informação': '', 'Valor': '' },
+        { 'Informação': 'Total de Filtros Ativos', 'Valor': activeFiltersCount },
+        { 'Informação': 'Total de Itens (sem filtros)', 'Valor': items.length },
+        { 'Informação': 'Total de Itens (com filtros)', 'Valor': filteredAndSortedItems.length },
+        { 'Informação': '', 'Valor': '' },
+        { 'Informação': '📌 FILTROS APLICADOS:', 'Valor': '' },
+      ];
+
+      if (activeFiltersCount === 0) {
+        filtersData.push({ 'Informação': 'Nenhum filtro aplicado', 'Valor': 'Todos os itens' });
+      } else {
+        activeFiltersResume.forEach(filter => {
+          filtersData.push({ 'Informação': filter, 'Valor': '✓' });
+        });
+      }
+
+      filtersData.push({ 'Informação': '', 'Valor': '' });
+      filtersData.push({ 'Informação': 'Data da Exportação', 'Valor': new Date().toLocaleString('pt-BR') });
+      filtersData.push({ 'Informação': 'Aba Ativa', 'Valor': activeTab === 'na_chada' ? 'Na CHADA' : activeTab === 'devolvidos' ? 'Devolvidos' : activeTab === 'diagnosticos' ? 'Diagnósticos' : 'Todos' });
+
+      const ws4 = XLSX.utils.json_to_sheet(filtersData);
+      ws4['!cols'] = [{ wch: 40 }, { wch: 30 }];
+      XLSX.utils.book_append_sheet(wb, ws4, 'Filtros Aplicados');
+
       // Gerar e baixar o arquivo
-      const fileName = `Relatorio_CHADA_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const filterSuffix = activeFiltersCount > 0 ? `_${activeFiltersCount}filtros` : '';
+      const fileName = `Relatorio_CHADA_${new Date().toISOString().split('T')[0]}${filterSuffix}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       alert('Relatório Excel gerado com sucesso! ✅');
@@ -1229,9 +1384,16 @@ const ChadaPage: React.FC = () => {
 
                 <button
                   onClick={exportToExcel}
-                  className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm flex-1 sm:flex-initial"
-                  title="Exportar relatório completo em Excel"
+                  className="relative flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm flex-1 sm:flex-initial"
+                  title={getActiveFiltersCount() > 0
+                    ? `Exportar relatório com ${getActiveFiltersCount()} filtro(s) aplicado(s)`
+                    : "Exportar relatório completo em Excel"}
                 >
+                  {getActiveFiltersCount() > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
+                      {getActiveFiltersCount()}
+                    </span>
+                  )}
                   <span className="text-lg">📊</span>
                   <span className="hidden sm:inline">Exportar Excel</span>
                   <span className="sm:hidden">Excel</span>
@@ -1271,36 +1433,253 @@ const ChadaPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Filtros */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              <select
-                value={sectorFilter}
-                onChange={(e) => setSectorFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="all">Todos os Setores</option>
-                {uniqueSectors.map(sector => (
-                  <option key={sector} value={sector}>{sector}</option>
-                ))}
-              </select>
+            {/* Indicador de Filtros Ativos */}
+            {getActiveFiltersCount() > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      {getActiveFiltersCount()} {getActiveFiltersCount() === 1 ? 'filtro ativo' : 'filtros ativos'}
+                    </span>
+                    <span className="text-sm text-blue-700">
+                      Mostrando {filteredAndSortedItems.length} de {items.length} itens
+                    </span>
+                  </div>
+                  <button
+                    onClick={resetFilters}
+                    className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                  >
+                    <X size={16} />
+                    Limpar Todos
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {getActiveFiltersResume().map((filter, index) => (
+                    <span key={index} className="bg-white border border-blue-300 text-blue-800 px-2 py-1 rounded text-xs">
+                      {filter}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="all">Todos os Status</option>
-                {uniqueStatus.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
+            {/* Filtros Rápidos */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">🚀 Filtros Rápidos</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <button
+                  onClick={() => setQuickFilter('none')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    quickFilter === 'none'
+                      ? 'bg-gray-700 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setQuickFilter('alert')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    quickFilter === 'alert'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  ⚠️ Com Alerta
+                </button>
+                <button
+                  onClick={() => setQuickFilter('withOS')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    quickFilter === 'withOS'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  📋 Com OS
+                </button>
+                <button
+                  onClick={() => setQuickFilter('withoutOS')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    quickFilter === 'withoutOS'
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  📋 Sem OS
+                </button>
+                <button
+                  onClick={() => setQuickFilter('emailSent')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    quickFilter === 'emailSent'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  📧 Email Enviado
+                </button>
+                <button
+                  onClick={() => setQuickFilter('emailNotSent')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    quickFilter === 'emailNotSent'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  📧 Sem Email
+                </button>
+              </div>
+            </div>
 
-              <button
-                onClick={resetFilters}
-                className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
-              >
-                Limpar Filtros
-              </button>
+            {/* Filtros Principais */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Setor</label>
+                <select
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="all">Todos os Setores</option>
+                  {uniqueSectors.map(sector => (
+                    <option key={sector} value={sector}>{sector}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Status CHADA</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="all">Todos os Status</option>
+                  {uniqueStatus.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Tipo de Item</label>
+                <select
+                  value={itemTypeFilter}
+                  onChange={(e) => setItemTypeFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="all">Todos os Tipos</option>
+                  <option value="impressora">🖨️ Impressora</option>
+                  <option value="computador">💻 Computador</option>
+                  <option value="notebook">💼 Notebook</option>
+                  <option value="monitor">🖥️ Monitor</option>
+                  <option value="projetor">📽️ Projetor</option>
+                  <option value="outros">📦 Outros</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Tempo na CHADA</label>
+                <select
+                  value={daysInChadaFilter}
+                  onChange={(e) => setDaysInChadaFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="all">Qualquer tempo</option>
+                  <option value="<15">⚡ Menos de 15 dias</option>
+                  <option value=">15">⚠️ Mais de 15 dias</option>
+                  <option value=">30">🔴 Mais de 30 dias</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Filtro de Período */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">📅 Período de Envio</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <button
+                  onClick={() => setPeriodFilter('all')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodFilter === 'all'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setPeriodFilter('7')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodFilter === '7'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  7 dias
+                </button>
+                <button
+                  onClick={() => setPeriodFilter('15')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodFilter === '15'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  15 dias
+                </button>
+                <button
+                  onClick={() => setPeriodFilter('30')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodFilter === '30'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  30 dias
+                </button>
+                <button
+                  onClick={() => setPeriodFilter('60')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodFilter === '60'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  60 dias
+                </button>
+                <button
+                  onClick={() => setPeriodFilter('custom')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodFilter === 'custom'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Personalizado
+                </button>
+              </div>
+
+              {periodFilter === 'custom' && (
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Data Início</label>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Data Fim</label>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Ordenação - Mobile Friendly */}
