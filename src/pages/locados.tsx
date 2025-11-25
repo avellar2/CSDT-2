@@ -20,13 +20,16 @@ import * as XLSX from 'xlsx';
 
 const LocadosPage = () => {
   const [items, setItems] = useState<any[]>([]);
+  const [impressoras, setImpressoras] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedName, setSelectedName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [showImpressoras, setShowImpressoras] = useState(false);
 
   useEffect(() => {
     fetchItems();
+    fetchImpressoras();
   }, []);
 
   const fetchItems = async () => {
@@ -39,6 +42,16 @@ const LocadosPage = () => {
       console.error('Erro ao buscar itens:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchImpressoras = async () => {
+    try {
+      const res = await fetch("/api/impressoras");
+      const data = await res.json();
+      setImpressoras(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Erro ao buscar impressoras:', error);
     }
   };
 
@@ -161,11 +174,27 @@ const LocadosPage = () => {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={fetchItems}
+                onClick={() => {
+                  fetchItems();
+                  fetchImpressoras();
+                }}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
                 <ArrowClockwise size={18} />
                 <span className="hidden sm:inline">Atualizar</span>
+              </button>
+              <button
+                onClick={() => setShowImpressoras(!showImpressoras)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  showImpressoras
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-purple-500 text-white hover:bg-purple-600'
+                }`}
+              >
+                <Printer size={18} />
+                <span className="hidden sm:inline">
+                  {showImpressoras ? 'Ocultar' : 'Ver'} Impressoras
+                </span>
               </button>
               <button
                 onClick={exportToExcel}
@@ -273,6 +302,103 @@ const LocadosPage = () => {
             </button>
           </div>
         </div>
+
+        {/* Seção de Impressoras Cadastradas */}
+        {showImpressoras && (
+          <div className="mb-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Printer size={24} className="text-purple-600" />
+                  Todas as Impressoras Cadastradas
+                </h2>
+                <span className="bg-purple-100 text-purple-700 px-4 py-2 rounded-lg font-semibold">
+                  {impressoras.length} impressora{impressoras.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Modelo
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Marca
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Número de Série
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Escola/Setor
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Cadastrado por
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {impressoras.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                          <Printer size={48} className="mx-auto text-gray-300 mb-2" />
+                          <p>Nenhuma impressora cadastrada</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      impressoras.map((impressora) => (
+                        <tr key={impressora.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Printer size={18} className="text-purple-500 mr-2" />
+                              <span className="text-sm font-medium text-gray-900">
+                                {impressora.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {impressora.brand}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
+                            {impressora.serialNumber}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Buildings size={16} className="text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">
+                                {impressora.School?.name || 'CSDT'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              impressora.status === 'DISPONIVEL'
+                                ? 'bg-green-100 text-green-800'
+                                : impressora.status === 'EM_USO'
+                                ? 'bg-blue-100 text-blue-800'
+                                : impressora.status === 'MANUTENCAO'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {impressora.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-600">
+                            {impressora.Profile?.displayName || 'N/A'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           // Loading skeleton
