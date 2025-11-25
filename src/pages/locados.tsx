@@ -4,8 +4,8 @@ import {
   Desktop,
   Laptop,
   DeviceTablet,
-  Monitor,
   Power,
+  Lightning,
   Printer,
   Buildings,
   MagnifyingGlass,
@@ -86,20 +86,23 @@ const LocadosPage = () => {
         pcs: acc.pcs + (item.pcs ?? 0),
         notebooks: acc.notebooks + (item.notebooks ?? 0),
         tablets: acc.tablets + (item.tablets ?? 0),
-        monitors: acc.monitors + (item.monitors ?? 0),
+        nobreaks: 0, // Será fixado abaixo
         estabilizadores: acc.estabilizadores + (item.estabilizadores ?? 0),
         impressoras: acc.impressoras + (item.impressoras ?? 0),
       }),
-      { pcs: 0, notebooks: 0, tablets: 0, monitors: 0, estabilizadores: 0, impressoras: 0 }
+      { pcs: 0, notebooks: 0, tablets: 0, nobreaks: 0, estabilizadores: 0, impressoras: 0 }
     );
 
     // Adicionar impressoras da tabela Item
     locadosTotals.impressoras += impressoras.length;
 
+    // Fixar nobreaks em 21 (todos na SME)
+    locadosTotals.nobreaks = 21;
+
     return locadosTotals;
   }, [filteredItems, impressoras]);
 
-  const grandTotal = totals.pcs + totals.notebooks + totals.tablets + totals.monitors + totals.estabilizadores + totals.impressoras;
+  const grandTotal = totals.pcs + totals.notebooks + totals.tablets + totals.nobreaks + totals.estabilizadores + totals.impressoras;
 
   const options = uniqueNames.map((name) => ({
     value: name,
@@ -116,7 +119,7 @@ const LocadosPage = () => {
         { 'Tipo': 'PCs/Desktops', 'Quantidade': totals.pcs },
         { 'Tipo': 'Notebooks', 'Quantidade': totals.notebooks },
         { 'Tipo': 'Tablets', 'Quantidade': totals.tablets },
-        { 'Tipo': 'Monitores', 'Quantidade': totals.monitors },
+        { 'Tipo': 'Nobreaks', 'Quantidade': totals.nobreaks },
         { 'Tipo': 'Estabilizadores', 'Quantidade': totals.estabilizadores },
         { 'Tipo': 'Impressoras', 'Quantidade': totals.impressoras },
         { 'Tipo': '', 'Quantidade': '' },
@@ -132,11 +135,11 @@ const LocadosPage = () => {
         'PCs': item.pcs || 0,
         'Notebooks': item.notebooks || 0,
         'Tablets': item.tablets || 0,
-        'Monitores': item.monitors || 0,
+        'Nobreaks': item.name === 'SME' ? 21 : 0,
         'Estabilizadores': item.estabilizadores || 0,
         'Impressoras': item.impressoras || 0,
         'Total': (item.pcs || 0) + (item.notebooks || 0) + (item.tablets || 0) +
-                 (item.monitors || 0) + (item.estabilizadores || 0) + (item.impressoras || 0),
+                 (item.name === 'SME' ? 21 : 0) + (item.estabilizadores || 0) + (item.impressoras || 0),
       }));
       const ws2 = XLSX.utils.json_to_sheet(detalhadoData);
       ws2['!cols'] = [
@@ -450,15 +453,15 @@ const LocadosPage = () => {
 
               <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg rounded-xl p-4 border border-cyan-400">
                 <div className="flex items-center justify-between mb-2">
-                  <Monitor size={24} weight="duotone" />
+                  <Power size={24} weight="duotone" />
                 </div>
-                <div className="text-3xl font-bold mb-1">{totals.monitors.toLocaleString()}</div>
-                <div className="text-sm text-cyan-100">Monitores</div>
+                <div className="text-3xl font-bold mb-1">{totals.nobreaks.toLocaleString()}</div>
+                <div className="text-sm text-cyan-100">Nobreaks</div>
               </div>
 
               <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg rounded-xl p-4 border border-orange-400">
                 <div className="flex items-center justify-between mb-2">
-                  <Power size={24} weight="duotone" />
+                  <Lightning size={24} weight="duotone" />
                 </div>
                 <div className="text-3xl font-bold mb-1">{totals.estabilizadores.toLocaleString()}</div>
                 <div className="text-sm text-orange-100">Estabilizadores</div>
@@ -501,7 +504,7 @@ const LocadosPage = () => {
                           Tablets
                         </th>
                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Monitores
+                          Nobreaks
                         </th>
                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Estabiliz.
@@ -516,11 +519,12 @@ const LocadosPage = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredItems.map((item, idx) => {
+                        const nobreaksQty = item.name === 'SME' ? 21 : 0;
                         const itemTotal =
                           (item.pcs || 0) +
                           (item.notebooks || 0) +
                           (item.tablets || 0) +
-                          (item.monitors || 0) +
+                          nobreaksQty +
                           (item.estabilizadores || 0) +
                           (item.impressoras || 0);
 
@@ -544,7 +548,7 @@ const LocadosPage = () => {
                               {item.tablets || 0}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                              {item.monitors || 0}
+                              {nobreaksQty}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                               {item.estabilizadores || 0}
@@ -574,7 +578,7 @@ const LocadosPage = () => {
                           {totals.tablets.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-center text-sm font-bold text-cyan-600">
-                          {totals.monitors.toLocaleString()}
+                          {totals.nobreaks.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-center text-sm font-bold text-orange-600">
                           {totals.estabilizadores.toLocaleString()}
@@ -593,11 +597,12 @@ const LocadosPage = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredItems.map((item) => {
+                  const nobreaksQty = item.name === 'SME' ? 21 : 0;
                   const itemTotal =
                     (item.pcs || 0) +
                     (item.notebooks || 0) +
                     (item.tablets || 0) +
-                    (item.monitors || 0) +
+                    nobreaksQty +
                     (item.estabilizadores || 0) +
                     (item.impressoras || 0);
 
@@ -632,16 +637,16 @@ const LocadosPage = () => {
                             <span className="font-semibold text-gray-900">{item.tablets}</span>
                           </div>
                         )}
-                        {item.monitors > 0 && (
+                        {nobreaksQty > 0 && (
                           <div className="flex items-center gap-2">
-                            <Monitor size={16} className="text-cyan-500" />
-                            <span className="text-gray-600">Monitores:</span>
-                            <span className="font-semibold text-gray-900">{item.monitors}</span>
+                            <Power size={16} className="text-cyan-500" />
+                            <span className="text-gray-600">Nobreaks:</span>
+                            <span className="font-semibold text-gray-900">{nobreaksQty}</span>
                           </div>
                         )}
                         {item.estabilizadores > 0 && (
                           <div className="flex items-center gap-2">
-                            <Power size={16} className="text-orange-500" />
+                            <Lightning size={16} className="text-orange-500" />
                             <span className="text-gray-600">Estabiliz.:</span>
                             <span className="font-semibold text-gray-900">
                               {item.estabilizadores}
