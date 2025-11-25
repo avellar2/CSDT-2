@@ -99,6 +99,9 @@ const LocadosPage = () => {
     // Fixar nobreaks em 21 (todos na SME)
     locadosTotals.nobreaks = 21;
 
+    // Adicionar 81 PCs do CSDT
+    locadosTotals.pcs += 81;
+
     return locadosTotals;
   }, [filteredItems, impressoras]);
 
@@ -130,17 +133,22 @@ const LocadosPage = () => {
       XLSX.utils.book_append_sheet(wb, ws1, 'Resumo');
 
       // Aba 2: Detalhado por Escola
-      const detalhadoData = filteredItems.map(item => ({
-        'Escola/Setor': item.name,
-        'PCs': item.pcs || 0,
-        'Notebooks': item.notebooks || 0,
-        'Tablets': item.tablets || 0,
-        'Nobreaks': item.name === 'SME' ? 21 : 0,
-        'Estabilizadores': item.estabilizadores || 0,
-        'Impressoras': item.impressoras || 0,
-        'Total': (item.pcs || 0) + (item.notebooks || 0) + (item.tablets || 0) +
-                 (item.name === 'SME' ? 21 : 0) + (item.estabilizadores || 0) + (item.impressoras || 0),
-      }));
+      const detalhadoData = filteredItems.map(item => {
+        const extraPcs = item.name === 'CSDT' ? 81 : 0;
+        const totalPcs = (item.pcs || 0) + extraPcs;
+
+        return {
+          'Escola/Setor': item.name,
+          'PCs': totalPcs,
+          'Notebooks': item.notebooks || 0,
+          'Tablets': item.tablets || 0,
+          'Nobreaks': item.name === 'SME' ? 21 : 0,
+          'Estabilizadores': item.estabilizadores || 0,
+          'Impressoras': item.impressoras || 0,
+          'Total': totalPcs + (item.notebooks || 0) + (item.tablets || 0) +
+                   (item.name === 'SME' ? 21 : 0) + (item.estabilizadores || 0) + (item.impressoras || 0),
+        };
+      });
       const ws2 = XLSX.utils.json_to_sheet(detalhadoData);
       ws2['!cols'] = [
         { wch: 40 }, { wch: 10 }, { wch: 12 }, { wch: 10 },
@@ -520,8 +528,10 @@ const LocadosPage = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredItems.map((item, idx) => {
                         const nobreaksQty = item.name === 'SME' ? 21 : 0;
+                        const extraPcs = item.name === 'CSDT' ? 81 : 0;
+                        const totalPcs = (item.pcs || 0) + extraPcs;
                         const itemTotal =
-                          (item.pcs || 0) +
+                          totalPcs +
                           (item.notebooks || 0) +
                           (item.tablets || 0) +
                           nobreaksQty +
@@ -539,7 +549,7 @@ const LocadosPage = () => {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                              {item.pcs || 0}
+                              {totalPcs}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                               {item.notebooks || 0}
@@ -598,8 +608,10 @@ const LocadosPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredItems.map((item) => {
                   const nobreaksQty = item.name === 'SME' ? 21 : 0;
+                  const extraPcs = item.name === 'CSDT' ? 81 : 0;
+                  const totalPcs = (item.pcs || 0) + extraPcs;
                   const itemTotal =
-                    (item.pcs || 0) +
+                    totalPcs +
                     (item.notebooks || 0) +
                     (item.tablets || 0) +
                     nobreaksQty +
@@ -616,11 +628,11 @@ const LocadosPage = () => {
                         <h3 className="font-semibold text-gray-900 text-sm">{item.name}</h3>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        {item.pcs > 0 && (
+                        {totalPcs > 0 && (
                           <div className="flex items-center gap-2">
                             <Desktop size={16} className="text-blue-500" />
                             <span className="text-gray-600">PCs:</span>
-                            <span className="font-semibold text-gray-900">{item.pcs}</span>
+                            <span className="font-semibold text-gray-900">{totalPcs}</span>
                           </div>
                         )}
                         {item.notebooks > 0 && (
