@@ -81,7 +81,7 @@ const LocadosPage = () => {
 
   // Calcular totais
   const totals = useMemo(() => {
-    return filteredItems.reduce(
+    const locadosTotals = filteredItems.reduce(
       (acc, item) => ({
         pcs: acc.pcs + (item.pcs ?? 0),
         notebooks: acc.notebooks + (item.notebooks ?? 0),
@@ -92,7 +92,12 @@ const LocadosPage = () => {
       }),
       { pcs: 0, notebooks: 0, tablets: 0, monitors: 0, estabilizadores: 0, impressoras: 0 }
     );
-  }, [filteredItems]);
+
+    // Adicionar impressoras da tabela Item
+    locadosTotals.impressoras += impressoras.length;
+
+    return locadosTotals;
+  }, [filteredItems, impressoras]);
 
   const grandTotal = totals.pcs + totals.notebooks + totals.tablets + totals.monitors + totals.estabilizadores + totals.impressoras;
 
