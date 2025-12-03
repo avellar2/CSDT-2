@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Read(//c/Users/Vanderson/Documents/CSDT-2-original/src/pages/**)"
+      "Read(//c/Users/Vanderson/Documents/CSDT-2-original/src/pages/**)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
