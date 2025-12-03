@@ -12,8 +12,8 @@ Adicione as seguintes variáveis no seu arquivo `.env`:
 
 ```env
 # Email do CSDT (para enviar e receber emails)
-CSDT_EMAIL_USER="csdt@smeduquedecaxias.rj.gov.br"
-CSDT_EMAIL_PASS="sua-senha-aqui"
+CSDT_EMAIL_USER="seu-email@dominio.com"
+CSDT_EMAIL_PASS="SUA_SENHA_APLICATIVO_AQUI"
 
 # Configurações SMTP (envio)
 CSDT_EMAIL_HOST="smtp.gmail.com"
@@ -24,8 +24,8 @@ CSDT_EMAIL_IMAP_HOST="imap.gmail.com"
 CSDT_EMAIL_IMAP_PORT="993"
 
 # Email da CHADA (destinatário)
-CHADA_EMAIL="sac@xscan.com.br"
-CHADA_EMAIL_DOMAIN="xscan.com.br"
+CHADA_EMAIL="email-chada@dominio.com.br"
+CHADA_EMAIL_DOMAIN="dominio.com.br"
 ```
 
 ### 2. Para Teste (usando seu próprio email)
