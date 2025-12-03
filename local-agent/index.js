@@ -234,6 +234,7 @@ class LocalAgent {
           errorState: 'unknown',
           errors: [],
           errorDetails: [],
+          tonerLevel: undefined,
           paperStatus: 'unknown',
           isOnline: false,
           lastChecked: new Date().toISOString(),
@@ -409,12 +410,12 @@ class LocalAgent {
                   if (errorCode > 0) {
                     const errors = [];
                     const errorDetails = [];
-                    
+
                     Object.entries(ERROR_STATES).forEach(([bit, description]) => {
                       const bitValue = parseInt(bit);
                       if (errorCode & bitValue && bitValue > 0) {
                         errors.push(description);
-                        
+
                         const detail = ERROR_DETAILS[description];
                         if (detail) {
                           errorDetails.push({
@@ -426,7 +427,7 @@ class LocalAgent {
                         }
                       }
                     });
-                    
+
                     if (errors.length > 0) {
                       statusInfo.errors = errors;
                       statusInfo.errorDetails = errorDetails;
@@ -442,6 +443,138 @@ class LocalAgent {
             }
           }
         });
+      }
+
+      // Buscar níveis de consumíveis (toner)
+      this.queryTonerLevels(session, printer, statusInfo, resolve);
+    });
+  }
+
+  queryTonerLevels(session, printer, statusInfo, resolve) {
+    // Tentar buscar níveis de consumíveis usando OID padrão
+    const tonerOids = [];
+
+    // Criar array de OIDs para consultar (índices 1 a 10 para cobrir a maioria das impressoras)
+    for (let i = 1; i <= 10; i++) {
+      tonerOids.push(`${PRINTER_OIDs.prtMarkerSuppliesLevel}.${i}`);
+    }
+
+    session.get(tonerOids, (error, varbinds) => {
+      let tonerLevels = [];
+      let tonerCapacities = [];
+
+      if (!error && Array.isArray(varbinds)) {
+        varbinds.forEach((vb) => {
+          if (!snmp.isVarbindError(vb)) {
+            try {
+              const level = parseInt(vb.value);
+              if (!isNaN(level) && level >= -3 && level <= 2147483647) {
+                // Valores negativos têm significados especiais:
+                // -1: Desconhecido, -2: Outro, -3: Não disponível
+                if (level >= 0) {
+                  tonerLevels.push(level);
+                }
+              }
+            } catch (e) {
+              // Ignorar valores inválidos
+            }
+          }
+        });
+
+        // Buscar capacidades máximas para calcular porcentagem
+        const capacityOids = [];
+        for (let i = 1; i <= 10; i++) {
+          capacityOids.push(`${PRINTER_OIDs.prtMarkerSuppliesDescription}.${i}`);
+        }
+
+        session.get(capacityOids, (error2, varbinds2) => {
+          if (!error2 && Array.isArray(varbinds2)) {
+            varbinds2.forEach((vb) => {
+              if (!snmp.isVarbindError(vb)) {
+                try {
+                  const capacity = parseInt(vb.value);
+                  if (!isNaN(capacity) && capacity > 0) {
+                    tonerCapacities.push(capacity);
+                  }
+                } catch (e) {
+                  // Ignorar valores inválidos
+                }
+              }
+            });
+          }
+
+          // Se encontrou níveis válidos, calcular média
+          if (tonerLevels.length > 0) {
+            // Se todos os valores são menores que 100, assumir que já são porcentagens
+            const isPercentage = tonerLevels.every(level => level <= 100);
+
+            if (isPercentage) {
+              const avgLevel = Math.round(tonerLevels.reduce((a, b) => a + b, 0) / tonerLevels.length);
+              statusInfo.tonerLevel = avgLevel;
+              logger.info(`Impressora ${printer.ip}: Toner detectado - ${avgLevel}% (${tonerLevels.length} consumíveis)`);
+            } else if (tonerCapacities.length === tonerLevels.length) {
+              // Calcular porcentagem baseado na capacidade
+              const percentages = tonerLevels.map((level, idx) =>
+                Math.round((level / tonerCapacities[idx]) * 100)
+              );
+              const avgLevel = Math.round(percentages.reduce((a, b) => a + b, 0) / percentages.length);
+              statusInfo.tonerLevel = avgLevel;
+              logger.info(`Impressora ${printer.ip}: Toner detectado - ${avgLevel}% (${tonerLevels.length} consumíveis)`);
+            } else {
+              logger.debug(`Impressora ${printer.ip}: Valores de toner brutos sem capacidade: ${tonerLevels.join(', ')}`);
+            }
+          } else {
+            // Tentar OIDs alternativos para Xerox
+            this.queryXeroxToner(session, printer, statusInfo, resolve);
+            return;
+          }
+
+          try {
+            session.close();
+          } catch (closeError) {
+            // Ignorar erros de fechamento de socket
+          }
+          resolve(statusInfo);
+        });
+      } else {
+        // Se falhou, tentar Xerox
+        this.queryXeroxToner(session, printer, statusInfo, resolve);
+      }
+    });
+  }
+
+  queryXeroxToner(session, printer, statusInfo, resolve) {
+    const xeroxOids = [];
+
+    // Criar array de OIDs Xerox para consultar
+    for (let i = 1; i <= 10; i++) {
+      xeroxOids.push(`${PRINTER_OIDs.xeroxSuppliesLevel}.${i}`);
+    }
+
+    session.get(xeroxOids, (error, varbinds) => {
+      let tonerLevels = [];
+
+      if (!error && Array.isArray(varbinds)) {
+        varbinds.forEach((vb) => {
+          if (!snmp.isVarbindError(vb)) {
+            try {
+              const level = parseInt(vb.value);
+              if (!isNaN(level) && level >= 0 && level <= 100) {
+                tonerLevels.push(level);
+              }
+            } catch (e) {
+              // Ignorar valores inválidos
+            }
+          }
+        });
+      }
+
+      if (tonerLevels.length > 0) {
+        const avgLevel = Math.round(tonerLevels.reduce((a, b) => a + b, 0) / tonerLevels.length);
+        statusInfo.tonerLevel = avgLevel;
+        logger.info(`Impressora ${printer.ip} (Xerox): Toner detectado - ${avgLevel}% (${tonerLevels.length} consumíveis)`);
+      } else {
+        logger.debug(`Impressora ${printer.ip}: Níveis de toner não disponíveis via SNMP`);
       }
 
       try {

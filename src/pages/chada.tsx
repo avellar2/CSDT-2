@@ -146,9 +146,14 @@ const ChadaPage: React.FC = () => {
   const [quickFilter, setQuickFilter] = useState<string>('none'); // none, alert, withOS, withoutOS, emailSent, emailNotSent
 
   // Função para calcular dias na CHADA
-  const getDaysInChada = (createdAt: string, updatedAt?: string) => {
+  const getDaysInChada = (createdAt: string, statusChada: string, updatedAt?: string) => {
     const start = new Date(createdAt);
-    const end = updatedAt && new Date(updatedAt).getTime() > start.getTime() ? new Date(updatedAt) : new Date();
+
+    // Para itens finalizados (DEVOLVIDO, CONSERTADO, SEM_CONSERTO), usa updatedAt
+    // Para todos os outros status, usa a data atual
+    const isFinalized = ['DEVOLVIDO', 'CONSERTADO', 'SEM_CONSERTO'].includes(statusChada);
+    const end = isFinalized && updatedAt ? new Date(updatedAt) : new Date();
+
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
@@ -202,7 +207,7 @@ const ChadaPage: React.FC = () => {
       // Filtro por dias na CHADA
       const daysInChadaCheck = () => {
         if (daysInChadaFilter === 'all') return true;
-        const days = getDaysInChada(item.createdAt, item.updatedAt);
+        const days = getDaysInChada(item.createdAt, item.statusChada, item.updatedAt);
 
         switch (daysInChadaFilter) {
           case '<15': return days < 15;
@@ -320,7 +325,7 @@ const ChadaPage: React.FC = () => {
     let tempoMedioDias = 0;
     if (itemsDevolvidos.length > 0) {
       const totalDias = itemsDevolvidos.reduce((acc, item) => {
-        return acc + getDaysInChada(item.createdAt, item.updatedAt);
+        return acc + getDaysInChada(item.createdAt, item.statusChada, item.updatedAt);
       }, 0);
       tempoMedioDias = Math.round(totalDias / itemsDevolvidos.length);
     }
@@ -330,7 +335,7 @@ const ChadaPage: React.FC = () => {
       if (item.statusChada === 'DEVOLVIDO' || item.statusChada === 'CONSERTADO' || item.statusChada === 'SEM_CONSERTO') {
         return false;
       }
-      return getDaysInChada(item.createdAt, item.updatedAt) > 15;
+      return getDaysInChada(item.createdAt, item.statusChada, item.updatedAt) > 15;
     }).length;
 
     return {
@@ -629,7 +634,13 @@ const ChadaPage: React.FC = () => {
       form.getTextField("ITEM").setText(
         `${item.brand || "Não informado"}, serial: ${item.serialNumber || "Não informado"}`
       );
-      form.getTextField("RELATORIO").setText(item.problem || "Não informado");
+
+      // Adicionar número da OS da CHADA ao relatório
+      const relatorioText = item.numeroChadaOS
+        ? `OS CHADA: ${item.numeroChadaOS}\n\n${item.problem || "Não informado"}`
+        : item.problem || "Não informado";
+
+      form.getTextField("RELATORIO").setText(relatorioText);
 
       const pdfBytes = await pdfDoc.save();
 
@@ -818,7 +829,7 @@ const ChadaPage: React.FC = () => {
       item.userName || '',
       new Date(item.createdAt).toLocaleDateString('pt-BR'),
       new Date(item.updatedAt).toLocaleDateString('pt-BR'),
-      getDaysInChada(item.createdAt, item.updatedAt),
+      getDaysInChada(item.createdAt, item.statusChada, item.updatedAt),
       item.observacoes || '',
       item.custoConserto || ''
     ]);
@@ -864,7 +875,7 @@ const ChadaPage: React.FC = () => {
         'Data Envio': item.createdAt ? new Date(item.createdAt).toLocaleDateString('pt-BR') : '',
         'Email Enviado': item.emailSentAt ? new Date(item.emailSentAt).toLocaleString('pt-BR') : 'Não enviado',
         'Última Atualização': item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('pt-BR') : '',
-        'Dias na CHADA': getDaysInChada(item.createdAt, item.updatedAt),
+        'Dias na CHADA': getDaysInChada(item.createdAt, item.statusChada, item.updatedAt),
         'Atualizado por': item.updateBy || ''
       }));
 
@@ -1115,7 +1126,7 @@ const ChadaPage: React.FC = () => {
     if (item.statusChada === 'DEVOLVIDO' || item.statusChada === 'CONSERTADO' || item.statusChada === 'SEM_CONSERTO') {
       return false;
     }
-    return getDaysInChada(item.createdAt, item.updatedAt) > 15;
+    return getDaysInChada(item.createdAt, item.statusChada, item.updatedAt) > 15;
   };
 
   // Função para renderizar timeline
@@ -1849,11 +1860,11 @@ const ChadaPage: React.FC = () => {
                           <div className="flex items-center gap-2 flex-wrap">
                             {getStatusBadge(item.statusChada)}
                             <span className={`text-xs sm:text-sm whitespace-nowrap ${
-                              needsAlert(item) 
-                                ? 'text-red-600 font-medium bg-red-100 px-2 py-1 rounded' 
+                              needsAlert(item)
+                                ? 'text-red-600 font-medium bg-red-100 px-2 py-1 rounded'
                                 : 'text-gray-500'
                             }`}>
-                              {needsAlert(item) && '⚠️ '}{getDaysInChada(item.createdAt, item.updatedAt)} dias
+                              {needsAlert(item) && '⚠️ '}{getDaysInChada(item.createdAt, item.statusChada, item.updatedAt)} dias
                             </span>
                           </div>
                         </div>
