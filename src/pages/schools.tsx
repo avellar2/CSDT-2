@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { 
-  MagnifyingGlass, 
-  MapPin, 
-  Phone, 
+import {
+  MagnifyingGlass,
+  MapPin,
+  Phone,
   EnvelopeSimple,
   Users,
   GraduationCap,
@@ -15,9 +15,12 @@ import {
   SortDescending,
   X,
   Monitor,
-  Desktop
+  Desktop,
+  FileXls,
+  Download
 } from 'phosphor-react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 interface School {
   id: number;
@@ -75,6 +78,58 @@ const SchoolsPage: React.FC = () => {
     const encodedAddress = encodeURIComponent(`${address}, ${schoolName}`);
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     window.open(mapsUrl, '_blank');
+  };
+
+  // Função para exportar para Excel
+  const exportToExcel = () => {
+    // Preparar dados para exportação
+    const exportData = filteredSchools.map(school => ({
+      'ID': school.id,
+      'Nome da Escola': school.name,
+      'INEP': school.inep,
+      'Distrito': school.district || 'N/A',
+      'Endereço': school.address || 'N/A',
+      'Diretor(a)': school.director || 'N/A',
+      'Telefone': school.phone || 'N/A',
+      'Email': school.email || 'N/A',
+      'Número de Alunos': school.students || 0,
+      'Laboratório (Equipamentos)': school.laboratorio || 0,
+      'Número de Anexos': school.other_School?.length || 0,
+      'Anexos': school.other_School?.map(a => a.name.replace(/^ANEXO\s*(\([^)]*\))?\s*:?\s*/i, '')).join(', ') || 'Nenhum'
+    }));
+
+    // Criar workbook e worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Ajustar largura das colunas
+    const colWidths = [
+      { wch: 8 },  // ID
+      { wch: 50 }, // Nome da Escola
+      { wch: 12 }, // INEP
+      { wch: 10 }, // Distrito
+      { wch: 60 }, // Endereço
+      { wch: 35 }, // Diretor
+      { wch: 15 }, // Telefone
+      { wch: 30 }, // Email
+      { wch: 18 }, // Alunos
+      { wch: 25 }, // Laboratório
+      { wch: 16 }, // Número Anexos
+      { wch: 60 }  // Anexos
+    ];
+    ws['!cols'] = colWidths;
+
+    // Adicionar worksheet ao workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Escolas');
+
+    // Gerar nome do arquivo com data e hora
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
+    const timeStr = now.toLocaleTimeString('pt-BR').replace(/:/g, '-');
+    const fileName = `escolas_${dateStr}_${timeStr}.xlsx`;
+
+    // Fazer download
+    XLSX.writeFile(wb, fileName);
   };
 
   // Função para carregar estatísticas de uma escola
@@ -208,31 +263,46 @@ const SchoolsPage: React.FC = () => {
                 Gerencie e visualize todas as escolas cadastradas no sistema
               </p>
             </div>
-            
-            {/* Toggle de Visualização */}
-            <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-zinc-700">
+
+            <div className="flex items-center gap-3">
+              {/* Botão Exportar Excel */}
               <button
-                onClick={() => setViewMode('grid')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
+                onClick={exportToExcel}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors font-medium"
+                title={`Exportar ${filteredSchools.length} escola${filteredSchools.length !== 1 ? 's' : ''} para Excel`}
               >
-                <SquaresFour size={18} />
-                Cards
+                <FileXls size={20} weight="bold" />
+                Exportar Excel
+                <span className="ml-1 px-2 py-0.5 bg-green-700 rounded-full text-xs">
+                  {filteredSchools.length}
+                </span>
               </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                <List size={18} />
-                Lista
-              </button>
+
+              {/* Toggle de Visualização */}
+              <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-zinc-700">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <SquaresFour size={18} />
+                  Cards
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <List size={18} />
+                  Lista
+                </button>
+              </div>
             </div>
           </div>
 
