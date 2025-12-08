@@ -21,7 +21,9 @@ const tecnicoParceiroOptions = [
   { label: 'Hélio', value: 'Hélio' },
   { label: 'Alexandre', value: 'Alexandre' },
   { label: 'Victor', value: 'Victor' },
-  { label: 'Vanderson', value: 'Vanderson' }
+  { label: 'Vanderson', value: 'Vanderson' },
+  { label: 'Yuri', value: 'Yuri' },
+  { label: 'Luís Felipe', value: 'Luís Felipe' }
 ];
 
 const
@@ -40,22 +42,43 @@ const
 
     const stableHandleInputChange = useCallback(handleInputChange, []);
 
+    // useEffect para atualizar o técnico responsável mantendo os parceiros
     useEffect(() => {
-      stableHandleInputChange({
-        target: {
-          name: 'tecnicoResponsavel',
-          value: tecnicoResponsavelLogado
-        }
-      } as ChangeEvent<HTMLInputElement>);
-    }, [tecnicoResponsavelLogado, stableHandleInputChange]);
+      // Se há técnicos parceiros selecionados, manter a concatenação
+      if (tecnicoParceiro.length > 0) {
+        const selectedValues = tecnicoParceiro.map(option => option.value).join(' / ');
+        stableHandleInputChange({
+          target: {
+            name: 'tecnicoResponsavel',
+            value: `${tecnicoResponsavelLogado} / ${selectedValues}`
+          }
+        } as ChangeEvent<HTMLInputElement>);
+      } else {
+        // Se não há parceiros, apenas o técnico principal
+        stableHandleInputChange({
+          target: {
+            name: 'tecnicoResponsavel',
+            value: tecnicoResponsavelLogado
+          }
+        } as ChangeEvent<HTMLInputElement>);
+      }
+    }, [tecnicoResponsavelLogado, tecnicoParceiro, stableHandleInputChange]);
 
     const handleTecnicoParceiroChange = (selectedOptions: MultiValue<{ label: string; value: string }>) => {
       setTecnicoParceiro(selectedOptions);
       const selectedValues = selectedOptions.map(option => option.value).join(' / ');
+
+      // Se houver técnicos parceiros, concatenar com o técnico responsável
+      const newValue = selectedValues
+        ? `${tecnicoResponsavelLogado} / ${selectedValues}`
+        : tecnicoResponsavelLogado;
+
+      console.log('Técnico Responsável atualizado:', newValue);
+
       stableHandleInputChange({
         target: {
           name: 'tecnicoResponsavel',
-          value: `${tecnicoResponsavelLogado} / ${selectedValues}`
+          value: newValue
         }
       } as ChangeEvent<HTMLInputElement>);
     };

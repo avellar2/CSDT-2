@@ -517,7 +517,39 @@ const OsExternasList: React.FC = () => {
                         Técnico Responsável
                       </td>
                       <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.tecnicoResponsavel}
+                        {(() => {
+                          // Verificar se há técnicos parceiros (separados por " / ")
+                          if (selectedOs.tecnicoResponsavel?.includes(' / ')) {
+                            const tecnicos = selectedOs.tecnicoResponsavel.split(' / ');
+                            const principal = tecnicos[0];
+                            const parceiros = tecnicos.slice(1);
+
+                            return (
+                              <div className="space-y-2">
+                                <div>
+                                  <span className="font-semibold text-blue-600">{principal}</span>
+                                  <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                                    Técnico
+                                  </span>
+                                </div>
+                                <div className="pl-4 border-l-2 border-gray-300">
+                                  <div className="text-sm text-gray-600 font-medium mb-1">
+                                    Técnicos Parceiros:
+                                  </div>
+                                  {parceiros.map((parceiro, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 mb-1">
+                                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                      <span className="text-gray-700">{parceiro}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // Se não houver parceiros, exibir normalmente
+                          return <span className="font-semibold">{selectedOs.tecnicoResponsavel}</span>;
+                        })()}
                       </td>
                     </tr>
                     <tr className="border-b border-gray-200">

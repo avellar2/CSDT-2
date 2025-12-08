@@ -792,6 +792,11 @@ const FillPdfForm: React.FC = () => {
         }).format(currentDate), // Atualiza a hora no formato HH:mm
       };
 
+      console.log('Dados sendo enviados para API:', {
+        tecnicoResponsavel: updatedData.tecnicoResponsavel,
+        unidadeEscolar: updatedData.unidadeEscolar
+      });
+
       const response = await fetch("/api/save-os-externa", {
         method: "POST",
         headers: {
@@ -1151,7 +1156,6 @@ const FillPdfForm: React.FC = () => {
               >
                 <CheckCircle size={40} className={alertDialog.success ? 'text-green-400' : 'text-red-400'} />
               </motion.div>
-
               <motion.h3
                 className={`text-2xl font-bold mb-3 ${alertDialog.success ? 'text-green-400' : 'text-red-400'
                   }`}
