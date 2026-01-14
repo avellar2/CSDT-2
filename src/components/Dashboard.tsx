@@ -30,6 +30,7 @@ import { Header } from "./Header";
 import { useHeaderContext } from "../context/HeaderContext";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardRegisterForm from "./DashboardRegisterForm";
+import PrinterRequestCard from "./PrinterRequestCard";
 // import ChamadosEscolaCard from "./ChamadosEscolaCard";
 // import NovoChamadoModal from "./NovoChamadoModal";
 
@@ -58,6 +59,7 @@ const Dashboard: React.FC = () => {
   });
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [showPrinterRequestCard, setShowPrinterRequestCard] = useState(false);
   // const [showNovoChamadoModal, setShowNovoChamadoModal] = useState(false);
   // const [chamadosEscola, setChamadosEscola] = useState([]);
   // const [isLoadingChamados, setIsLoadingChamados] = useState(false);
@@ -557,6 +559,16 @@ const Dashboard: React.FC = () => {
       badge: null
     },
     {
+      id: 'printer-requests',
+      title: 'Solicitar Dados de Impressoras',
+      icon: Printer,
+      color: 'bg-purple-500 hover:bg-purple-700',
+      action: () => setShowPrinterRequestCard(true),
+      roles: ['ADMTOTAL', 'ADMIN'],
+      category: 'Escolas e Equipamentos',
+      badge: null
+    },
+    {
       id: 'memorandums',
       title: 'Todos os Memorandos',
       icon: FileText,
@@ -932,6 +944,11 @@ const Dashboard: React.FC = () => {
         isLoading={isLoadingChamados}
       />
       */}
+
+      {/* Modal de Solicitação de Dados de Impressoras */}
+      {showPrinterRequestCard && (
+        <PrinterRequestCard onClose={() => setShowPrinterRequestCard(false)} />
+      )}
     </>
   );
 };
