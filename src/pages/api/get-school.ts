@@ -10,7 +10,7 @@ export default async function handler(
   if (req.method === "GET") {
     try {
       const schools = await prisma.school.findMany({
-        select: { id: true, name: true },
+        select: { id: true, name: true, email: true, district: true },
       });
       res.status(200).json(schools);
     } catch (error) {

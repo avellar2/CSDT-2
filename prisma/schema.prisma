@@ -537,6 +537,7 @@ model School {
   TechnicalTicket  TechnicalTicket[]
   chamados_escola  chamados_escola[]
   internal_tickets internal_tickets[]
+  PrinterRequest   PrinterRequest[]
 
   @@index([geocoded])
 }
@@ -896,4 +897,33 @@ enum VisitStatus {
   WORKING
   COMPLETED
   SKIPPED
+}
+
+model PrinterRequest {
+  id                  Int           @id @default(autoincrement())
+  schoolId            Int
+  token               String        @unique
+  status              String        @default("Pendente")
+  sentAt              DateTime      @default(now())
+  completedAt         DateTime?
+  nomeResponsavel     String?
+  cpfMatricula        String?
+  cargoResponsavel    String?
+  printers            PrinterInfo[]
+  School              School        @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([sentAt])
+}
+
+model PrinterInfo {
+  id                Int            @id @default(autoincrement())
+  printerRequestId  Int
+  marca             String
+  serial            String
+  createdAt         DateTime       @default(now())
+  PrinterRequest    PrinterRequest @relation(fields: [printerRequestId], references: [id], onDelete: Cascade)
+
+  @@index([printerRequestId])
 }

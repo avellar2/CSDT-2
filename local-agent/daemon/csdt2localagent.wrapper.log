@@ -310,3 +310,55 @@ Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInter
    em winsw.WrapperService.OnShutdown()
 2025-11-14 10:28:27 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
 2025-11-14 10:28:27 - Started 5544
+2025-12-10 08:17:34 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-10 08:17:34 - Started 5660
+2025-12-10 17:00:29 - Stopping csdt2localagent.exe
+2025-12-10 17:00:29 - ProcessKill 5660
+2025-12-10 17:00:30 - Shutdown exception
+Message:O sistema está sendo desligado.
+
+Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   em System.Management.ManagementScope.InitializeGuts(Object o)
+   em System.Management.ManagementScope.Initialize()
+   em System.Management.ManagementObjectSearcher.Initialize()
+   em System.Management.ManagementObjectSearcher.Get()
+   em winsw.WrapperService.GetChildPids(Int32 pid)
+   em winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   em winsw.WrapperService.StopIt()
+   em winsw.WrapperService.OnShutdown()
+2025-12-10 17:00:55 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-10 17:00:55 - Started 4492
+2025-12-10 17:02:36 - Stopping csdt2localagent.exe
+2025-12-10 17:02:36 - ProcessKill 4492
+2025-12-10 17:02:36 - Shutdown exception
+Message:Classe não registrada
+
+Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   em System.Management.ManagementScope.InitializeGuts(Object o)
+   em System.Management.ManagementScope.Initialize()
+   em System.Management.ManagementObjectSearcher.Initialize()
+   em System.Management.ManagementObjectSearcher.Get()
+   em winsw.WrapperService.GetChildPids(Int32 pid)
+   em winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   em winsw.WrapperService.StopIt()
+   em winsw.WrapperService.OnShutdown()
+2025-12-11 12:38:38 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-11 12:38:38 - Started 5720
+2025-12-16 09:09:17 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-16 09:09:17 - Started 4468
+2025-12-19 08:43:39 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-19 08:43:39 - Started 5940
+2025-12-22 07:49:29 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-22 07:49:29 - Started 5316
+2025-12-22 08:12:29 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-22 08:12:29 - Started 5344
+2025-12-23 08:18:32 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-23 08:18:33 - Started 5880
+2025-12-30 13:46:19 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2025-12-30 13:46:19 - Started 5928
+2026-01-05 10:06:06 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-01-05 10:06:06 - Started 5888
+2026-01-12 08:21:14 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-01-12 08:21:14 - Started 5924
+2026-01-13 08:14:01 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-01-13 08:14:01 - Started 5896
