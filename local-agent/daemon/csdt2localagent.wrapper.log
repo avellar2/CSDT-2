@@ -362,3 +362,37 @@ Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInter
 2026-01-12 08:21:14 - Started 5924
 2026-01-13 08:14:01 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
 2026-01-13 08:14:01 - Started 5896
+2026-01-14 16:56:48 - Stopping csdt2localagent.exe
+2026-01-14 16:56:48 - ProcessKill 5896
+2026-01-14 16:56:49 - Shutdown exception
+Message:O sistema está sendo desligado.
+
+Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   em System.Management.ManagementScope.InitializeGuts(Object o)
+   em System.Management.ManagementScope.Initialize()
+   em System.Management.ManagementObjectSearcher.Initialize()
+   em System.Management.ManagementObjectSearcher.Get()
+   em winsw.WrapperService.GetChildPids(Int32 pid)
+   em winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   em winsw.WrapperService.StopIt()
+   em winsw.WrapperService.OnShutdown()
+2026-01-14 16:57:13 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-01-14 16:57:13 - Started 5164
+2026-01-14 16:58:35 - Stopping csdt2localagent.exe
+2026-01-14 16:58:35 - ProcessKill 5164
+2026-01-14 16:58:35 - Shutdown exception
+Message:Classe não registrada
+
+Stacktrace:   em System.Runtime.InteropServices.Marshal.ThrowExceptionForHRInternal(Int32 errorCode, IntPtr errorInfo)
+   em System.Management.ManagementScope.InitializeGuts(Object o)
+   em System.Management.ManagementScope.Initialize()
+   em System.Management.ManagementObjectSearcher.Initialize()
+   em System.Management.ManagementObjectSearcher.Get()
+   em winsw.WrapperService.GetChildPids(Int32 pid)
+   em winsw.WrapperService.StopProcessAndChildren(Int32 pid)
+   em winsw.WrapperService.StopIt()
+   em winsw.WrapperService.OnShutdown()
+2026-01-15 08:17:38 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-01-15 08:17:38 - Started 5640
+2026-01-16 14:59:58 - Starting C:\Program Files\nodejs\node.exe  --harmony --max_old_space_size=4096 C:\Users\Vanderson\Documents\CSDT-2\local-agent\node_modules\node-windows\lib\wrapper.js --file C:\Users\Vanderson\Documents\CSDT-2\local-agent\index.js --scriptoptions= --log "CSDT2-LocalAgent wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-01-16 14:59:59 - Started 5904

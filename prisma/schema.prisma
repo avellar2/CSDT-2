@@ -534,10 +534,12 @@ model School {
   School           School?            @relation("SchoolToSchool", fields: [parentSchoolId], references: [id])
   other_School     School[]           @relation("SchoolToSchool")
   SchoolDemand     SchoolDemand[]
-  TechnicalTicket  TechnicalTicket[]
-  chamados_escola  chamados_escola[]
-  internal_tickets internal_tickets[]
-  PrinterRequest   PrinterRequest[]
+  TechnicalTicket                TechnicalTicket[]
+  chamados_escola                chamados_escola[]
+  internal_tickets               internal_tickets[]
+  PrinterRequest                 PrinterRequest[]
+  PreventiveMaintenanceOS        PreventiveMaintenanceOS[]
+  PreventiveMaintenanceEmailLog  PreventiveMaintenanceEmailLog[]
 
   @@index([geocoded])
 }
@@ -926,4 +928,38 @@ model PrinterInfo {
   PrinterRequest    PrinterRequest @relation(fields: [printerRequestId], references: [id], onDelete: Cascade)
 
   @@index([printerRequestId])
+}
+
+model PreventiveMaintenanceOS {
+  id              Int       @id @default(autoincrement())
+  schoolId        Int?
+  schoolName      String
+  printerModel    String
+  printerSerial   String
+  osNumber        String
+  emailFrom       String?
+  emailSubject    String?
+  emailReceivedAt DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  School          School?   @relation(fields: [schoolId], references: [id])
+
+  @@index([printerSerial])
+  @@index([osNumber])
+  @@index([emailReceivedAt])
+}
+
+model PreventiveMaintenanceEmailLog {
+  id            Int       @id @default(autoincrement())
+  schoolId      Int?
+  schoolName    String
+  printerModel  String
+  printerSerial String
+  status        String    // "success" ou "failed"
+  errorMessage  String?
+  sentAt        DateTime  @default(now())
+  School        School?   @relation(fields: [schoolId], references: [id])
+
+  @@index([status])
+  @@index([sentAt])
+  @@index([printerSerial])
 }
