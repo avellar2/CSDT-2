@@ -119,40 +119,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Tentar encontrar o item correspondente no banco
-        // Procura por referências no assunto/corpo (número de série, ID do item, etc.)
-        const serialMatches = searchContent.match(/\b[A-Z0-9]{8,}\b/g);
-
         let itemChadaId: string | null = null;
+        let matchMethod = '';
 
-        // Buscar por referência ao número de série
-        if (serialMatches && serialMatches.length > 0) {
-          for (const serial of serialMatches) {
-            const itemBySerial = await prisma.item.findUnique({
-              where: { serialNumber: serial },
-            });
-
-            if (itemBySerial) {
-              // Encontrar o registro correspondente em ItemsChada
-              const chadaItem = await prisma.itemsChada.findFirst({
-                where: {
-                  itemId: itemBySerial.id,
-                  numeroChadaOS: null, // Ainda não tem OS
-                },
-                orderBy: {
-                  createdAt: 'desc',
-                },
-              });
-
-              if (chadaItem) {
-                itemChadaId = chadaItem.id;
-                break;
-              }
-            }
-          }
-        }
-
-        // Se não encontrou por serial, buscar pelo In-Reply-To (email thread)
-        if (!itemChadaId && parsed.inReplyTo) {
+        // MÉTODO 1: Buscar pelo In-Reply-To (email thread) - MAIS CONFIÁVEL
+        if (parsed.inReplyTo) {
+          console.log(`Procurando por In-Reply-To: ${parsed.inReplyTo}`);
           const chadaItem = await prisma.itemsChada.findFirst({
             where: {
               emailMessageId: parsed.inReplyTo,
@@ -162,25 +134,72 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           if (chadaItem) {
             itemChadaId = chadaItem.id;
+            matchMethod = 'in-reply-to';
+            console.log(`✓ Item encontrado por In-Reply-To: ${itemChadaId}`);
           }
         }
 
-        // Se ainda não encontrou, buscar o mais recente sem OS
+        // MÉTODO 2: Buscar pelo References header (mais abrangente que In-Reply-To)
+        if (!itemChadaId && parsed.references && parsed.references.length > 0) {
+          console.log(`Procurando por References: ${parsed.references.join(', ')}`);
+          for (const ref of parsed.references) {
+            const chadaItem = await prisma.itemsChada.findFirst({
+              where: {
+                emailMessageId: ref,
+                numeroChadaOS: null,
+              },
+            });
+
+            if (chadaItem) {
+              itemChadaId = chadaItem.id;
+              matchMethod = 'references';
+              console.log(`✓ Item encontrado por References: ${itemChadaId}`);
+              break;
+            }
+          }
+        }
+
+        // MÉTODO 3: Buscar por número de série no conteúdo
         if (!itemChadaId) {
-          const recentChadaItem = await prisma.itemsChada.findFirst({
+          console.log('Procurando por número de série no conteúdo...');
+
+          // Buscar todos os itens na CHADA que ainda não têm OS
+          const pendingItems = await prisma.itemsChada.findMany({
             where: {
               numeroChadaOS: null,
-              emailSentAt: { not: null },
+              emailSentAt: { not: null }, // Só itens que já enviaram email
+            },
+            include: {
+              item: true, // Inclui dados do item (inclusive serialNumber)
             },
             orderBy: {
-              emailSentAt: 'desc',
+              emailSentAt: 'desc', // Mais recente primeiro
             },
           });
 
-          if (recentChadaItem) {
-            itemChadaId = recentChadaItem.id;
+          console.log(`Encontrados ${pendingItems.length} itens pendentes de OS`);
+
+          // Para cada item pendente, verificar se seu serial number aparece no email
+          for (const pendingItem of pendingItems) {
+            const serial = pendingItem.item.serialNumber;
+
+            // Verificar se o número de série está no email (busca case-insensitive)
+            if (serial && searchContent.toUpperCase().includes(serial.toUpperCase())) {
+              console.log(`✓ Serial ${serial} encontrado no email`);
+              itemChadaId = pendingItem.id;
+              matchMethod = 'serial-number';
+              console.log(`✓ Item encontrado por serial: ${itemChadaId}`);
+              break;
+            }
+          }
+
+          if (!itemChadaId) {
+            console.log('Nenhum serial number de itens pendentes encontrado no email');
           }
         }
+
+        // MÉTODO 4 (REMOVIDO): Não usar fallback genérico de "mais recente"
+        // Esse método causava associações incorretas
 
         if (itemChadaId) {
           // Atualizar o registro com o número de OS
@@ -195,13 +214,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           await connection.addFlags(message.attributes.uid, ['\\Seen']);
 
           updated++;
-          console.log(`Item ${itemChadaId} atualizado com OS ${osNumber}`);
+          console.log(`✓ Item ${itemChadaId} atualizado com OS ${osNumber} (método: ${matchMethod})`);
 
           results.push({
             from,
             subject,
             osNumber,
             itemChadaId,
+            matchMethod,
             status: 'updated',
           });
         } else {
