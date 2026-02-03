@@ -240,8 +240,8 @@ const ChadaPage: React.FC = () => {
       const quickFilterCheck = () => {
         switch (quickFilter) {
           case 'alert': return needsAlert(item);
-          case 'withOS': return item.numeroChadaOS !== null && item.numeroChadaOS !== undefined && item.numeroChadaOS !== '';
-          case 'withoutOS': return !item.numeroChadaOS;
+          case 'withOS': return item.numeroChadaOS && item.numeroChadaOS.trim() !== '';
+          case 'withoutOS': return !item.numeroChadaOS || item.numeroChadaOS.trim() === '';
           case 'emailSent': return item.emailSentAt !== null && item.emailSentAt !== undefined;
           case 'emailNotSent': return !item.emailSentAt;
           case 'none': return true;
@@ -915,8 +915,8 @@ const ChadaPage: React.FC = () => {
         { 'Métrica': 'Status SEM_CONSERTO', 'Valor': items.filter(i => i.statusChada === 'SEM_CONSERTO').length },
         { 'Métrica': 'Status DEVOLVIDO', 'Valor': items.filter(i => i.statusChada === 'DEVOLVIDO').length },
         { 'Métrica': '', 'Valor': '' },
-        { 'Métrica': 'Com Número de OS', 'Valor': items.filter(i => i.numeroChadaOS).length },
-        { 'Métrica': 'Aguardando OS', 'Valor': items.filter(i => !i.numeroChadaOS).length },
+        { 'Métrica': 'Com Número de OS', 'Valor': items.filter(i => i.numeroChadaOS && i.numeroChadaOS.trim() !== '').length },
+        { 'Métrica': 'Aguardando OS', 'Valor': items.filter(i => !i.numeroChadaOS || i.numeroChadaOS.trim() === '').length },
       ];
 
       const ws2 = XLSX.utils.json_to_sheet(statsData);
@@ -932,7 +932,7 @@ const ChadaPage: React.FC = () => {
           'Total Itens': itensSetor.length,
           'Na CHADA': itensSetor.filter(i => ['PENDENTE', 'RECEBIDO', 'EM_ANALISE'].includes(i.statusChada)).length,
           'Devolvidos': itensSetor.filter(i => ['CONSERTADO', 'SEM_CONSERTO', 'DEVOLVIDO'].includes(i.statusChada)).length,
-          'Com OS': itensSetor.filter(i => i.numeroChadaOS).length,
+          'Com OS': itensSetor.filter(i => i.numeroChadaOS && i.numeroChadaOS.trim() !== '').length,
         };
       });
 
@@ -1910,7 +1910,7 @@ const ChadaPage: React.FC = () => {
                     {/* Número de OS da CHADA */}
                     {(item.numeroChadaOS || item.emailSentAt) && (
                       <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-                        {item.numeroChadaOS && (
+                        {item.numeroChadaOS && item.numeroChadaOS.trim() !== '' && (
                           <div className="bg-white rounded-md p-3 border-l-4 border-yellow-400">
                             <div className="flex items-center mb-1">
                               <span className="text-yellow-500 mr-2">📋</span>
@@ -1928,7 +1928,7 @@ const ChadaPage: React.FC = () => {
                             <p className="text-sm text-gray-700">
                               {new Date(item.emailSentAt).toLocaleString('pt-BR')}
                             </p>
-                            {!item.numeroChadaOS && (
+                            {(!item.numeroChadaOS || item.numeroChadaOS.trim() === '') && (
                               <p className="text-xs text-orange-600 mt-1">⏳ Aguardando resposta da CHADA</p>
                             )}
                           </div>
