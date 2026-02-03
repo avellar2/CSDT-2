@@ -35,6 +35,7 @@
     "prisma"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "list-schools.ts"
   ]
 }
