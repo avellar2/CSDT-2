@@ -128,7 +128,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const chadaItem = await prisma.itemsChada.findFirst({
             where: {
               emailMessageId: parsed.inReplyTo,
-              numeroChadaOS: null,
+              OR: [
+                { numeroChadaOS: null },
+                { numeroChadaOS: '' }
+              ],
             },
           });
 
@@ -140,13 +143,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // MÉTODO 2: Buscar pelo References header (mais abrangente que In-Reply-To)
-        if (!itemChadaId && parsed.references && parsed.references.length > 0) {
-          console.log(`Procurando por References: ${parsed.references.join(', ')}`);
-          for (const ref of parsed.references) {
+        if (!itemChadaId && parsed.references) {
+          const refs = Array.isArray(parsed.references) ? parsed.references : [parsed.references];
+          if (refs.length > 0) {
+            console.log(`Procurando por References: ${refs.join(', ')}`);
+            for (const ref of refs) {
             const chadaItem = await prisma.itemsChada.findFirst({
               where: {
                 emailMessageId: ref,
-                numeroChadaOS: null,
+                OR: [
+                  { numeroChadaOS: null },
+                  { numeroChadaOS: '' }
+                ],
               },
             });
 
@@ -157,6 +165,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               break;
             }
           }
+          }
         }
 
         // MÉTODO 3: Buscar por número de série no conteúdo
@@ -164,32 +173,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.log('Procurando por número de série no conteúdo...');
 
           // Buscar todos os itens na CHADA que ainda não têm OS
-          const pendingItems = await prisma.itemsChada.findMany({
+          const pendingChadaItems = await prisma.itemsChada.findMany({
             where: {
-              numeroChadaOS: null,
+              OR: [
+                { numeroChadaOS: null },
+                { numeroChadaOS: '' }
+              ],
               emailSentAt: { not: null }, // Só itens que já enviaram email
-            },
-            include: {
-              item: true, // Inclui dados do item (inclusive serialNumber)
             },
             orderBy: {
               emailSentAt: 'desc', // Mais recente primeiro
             },
           });
 
-          console.log(`Encontrados ${pendingItems.length} itens pendentes de OS`);
+          console.log(`Encontrados ${pendingChadaItems.length} itens pendentes de OS`);
 
-          // Para cada item pendente, verificar se seu serial number aparece no email
-          for (const pendingItem of pendingItems) {
-            const serial = pendingItem.item.serialNumber;
+          // Para cada item pendente, buscar os dados do item e verificar se o serial aparece no email
+          for (const pendingItem of pendingChadaItems) {
+            const item = await prisma.item.findUnique({
+              where: { id: pendingItem.itemId },
+            });
 
-            // Verificar se o número de série está no email (busca case-insensitive)
-            if (serial && searchContent.toUpperCase().includes(serial.toUpperCase())) {
-              console.log(`✓ Serial ${serial} encontrado no email`);
-              itemChadaId = pendingItem.id;
-              matchMethod = 'serial-number';
-              console.log(`✓ Item encontrado por serial: ${itemChadaId}`);
-              break;
+            if (item?.serialNumber) {
+              const serial = item.serialNumber;
+
+              // Verificar se o número de série está no email (busca case-insensitive)
+              if (searchContent.toUpperCase().includes(serial.toUpperCase())) {
+                console.log(`✓ Serial ${serial} encontrado no email`);
+                itemChadaId = pendingItem.id;
+                matchMethod = 'serial-number';
+                console.log(`✓ Item encontrado por serial: ${itemChadaId}`);
+                break;
+              }
             }
           }
 
