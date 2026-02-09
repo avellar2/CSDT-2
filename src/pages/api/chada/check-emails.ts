@@ -87,6 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Padrão da CHADA: "Ordem de serviço número: 321858"
         const osPatterns = [
           /\bORDEM\s+DE\s+SERVI[CÇ]O\s+N[UÚ]MERO[:\s]*(\d+)/i,  // Padrão CHADA específico
+          /\bPEDIDO\s*[-:]\s*(\d{5,7})/i,  // Padrão "Pedido - 461963" ou "Pedido: 461963"
           /\bOS[:\s#-]*(\d+)/i,
           /\bO\.S\.?[:\s#-]*(\d+)/i,
           /\bORDEM\s+DE\s+SERVI[CÇ]O[:\s#-]*(\d+)/i,
