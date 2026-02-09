@@ -121,8 +121,8 @@ const Printers: React.FC = () => {
     if (printers.length > 0) {
       fetchPrinterStatus();
 
-      // Atualizar status a cada 30 segundos
-      const interval = setInterval(fetchPrinterStatus, 30000);
+      // Atualizar status a cada 60 segundos
+      const interval = setInterval(fetchPrinterStatus, 60000);
       return () => clearInterval(interval);
     }
   }, [printers]);
