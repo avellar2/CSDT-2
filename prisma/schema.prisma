@@ -125,21 +125,21 @@ model ItemHistory {
 }
 
 model ItemsChada {
-  id                         String           @id @default(uuid())
-  itemId                     Int
-  problem                    String
-  userName                   String
-  status                     ItemsChadaStatus @default(PENDENTE)
-  createdAt                  DateTime         @default(now())
-  updatedAt                  DateTime         @updatedAt
-  setor                      String
-  updatedBy                  String?
-  osImages                   Json[]
-  emailMessageId             String?
-  emailSentAt                DateTime?
-  numeroChadaOS              String?
-  manutencaoSemMovimentacao  Boolean          @default(false)
-  schoolIdOriginal           Int?
+  id                        String           @id @default(uuid())
+  itemId                    Int
+  problem                   String
+  userName                  String
+  status                    ItemsChadaStatus @default(PENDENTE)
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+  setor                     String
+  updatedBy                 String?
+  osImages                  Json[]
+  emailMessageId            String?
+  emailSentAt               DateTime?
+  numeroChadaOS             String?
+  manutencaoSemMovimentacao Boolean          @default(false)
+  schoolIdOriginal          Int?
 }
 
 model ItemsHistoryChada {
@@ -512,34 +512,34 @@ model ScheduleEvent {
 }
 
 model School {
-  id               Int                @id @default(autoincrement())
-  name             String             @unique
-  inep             Int                @default(0)
-  district         String?
-  address          String?
-  director         String?
-  phone            String?
-  email            String?
-  students         Int?               @default(0)
-  laboratorio      Int?               @default(0)
-  parentSchoolId   Int?
-  geocoded         Boolean            @default(false)
-  latitude         Float?
-  longitude        Float?
-  ChadaDiagnostic  ChadaDiagnostic[]
-  Item             Item[]
-  Profile          Profile[]
-  RouteVisit       RouteVisit[]
-  ScheduleEvent    ScheduleEvent[]
-  School           School?            @relation("SchoolToSchool", fields: [parentSchoolId], references: [id])
-  other_School     School[]           @relation("SchoolToSchool")
-  SchoolDemand     SchoolDemand[]
-  TechnicalTicket                TechnicalTicket[]
-  chamados_escola                chamados_escola[]
-  internal_tickets               internal_tickets[]
-  PrinterRequest                 PrinterRequest[]
-  PreventiveMaintenanceOS        PreventiveMaintenanceOS[]
-  PreventiveMaintenanceEmailLog  PreventiveMaintenanceEmailLog[]
+  id                            Int                             @id @default(autoincrement())
+  name                          String                          @unique
+  inep                          Int                             @default(0)
+  district                      String?
+  address                       String?
+  director                      String?
+  phone                         String?
+  email                         String?
+  students                      Int?                            @default(0)
+  laboratorio                   Int?                            @default(0)
+  parentSchoolId                Int?
+  geocoded                      Boolean                         @default(false)
+  latitude                      Float?
+  longitude                     Float?
+  ChadaDiagnostic               ChadaDiagnostic[]
+  Item                          Item[]
+  PreventiveMaintenanceEmailLog PreventiveMaintenanceEmailLog[]
+  PreventiveMaintenanceOS       PreventiveMaintenanceOS[]
+  PrinterRequest                PrinterRequest[]
+  Profile                       Profile[]
+  RouteVisit                    RouteVisit[]
+  ScheduleEvent                 ScheduleEvent[]
+  School                        School?                         @relation("SchoolToSchool", fields: [parentSchoolId], references: [id])
+  other_School                  School[]                        @relation("SchoolToSchool")
+  SchoolDemand                  SchoolDemand[]
+  TechnicalTicket               TechnicalTicket[]
+  chamados_escola               chamados_escola[]
+  internal_tickets              internal_tickets[]
 
   @@index([geocoded])
 }
@@ -726,6 +726,75 @@ model internal_tickets {
   @@index([status])
 }
 
+model PrinterRequest {
+  id               Int           @id @default(autoincrement())
+  schoolId         Int
+  token            String        @unique
+  status           String        @default("Pendente")
+  sentAt           DateTime      @default(now())
+  completedAt      DateTime?
+  nomeResponsavel  String?
+  cpfMatricula     String?
+  cargoResponsavel String?
+  printers         PrinterInfo[]
+  School           School        @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([sentAt])
+}
+
+model PrinterInfo {
+  id               Int            @id @default(autoincrement())
+  printerRequestId Int
+  marca            String
+  serial           String
+  createdAt        DateTime       @default(now())
+  PrinterRequest   PrinterRequest @relation(fields: [printerRequestId], references: [id], onDelete: Cascade)
+
+  @@index([printerRequestId])
+}
+
+model PreventiveMaintenanceOS {
+  id                    Int       @id @default(autoincrement())
+  schoolId              Int?
+  schoolName            String
+  printerModel          String
+  printerSerial         String
+  osNumber              String    @default("")
+  emailFrom             String?
+  emailSubject          String?
+  emailReceivedAt       DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+  emailMessageId        String?
+  photoRequestEmailSent Boolean   @default(false)
+  photoRequestedAt      DateTime?
+  status                String    @default("os_recebida")
+  updatedAt             DateTime  @default(now())
+  School                School?   @relation(fields: [schoolId], references: [id])
+
+  @@index([printerSerial])
+  @@index([osNumber])
+  @@index([emailReceivedAt])
+  @@index([status])
+}
+
+model PreventiveMaintenanceEmailLog {
+  id            Int      @id @default(autoincrement())
+  schoolId      Int?
+  schoolName    String
+  printerModel  String
+  printerSerial String
+  status        String
+  errorMessage  String?
+  sentAt        DateTime @default(now())
+  School        School?  @relation(fields: [schoolId], references: [id])
+
+  @@index([status])
+  @@index([sentAt])
+  @@index([printerSerial])
+}
+
 enum ChadaDiagnosticStatus {
   AGUARDANDO_PECA
   PECA_CHEGOU
@@ -899,67 +968,4 @@ enum VisitStatus {
   WORKING
   COMPLETED
   SKIPPED
-}
-
-model PrinterRequest {
-  id                  Int           @id @default(autoincrement())
-  schoolId            Int
-  token               String        @unique
-  status              String        @default("Pendente")
-  sentAt              DateTime      @default(now())
-  completedAt         DateTime?
-  nomeResponsavel     String?
-  cpfMatricula        String?
-  cargoResponsavel    String?
-  printers            PrinterInfo[]
-  School              School        @relation(fields: [schoolId], references: [id])
-
-  @@index([schoolId])
-  @@index([status])
-  @@index([sentAt])
-}
-
-model PrinterInfo {
-  id                Int            @id @default(autoincrement())
-  printerRequestId  Int
-  marca             String
-  serial            String
-  createdAt         DateTime       @default(now())
-  PrinterRequest    PrinterRequest @relation(fields: [printerRequestId], references: [id], onDelete: Cascade)
-
-  @@index([printerRequestId])
-}
-
-model PreventiveMaintenanceOS {
-  id              Int       @id @default(autoincrement())
-  schoolId        Int?
-  schoolName      String
-  printerModel    String
-  printerSerial   String
-  osNumber        String
-  emailFrom       String?
-  emailSubject    String?
-  emailReceivedAt DateTime  @default(now())
-  createdAt       DateTime  @default(now())
-  School          School?   @relation(fields: [schoolId], references: [id])
-
-  @@index([printerSerial])
-  @@index([osNumber])
-  @@index([emailReceivedAt])
-}
-
-model PreventiveMaintenanceEmailLog {
-  id            Int       @id @default(autoincrement())
-  schoolId      Int?
-  schoolName    String
-  printerModel  String
-  printerSerial String
-  status        String    // "success" ou "failed"
-  errorMessage  String?
-  sentAt        DateTime  @default(now())
-  School        School?   @relation(fields: [schoolId], references: [id])
-
-  @@index([status])
-  @@index([sentAt])
-  @@index([printerSerial])
 }

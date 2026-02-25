@@ -322,7 +322,7 @@ const NewMemorandumsPage: React.FC = () => {
         }
       );
 
-      setAvailableItems(response.data.items || []);
+      setAvailableItems(response.data.NewMemorandumItem || []);
     } catch (error) {
       console.error('Erro ao buscar itens disponíveis:', error);
       if (axios.isAxiosError(error)) {

@@ -22,7 +22,8 @@ import {
   ChatCircle,
   CloudArrowDown,
   Phone,
-  BookOpen
+  BookOpen,
+  MapTrifold
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -32,6 +33,9 @@ import { supabase } from "@/lib/supabaseClient";
 import DashboardRegisterForm from "./DashboardRegisterForm";
 import PrinterRequestCard from "./PrinterRequestCard";
 import PreventiveMaintenanceCard from "./PreventiveMaintenanceCard";
+import dynamic from "next/dynamic";
+
+const SchoolsMapModal = dynamic(() => import("./SchoolsMapModal"), { ssr: false });
 // import ChamadosEscolaCard from "./ChamadosEscolaCard";
 // import NovoChamadoModal from "./NovoChamadoModal";
 
@@ -62,6 +66,7 @@ const Dashboard: React.FC = () => {
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [showPrinterRequestCard, setShowPrinterRequestCard] = useState(false);
   const [showPreventiveMaintenanceCard, setShowPreventiveMaintenanceCard] = useState(false);
+  const [showSchoolsMap, setShowSchoolsMap] = useState(false);
   // const [showNovoChamadoModal, setShowNovoChamadoModal] = useState(false);
   // const [chamadosEscola, setChamadosEscola] = useState([]);
   // const [isLoadingChamados, setIsLoadingChamados] = useState(false);
@@ -449,7 +454,7 @@ const Dashboard: React.FC = () => {
   const cardCategories = {
     'Ordens de Serviço': ['fill-pdf-form-2', 'os-list', 'os-externas-list', 'create-internal-os'],
     'Estatísticas': ['statistics', 'advanced-statistics'],
-    'Escolas e Equipamentos': ['schools', 'items', 'device-list', 'printers', 'locados'],
+    'Escolas e Equipamentos': ['schools', 'items', 'device-list', 'printers', 'locados', 'schools-map'],
     'Gestão Diária': ['daily-demands', 'scales', 'internal-demands'],
     'Documentos': ['memorandums', 'new-memorandums'],
     'Administração': ['register-users'],
@@ -656,6 +661,16 @@ const Dashboard: React.FC = () => {
       icon: List,
       color: 'bg-lime-500 hover:bg-lime-700',
       path: '/locados',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
+      category: 'Escolas e Equipamentos',
+      badge: null
+    },
+    {
+      id: 'schools-map',
+      title: 'Mapa de Escolas',
+      icon: MapTrifold,
+      color: 'bg-teal-500 hover:bg-teal-700',
+      action: () => setShowSchoolsMap(true),
       roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
       category: 'Escolas e Equipamentos',
       badge: null
@@ -965,6 +980,11 @@ const Dashboard: React.FC = () => {
       {/* Modal de Manutenção Preventiva */}
       {showPreventiveMaintenanceCard && (
         <PreventiveMaintenanceCard onClose={() => setShowPreventiveMaintenanceCard(false)} />
+      )}
+
+      {/* Modal do Mapa de Escolas */}
+      {showSchoolsMap && (
+        <SchoolsMapModal onClose={() => setShowSchoolsMap(false)} userRole={userRole} />
       )}
     </>
   );
