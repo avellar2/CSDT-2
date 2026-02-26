@@ -15,41 +15,50 @@ interface RouteOptimizationRequest {
   technicianId: number;
   date: string;
   schools: number[];
+  prioritySchools?: number[]; // IDs das escolas prioritárias
   startLocation?: { lat: number; lng: number };
 }
 
-// Algoritmo do Vizinho Mais Próximo (TSP Heuristic)
-function nearestNeighborTSP(schools: School[], startLocation?: { lat: number; lng: number }) {
+// Algoritmo do Vizinho Mais Próximo com Prioridades (TSP Heuristic)
+function nearestNeighborTSP(
+  schools: School[],
+  startLocation?: { lat: number; lng: number },
+  prioritySchoolIds: number[] = []
+) {
   if (schools.length === 0) return [];
-  
+
   const visited = new Set<number>();
   const route: School[] = [];
-  
-  // Ponto de partida (primeira escola ou localização inicial)
-  let currentLocation = startLocation || 
+
+  // Separa escolas prioritárias e normais
+  const prioritySchools = schools.filter(s => prioritySchoolIds.includes(s.id));
+  const normalSchools = schools.filter(s => !prioritySchoolIds.includes(s.id));
+
+  // Ponto de partida
+  let currentLocation = startLocation ||
     { lat: schools[0].latitude || 0, lng: schools[0].longitude || 0 };
-  
-  while (visited.size < schools.length) {
+
+  // FASE 1: Visita escolas prioritárias primeiro (em ordem de proximidade)
+  while (visited.size < prioritySchools.length) {
     let nearestSchool: School | null = null;
     let minDistance = Infinity;
-    
-    // Encontra a escola mais próxima não visitada
-    for (const school of schools) {
+
+    for (const school of prioritySchools) {
       if (!visited.has(school.id) && school.latitude && school.longitude) {
         const distance = calculateDistance(
-          currentLocation.lat, 
+          currentLocation.lat,
           currentLocation.lng,
-          school.latitude, 
+          school.latitude,
           school.longitude
         );
-        
+
         if (distance < minDistance) {
           minDistance = distance;
           nearestSchool = school;
         }
       }
     }
-    
+
     if (nearestSchool) {
       visited.add(nearestSchool.id);
       route.push(nearestSchool);
@@ -58,7 +67,37 @@ function nearestNeighborTSP(schools: School[], startLocation?: { lat: number; ln
       break;
     }
   }
-  
+
+  // FASE 2: Depois visita escolas normais (em ordem de proximidade)
+  while (visited.size < schools.length) {
+    let nearestSchool: School | null = null;
+    let minDistance = Infinity;
+
+    for (const school of normalSchools) {
+      if (!visited.has(school.id) && school.latitude && school.longitude) {
+        const distance = calculateDistance(
+          currentLocation.lat,
+          currentLocation.lng,
+          school.latitude,
+          school.longitude
+        );
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestSchool = school;
+        }
+      }
+    }
+
+    if (nearestSchool) {
+      visited.add(nearestSchool.id);
+      route.push(nearestSchool);
+      currentLocation = { lat: nearestSchool.latitude!, lng: nearestSchool.longitude! };
+    } else {
+      break;
+    }
+  }
+
   return route;
 }
 
@@ -75,14 +114,25 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 }
 
-// Algoritmo Genético (para casos complexos)
-function geneticAlgorithmTSP(schools: School[], generations = 100, populationSize = 50) {
-  if (schools.length <= 3) return nearestNeighborTSP(schools);
-  
-  // Inicializa população
+// Algoritmo Genético com Prioridades (para casos complexos)
+function geneticAlgorithmTSP(
+  schools: School[],
+  generations = 100,
+  populationSize = 50,
+  prioritySchoolIds: number[] = []
+) {
+  if (schools.length <= 3) return nearestNeighborTSP(schools, undefined, prioritySchoolIds);
+
+  // Separa escolas prioritárias e normais
+  const prioritySchools = schools.filter(s => prioritySchoolIds.includes(s.id));
+  const normalSchools = schools.filter(s => !prioritySchoolIds.includes(s.id));
+
+  // Inicializa população: prioritárias sempre vêm primeiro, depois embaralha as normais
   const population: School[][] = [];
   for (let i = 0; i < populationSize; i++) {
-    population.push([...schools].sort(() => Math.random() - 0.5));
+    const shuffledNormal = [...normalSchools].sort(() => Math.random() - 0.5);
+    const shuffledPriority = [...prioritySchools].sort(() => Math.random() - 0.5);
+    population.push([...shuffledPriority, ...shuffledNormal]);
   }
   
   for (let gen = 0; gen < generations; gen++) {
@@ -182,7 +232,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { technicianId, date, schools: schoolIds, startLocation }: RouteOptimizationRequest = req.body;
+    const { technicianId, date, schools: schoolIds, prioritySchools, startLocation }: RouteOptimizationRequest = req.body;
 
     // Busca dados das escolas
     const schools = await prisma.school.findMany({
@@ -198,19 +248,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Verifica se todas as escolas têm coordenadas
     const schoolsWithCoords = schools.filter(s => s.latitude && s.longitude);
-    
+
     if (schoolsWithCoords.length === 0) {
-      return res.status(400).json({ 
-        error: 'Nenhuma escola tem coordenadas geográficas. Execute o geocoding primeiro.' 
+      return res.status(400).json({
+        error: 'Nenhuma escola tem coordenadas geográficas. Execute o geocoding primeiro.'
       });
     }
+
+    // IDs de escolas prioritárias (garante que sejam válidas)
+    const prioritySchoolIds = prioritySchools || [];
 
     // Escolhe algoritmo baseado no número de escolas
     let optimizedRoute: School[];
     if (schoolsWithCoords.length <= 5) {
-      optimizedRoute = nearestNeighborTSP(schoolsWithCoords, startLocation);
+      optimizedRoute = nearestNeighborTSP(schoolsWithCoords, startLocation, prioritySchoolIds);
     } else {
-      optimizedRoute = geneticAlgorithmTSP(schoolsWithCoords);
+      optimizedRoute = geneticAlgorithmTSP(schoolsWithCoords, 100, 50, prioritySchoolIds);
     }
 
     // Calcula métricas

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { X, MapPin, SpinnerGap, Warning, MagnifyingGlass, PencilSimple, List, Check } from 'phosphor-react';
+import { X, MapPin, SpinnerGap, Warning, MagnifyingGlass, PencilSimple, List, Check, Star } from 'phosphor-react';
 
 interface School {
   id: number;
@@ -72,6 +72,20 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
   const [newLng, setNewLng] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+
+  // Route optimization state
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<number[]>([]);
+  const [prioritySchoolIds, setPrioritySchoolIds] = useState<number[]>([]); // Escolas prioritárias
+  const [optimizedRoute, setOptimizedRoute] = useState<any>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [realRouteData, setRealRouteData] = useState<{ distance: number; duration: number } | null>(null);
+
+  // CSDT (ponto de partida) - Coordenadas do Centro de Suporte ao Desenvolvimento Tecnológico
+  const CSDT_LOCATION = {
+    lat: -22.78986385281102,
+    lng: -43.30904663652884,
+    name: 'CSDT - Centro de Suporte ao Desenvolvimento Tecnológico'
+  };
 
   const fetchSchools = async () => {
     setIsLoading(true);
@@ -187,6 +201,57 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
 
   const stopGeocoding = () => { stopGeocodingRef.current = true; };
 
+  const handleRealRouteCalculated = (data: { distance: number; duration: number }) => {
+    setRealRouteData(data);
+  };
+
+  const handleOptimizeRoute = async () => {
+    if (selectedSchoolIds.length < 2) {
+      alert('Selecione pelo menos 2 escolas');
+      return;
+    }
+
+    setIsOptimizing(true);
+    setRealRouteData(null); // Reset para mostrar "Calculando rota real..."
+    try {
+      const response = await fetch('/api/route-optimization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          technicianId: 1, // Pode ser ajustado conforme necessário
+          date: new Date().toISOString(),
+          schools: selectedSchoolIds,
+          prioritySchools: prioritySchoolIds, // Escolas prioritárias
+          startLocation: CSDT_LOCATION // Ponto de partida: CSDT
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.optimization) {
+        // Normaliza a estrutura de dados para o formato esperado
+        const normalizedRoute = {
+          totalDistance: result.optimization.totalDistance,
+          totalTime: result.optimization.totalTime,
+          algorithm: result.metrics?.algorithm || 'nearest_neighbor',
+          visits: (result.optimization.RouteVisit || []).map((visit: any) => ({
+            id: visit.id,
+            visitOrder: visit.visitOrder,
+            school: visit.School
+          }))
+        };
+        setOptimizedRoute(normalizedRoute);
+      } else {
+        alert('Erro ao otimizar rota: ' + (result.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Erro ao otimizar rota:', error);
+      alert('Erro ao otimizar rota');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
   const isAdmin = ADMIN_ROLES.includes(userRole || '');
   const noSchools = !isLoading && !error && schools.length === 0;
 
@@ -257,6 +322,127 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
               <p className="text-xs text-gray-500 mt-2">
                 {allSchools.length} escolas • {allSchools.filter(s => s.geocoded && s.latitude && s.longitude).length} geocodificadas
               </p>
+
+              {/* Route optimization section */}
+              <div className="border-t pt-4 mt-4">
+                <div className="mb-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                      {selectedSchoolIds.length} escola(s) selecionada(s)
+                    </span>
+                    {selectedSchoolIds.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setSelectedSchoolIds([]);
+                          setPrioritySchoolIds([]);
+                          setOptimizedRoute(null);
+                          setRealRouteData(null);
+                        }}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        Limpar seleção
+                      </button>
+                    )}
+                  </div>
+                  {prioritySchoolIds.length > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star size={12} weight="fill" className="text-yellow-500" />
+                      <span className="text-xs text-yellow-600 dark:text-yellow-500">
+                        {prioritySchoolIds.length} prioritária(s)
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {selectedSchoolIds.length >= 2 && (
+                  <button
+                    onClick={handleOptimizeRoute}
+                    disabled={isOptimizing}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm font-medium"
+                  >
+                    {isOptimizing ? 'Otimizando...' : 'Otimizar Rota'}
+                  </button>
+                )}
+
+                {/* Optimized route metrics */}
+                {optimizedRoute && optimizedRoute.visits && Array.isArray(optimizedRoute.visits) && (
+                  <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <h4 className="font-semibold mb-2 text-gray-900 dark:text-white text-sm">Rota Otimizada</h4>
+                    <div className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                      {realRouteData && realRouteData.distance > 0 ? (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <span>📏 Distância real:</span>
+                            <span className="font-semibold text-blue-600 dark:text-blue-400">
+                              {realRouteData.distance.toFixed(1)} km
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span>🚗 Tempo de viagem:</span>
+                            <span className="font-semibold text-blue-600 dark:text-blue-400">
+                              {Math.floor(realRouteData.duration / 60)}h {realRouteData.duration % 60}min
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span>⏱ Tempo total:</span>
+                            <span className="font-semibold text-green-600 dark:text-green-400">
+                              {Math.floor((realRouteData.duration + (optimizedRoute.visits.length * 30)) / 60)}h {(realRouteData.duration + (optimizedRoute.visits.length * 30)) % 60}min
+                            </span>
+                          </div>
+                          <div className="text-xs text-green-600 dark:text-green-400 italic mt-1 flex items-center gap-1">
+                            <span>✓</span>
+                            <span>Rota real via OSRM (viagem + 30min/escola)</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <SpinnerGap size={14} className="animate-spin text-blue-500" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400 italic">
+                              Calculando rota real via OSRM...
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            📏 Estimativa: {optimizedRoute.totalDistance?.toFixed(1) || 0} km (linha reta)
+                          </div>
+                        </>
+                      )}
+                      <div className="text-xs text-gray-600 dark:text-gray-400 pt-1 border-t border-blue-200 dark:border-blue-800">
+                        Algoritmo: {optimizedRoute.algorithm === 'genetic' ? 'Genético' : 'Vizinho Mais Próximo'}
+                      </div>
+                    </div>
+
+                    <div className="mt-2">
+                      <div className="font-semibold text-sm mb-1 text-gray-900 dark:text-white">Ordem de visitas:</div>
+                      <ol className="text-xs space-y-1">
+                        {/* Ponto de partida */}
+                        <li className="flex items-center gap-2 mb-1 pb-1 border-b border-blue-200 dark:border-blue-800">
+                          <span className="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] flex-shrink-0">
+                            🏠
+                          </span>
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">CSDT (Início)</span>
+                        </li>
+
+                        {/* Escolas */}
+                        {optimizedRoute.visits.map((visit: any, index: number) => {
+                          const isPriority = prioritySchoolIds.includes(visit.school?.id);
+                          return (
+                            <li key={visit.id} className="flex items-center gap-2">
+                              <span className={`${isPriority ? 'bg-yellow-500' : 'bg-blue-600'} text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] flex-shrink-0`}>
+                                {index + 1}
+                              </span>
+                              <span className="text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                {visit.school?.name || 'Escola'}
+                                {isPriority && <Star size={12} weight="fill" className="text-yellow-500" />}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
@@ -268,17 +454,62 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                 .map(school => (
                   <div
                     key={school.id}
-                    className={`p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${
+                    className={`p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
                       selectedSchool?.id === school.id ? 'bg-teal-50 dark:bg-teal-900/20 border-l-4 border-l-teal-500' : ''
                     }`}
-                    onClick={() => {
-                      if (school.geocoded && school.latitude && school.longitude) {
-                        setSelectedSchool(school);
-                      }
-                    }}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-2">
+                      {/* Checkbox para seleção de rota */}
+                      {school.geocoded && school.latitude && school.longitude && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedSchoolIds.includes(school.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              if (e.target.checked) {
+                                setSelectedSchoolIds([...selectedSchoolIds, school.id]);
+                              } else {
+                                setSelectedSchoolIds(selectedSchoolIds.filter(id => id !== school.id));
+                                // Remove da lista de prioritárias se desmarcar
+                                setPrioritySchoolIds(prioritySchoolIds.filter(id => id !== school.id));
+                              }
+                            }}
+                            className="w-4 h-4 flex-shrink-0 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+
+                          {/* Estrela de prioridade - só aparece se a escola estiver selecionada */}
+                          {selectedSchoolIds.includes(school.id) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (prioritySchoolIds.includes(school.id)) {
+                                  setPrioritySchoolIds(prioritySchoolIds.filter(id => id !== school.id));
+                                } else {
+                                  setPrioritySchoolIds([...prioritySchoolIds, school.id]);
+                                }
+                              }}
+                              className="flex-shrink-0 hover:scale-110 transition-transform"
+                              title={prioritySchoolIds.includes(school.id) ? "Remover prioridade" : "Marcar como prioritária"}
+                            >
+                              <Star
+                                size={16}
+                                weight={prioritySchoolIds.includes(school.id) ? "fill" : "regular"}
+                                className={prioritySchoolIds.includes(school.id) ? "text-yellow-500" : "text-gray-400"}
+                              />
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => {
+                          if (school.geocoded && school.latitude && school.longitude) {
+                            setSelectedSchool(school);
+                          }
+                        }}
+                      >
                         <h4 className="font-medium text-sm text-gray-900 dark:text-white truncate">
                           {school.name}
                         </h4>
@@ -297,8 +528,10 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                           )}
                         </div>
                       </div>
+
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setEditingSchool(school);
                           setNewAddress(school.address || '');
                           setNewLat(school.latitude?.toString() || '');
@@ -547,6 +780,10 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
             schools={schools}
             getDistrictColor={getDistrictColor}
             selectedSchool={selectedSchool}
+            optimizedRoute={optimizedRoute}
+            startLocation={CSDT_LOCATION}
+            onRealRouteCalculated={handleRealRouteCalculated}
+            prioritySchoolIds={prioritySchoolIds}
           />
         )}
         </div>
