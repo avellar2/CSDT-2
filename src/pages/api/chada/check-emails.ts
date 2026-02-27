@@ -173,14 +173,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!itemChadaId) {
           console.log('Procurando por número de série no conteúdo...');
 
-          // Buscar todos os itens na CHADA que ainda não têm OS
+          // Data em que este email foi recebido pela CHADA
+          const emailReceivedDate = parsed.date || new Date();
+
+          // Buscar apenas itens enviados ANTES deste email chegar
+          // Evita que um email antigo (OS anterior) seja associado a um envio mais recente
           const pendingChadaItems = await prisma.itemsChada.findMany({
             where: {
               OR: [
                 { numeroChadaOS: null },
                 { numeroChadaOS: '' }
               ],
-              emailSentAt: { not: null }, // Só itens que já enviaram email
+              emailSentAt: {
+                not: null,
+                lte: emailReceivedDate, // Só itens enviados antes deste email chegar
+              },
             },
             orderBy: {
               emailSentAt: 'desc', // Mais recente primeiro

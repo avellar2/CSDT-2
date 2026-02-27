@@ -61,6 +61,32 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
   const [geocodingProgress, setGeocodingProgress] = useState({ done: 0, total: 0, current: '' });
   const stopGeocodingRef = useRef(false);
 
+  // Sidebar resize
+  const [sidebarWidth, setSidebarWidth] = useState(384); // 384px = w-96
+  const isResizingRef = useRef(false);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const newWidth = Math.min(Math.max(ev.clientX, 240), 700);
+      setSidebarWidth(newWidth);
+    };
+    const onMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   // Panel state
   const [showPanel, setShowPanel] = useState(false);
   const [allSchools, setAllSchools] = useState<School[]>([]);
@@ -107,9 +133,15 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
       const body: Record<string, unknown> = { schoolId: editingSchool.id };
 
       if (editMode === 'coords') {
-        if (!newLat.trim() || !newLng.trim()) return;
-        body.latitude = newLat.trim();
-        body.longitude = newLng.trim();
+        if (!newLat.trim()) return;
+        const parts = newLat.trim().split(',').map(s => s.trim());
+        if (parts.length !== 2) {
+          alert('Cole as coordenadas no formato: -22.7604274, -43.3021450');
+          setIsSaving(false);
+          return;
+        }
+        body.latitude = parts[0];
+        body.longitude = parts[1];
       } else {
         if (!newAddress.trim()) return;
         body.newAddress = newAddress.trim();
@@ -242,7 +274,13 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
       <div className="flex-1 relative overflow-hidden flex">
         {/* Painel Lateral */}
         {showPanel && isAdmin && (
-          <div className="w-96 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden z-[900]">
+          <div className="relative bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden z-[900] flex-shrink-0" style={{ width: sidebarWidth }}>
+            {/* Handle de resize */}
+            <div
+              onMouseDown={startResize}
+              className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-teal-400/60 active:bg-teal-500/80 transition-colors z-10"
+              title="Arraste para redimensionar"
+            />
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
                 <MagnifyingGlass size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -368,30 +406,15 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
               ) : (
                 <>
                   <label className="text-xs text-gray-500 dark:text-gray-400 block mb-2">
-                    Coordenadas (do Google Maps ou outro serviço)
+                    Cole as coordenadas do Google Maps
                   </label>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-400 block mb-1">Latitude</label>
-                      <input
-                        type="text"
-                        value={newLat}
-                        onChange={(e) => setNewLat(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        placeholder="-22.7604274"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-400 block mb-1">Longitude</label>
-                      <input
-                        type="text"
-                        value={newLng}
-                        onChange={(e) => setNewLng(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        placeholder="-43.3021450"
-                      />
-                    </div>
-                  </div>
+                  <input
+                    type="text"
+                    value={newLat}
+                    onChange={(e) => setNewLat(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="-22.746710834545656, -43.318818405320194"
+                  />
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                     A escola será marcada como geocodificada imediatamente, sem precisar usar o botão Geocodificar.
                   </p>
@@ -403,7 +426,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                   onClick={saveSchoolAddress}
                   disabled={
                     isSaving ||
-                    (editMode === 'address' ? !newAddress.trim() : !newLat.trim() || !newLng.trim())
+                    (editMode === 'address' ? !newAddress.trim() : !newLat.trim())
                   }
                   className="flex-1 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                 >

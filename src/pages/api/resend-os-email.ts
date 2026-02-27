@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer';
 import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -45,6 +46,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           lastSent: osExterna.lastEmailSent
         });
       }
+    }
+
+    // Garantir que a OS tem token de assinatura — se não tiver, gerar agora
+    let token = osExterna.assinado && osExterna.assinado.length > 10 ? osExterna.assinado : null;
+    if (!token) {
+      token = uuidv4();
+      await prisma.oSExterna.update({
+        where: { id: parseInt(osId) },
+        data: { assinado: token },
+      });
     }
 
     // Gerar PDF da OS
@@ -89,14 +100,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           <p style="color: #000000;"><strong>📎 PDF ANEXADO:</strong> A Ordem de Serviço completa está anexada neste email para facilitar o entendimento do serviço prestado pela equipe.</p>
         </div>
         
-        ${osExterna.assinado && osExterna.assinado.length > 10 ? `
         <div style="text-align: center; margin: 20px 0;">
-          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://csdt.vercel.app'}/confirmar-os-externa?numeroOs=${encodeURIComponent(numeroOs)}&token=${osExterna.assinado}" 
+          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://csdt.vercel.app'}/confirmar-os-externa?numeroOs=${encodeURIComponent(numeroOs)}&token=${token}"
              style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
             ✅ ASSINAR ONLINE
           </a>
         </div>
-        ` : ''}
         
         <p style="color: #000000;">Técnico: ${osExterna.tecnicoResponsavel || 'Não informado'}</p>
         <p style="color: #000000;"><strong>CSDT - Coordenadoria de Suporte e Desenvolvimento Tecnológico</strong></p>

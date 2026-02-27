@@ -18,8 +18,8 @@ interface School {
   director: string | null;
   students: number | null;
   laboratorio: number | null;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface SchoolsMapInnerProps {
@@ -77,7 +77,7 @@ const SchoolsMapInner: React.FC<SchoolsMapInnerProps> = ({ schools, getDistrictC
       {schools.map((school) => (
         <Marker
           key={school.id}
-          position={[school.latitude, school.longitude]}
+          position={[school.latitude!, school.longitude!]}
           icon={createDistrictIcon(getDistrictColor(school.district))}
           ref={(ref) => {
             markerRefs.current[school.id] = ref;

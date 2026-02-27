@@ -18,6 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: req.body.to,
+      cc: req.body.cc || undefined,
+      replyTo: req.body.replyTo || undefined,
       subject: req.body.subject,
       text: req.body.text, // Para clientes que não suportam HTML
       html: req.body.html, // Para clientes que suportam HTML (estilizado)
