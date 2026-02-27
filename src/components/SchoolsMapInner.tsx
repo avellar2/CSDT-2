@@ -22,6 +22,19 @@ interface School {
   longitude: number | null;
 }
 
+interface OptimizedRoute {
+  visits: {
+    school: School;
+    visitOrder: number;
+  }[];
+}
+
+interface StartLocation {
+  lat: number;
+  lng: number;
+  name: string;
+}
+
 interface SchoolsMapInnerProps {
   schools: School[];
   getDistrictColor: (district: string) => string;
@@ -170,12 +183,9 @@ const SchoolsMapInner: React.FC<SchoolsMapInnerProps> = ({ schools, getDistrictC
       {/* Marcador do CSDT (ponto de partida) */}
       {startLocation && optimizedRoute && optimizedRoute.visits.length > 0 && (
         <Marker
-          key={school.id}
-          position={[school.latitude!, school.longitude!]}
-          icon={createDistrictIcon(getDistrictColor(school.district))}
-          ref={(ref) => {
-            markerRefs.current[school.id] = ref;
-          }}
+          key="start-location"
+          position={[startLocation.lat, startLocation.lng]}
+          icon={createStartIcon()}
         >
           <Popup>
             <div className="text-sm min-w-[200px]">
