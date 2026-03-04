@@ -801,3 +801,4 @@ const TechnicianCard: React.FC<TechnicianCardProps> = ({
 };
 
 export default DailyDemands;
+export const getServerSideProps = async () => ({ props: {} });

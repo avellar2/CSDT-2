@@ -358,3 +358,4 @@ const InternalChat: React.FC = () => {
 };
 
 export default InternalChat;
+export const getServerSideProps = async () => ({ props: {} });

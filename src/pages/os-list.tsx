@@ -134,3 +134,4 @@ const OSList: React.FC = () => {
 };
 
 export default OSList;
+export const getServerSideProps = async () => ({ props: {} });

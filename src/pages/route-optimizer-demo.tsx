@@ -453,3 +453,4 @@ const RouteOptimizerDemo: React.FC = () => {
 };
 
 export default RouteOptimizerDemo;
+export const getServerSideProps = async () => ({ props: {} });

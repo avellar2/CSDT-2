@@ -414,3 +414,4 @@ const RouteOptimizer: React.FC = () => {
 };
 
 export default RouteOptimizer;
+export const getServerSideProps = async () => ({ props: {} });

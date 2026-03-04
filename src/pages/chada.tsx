@@ -2360,3 +2360,4 @@ const ChadaPage: React.FC = () => {
 };
 
 export default ChadaPage;
+export const getServerSideProps = async () => ({ props: {} });

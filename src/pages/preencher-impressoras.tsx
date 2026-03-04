@@ -395,3 +395,5 @@ const PreencherImpressoras: React.FC = () => {
 };
 
 export default PreencherImpressoras;
+
+export const getServerSideProps = async () => ({ props: {} });

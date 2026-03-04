@@ -122,3 +122,5 @@ const MemorandumsPage: React.FC = () => {
 };
 
 export default MemorandumsPage;
+
+export const getServerSideProps = async () => ({ props: {} });

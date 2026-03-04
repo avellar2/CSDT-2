@@ -135,3 +135,5 @@ setProblemData({
 };
 
 export default StatisticsPage;
+
+export const getServerSideProps = async () => ({ props: {} });

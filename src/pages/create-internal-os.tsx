@@ -700,3 +700,5 @@ const CreateInternalOS: React.FC = () => {
 };
 
 export default CreateInternalOS;
+
+export const getServerSideProps = async () => ({ props: {} });

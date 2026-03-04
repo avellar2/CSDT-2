@@ -1164,3 +1164,4 @@ const OsExternasList: React.FC = () => {
 };
 
 export default OsExternasList;
+export const getServerSideProps = async () => ({ props: {} });

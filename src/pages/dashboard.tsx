@@ -36,3 +36,4 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
+export const getServerSideProps = async () => ({ props: {} });

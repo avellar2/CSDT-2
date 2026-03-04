@@ -844,3 +844,4 @@ const SchoolsPage: React.FC = () => {
 };
 
 export default SchoolsPage;
+export const getServerSideProps = async () => ({ props: {} });

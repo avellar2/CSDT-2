@@ -567,3 +567,5 @@ const DailyDemands: React.FC = () => {
 };
 
 export default DailyDemands;
+
+export const getServerSideProps = async () => ({ props: {} });

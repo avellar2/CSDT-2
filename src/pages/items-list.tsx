@@ -9,3 +9,5 @@ const ItemsListPage: React.FC = () => {
 }
 
 export default ItemsListPage
+
+export const getServerSideProps = async () => ({ props: {} });

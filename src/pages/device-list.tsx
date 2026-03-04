@@ -12,3 +12,4 @@ const DeviceListPage: React.FC = () => {
 };
 
 export default DeviceListPage;
+export const getServerSideProps = async () => ({ props: {} });

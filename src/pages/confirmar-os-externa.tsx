@@ -575,3 +575,5 @@ const ConfirmarOsExterna: React.FC = () => {
 };
 
 export default ConfirmarOsExterna;
+
+export const getServerSideProps = async () => ({ props: {} });

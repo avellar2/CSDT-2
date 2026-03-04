@@ -396,3 +396,4 @@ const RouteOptimizerLeaflet: React.FC = () => {
 };
 
 export default RouteOptimizerLeaflet;
+export const getServerSideProps = async () => ({ props: {} });

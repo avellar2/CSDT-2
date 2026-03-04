@@ -1098,3 +1098,4 @@ const NewMemorandumsPage: React.FC = () => {
 };
 
 export default NewMemorandumsPage;
+export const getServerSideProps = async () => ({ props: {} });

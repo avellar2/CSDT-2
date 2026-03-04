@@ -36,3 +36,4 @@ const ItemsPage: React.FC = () => {
 }
 
 export default ItemsPage;
+export const getServerSideProps = async () => ({ props: {} });

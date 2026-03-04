@@ -938,3 +938,4 @@ const AdvancedStatisticsPage: React.FC = () => {
 };
 
 export default AdvancedStatisticsPage;
+export const getServerSideProps = async () => ({ props: {} });

@@ -687,3 +687,5 @@ const LocadosPage = () => {
 };
 
 export default LocadosPage;
+
+export const getServerSideProps = async () => ({ props: {} });

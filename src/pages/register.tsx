@@ -13,3 +13,4 @@ const RegisterPage: React.FC = () => {
 };
 
 export default RegisterPage;
+export const getServerSideProps = async () => ({ props: {} });

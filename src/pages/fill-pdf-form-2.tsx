@@ -1392,3 +1392,5 @@ const FillPdfForm: React.FC = () => {
 
 export default FillPdfForm;
 
+
+export const getServerSideProps = async () => ({ props: {} });

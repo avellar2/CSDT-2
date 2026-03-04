@@ -772,3 +772,4 @@ const Printers: React.FC = () => {
 };
 
 export default Printers;
+export const getServerSideProps = async () => ({ props: {} });

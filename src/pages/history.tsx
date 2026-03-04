@@ -218,3 +218,4 @@ const History: React.FC = () => {
 };
 
 export default History;
+export const getServerSideProps = async () => ({ props: {} });

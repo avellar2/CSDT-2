@@ -303,3 +303,4 @@ const OSDetail: React.FC = () => {
 };
 
 export default OSDetail;
+export const getServerSideProps = async () => ({ props: {} });

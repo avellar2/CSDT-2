@@ -4015,3 +4015,5 @@ const Scales: React.FC = () => {
 };
 
 export default Scales;
+
+export const getServerSideProps = async () => ({ props: {} });
