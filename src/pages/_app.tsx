@@ -11,8 +11,9 @@ import { ThemeProvider } from '@/components/theme-provider';
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  const isLoginPage = router.pathname === '/login';
-  const isConfirmarOsPage = router.pathname === '/confirmar-os-externa';
+  const pathname = router?.pathname ?? '';
+  const isLoginPage = pathname === '/login';
+  const isConfirmarOsPage = pathname === '/confirmar-os-externa';
 
   return (
     <ThemeProvider attribute={'class'} defaultTheme='system' enableSystem disableTransitionOnChange>
