@@ -101,3 +101,4 @@ export default function ConfirmOS() {
     </div>
   );
 }
+export const getServerSideProps = async () => ({ props: {} });

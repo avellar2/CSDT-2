@@ -736,3 +736,4 @@ const AcceptedTickets: React.FC = () => {
 };
 
 export default AcceptedTickets;
+export const getServerSideProps = async () => ({ props: {} });

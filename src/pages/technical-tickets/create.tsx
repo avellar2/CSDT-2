@@ -368,3 +368,4 @@ const CreateTechnicalTicket: React.FC = () => {
 };
 
 export default CreateTechnicalTicket;
+export const getServerSideProps = async () => ({ props: {} });

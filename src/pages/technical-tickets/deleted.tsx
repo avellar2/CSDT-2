@@ -229,3 +229,4 @@ const DeletedTickets: React.FC = () => {
 };
 
 export default DeletedTickets;
+export const getServerSideProps = async () => ({ props: {} });

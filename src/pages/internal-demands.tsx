@@ -854,3 +854,5 @@ const InternalDemands: React.FC = () => {
 };
 
 export default InternalDemands;
+
+export const getServerSideProps = async () => ({ props: {} });

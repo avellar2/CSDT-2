@@ -110,3 +110,4 @@ const ConfirmarOS: React.FC = () => {
 };
 
 export default ConfirmarOS;
+export const getServerSideProps = async () => ({ props: {} });
