@@ -442,6 +442,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       form.getTextField("escola").setText(schoolName);
       form.getTextField("distrito").setText(district || "não informado");
 
+      // Campos adicionais
+      try {
+        form.getTextField("conferente")?.setText(userProfile.displayName || "");
+      } catch (e) {
+        console.log("Campo conferente não encontrado no PDF");
+      }
+      try {
+        form.getTextField("escola2")?.setText(schoolName);
+      } catch (e) {
+        console.log("Campo escola2 não encontrado no PDF");
+      }
+
       // Campos opcionais
       try {
         form.getTextField("tipoOperacao")?.setText("ENTREGA DE EQUIPAMENTOS");
