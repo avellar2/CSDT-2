@@ -1,12 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import archiver from 'archiver';
 
 const prisma = new PrismaClient();
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -28,8 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Token inválido' });
     }
 
-    // Verificar se é o Vanderson pelo ID do Supabase
-    if (user.id !== 'c7b74239-4188-4218-8390-063e0ad58871') {
+    if (user.id !== process.env.BACKUP_ADMIN_ID) {
       return res.status(403).json({ error: 'Acesso negado. Apenas Vanderson pode fazer backup.' });
     }
 

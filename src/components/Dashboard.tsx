@@ -392,8 +392,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCreateBackup = async () => {
-    // Verificar se é o Vanderson pelo ID do Supabase
-    if (supabaseUserId !== 'c7b74239-4188-4218-8390-063e0ad58871') {
+    if (supabaseUserId !== process.env.NEXT_PUBLIC_BACKUP_ADMIN_ID) {
       alert('Acesso negado. Apenas Vanderson pode fazer backup.');
       return;
     }
@@ -886,7 +885,7 @@ const Dashboard: React.FC = () => {
                 */}
 
                 {/* Botão de backup - apenas para Vanderson */}
-                {supabaseUserId === 'c7b74239-4188-4218-8390-063e0ad58871' && (
+                {supabaseUserId === process.env.NEXT_PUBLIC_BACKUP_ADMIN_ID && (
                   <button
                     onClick={handleCreateBackup}
                     disabled={isCreatingBackup}

@@ -2,11 +2,7 @@ import { Lock, SignIn, User, WarningCircle } from 'phosphor-react';
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Modal from 'react-modal';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/lib/supabaseClient';
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');

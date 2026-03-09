@@ -8,6 +8,7 @@ import '../styles/globals.css'; // Outros estilos globais, se houver
 import '../styles/modal.css'; // Importar os estilos personalizados
 import '../styles/calendar.css'; // Importação do CSS global
 import { ThemeProvider } from '@/components/theme-provider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -21,8 +22,9 @@ function MyApp({ Component, pageProps }: AppProps) {
         <div className={isLoginPage ? 'w-full h-full' : 'container mx-auto'}>
           <HeaderProvider>
             {!isLoginPage && <Header hideHamburger={isConfirmarOsPage} />}
-            <Component {...pageProps} />
-            {/* Alerta crítico global - só aparece se não for página de login */}
+            <ErrorBoundary>
+              <Component {...pageProps} />
+            </ErrorBoundary>
             {!isLoginPage && <PrinterCriticalAlert />}
           </HeaderProvider>
         </div>

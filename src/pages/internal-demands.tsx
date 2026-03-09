@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from '@/lib/supabaseClient';
 import { 
   CheckCircle, 
   Clock, 
@@ -19,10 +19,6 @@ import {
 } from "phosphor-react";
 import { PDFDocument } from 'pdf-lib';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
 
 interface InternalOS {
   id: string;
