@@ -157,6 +157,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } catch (e) {
         console.log("Campo tipoOperacao não encontrado no PDF");
       }
+      try {
+        form.getTextField("conferente")?.setText(memorandum.generatedBy || "");
+      } catch (e) {
+        console.log("Campo conferente não encontrado no PDF");
+      }
+      try {
+        form.getTextField("escola2")?.setText(memorandum.schoolName || "");
+      } catch (e) {
+        console.log("Campo escola2 não encontrado no PDF");
+      }
 
       // Preencher itens
       memorandum.items.forEach((item, index) => {
