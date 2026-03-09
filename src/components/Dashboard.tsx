@@ -26,6 +26,7 @@ import {
   MapTrifold
 } from "phosphor-react";
 import React, { useEffect, useState } from "react";
+import useSWR from "swr";
 import { jwtDecode } from "jwt-decode";
 import { Header } from "./Header";
 import { useHeaderContext } from "../context/HeaderContext";
@@ -36,8 +37,8 @@ import PreventiveMaintenanceCard from "./PreventiveMaintenanceCard";
 import dynamic from "next/dynamic";
 
 const SchoolsMapModal = dynamic(() => import("./SchoolsMapModal"), { ssr: false });
-// import ChamadosEscolaCard from "./ChamadosEscolaCard";
-// import NovoChamadoModal from "./NovoChamadoModal";
+
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 interface DecodedToken {
   userId: string;
@@ -53,23 +54,11 @@ const Dashboard: React.FC = () => {
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [notifications, setNotifications] = useState({
-    pendingOS: 0,
-    newDemands: 0,
-    alerts: 0,
-    internalChat: 0,
-    delayedDiagnostics: 0,
-    chamadosPendentes: 0,
-    chamadosAbertos: 0
-  });
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [showPrinterRequestCard, setShowPrinterRequestCard] = useState(false);
   const [showPreventiveMaintenanceCard, setShowPreventiveMaintenanceCard] = useState(false);
   const [showSchoolsMap, setShowSchoolsMap] = useState(false);
-  // const [showNovoChamadoModal, setShowNovoChamadoModal] = useState(false);
-  // const [chamadosEscola, setChamadosEscola] = useState([]);
-  // const [isLoadingChamados, setIsLoadingChamados] = useState(false);
 
   // Lógica para buscar o usuário do Supabase e consultar a role no Prisma
   useEffect(() => {
@@ -87,16 +76,13 @@ const Dashboard: React.FC = () => {
           return;
         }
 
-        console.log("ID do usuário no Supabase:", user.id);
-        setSupabaseUserId(user.id); // Guarda o ID do usuário
+        setSupabaseUserId(user.id);
 
-        // 2. Consulta a role no Prisma usando o ID do Supabase
         const response = await fetch(`/api/get-role?userId=${user.id}`);
         const data = await response.json();
 
         if (response.ok && data.role) {
-          setUserRole(data.role); // Atualiza a role do usuário
-          console.log("Role do usuário:", data.role);
+          setUserRole(data.role);
         } else {
           console.error("Erro ao buscar role:", data.error);
         }
@@ -116,9 +102,8 @@ const Dashboard: React.FC = () => {
       try {
         const response = await fetch(`/api/get-role?userId=${userId}`);
         const data = await response.json();
-        console.log("Resposta do fetchRole:", data);
         if (response.ok) {
-          setUserRole(data.role); // Define a role do usuário
+          setUserRole(data.role);
         } else {
           console.error("Erro ao buscar a role:", data.error);
         }
@@ -132,12 +117,10 @@ const Dashboard: React.FC = () => {
     const token = localStorage.getItem("token");
     if (token) {
       const decoded: DecodedToken = jwtDecode<DecodedToken>(token);
-      console.log("Decoded Token:", decoded); // Verifica o token decodificado
       setUserName(decoded.name);
       setUserNameState(decoded.name);
-      fetchRole(decoded.userId); // Busca a role do usuário
+      fetchRole(decoded.userId);
     } else {
-      console.log("Token não encontrado no localStorage.");
       setIsLoading(false);
     }
   }, [setUserName]);
@@ -150,228 +133,23 @@ const Dashboard: React.FC = () => {
     }
   }, []);
 
-  // Buscar notificações (dados reais)
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!userRole) return;
+  const isTech = ['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole || '');
 
-      try {
-        // Buscar OS pendentes
-        const pendingOSResponse = await fetch('/api/dashboard/pending-os');
-        const pendingOSData = await pendingOSResponse.json();
+  const { data: pendingOSData } = useSWR(userRole ? '/api/dashboard/pending-os' : null, fetcher, { refreshInterval: 60000 });
+  const { data: dailyDemandsData } = useSWR(userRole ? '/api/dashboard/daily-demands-count' : null, fetcher, { refreshInterval: 60000 });
+  const { data: internalChatData } = useSWR(isTech ? '/api/internal-chat/count-pending' : null, fetcher, { refreshInterval: 30000 });
+  const { data: delayedData } = useSWR(isTech ? '/api/chada-diagnostics/delayed' : null, fetcher, { refreshInterval: 120000 });
+  const { data: chamadosAbertosData } = useSWR(isTech ? '/api/dashboard/chamados-abertos' : null, fetcher, { refreshInterval: 60000 });
 
-        // Buscar demandas do dia
-        const dailyDemandsResponse = await fetch('/api/dashboard/daily-demands-count');
-        const dailyDemandsData = await dailyDemandsResponse.json();
-
-        // Buscar chamados internos pendentes (só para TECH, ADMIN, ADMTOTAL)
-        let internalChatCount = 0;
-        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
-          const internalChatResponse = await fetch('/api/internal-chat/count-pending');
-          const internalChatData = await internalChatResponse.json();
-          internalChatCount = internalChatData.success ? internalChatData.needsAttention : 0;
-        }
-
-        // Buscar diagnósticos atrasados (3+ dias)
-        let delayedDiagnosticsCount = 0;
-        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
-          try {
-            const delayedResponse = await fetch('/api/chada-diagnostics/delayed');
-            const delayedData = await delayedResponse.json();
-            delayedDiagnosticsCount = delayedData.stats ? delayedData.stats.total : 0;
-          } catch (error) {
-            console.error('Erro ao buscar diagnósticos atrasados:', error);
-          }
-        }
-
-        // Buscar chamados pendentes das escolas - COMENTADO TEMPORARIAMENTE
-        /*
-        let chamadosPendentesCount = 0;
-        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
-          try {
-            const chamadosResponse = await fetch('/api/dashboard/chamados-pendentes');
-            const chamadosData = await chamadosResponse.json();
-            chamadosPendentesCount = chamadosData.success ? chamadosData.data.totalPending : 0;
-          } catch (error) {
-            console.error('Erro ao buscar chamados pendentes:', error);
-          }
-        }
-        */
-        let chamadosPendentesCount = 0;
-
-        // Buscar chamados abertos (TechnicalTicket + ChamadoEscala)
-        let chamadosAbertosCount = 0;
-        if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole)) {
-          try {
-            const chamadosAbertosResponse = await fetch('/api/dashboard/chamados-abertos');
-            const chamadosAbertosData = await chamadosAbertosResponse.json();
-            chamadosAbertosCount = chamadosAbertosData.success ? chamadosAbertosData.data.total : 0;
-          } catch (error) {
-            console.error('Erro ao buscar chamados abertos:', error);
-          }
-        }
-
-        const newNotifications = {
-          pendingOS: pendingOSData.success ? pendingOSData.data.totalPendingOS : 0,
-          newDemands: dailyDemandsData.success ? dailyDemandsData.data.dailyDemandsCount : 0,
-          alerts: 0, // Pode implementar depois
-          internalChat: internalChatCount,
-          delayedDiagnostics: delayedDiagnosticsCount,
-          chamadosPendentes: chamadosPendentesCount,
-          chamadosAbertos: chamadosAbertosCount
-        };
-
-        setNotifications(newNotifications);
-
-        console.log('🔔 Notificações atualizadas:', newNotifications);
-      } catch (error) {
-        console.error('❌ Erro ao buscar notificações:', error);
-        // Em caso de erro, manter valores zerados
-        setNotifications({
-          pendingOS: 0,
-          newDemands: 0,
-          alerts: 0,
-          internalChat: 0,
-          delayedDiagnostics: 0,
-          chamadosPendentes: 0,
-          chamadosAbertos: 0
-        });
-      }
-    };
-
-    fetchNotifications();
-  }, [userRole]);
-
-  // Buscar chamados das escolas - COMENTADO TEMPORARIAMENTE
-  /*
-  useEffect(() => {
-    if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole || '')) {
-      fetchChamadosEscola();
-    }
-  }, [userRole]);
-  */
-
-  // FUNÇÃO COMENTADA TEMPORARIAMENTE
-  /*
-  const fetchChamadosEscola = async () => {
-    try {
-      const response = await fetch('/api/chamados-escola');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Filtrar apenas chamados pendentes
-          const pendentes = data.data.filter((chamado: any) =>
-            ['OPEN', 'ASSIGNED', 'IN_PROGRESS'].includes(chamado.status)
-          );
-          setChamadosEscola(pendentes);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao buscar chamados das escolas:', error);
-    }
+  const notifications = {
+    pendingOS: pendingOSData?.success ? pendingOSData.data.totalPendingOS : 0,
+    newDemands: dailyDemandsData?.success ? dailyDemandsData.data.dailyDemandsCount : 0,
+    alerts: 0,
+    internalChat: internalChatData?.success ? internalChatData.needsAttention : 0,
+    delayedDiagnostics: delayedData?.stats ? delayedData.stats.total : 0,
+    chamadosPendentes: 0,
+    chamadosAbertos: chamadosAbertosData?.success ? chamadosAbertosData.data.total : 0,
   };
-  */
-
-  // FUNÇÃO COMENTADA TEMPORARIAMENTE
-  /*
-  const handleCreateChamado = async (chamadoData: any) => {
-    setIsLoadingChamados(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      const response = await fetch('/api/chamados-escola', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(chamadoData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao criar chamado');
-      }
-
-      // Atualizar lista de chamados
-      await fetchChamadosEscola();
-
-      // Atualizar notificações
-      const fetchNotifications = async () => {
-        try {
-          const chamadosResponse = await fetch('/api/dashboard/chamados-pendentes');
-          const chamadosData = await chamadosResponse.json();
-
-          setNotifications(prev => ({
-            ...prev,
-            chamadosPendentes: chamadosData.success ? chamadosData.data.totalPending : 0
-          }));
-        } catch (error) {
-          console.error('Erro ao atualizar notificações:', error);
-        }
-      };
-      await fetchNotifications();
-
-    } catch (error) {
-      console.error('Erro ao criar chamado:', error);
-      throw error;
-    } finally {
-      setIsLoadingChamados(false);
-    }
-  };
-  */
-
-  // FUNÇÃO COMENTADA TEMPORARIAMENTE
-  /*
-  const handleUpdateChamado = async (id: string, updateData: any) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      const response = await fetch(`/api/chamados-escola/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar chamado');
-      }
-
-      // Atualizar lista de chamados
-      await fetchChamadosEscola();
-
-      // Atualizar notificações
-      const fetchNotifications = async () => {
-        try {
-          const chamadosResponse = await fetch('/api/dashboard/chamados-pendentes');
-          const chamadosData = await chamadosResponse.json();
-
-          setNotifications(prev => ({
-            ...prev,
-            chamadosPendentes: chamadosData.success ? chamadosData.data.totalPending : 0
-          }));
-        } catch (error) {
-          console.error('Erro ao atualizar notificações:', error);
-        }
-      };
-      await fetchNotifications();
-
-    } catch (error) {
-      console.error('Erro ao atualizar chamado:', error);
-      throw error;
-    }
-  };
-  */
 
   const toggleFavorite = (cardId: string) => {
     const newFavorites = favorites.includes(cardId)
@@ -443,8 +221,13 @@ const Dashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      <div className="p-6">
+        <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-6" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="h-24 rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -960,16 +743,6 @@ const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Modal de Novo Chamado - REMOVIDO TEMPORARIAMENTE */}
-      {/*
-      <NovoChamadoModal
-        isOpen={showNovoChamadoModal}
-        onClose={() => setShowNovoChamadoModal(false)}
-        onSubmit={handleCreateChamado}
-        isLoading={isLoadingChamados}
-      />
-      */}
 
       {/* Modal de Solicitação de Dados de Impressoras */}
       {showPrinterRequestCard && (
