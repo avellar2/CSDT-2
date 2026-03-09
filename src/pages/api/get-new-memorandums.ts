@@ -29,13 +29,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Acesso negado' });
     }
 
-    // Buscar todos os memorandos novos com paginação
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = (page - 1) * limit;
+    const search = (req.query.search as string)?.trim() || '';
+
+    const where = search ? {
+      OR: [
+        { number: { contains: search, mode: 'insensitive' as const } },
+        { schoolName: { contains: search, mode: 'insensitive' as const } },
+        { generatedBy: { contains: search, mode: 'insensitive' as const } },
+      ]
+    } : {};
 
     const [memorandums, totalCount] = await Promise.all([
       prisma.newMemorandum.findMany({
+        where,
         include: {
           items: {
             include: {
@@ -56,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         skip: offset,
         take: limit,
       }),
-      prisma.newMemorandum.count()
+      prisma.newMemorandum.count({ where })
     ]);
 
     const totalPages = Math.ceil(totalCount / limit);

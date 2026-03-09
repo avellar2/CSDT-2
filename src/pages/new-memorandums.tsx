@@ -99,17 +99,20 @@ const NewMemorandumsPage: React.FC = () => {
   const [savingEdit, setSavingEdit] = useState(false);
   const [editSearchTerm, setEditSearchTerm] = useState('');
 
-  const fetchMemorandums = async (page: number = 1) => {
+  const fetchMemorandums = async (page: number = 1, search: string = searchTerm) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         router.push('/login');
         return;
       }
 
-      const response = await axios.get(`/api/get-new-memorandums?page=${page}&limit=20`, {
+      const params = new URLSearchParams({ page: String(page), limit: '20' });
+      if (search.trim()) params.append('search', search.trim());
+
+      const response = await axios.get(`/api/get-new-memorandums?${params}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -131,6 +134,13 @@ const NewMemorandumsPage: React.FC = () => {
     fetchMemorandums();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchMemorandums(1, searchTerm);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       fetchMemorandums(newPage);
@@ -147,11 +157,7 @@ const NewMemorandumsPage: React.FC = () => {
       : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
   };
 
-  const filteredMemorandums = memorandums.filter(memorandum =>
-    memorandum.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    memorandum.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    memorandum.generatedBy.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMemorandums = memorandums;
 
   const openItemsModal = (memorandum: Memorandum) => {
     setSelectedMemorandum(memorandum);
