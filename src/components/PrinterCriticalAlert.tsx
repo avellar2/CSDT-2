@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Warning, X, Printer, Clock, Globe } from 'phosphor-react';
 import { usePrinterNotifications } from '@/context/PrinterNotificationContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -97,7 +98,7 @@ export const PrinterCriticalAlert: React.FC = () => {
   const currentError = getCurrentError();
   const errorId = `${currentError.printerId}-${currentError.error}`;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-auto transform animate-pulse">
         {/* Header */}
@@ -218,6 +219,7 @@ export const PrinterCriticalAlert: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

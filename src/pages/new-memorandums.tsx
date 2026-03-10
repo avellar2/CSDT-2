@@ -134,12 +134,13 @@ const NewMemorandumsPage: React.FC = () => {
     fetchMemorandums();
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchMemorandums(1, searchTerm);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+  const handleSearch = () => {
+    fetchMemorandums(1, searchTerm);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleSearch();
+  };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
@@ -453,17 +454,34 @@ const NewMemorandumsPage: React.FC = () => {
           </div>
 
           {/* Barra de pesquisa */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Pesquisar por número, escola ou gerado por..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full max-w-md px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg 
-                       bg-white dark:bg-zinc-800 text-gray-900 dark:text-white
-                       focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
-            <Eye className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <div className="flex items-center gap-2 max-w-md">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Pesquisar... (Enter para buscar)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg
+                         bg-white dark:bg-zinc-800 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+              <MagnifyingGlass className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            </div>
+            <button
+              onClick={handleSearch}
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Buscar
+            </button>
+            {searchTerm && (
+              <button
+                onClick={() => { setSearchTerm(''); fetchMemorandums(1, ''); }}
+                className="px-3 py-2 bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm transition-colors"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
         </div>
 
