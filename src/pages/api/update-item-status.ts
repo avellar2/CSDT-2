@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Localizar o registro correspondente na tabela Item usando o itemId
     const itemToUpdate = await prisma.item.findUnique({
-      where: { id: existingItem.itemId }, // Usar itemId da tabela ItemsChada para encontrar o registro na tabela Item
+      where: { id: existingItem.itemId ?? undefined }, // Usar itemId da tabela ItemsChada para encontrar o registro na tabela Item
     });
 
     if (!itemToUpdate) {

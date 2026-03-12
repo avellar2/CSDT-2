@@ -199,7 +199,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // Para cada item pendente, buscar os dados do item e verificar se o serial aparece no email
           for (const pendingItem of pendingChadaItems) {
             const item = await prisma.item.findUnique({
-              where: { id: pendingItem.itemId },
+              where: { id: pendingItem.itemId ?? undefined },
             });
 
             if (item?.serialNumber) {

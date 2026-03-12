@@ -283,7 +283,7 @@ CSDT - Coordenação de Suporte de Desenvolvimento e Tecnológico
 export interface ChadaRequestEmailData {
   itemId: number;
   itemName: string;
-  brand: string;
+  brand?: string;
   serialNumber: string;
   problem: string;
   userName: string;

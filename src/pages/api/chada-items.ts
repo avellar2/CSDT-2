@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       // Buscar os dados correspondentes da tabela Item
-      const itemIds = itemsChada.map((chadaItem) => chadaItem.itemId);
+      const itemIds = itemsChada.map((chadaItem) => chadaItem.itemId).filter((id): id is number => id !== null);
       const items = await prisma.item.findMany({
         where: { id: { in: itemIds } },
       });
@@ -23,21 +23,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const item = items.find((i) => i.id === chadaItem.itemId);
         return {
           id: chadaItem.id,
-          name: item?.name || "Item não encontrado",
-          brand: item?.brand || "Marca não informada",
-          serialNumber: item?.serialNumber || "Serial não informado",
+          name: chadaItem.semSerial
+            ? (chadaItem.itemTypeSemSerial || "Item sem serial")
+            : item?.name || "Item não encontrado",
+          brand: chadaItem.semSerial
+            ? [chadaItem.itemBrandSemSerial, chadaItem.itemNameSemSerial].filter(Boolean).join(" ")
+            : item?.brand || "Marca não informada",
+          serialNumber: chadaItem.semSerial ? "SEM SERIAL" : item?.serialNumber || "Serial não informado",
           status: item?.status || "Status não informado",
-          problem: chadaItem.problem, // Problema da tabela ItemsChada
-          createdAt: chadaItem.createdAt, // Data de adição
-          userName: chadaItem.userName, // Nome do usuário que adicionou
-          statusChada: chadaItem.status, // Status da tabela ItemsChada
-          updatedAt: chadaItem.updatedAt, // Data de atualização
-          updateBy: chadaItem.updatedBy, // Nome do usuário que atualizou
-          sector: chadaItem.setor, // Setor da tabela ItemsChada
-          osImages: chadaItem.osImages, // Imagens da tabela ItemsChada
-          numeroChadaOS: chadaItem.numeroChadaOS, // Número da OS da CHADA
-          emailSentAt: chadaItem.emailSentAt, // Data/hora do envio do email
-          emailMessageId: chadaItem.emailMessageId, // ID da mensagem do email
+          problem: chadaItem.problem,
+          createdAt: chadaItem.createdAt,
+          userName: chadaItem.userName,
+          statusChada: chadaItem.status,
+          updatedAt: chadaItem.updatedAt,
+          updateBy: chadaItem.updatedBy,
+          sector: chadaItem.setor,
+          osImages: chadaItem.osImages,
+          numeroChadaOS: chadaItem.numeroChadaOS,
+          emailSentAt: chadaItem.emailSentAt,
+          emailMessageId: chadaItem.emailMessageId,
+          semSerial: chadaItem.semSerial,
         };
       });
 

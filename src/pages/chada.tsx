@@ -109,6 +109,10 @@ const ChadaPage: React.FC = () => {
   const [sector, setSector] = useState("");
   const [userName, setUserName] = useState<string | null>(null);
   const [manutencaoSemMovimentacao, setManutencaoSemMovimentacao] = useState(false);
+  const [semSerial, setSemSerial] = useState(false);
+  const [itemNameSemSerial, setItemNameSemSerial] = useState("");
+  const [itemTypeSemSerial, setItemTypeSemSerial] = useState("");
+  const [itemBrandSemSerial, setItemBrandSemSerial] = useState("");
   
   // Estados do modal de baixa/atualização
   const [showBaixaModal, setShowBaixaModal] = useState(false);
@@ -459,15 +463,19 @@ const ChadaPage: React.FC = () => {
   };
 
   const handleAddToChada = async () => {
-    if (!selectedItem || !problem || !sector) {
-      alert("Selecione um item, descreva o problema e informe o setor.");
+    if (!problem || !sector) {
+      alert("Descreva o problema e informe o setor.");
       return;
     }
-
-    console.log("Item selecionado:", selectedItem);
-    console.log("Problema:", problem);
-    console.log("Usuário:", userName);
-    console.log("Setor:", sector);
+    if (semSerial) {
+      if (!itemNameSemSerial || !itemTypeSemSerial) {
+        alert("Informe o nome e o tipo do item sem serial.");
+        return;
+      }
+    } else if (!selectedItem) {
+      alert("Selecione um item ou marque a opção 'Item sem serial'.");
+      return;
+    }
 
     try {
       const response = await fetch("/api/add-to-chada", {
@@ -476,11 +484,15 @@ const ChadaPage: React.FC = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          itemId: selectedItem, // ID do item selecionado
-          problem, // Problema informado pelo usuário
-          userName, // Nome do usuário logado
-          sector, // Setor informado pelo usuário
-          manutencaoSemMovimentacao, // Manutenção sem movimentação física
+          itemId: semSerial ? undefined : selectedItem,
+          problem,
+          userName,
+          sector,
+          manutencaoSemMovimentacao: semSerial ? false : manutencaoSemMovimentacao,
+          semSerial,
+          itemNameSemSerial: semSerial ? itemNameSemSerial : undefined,
+          itemTypeSemSerial: semSerial ? itemTypeSemSerial : undefined,
+          itemBrandSemSerial: semSerial ? itemBrandSemSerial : undefined,
         }),
       });
 
@@ -503,6 +515,10 @@ const ChadaPage: React.FC = () => {
       setSector("");
       setSelectedItem(null);
       setManutencaoSemMovimentacao(false);
+      setSemSerial(false);
+      setItemNameSemSerial("");
+      setItemTypeSemSerial("");
+      setItemBrandSemSerial("");
 
       const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
       setItems(updatedItems);
@@ -632,7 +648,9 @@ const ChadaPage: React.FC = () => {
       form.getTextField("DATA").setText(new Date().toLocaleDateString("pt-BR"));
       form.getTextField("TECNICO").setText(item.userName || "Não informado");
       form.getTextField("ITEM").setText(
-        `${item.brand || "Não informado"}, serial: ${item.serialNumber || "Não informado"}`
+        item.semSerial
+          ? `${item.brand} (sem serial)`
+          : `${item.brand || "Não informado"}, serial: ${item.serialNumber || "Não informado"}`
       );
 
       // Adicionar número da OS da CHADA ao relatório
@@ -2035,17 +2053,72 @@ const ChadaPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-lg sm:text-xl font-bold mb-4 text-zinc-700">Adicionar Item à CHADA</h2>
-            <Select
-              options={allItems.map((item: any) => ({
-                value: item.id,
-                label: `${item.name} - ${item.serialNumber || "Sem Serial"}`,
-              }))}
-              onChange={(selectedOption) =>
-                setSelectedItem(selectedOption ? selectedOption.value : null)
-              }
-              placeholder="Selecione um item"
-              className="mb-4 text-zinc-800"
-            />
+
+            {/* Checkbox sem serial */}
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={semSerial}
+                  onChange={(e) => {
+                    setSemSerial(e.target.checked);
+                    setSelectedItem(null);
+                    setManutencaoSemMovimentacao(false);
+                  }}
+                  className="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500"
+                />
+                <span className="font-medium text-gray-900">Item sem serial</span>
+              </label>
+              <p className="text-sm text-gray-600 mt-1 ml-7">
+                Use para cabos de força, mouses, teclados e outros itens sem número de série.
+              </p>
+            </div>
+
+            {semSerial ? (
+              <>
+                <input
+                  type="text"
+                  className="w-full mb-4 p-2 border border-gray-300 rounded"
+                  placeholder="Marca (ex: Multilaser, Intelbras, Genérico)"
+                  value={itemBrandSemSerial}
+                  onChange={(e) => setItemBrandSemSerial(e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="w-full mb-4 p-2 border border-gray-300 rounded"
+                  placeholder="Modelo (ex: VX Pro, MF4570, 3 metros)"
+                  value={itemNameSemSerial}
+                  onChange={(e) => setItemNameSemSerial(e.target.value)}
+                />
+                <select
+                  className="w-full mb-4 p-2 border border-gray-300 rounded text-gray-700"
+                  value={itemTypeSemSerial}
+                  onChange={(e) => setItemTypeSemSerial(e.target.value)}
+                >
+                  <option value="">Selecione o tipo do item</option>
+                  <option value="Mouse">Mouse</option>
+                  <option value="Teclado">Teclado</option>
+                  <option value="Cabo de Força">Cabo de Força</option>
+                  <option value="Cabo de Rede">Cabo de Rede</option>
+                  <option value="Fonte">Fonte</option>
+                  <option value="Carregador">Carregador</option>
+                  <option value="Headset">Headset</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </>
+            ) : (
+              <Select
+                options={allItems.map((item: any) => ({
+                  value: item.id,
+                  label: `${item.name} - ${item.serialNumber || "Sem Serial"}`,
+                }))}
+                onChange={(selectedOption) =>
+                  setSelectedItem(selectedOption ? selectedOption.value : null)
+                }
+                placeholder="Selecione um item"
+                className="mb-4 text-zinc-800"
+              />
+            )}
             <input
               type="text"
               className="w-full mb-4 p-2 border border-gray-300 rounded"
@@ -2060,8 +2133,8 @@ const ChadaPage: React.FC = () => {
               onChange={(e) => setProblem(e.target.value)}
             />
 
-            {/* Checkbox para manutenção sem movimentação */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            {/* Checkbox para manutenção sem movimentação (só aparece com item normal) */}
+            {!semSerial && <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -2079,7 +2152,7 @@ const ChadaPage: React.FC = () => {
                   </span>
                 </div>
               </label>
-            </div>
+            </div>}
 
             <div className="flex flex-col sm:flex-row justify-end gap-2">
               <button
@@ -2089,6 +2162,9 @@ const ChadaPage: React.FC = () => {
                   setSector("");
                   setSelectedItem(null);
                   setManutencaoSemMovimentacao(false);
+                  setSemSerial(false);
+                  setItemNameSemSerial("");
+                  setItemTypeSemSerial("");
                 }}
                 className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors order-2 sm:order-1"
               >

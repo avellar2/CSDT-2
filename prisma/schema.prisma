@@ -126,7 +126,7 @@ model ItemHistory {
 
 model ItemsChada {
   id                        String           @id @default(uuid())
-  itemId                    Int
+  itemId                    Int?
   problem                   String
   userName                  String
   status                    ItemsChadaStatus @default(PENDENTE)
@@ -140,6 +140,10 @@ model ItemsChada {
   numeroChadaOS             String?
   manutencaoSemMovimentacao Boolean          @default(false)
   schoolIdOriginal          Int?
+  semSerial                 Boolean          @default(false)
+  itemNameSemSerial         String?
+  itemTypeSemSerial         String?
+  itemBrandSemSerial        String?
 }
 
 model ItemsHistoryChada {
