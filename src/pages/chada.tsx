@@ -894,8 +894,8 @@ const ChadaPage: React.FC = () => {
         const imgId = wb.addImage({ buffer: imgBuffer, extension: 'png' });
         // Centraliza a imagem no meio da linha 1
         ws.addImage(imgId, {
-          tl: { col: 2.5, row: 0.1 },
-          br: { col: 5.5, row: 0.9 },
+          tl: { col: 2.5, row: 0.1 } as any,
+          br: { col: 5.5, row: 0.9 } as any,
           editAs: 'oneCell',
         });
       } catch (_) {

@@ -227,7 +227,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const config: SetupConfig = req.body;
 
-  if (!config.pcName || !config.adminUser || !config.adminPassword) {
+  if (!config.pcName || !config.adminPassword) {
     return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
   }
 
