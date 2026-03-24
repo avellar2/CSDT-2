@@ -48,12 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Registro não encontrado na tabela Item." });
     }
 
-    // Determinar o schoolId de retorno baseado em manutenção sem movimentação
-    // Se foi manutenção sem movimentação, retorna para a localização original
+    // Determinar o schoolId de retorno:
+    // Se tem schoolIdOriginal salvo, retorna para lá (impressoras voltam ao setor de origem)
     // Senão, retorna para o CSDT (schoolId = 225)
-    const schoolIdRetorno = existingItem.manutencaoSemMovimentacao && existingItem.schoolIdOriginal
-      ? existingItem.schoolIdOriginal
-      : 225;
+    const schoolIdRetorno = existingItem.schoolIdOriginal ?? 225;
 
     // Atualizar o campo schoolId na tabela Item
     const updatedItemInItemTable = await prisma.item.update({

@@ -58,6 +58,17 @@ interface AdvancedFiltersProps {
   onGenerateReport?: (filteredItems: Item[], filters: FilterOptions) => void;
 }
 
+const SETORES = new Set([
+  'CSDT', 'NAI', 'CAED', 'DGP', 'DJUR', 'CIE', 'CAE', 'CME',
+  'CACS FUNDEB', 'DIGITALIZAÇÃO', 'NCR', 'SUPED', 'CEI', 'DEB',
+  'DAISE', 'DAIE', 'DPPE', 'CEJA', 'CLL', 'NUMP', 'CEF I',
+  'CEF II', 'COTRAN', 'SAGP', 'ASS/SAGP', 'CAT', 'DIE', 'NF',
+  'CAESC', 'NL', 'CAPC', 'AC', 'NAA', 'EAG', 'CGP', 'GAB',
+  'SUPLAN', 'DCC', 'DCF', 'AG', 'PATRIMONIO', 'REC', 'RG',
+  'CHADA', 'OUV', 'NSGE', 'NSGE LAB', 'RPP',
+  'PROTOCOLO', 'AUD', 'CPFPF', 'DEJUR', 'ARQUIVO'
+]);
+
 const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   items,
   schools,
@@ -93,11 +104,13 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
     }
   }, []);
 
-  // Opções para selects
-  const schoolOptions = schools.map(school => ({
-    value: school.name,
-    label: school.name
-  }));
+  const schoolOptions = React.useMemo(() => {
+    const unique = [...new Set(items.map(item => item.School?.name).filter(Boolean))] as string[];
+    return unique
+      .filter(name => !SETORES.has(name))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map(name => ({ value: name, label: name }));
+  }, [items]);
 
   const typeOptions = [
     { value: 'COMPUTADOR', label: 'Computador' },
@@ -181,8 +194,8 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           filteredItems = filteredItems.filter(item => item.School?.name === 'CHADA');
           break;
         case 'schools':
-          filteredItems = filteredItems.filter(item => 
-            item.School?.name !== 'CSDT' && item.School?.name !== 'CHADA'
+          filteredItems = filteredItems.filter(item =>
+            item.School?.name != null && !SETORES.has(item.School.name)
           );
           break;
       }
@@ -375,8 +388,8 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       filteredItems = filteredItems.filter(item => item.School?.name === 'CHADA');
                       break;
                     case 'schools':
-                      filteredItems = filteredItems.filter(item => 
-                        item.School?.name !== 'CSDT' && item.School?.name !== 'CHADA'
+                      filteredItems = filteredItems.filter(item =>
+                        item.School?.name != null && !SETORES.has(item.School.name)
                       );
                       break;
                   }

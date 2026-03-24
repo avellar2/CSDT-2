@@ -22,7 +22,8 @@ import {
   ChartPie,
   Gear,
   Clock,
-  X
+  X,
+  HardDrive
 } from "phosphor-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
@@ -327,6 +328,14 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
       path: '/locados',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
       category: 'Escolas e Equipamentos'
+    },
+    {
+      id: 'setup-pc',
+      title: 'Setup de PC',
+      icon: HardDrive,
+      path: '/setup-pc',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Outros'
     }
   ];
 

@@ -870,127 +870,294 @@ const ChadaPage: React.FC = () => {
     }
   };
 
-  // Função para exportar Excel (XLSX) - Bonito e completo
-  const exportToExcel = () => {
+  // Exportar planilha OS Impressoras (formato BASE SME)
+  const exportOSImpressoras = async () => {
     try {
-      // Criar workbook
-      const wb = XLSX.utils.book_new();
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('CHAMADO OS IMPRESSORAS');
 
-      // Informações sobre filtros aplicados
-      const activeFiltersCount = getActiveFiltersCount();
-      const activeFiltersResume = getActiveFiltersResume();
+      const AZUL_TITULO  = '1F3864';
+      const AZUL_HEADER  = '2E75B6';
+      const AZUL_SUB     = 'BDD7EE';
+      const ZEBRA        = 'EBF3FB';
+      const BRANCO       = 'FFFFFF';
 
-      // === ABA 1: DADOS PRINCIPAIS ===
-      const mainData = filteredAndSortedItems.map(item => ({
-        'Nome': item.name || '',
-        'Marca/Modelo': item.brand || '',
-        'Número de Série': item.serialNumber || '',
-        'Status': item.statusChada || '',
-        'OS CHADA': item.numeroChadaOS || 'Aguardando',
-        'Problema': item.problem || '',
-        'Setor/Escola': item.sector || '',
-        'Enviado por': item.userName || '',
-        'Data Envio': item.createdAt ? new Date(item.createdAt).toLocaleDateString('pt-BR') : '',
-        'Email Enviado': item.emailSentAt ? new Date(item.emailSentAt).toLocaleString('pt-BR') : 'Não enviado',
-        'Última Atualização': item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('pt-BR') : '',
-        'Dias na CHADA': getDaysInChada(item.createdAt, item.statusChada, item.updatedAt),
-        'Atualizado por': item.updateBy || ''
-      }));
+      // Linha 1 — logo da Secretaria de Educação
+      ws.mergeCells('A1:H1');
+      ws.getRow(1).height = 65;
+      ws.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRANCO } };
 
-      const ws1 = XLSX.utils.json_to_sheet(mainData);
-
-      // Ajustar larguras das colunas
-      const colWidths = [
-        { wch: 20 }, // Nome
-        { wch: 25 }, // Marca/Modelo
-        { wch: 20 }, // Serial
-        { wch: 15 }, // Status
-        { wch: 15 }, // OS CHADA
-        { wch: 40 }, // Problema
-        { wch: 30 }, // Setor
-        { wch: 20 }, // Enviado por
-        { wch: 15 }, // Data Envio
-        { wch: 20 }, // Email Enviado
-        { wch: 18 }, // Última Atualização
-        { wch: 15 }, // Dias na CHADA
-        { wch: 20 }, // Atualizado por
-      ];
-      ws1['!cols'] = colWidths;
-
-      XLSX.utils.book_append_sheet(wb, ws1, 'Itens CHADA');
-
-      // === ABA 2: ESTATÍSTICAS ===
-      const statsData = [
-        { 'Métrica': 'Total de Itens Enviados', 'Valor': stats.totalEnviados },
-        { 'Métrica': 'Itens na CHADA', 'Valor': stats.naChada },
-        { 'Métrica': 'Itens Devolvidos', 'Valor': stats.devolvidos },
-        { 'Métrica': 'Tempo Médio (dias)', 'Valor': stats.tempoMedioDias },
-        { 'Métrica': '', 'Valor': '' },
-        { 'Métrica': 'Status PENDENTE', 'Valor': items.filter(i => i.statusChada === 'PENDENTE').length },
-        { 'Métrica': 'Status RECEBIDO', 'Valor': items.filter(i => i.statusChada === 'RECEBIDO').length },
-        { 'Métrica': 'Status EM_ANALISE', 'Valor': items.filter(i => i.statusChada === 'EM_ANALISE').length },
-        { 'Métrica': 'Status CONSERTADO', 'Valor': items.filter(i => i.statusChada === 'CONSERTADO').length },
-        { 'Métrica': 'Status SEM_CONSERTO', 'Valor': items.filter(i => i.statusChada === 'SEM_CONSERTO').length },
-        { 'Métrica': 'Status DEVOLVIDO', 'Valor': items.filter(i => i.statusChada === 'DEVOLVIDO').length },
-        { 'Métrica': '', 'Valor': '' },
-        { 'Métrica': 'Com Número de OS', 'Valor': items.filter(i => i.numeroChadaOS && i.numeroChadaOS.trim() !== '').length },
-        { 'Métrica': 'Aguardando OS', 'Valor': items.filter(i => !i.numeroChadaOS || i.numeroChadaOS.trim() === '').length },
-      ];
-
-      const ws2 = XLSX.utils.json_to_sheet(statsData);
-      ws2['!cols'] = [{ wch: 30 }, { wch: 15 }];
-      XLSX.utils.book_append_sheet(wb, ws2, 'Estatísticas');
-
-      // === ABA 3: POR SETOR ===
-      const setores = [...new Set(items.map(i => i.sector))];
-      const setorData = setores.map(setor => {
-        const itensSetor = items.filter(i => i.sector === setor);
-        return {
-          'Setor': setor,
-          'Total Itens': itensSetor.length,
-          'Na CHADA': itensSetor.filter(i => ['PENDENTE', 'RECEBIDO', 'EM_ANALISE'].includes(i.statusChada)).length,
-          'Devolvidos': itensSetor.filter(i => ['CONSERTADO', 'SEM_CONSERTO', 'DEVOLVIDO'].includes(i.statusChada)).length,
-          'Com OS': itensSetor.filter(i => i.numeroChadaOS && i.numeroChadaOS.trim() !== '').length,
-        };
-      });
-
-      const ws3 = XLSX.utils.json_to_sheet(setorData);
-      ws3['!cols'] = [{ wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
-      XLSX.utils.book_append_sheet(wb, ws3, 'Por Setor');
-
-      // === ABA 4: FILTROS APLICADOS ===
-      const filtersData = [
-        { 'Informação': '📊 RELATÓRIO COM FILTROS', 'Valor': '' },
-        { 'Informação': '', 'Valor': '' },
-        { 'Informação': 'Total de Filtros Ativos', 'Valor': activeFiltersCount },
-        { 'Informação': 'Total de Itens (sem filtros)', 'Valor': items.length },
-        { 'Informação': 'Total de Itens (com filtros)', 'Valor': filteredAndSortedItems.length },
-        { 'Informação': '', 'Valor': '' },
-        { 'Informação': '📌 FILTROS APLICADOS:', 'Valor': '' },
-      ];
-
-      if (activeFiltersCount === 0) {
-        filtersData.push({ 'Informação': 'Nenhum filtro aplicado', 'Valor': 'Todos os itens' });
-      } else {
-        activeFiltersResume.forEach(filter => {
-          filtersData.push({ 'Informação': filter, 'Valor': '✓' });
+      try {
+        const imgResponse = await fetch('/images/logo-secretaria.png');
+        const imgBuffer = await imgResponse.arrayBuffer();
+        const imgId = wb.addImage({ buffer: imgBuffer, extension: 'png' });
+        // Centraliza a imagem no meio da linha 1
+        ws.addImage(imgId, {
+          tl: { col: 2.5, row: 0.1 },
+          br: { col: 5.5, row: 0.9 },
+          editAs: 'oneCell',
         });
+      } catch (_) {
+        // Se não conseguir carregar a imagem, continua sem ela
       }
 
-      filtersData.push({ 'Informação': '', 'Valor': '' });
-      filtersData.push({ 'Informação': 'Data da Exportação', 'Valor': new Date().toLocaleString('pt-BR') });
-      filtersData.push({ 'Informação': 'Aba Ativa', 'Valor': activeTab === 'na_chada' ? 'Na CHADA' : activeTab === 'devolvidos' ? 'Devolvidos' : activeTab === 'diagnosticos' ? 'Diagnósticos' : 'Todos' });
+      // Linha 2 — título CSDT + data
+      ws.mergeCells('A2:H2');
+      const tituloCell = ws.getCell('A2');
+      tituloCell.value = `CSDT — CHAMADO PARA AS IMPRESSORAS - BASE SME         ${new Date().toLocaleDateString('pt-BR')}`;
+      tituloCell.font = { bold: true, size: 14, color: { argb: 'FFFFFF' } };
+      tituloCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AZUL_TITULO } };
+      tituloCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(2).height = 28;
 
-      const ws4 = XLSX.utils.json_to_sheet(filtersData);
-      ws4['!cols'] = [{ wch: 40 }, { wch: 30 }];
-      XLSX.utils.book_append_sheet(wb, ws4, 'Filtros Aplicados');
+      // Linha 3 — cabeçalhos
+      const headers = ['SQ', 'SETOR', 'MODELO', 'MARCA', 'SERIAL', 'DATA CHAMADO', 'Nº OS', 'REPARO / MANUTENÇÃO'];
+      const headerRow = ws.addRow(headers);
+      headerRow.eachCell((cell: any) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AZUL_HEADER } };
+        cell.font = { bold: true, color: { argb: 'FFFFFF' }, size: 11 };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: AZUL_TITULO } },
+          bottom: { style: 'thin', color: { argb: AZUL_TITULO } },
+          left: { style: 'thin', color: { argb: AZUL_TITULO } },
+          right: { style: 'thin', color: { argb: AZUL_TITULO } },
+        };
+      });
+      headerRow.height = 24;
 
-      // Gerar e baixar o arquivo
+      // Larguras das colunas
+      ws.columns = [
+        { key: 'sq',      width: 5  },
+        { key: 'setor',   width: 14 },
+        { key: 'modelo',  width: 12 },
+        { key: 'marca',   width: 10 },
+        { key: 'serial',  width: 18 },
+        { key: 'data',    width: 14 },
+        { key: 'os',      width: 10 },
+        { key: 'reparo',  width: 55 },
+      ];
+
+      // Usar os itens já filtrados pela tela, apenas impressoras ativas
+      const impressoras = filteredAndSortedItems.filter(i =>
+        i.name?.toLowerCase().includes('impressora') &&
+        ['PENDENTE', 'RECEBIDO', 'EM_ANALISE'].includes(i.statusChada)
+      );
+
+      impressoras.forEach((item, idx) => {
+        // Tentar separar marca e modelo do campo brand/name
+        const nomeCompleto = (item.brand || item.name || '').toUpperCase();
+        const marcasConhecidas = ['XEROX', 'OKI', 'OKIDATA', 'HP', 'EPSON', 'CANON', 'RICOH', 'LEXMARK', 'BROTHER'];
+        let marca = '';
+        let modelo = nomeCompleto;
+        for (const m of marcasConhecidas) {
+          if (nomeCompleto.includes(m)) {
+            marca = m === 'OKIDATA' ? 'OKI' : m;
+            modelo = nomeCompleto.replace('IMPRESSORA', '').replace(m, '').trim();
+            break;
+          }
+        }
+        if (!marca) {
+          modelo = nomeCompleto.replace('IMPRESSORA', '').trim();
+        }
+
+        const reparo = item.problem || '';
+
+        const row = ws.addRow([
+          idx + 1,
+          item.sector?.toUpperCase() || '',
+          modelo,
+          marca,
+          item.serialNumber || '',
+          item.createdAt ? new Date(item.createdAt).toLocaleDateString('pt-BR') : '',
+          item.numeroChadaOS || '',
+          reparo,
+        ]);
+
+        const isZebra = idx % 2 === 1;
+        row.eachCell({ includeEmpty: true }, (cell: any, colNum: number) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isZebra ? ZEBRA : BRANCO } };
+          cell.font = { size: 10, bold: colNum === 5 || colNum === 7, color: colNum === 8 ? { argb: 'C00000' } : { argb: '000000' } };
+          cell.alignment = { horizontal: colNum < 8 ? 'center' : 'left', vertical: 'middle', wrapText: colNum === 8 };
+          cell.border = {
+            top: { style: 'hair', color: { argb: 'C0C0C0' } },
+            bottom: { style: 'hair', color: { argb: 'C0C0C0' } },
+            left: { style: 'hair', color: { argb: 'C0C0C0' } },
+            right: { style: 'hair', color: { argb: 'C0C0C0' } },
+          };
+        });
+        row.height = 25;
+      });
+
+      ws.autoFilter = { from: 'A3', to: 'H3' };
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `OS_Impressoras_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao gerar OS Impressoras:', error);
+      alert('Erro ao gerar planilha. Tente novamente.');
+    }
+  };
+
+  // Função para exportar Excel formatado com ExcelJS
+  const exportToExcel = async () => {
+    try {
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'CSDT';
+      wb.created = new Date();
+
+      const AZUL_ESCURO = '1F3864';
+      const AZUL_CLARO  = 'BDD7EE';
+      const ZEBRA       = 'EBF3FB';
+      const BRANCO      = 'FFFFFF';
+
+      const headerStyle = (ws: any, row: any) => {
+        row.eachCell((cell: any) => {
+          cell.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: AZUL_ESCURO } };
+          cell.font   = { bold: true, color: { argb: 'FFFFFF' }, size: 11 };
+          cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+          cell.border = {
+            top: { style: 'thin', color: { argb: AZUL_ESCURO } },
+            bottom: { style: 'thin', color: { argb: AZUL_ESCURO } },
+            left: { style: 'thin', color: { argb: AZUL_ESCURO } },
+            right: { style: 'thin', color: { argb: AZUL_ESCURO } },
+          };
+        });
+        row.height = 30;
+      };
+
+      const dataStyle = (row: any, isZebra: boolean) => {
+        row.eachCell({ includeEmpty: true }, (cell: any) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isZebra ? ZEBRA : BRANCO } };
+          cell.font = { size: 10 };
+          cell.alignment = { vertical: 'middle', wrapText: true };
+          cell.border = {
+            top: { style: 'hair', color: { argb: 'C0C0C0' } },
+            bottom: { style: 'hair', color: { argb: 'C0C0C0' } },
+            left: { style: 'hair', color: { argb: 'C0C0C0' } },
+            right: { style: 'hair', color: { argb: 'C0C0C0' } },
+          };
+        });
+        row.height = 20;
+      };
+
+      // === ABA 1: ITENS CHADA ===
+      const ws1 = wb.addWorksheet('Itens CHADA');
+      ws1.columns = [
+        { header: 'Nome',               key: 'nome',       width: 22 },
+        { header: 'Marca/Modelo',       key: 'marca',      width: 26 },
+        { header: 'Número de Série',    key: 'serial',     width: 22 },
+        { header: 'Status',             key: 'status',     width: 16 },
+        { header: 'OS CHADA',           key: 'os',         width: 16 },
+        { header: 'Problema',           key: 'problema',   width: 42 },
+        { header: 'Setor/Escola',       key: 'setor',      width: 28 },
+        { header: 'Enviado por',        key: 'enviado',    width: 20 },
+        { header: 'Data Envio',         key: 'dataEnvio',  width: 14 },
+        { header: 'Dias na CHADA',      key: 'dias',       width: 14 },
+        { header: 'Última Atualização', key: 'atualizado', width: 18 },
+        { header: 'Atualizado por',     key: 'atualizadoPor', width: 20 },
+      ];
+
+      headerStyle(ws1, ws1.getRow(1));
+
+      filteredAndSortedItems.forEach((item, idx) => {
+        const row = ws1.addRow({
+          nome:         item.name || '',
+          marca:        item.brand || '',
+          serial:       item.serialNumber || '',
+          status:       item.statusChada || '',
+          os:           item.numeroChadaOS || 'Aguardando',
+          problema:     item.problem || '',
+          setor:        item.sector || '',
+          enviado:      item.userName || '',
+          dataEnvio:    item.createdAt ? new Date(item.createdAt).toLocaleDateString('pt-BR') : '',
+          dias:         getDaysInChada(item.createdAt, item.statusChada, item.updatedAt),
+          atualizado:   item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('pt-BR') : '',
+          atualizadoPor: item.updateBy || '',
+        });
+        dataStyle(row, idx % 2 === 1);
+      });
+
+      ws1.autoFilter = { from: 'A1', to: 'L1' };
+
+      // === ABA 2: ESTATÍSTICAS ===
+      const ws2 = wb.addWorksheet('Estatísticas');
+      ws2.columns = [
+        { header: 'Métrica', key: 'metrica', width: 32 },
+        { header: 'Valor',   key: 'valor',   width: 16 },
+      ];
+      headerStyle(ws2, ws2.getRow(1));
+
+      const statsRows = [
+        { metrica: 'Total de Itens Enviados', valor: stats.totalEnviados },
+        { metrica: 'Itens na CHADA',          valor: stats.naChada },
+        { metrica: 'Itens Devolvidos',        valor: stats.devolvidos },
+        { metrica: 'Tempo Médio (dias)',       valor: stats.tempoMedioDias },
+        { metrica: '', valor: '' },
+        { metrica: 'Status PENDENTE',    valor: items.filter(i => i.statusChada === 'PENDENTE').length },
+        { metrica: 'Status RECEBIDO',    valor: items.filter(i => i.statusChada === 'RECEBIDO').length },
+        { metrica: 'Status EM ANÁLISE',  valor: items.filter(i => i.statusChada === 'EM_ANALISE').length },
+        { metrica: 'Status CONSERTADO',  valor: items.filter(i => i.statusChada === 'CONSERTADO').length },
+        { metrica: 'Status SEM CONSERTO',valor: items.filter(i => i.statusChada === 'SEM_CONSERTO').length },
+        { metrica: 'Status DEVOLVIDO',   valor: items.filter(i => i.statusChada === 'DEVOLVIDO').length },
+        { metrica: '', valor: '' },
+        { metrica: 'Com Número de OS', valor: items.filter(i => i.numeroChadaOS?.trim()).length },
+        { metrica: 'Aguardando OS',    valor: items.filter(i => !i.numeroChadaOS?.trim()).length },
+        { metrica: '', valor: '' },
+        { metrica: 'Data da Exportação', valor: new Date().toLocaleString('pt-BR') },
+      ];
+      statsRows.forEach((r, idx) => {
+        const row = ws2.addRow(r);
+        if (r.metrica) dataStyle(row, idx % 2 === 1);
+      });
+
+      // === ABA 3: POR SETOR ===
+      const ws3 = wb.addWorksheet('Por Setor');
+      ws3.columns = [
+        { header: 'Setor',       key: 'setor',     width: 30 },
+        { header: 'Total',       key: 'total',     width: 12 },
+        { header: 'Na CHADA',    key: 'naChada',   width: 12 },
+        { header: 'Devolvidos',  key: 'devolvidos',width: 12 },
+        { header: 'Com OS',      key: 'comOs',     width: 12 },
+      ];
+      headerStyle(ws3, ws3.getRow(1));
+
+      const setores = [...new Set(items.map(i => i.sector))].sort();
+      setores.forEach((setor, idx) => {
+        const its = items.filter(i => i.sector === setor);
+        const row = ws3.addRow({
+          setor,
+          total:     its.length,
+          naChada:   its.filter(i => ['PENDENTE','RECEBIDO','EM_ANALISE'].includes(i.statusChada)).length,
+          devolvidos:its.filter(i => ['CONSERTADO','SEM_CONSERTO','DEVOLVIDO'].includes(i.statusChada)).length,
+          comOs:     its.filter(i => i.numeroChadaOS?.trim()).length,
+        });
+        dataStyle(row, idx % 2 === 1);
+      });
+
+      // Gerar e baixar
+      const activeFiltersCount = getActiveFiltersCount();
       const filterSuffix = activeFiltersCount > 0 ? `_${activeFiltersCount}filtros` : '';
       const fileName = `Relatorio_CHADA_${new Date().toISOString().split('T')[0]}${filterSuffix}.xlsx`;
-      XLSX.writeFile(wb, fileName);
 
-      alert('Relatório Excel gerado com sucesso! ✅');
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      alert('Relatório Excel gerado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar Excel:', error);
       alert('Erro ao gerar relatório Excel. Tente novamente.');
@@ -1409,6 +1576,16 @@ const ChadaPage: React.FC = () => {
                   <span className="text-lg">{checkingEmails ? '⏳' : '📧'}</span>
                   <span className="hidden sm:inline">{checkingEmails ? 'Verificando...' : 'Verificar Emails'}</span>
                   <span className="sm:hidden">{checkingEmails ? '...' : 'Email'}</span>
+                </button>
+
+                <button
+                  onClick={exportOSImpressoras}
+                  className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm flex-1 sm:flex-initial"
+                  title="Exportar planilha OS Impressoras (BASE SME)"
+                >
+                  <span className="text-lg">🖨️</span>
+                  <span className="hidden sm:inline">OS Impressoras</span>
+                  <span className="sm:hidden">OS</span>
                 </button>
 
                 <button

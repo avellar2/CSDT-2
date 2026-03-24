@@ -172,7 +172,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         emailSentAt: emailMessageId ? new Date() : null,
         emailMessageId: emailMessageId || null,
         manutencaoSemMovimentacao: isManutencaoSemMovimentacao,
-        schoolIdOriginal: isManutencaoSemMovimentacao ? item.schoolId : null,
+        schoolIdOriginal: item.schoolId, // Sempre salva a origem para retorno correto
       },
     });
 

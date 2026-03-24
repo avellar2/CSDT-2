@@ -1,7 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, Trash, Eye, GridFour, Table, ListBullets } from 'phosphor-react';
+import { Clock, Trash, Eye, GridFour, Table, ListBullets, PencilSimple } from 'phosphor-react';
 
 interface Item {
   id: number;
@@ -25,7 +25,9 @@ interface DeviceViewsProps {
   onViewModeChange: (mode: 'list' | 'grid' | 'table') => void;
   onHistoryClick: (item: Item) => void;
   onDeleteClick: (item: Item) => void;
+  onEditClick: (item: Item) => void;
   userId: string | null;
+  userRole: string | null;
 }
 
 const DeviceViews: React.FC<DeviceViewsProps> = ({
@@ -34,8 +36,11 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
   onViewModeChange,
   onHistoryClick,
   onDeleteClick,
-  userId
+  onEditClick,
+  userId,
+  userRole
 }) => {
+  const canEdit = userRole === "ADMTOTAL" || userRole === "ADMIN";
   // Componente de seletor de visualização
   const ViewModeSelector = () => (
     <div className="flex gap-2 mb-4">
@@ -124,6 +129,15 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
             >
               <Clock size={24} />
             </button>
+            {canEdit && (
+              <button
+                onClick={() => onEditClick(item)}
+                className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                title="Editar Item"
+              >
+                <PencilSimple size={24} />
+              </button>
+            )}
             {item.Profile?.userId === userId && (
               <button
                 onClick={() => onDeleteClick(item)}
@@ -167,6 +181,15 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
               >
                 <Clock size={20} />
               </button>
+              {canEdit && (
+                <button
+                  onClick={() => onEditClick(item)}
+                  className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                  title="Editar Item"
+                >
+                  <PencilSimple size={20} />
+                </button>
+              )}
               {item.Profile?.userId === userId && (
                 <button
                   onClick={() => onDeleteClick(item)}
@@ -311,6 +334,15 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
                     >
                       <Clock size={20} />
                     </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => onEditClick(item)}
+                        className="text-yellow-500 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 transition-colors"
+                        title="Editar Item"
+                      >
+                        <PencilSimple size={20} />
+                      </button>
+                    )}
                     {item.Profile?.userId === userId && (
                       <button
                         onClick={() => onDeleteClick(item)}

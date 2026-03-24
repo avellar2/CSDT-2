@@ -99,6 +99,14 @@ const DeviceList: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<"step1" | "step2">("step1");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<any>(null);
+  const [editName, setEditName] = useState("");
+  const [editBrand, setEditBrand] = useState("");
+  const [editSerial, setEditSerial] = useState("");
+  const [editSchoolId, setEditSchoolId] = useState<number | null>(null);
+  const [editSchools, setEditSchools] = useState<any[]>([]);
+  const [editLoading, setEditLoading] = useState(false);
   const [relatedData, setRelatedData] = useState<any>(null);
   const [loadingRelatedData, setLoadingRelatedData] = useState(false);
   const itemsPerPage = 10; // Número de itens por página
@@ -331,6 +339,54 @@ const DeviceList: React.FC = () => {
       return null;
     } finally {
       setLoadingRelatedData(false);
+    }
+  };
+
+  const openEditModal = async (item: any) => {
+    setItemToEdit(item);
+    setEditName(item.name || "");
+    setEditBrand(item.brand || "");
+    setEditSerial(item.serialNumber || "");
+    setEditSchoolId(null);
+    if (editSchools.length === 0) {
+      const res = await fetch("/api/all-locations");
+      const data = await res.json();
+      setEditSchools(data);
+    }
+    setEditModalOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!itemToEdit) return;
+    setEditLoading(true);
+    try {
+      const res = await fetch("/api/update-item", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: itemToEdit.id,
+          name: editName,
+          brand: editBrand,
+          serialNumber: editSerial,
+          schoolId: editSchoolId || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Erro ao atualizar item.");
+        return;
+      }
+      const updated = await res.json();
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === updated.id ? { ...i, ...updated } : i
+        )
+      );
+      setEditModalOpen(false);
+    } catch {
+      alert("Erro ao salvar. Tente novamente.");
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -844,92 +900,277 @@ const DeviceList: React.FC = () => {
   };
 
   // Handler para gerar relatório baseado nos filtros
-  const handleGenerateFilteredReport = (filteredItems: Item[], filters: any) => {
-    console.log('Generating filtered report with', filteredItems.length, 'items');
-    
-    // Criar descrição dos filtros aplicados
-    let filterDescription = [];
-    
-    if (filters.searchTerm) {
-      filterDescription.push(`Busca: "${filters.searchTerm}"`);
+  const handleGenerateFilteredReport = async (filteredItems: Item[], filters: any) => {
+    const ExcelJS = (await import('exceljs')).default;
+
+    // ── Descrição dos filtros ──────────────────────────────────────
+    const filterDescription: string[] = [];
+    if (filters.searchTerm) filterDescription.push(`Busca: "${filters.searchTerm}"`);
+    if (filters.selectedSchools?.length > 0) filterDescription.push(`Escolas: ${filters.selectedSchools.join(', ')}`);
+    if (filters.selectedTypes?.length > 0)   filterDescription.push(`Tipos: ${filters.selectedTypes.join(', ')}`);
+    if (filters.dateRange?.start && filters.dateRange?.end) {
+      filterDescription.push(`Período: ${format(new Date(filters.dateRange.start), 'dd/MM/yyyy', { locale: ptBR })} a ${format(new Date(filters.dateRange.end), 'dd/MM/yyyy', { locale: ptBR })}`);
     }
-    
-    if (filters.selectedSchools.length > 0) {
-      filterDescription.push(`Escolas: ${filters.selectedSchools.join(', ')}`);
+    if (filters.createdBy?.length > 0) filterDescription.push(`Criado por: ${filters.createdBy.join(', ')}`);
+    if (filters.status && filters.status !== 'all') {
+      filterDescription.push(`Status: ${{ csdt: 'No CSDT', chada: 'Na CHADA', schools: 'Em Escolas' }[filters.status as string]}`);
     }
-    
-    if (filters.selectedTypes.length > 0) {
-      filterDescription.push(`Tipos: ${filters.selectedTypes.join(', ')}`);
-    }
-    
-    if (filters.dateRange.start && filters.dateRange.end) {
-      const startFormatted = format(new Date(filters.dateRange.start), 'dd/MM/yyyy', { locale: ptBR });
-      const endFormatted = format(new Date(filters.dateRange.end), 'dd/MM/yyyy', { locale: ptBR });
-      filterDescription.push(`Período: ${startFormatted} a ${endFormatted}`);
-    }
-    
-    if (filters.createdBy.length > 0) {
-      filterDescription.push(`Criado por: ${filters.createdBy.join(', ')}`);
-    }
-    
-    if (filters.status !== 'all') {
-      const statusMap = {
-        'csdt': 'No CSDT',
-        'chada': 'Na CHADA',
-        'schools': 'Em Escolas'
+
+    // ── Cores ──────────────────────────────────────────────────────
+    const COR_TITULO   = '1F3864';  // azul escuro
+    const COR_HEADER   = '2E75B6';  // azul médio
+    const COR_ZEBRA    = 'F2F2F2';  // cinza claríssimo
+    const COR_BRANCO   = 'FFFFFF';
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'CSDT';
+    wb.created = new Date();
+
+    // ══════════════════════════════════════════════════════════════
+    //  ABA 1 — EQUIPAMENTOS
+    // ══════════════════════════════════════════════════════════════
+    const ws = wb.addWorksheet('Equipamentos');
+
+    // — Título
+    ws.mergeCells('A1:H1');
+    const titulo = ws.getCell('A1');
+    titulo.value = `CSDT — Relatório de Equipamentos  |  ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`;
+    titulo.font = { bold: true, size: 13, color: { argb: COR_BRANCO } };
+    titulo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_TITULO } };
+    titulo.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 30;
+
+    // — Filtros aplicados (linha 2)
+    ws.mergeCells('A2:H2');
+    const filtroCell = ws.getCell('A2');
+    filtroCell.value = filterDescription.length > 0
+      ? `Filtros: ${filterDescription.join('  |  ')}`
+      : 'Sem filtros aplicados';
+    filtroCell.font = { italic: true, size: 10, color: { argb: '444444' } };
+    filtroCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DDEEFF' } };
+    filtroCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    ws.getRow(2).height = 20;
+
+    // — Cabeçalhos (linha 3)
+    const headers = ['#', 'Tipo', 'Marca', 'Número de Série', 'Escola / Localização', 'Status', 'Data de Cadastro', 'Adicionado por'];
+    const headerRow = ws.addRow(headers);
+    headerRow.eachCell((cell: any) => {
+      cell.font = { bold: true, color: { argb: COR_BRANCO }, size: 11 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_HEADER } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top:    { style: 'thin', color: { argb: COR_TITULO } },
+        bottom: { style: 'thin', color: { argb: COR_TITULO } },
+        left:   { style: 'thin', color: { argb: COR_TITULO } },
+        right:  { style: 'thin', color: { argb: COR_TITULO } },
       };
-      filterDescription.push(`Status: ${statusMap[filters.status as keyof typeof statusMap]}`);
-    }
-    
-    // Gerar dados do relatório
-    const reportData = filteredItems.map(item => ({
-      ID: item.id,
-      Nome: item.name,
-      Marca: item.brand,
-      'Número de Série': item.serialNumber,
-      Escola: item.School?.name || 'N/A',
-      'Data de Criação': format(new Date(item.createdAt), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
-      'Criado por': item.Profile?.displayName || 'N/A',
-      Status: item.School?.name === 'CHADA' ? 'Manutenção' : 
-              item.School?.name === 'CSDT' ? 'Depósito' : 'Em Operação'
-    }));
+    });
+    headerRow.height = 24;
 
-    // Gerar estatísticas do relatório
-    const stats = {
-      'Total de Equipamentos': filteredItems.length,
-      'Em Operação': filteredItems.filter(i => i.School?.name !== 'CSDT' && i.School?.name !== 'CHADA').length,
-      'No Depósito (CSDT)': filteredItems.filter(i => i.School?.name === 'CSDT').length,
-      'Em Manutenção (CHADA)': filteredItems.filter(i => i.School?.name === 'CHADA').length,
-      'Data do Relatório': format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR }),
-      'Gerado por': userName || 'N/A',
-      'Filtros Aplicados': filterDescription.length > 0 ? filterDescription.join('; ') : 'Nenhum filtro aplicado'
-    };
+    // — Larguras
+    ws.columns = [
+      { key: 'seq',    width: 5  },
+      { key: 'tipo',   width: 16 },
+      { key: 'marca',  width: 18 },
+      { key: 'serial', width: 22 },
+      { key: 'escola', width: 36 },
+      { key: 'status', width: 14 },
+      { key: 'data',   width: 20 },
+      { key: 'autor',  width: 22 },
+    ];
 
-    const statsData = Object.entries(stats).map(([key, value]) => ({
-      'Critério': key,
-      'Valor': value
-    }));
+    // — Dados com zebra
+    filteredItems.forEach((item, idx) => {
+      const escola = item.School?.name || 'N/A';
+      const status = escola === 'CHADA' ? 'Manutenção' : escola === 'CSDT' ? 'Depósito' : 'Em Operação';
+      const row = ws.addRow([
+        idx + 1,
+        item.name || '',
+        item.brand || '',
+        item.serialNumber || '',
+        escola,
+        status,
+        format(new Date(item.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+        item.Profile?.displayName || '',
+      ]);
 
-    // Criar workbook
-    const workbook = XLSX.utils.book_new();
-    
-    // Aba de estatísticas
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(statsData), 'Resumo');
-    
-    // Aba de dados
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportData), 'Equipamentos');
+      const bg = idx % 2 === 0 ? COR_BRANCO : COR_ZEBRA;
+      row.eachCell({ includeEmpty: true }, (cell: any, col: number) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.font = { size: 10 };
+        cell.alignment = { vertical: 'middle', horizontal: col === 1 ? 'center' : 'left' };
+        cell.border = {
+          top:    { style: 'hair', color: { argb: 'CCCCCC' } },
+          bottom: { style: 'hair', color: { argb: 'CCCCCC' } },
+          left:   { style: 'hair', color: { argb: 'CCCCCC' } },
+          right:  { style: 'hair', color: { argb: 'CCCCCC' } },
+        };
+      });
+      row.height = 25;
+    });
 
-    // Download
-    const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
-    const filename = `relatorio-filtrado-${timestamp}.xlsx`;
-    XLSX.writeFile(workbook, filename);
+    // — AutoFilter na linha de cabeçalhos
+    ws.autoFilter = { from: 'A3', to: 'H3' };
 
-    // Mostrar mensagem de sucesso
+    // ══════════════════════════════════════════════════════════════
+    //  ABA 2 — RESUMO
+    // ══════════════════════════════════════════════════════════════
+    const ws2 = wb.addWorksheet('Resumo');
+
+    ws2.mergeCells('A1:B1');
+    const tituloResumo = ws2.getCell('A1');
+    tituloResumo.value = 'Resumo do Relatório';
+    tituloResumo.font = { bold: true, size: 13, color: { argb: COR_BRANCO } };
+    tituloResumo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_TITULO } };
+    tituloResumo.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws2.getRow(1).height = 28;
+
+    const resumoHeaders = ws2.addRow(['Critério', 'Valor']);
+    resumoHeaders.eachCell((cell: any) => {
+      cell.font = { bold: true, color: { argb: COR_BRANCO }, size: 11 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_HEADER } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    resumoHeaders.height = 22;
+
+    const statsRows = [
+      ['Total de Equipamentos', filteredItems.length],
+      ['Em Operação',           filteredItems.filter(i => i.School?.name !== 'CSDT' && i.School?.name !== 'CHADA').length],
+      ['No Depósito (CSDT)',    filteredItems.filter(i => i.School?.name === 'CSDT').length],
+      ['Em Manutenção (CHADA)', filteredItems.filter(i => i.School?.name === 'CHADA').length],
+      ['', ''],
+      ['Gerado por', userName || 'N/A'],
+      ['Data do Relatório', format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })],
+      ['Filtros Aplicados', filterDescription.join(' | ') || 'Nenhum'],
+    ];
+
+    statsRows.forEach((r, idx) => {
+      const row = ws2.addRow(r);
+      const bg = idx % 2 === 0 ? COR_BRANCO : COR_ZEBRA;
+      row.eachCell({ includeEmpty: true }, (cell: any) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.font = { size: 10 };
+        cell.alignment = { vertical: 'middle' };
+        cell.border = {
+          top:    { style: 'hair', color: { argb: 'CCCCCC' } },
+          bottom: { style: 'hair', color: { argb: 'CCCCCC' } },
+          left:   { style: 'hair', color: { argb: 'CCCCCC' } },
+          right:  { style: 'hair', color: { argb: 'CCCCCC' } },
+        };
+      });
+      row.height = 25;
+    });
+
+    ws2.columns = [{ width: 28 }, { width: 50 }];
+
+    // ══════════════════════════════════════════════════════════════
+    //  ABA 3 — ITENS POR ESCOLA
+    // ══════════════════════════════════════════════════════════════
+    const ws3 = wb.addWorksheet('Por Escola');
+
+    ws3.mergeCells('A1:C1');
+    const tituloPorEscola = ws3.getCell('A1');
+    tituloPorEscola.value = `Quantidade de Itens por Escola  |  ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`;
+    tituloPorEscola.font = { bold: true, size: 13, color: { argb: COR_BRANCO } };
+    tituloPorEscola.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_TITULO } };
+    tituloPorEscola.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws3.getRow(1).height = 30;
+
+    // — Filtros (linha 2)
+    ws3.mergeCells('A2:C2');
+    const filtroPorEscola = ws3.getCell('A2');
+    filtroPorEscola.value = filterDescription.length > 0
+      ? `Filtros: ${filterDescription.join('  |  ')}`
+      : 'Sem filtros aplicados';
+    filtroPorEscola.font = { italic: true, size: 10, color: { argb: '444444' } };
+    filtroPorEscola.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DDEEFF' } };
+    filtroPorEscola.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    ws3.getRow(2).height = 20;
+
+    // — Cabeçalho
+    const headerPorEscola = ws3.addRow(['#', 'Escola', 'Quantidade']);
+    headerPorEscola.eachCell((cell: any) => {
+      cell.font = { bold: true, color: { argb: COR_BRANCO }, size: 11 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_HEADER } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top:    { style: 'thin', color: { argb: COR_TITULO } },
+        bottom: { style: 'thin', color: { argb: COR_TITULO } },
+        left:   { style: 'thin', color: { argb: COR_TITULO } },
+        right:  { style: 'thin', color: { argb: COR_TITULO } },
+      };
+    });
+    headerPorEscola.height = 24;
+
+    // — Agrupar por escola e contar
+    const contagemPorEscola = filteredItems.reduce((acc, item) => {
+      const nome = item.School?.name || 'Sem escola';
+      acc[nome] = (acc[nome] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const escolasOrdenadas = Object.entries(contagemPorEscola)
+      .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'));
+
+    escolasOrdenadas.forEach(([nome, qtd], idx) => {
+      const row = ws3.addRow([idx + 1, nome, qtd]);
+      const bg = idx % 2 === 0 ? COR_BRANCO : COR_ZEBRA;
+      row.eachCell({ includeEmpty: true }, (cell: any, col: number) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.font = { size: 10 };
+        cell.alignment = { vertical: 'middle', horizontal: col === 3 ? 'center' : col === 1 ? 'center' : 'left' };
+        cell.border = {
+          top:    { style: 'hair', color: { argb: 'CCCCCC' } },
+          bottom: { style: 'hair', color: { argb: 'CCCCCC' } },
+          left:   { style: 'hair', color: { argb: 'CCCCCC' } },
+          right:  { style: 'hair', color: { argb: 'CCCCCC' } },
+        };
+      });
+      row.height = 25;
+    });
+
+    // — Linha de total
+    const totalRow = ws3.addRow(['', 'TOTAL', filteredItems.length]);
+    totalRow.eachCell({ includeEmpty: true }, (cell: any) => {
+      cell.font = { bold: true, size: 10, color: { argb: COR_BRANCO } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_TITULO } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    });
+    totalRow.height = 22;
+
+    ws3.columns = [{ width: 5 }, { width: 42 }, { width: 14 }];
+    ws3.autoFilter = { from: 'A3', to: 'C3' };
+
+    // ── Cabeçalho repetido em todas as páginas + rodapé com nº de folha ──
+    const rodape = '&CPágina &P de &N';
+    const configPagina = { fitToPage: true, fitToWidth: 1, orientation: 'landscape' as const };
+
+    ws.pageSetup  = { ...configPagina, printTitlesRow: '1:3' };
+    ws.headerFooter.oddFooter  = rodape;
+
+    ws2.pageSetup = { ...configPagina, printTitlesRow: '1:2' };
+    ws2.headerFooter.oddFooter = rodape;
+
+    ws3.pageSetup = { ...configPagina, printTitlesRow: '1:3' };
+    ws3.headerFooter.oddFooter = rodape;
+
+    // ── Download ───────────────────────────────────────────────────
+    const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm', { locale: ptBR });
+    const filename = `Relatorio_Equipamentos_${timestamp}.xlsx`;
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+
     setModalMessage(
-      `✅ Relatório filtrado gerado com sucesso!\n\n` +
-      `📁 Arquivo: ${filename}\n` +
+      `✅ Relatório gerado com sucesso!\n\n` +
+      `📁 ${filename}\n` +
       `📊 ${filteredItems.length} equipamentos incluídos\n\n` +
-      `🔍 Filtros aplicados:\n${filterDescription.length > 0 ? filterDescription.join('\n') : 'Nenhum filtro aplicado'}`
+      `🔍 ${filterDescription.length > 0 ? filterDescription.join('\n') : 'Sem filtros aplicados'}`
     );
     setModalIsOpen(true);
   };
@@ -1155,7 +1396,9 @@ const DeviceList: React.FC = () => {
           onViewModeChange={handleViewModeChange}
           onHistoryClick={openHistoryDrawer}
           onDeleteClick={openDeleteModal}
+          onEditClick={openEditModal}
           userId={userId}
+          userRole={userRole}
         />
       )}
 
@@ -1868,6 +2111,77 @@ const DeviceList: React.FC = () => {
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
+
+        {/* Modal de Edição de Item */}
+        {editModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-md">
+              <h2 className="text-lg font-bold mb-4 text-zinc-800 dark:text-white">Editar Item</h2>
+
+              <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Nome</label>
+              <input
+                type="text"
+                className="w-full mb-3 p-2 border border-gray-300 rounded dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+
+              <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Marca / Modelo</label>
+              <input
+                type="text"
+                className="w-full mb-3 p-2 border border-gray-300 rounded dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
+                value={editBrand}
+                onChange={(e) => setEditBrand(e.target.value)}
+              />
+
+              <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Serial</label>
+              <input
+                type="text"
+                className="w-full mb-3 p-2 border border-gray-300 rounded dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
+                value={editSerial}
+                onChange={(e) => setEditSerial(e.target.value)}
+              />
+
+              <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Escola / Setor</label>
+              <Select
+                options={editSchools.map((s: any) => ({ value: s.id, label: s.name }))}
+                onChange={(opt) => setEditSchoolId(opt ? opt.value : null)}
+                placeholder={`Atual: ${itemToEdit?.School?.name} — pesquise para alterar`}
+                isClearable
+                className="mb-4"
+                styles={{
+                  control: (base) => ({ ...base, backgroundColor: "#fff", borderColor: "#d1d5db", color: "#111" }),
+                  input: (base) => ({ ...base, color: "#111" }),
+                  singleValue: (base) => ({ ...base, color: "#111" }),
+                  placeholder: (base) => ({ ...base, color: "#6b7280" }),
+                  menu: (base) => ({ ...base, backgroundColor: "#fff", zIndex: 9999 }),
+                  option: (base, state) => ({
+                    ...base,
+                    backgroundColor: state.isFocused ? "#eff6ff" : "#fff",
+                    color: "#111",
+                    cursor: "pointer",
+                  }),
+                }}
+              />
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2 bg-gray-200 dark:bg-zinc-700 text-gray-800 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEditSave}
+                  disabled={editLoading}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
+                >
+                  {editLoading ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal de Confirmação de Deleção */}
         <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
