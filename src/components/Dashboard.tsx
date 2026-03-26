@@ -516,6 +516,16 @@ const Dashboard: React.FC = () => {
       roles: ['ADMIN', 'ADMTOTAL', 'TECH', 'SCHOOL', 'ONLYREAD'],
       category: 'Ajuda e Suporte',
       badge: null
+    },
+    {
+      id: 'setup-pc',
+      title: 'Setup de PC',
+      icon: Desktop,
+      color: 'bg-cyan-600 hover:bg-cyan-800',
+      path: '/setup-pc',
+      roles: ['ADMIN', 'ADMTOTAL', 'TECH'],
+      category: 'Administração',
+      badge: null
     }
   ];
 
