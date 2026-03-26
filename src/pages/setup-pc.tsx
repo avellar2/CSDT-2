@@ -83,6 +83,10 @@ export default function SetupPCPage() {
       alert('Preencha: Nome do PC e Senha do Administrador');
       return;
     }
+    if (form.standardUser.trim().length > 20) {
+      alert(`Nome de usuário muito longo (${form.standardUser.trim().length} chars). Windows aceita no máximo 20 caracteres.`);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -204,6 +208,11 @@ export default function SetupPCPage() {
                     value={form.standardUser}
                     onChange={e => setForm(f => ({ ...f, standardUser: e.target.value }))}
                   />
+                  {form.standardUser.trim().length > 20 && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Máximo 20 caracteres (Windows). Atual: {form.standardUser.trim().length}
+                    </p>
+                  )}
                 </Field>
                 <Field label="Senha">
                   <input

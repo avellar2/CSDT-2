@@ -41,6 +41,11 @@ function generateScript(config: SetupConfig): string {
     '$ErrorActionPreference = "Continue"',
     '$ProgressPreference    = "SilentlyContinue"',
     '',
+    '# Garante $PSScriptRoot mesmo quando executado via "Executar com PowerShell"',
+    'if (-not $PSScriptRoot -or $PSScriptRoot -eq "") {',
+    '  $PSScriptRoot = Split-Path -Parent -Path $MyInvocation.MyCommand.Definition',
+    '}',
+    '',
     'function Write-Step {',
     '  param([string]$msg)',
     '  Write-Host ""',
@@ -86,16 +91,34 @@ function generateScript(config: SetupConfig): string {
   );
 
   // 3. Criar usuário padrão
+  const hasStdPass = !!config.standardPassword;
   push(
     'Write-Step "Criando usuário padrão..."',
-   `$stdPass = ConvertTo-SecureString "${config.standardPassword}" -AsPlainText -Force`,
    `$stdUser = "${config.standardUser}"`,
     'if (-not (Get-LocalUser -Name $stdUser -ErrorAction SilentlyContinue)) {',
-    '  New-LocalUser -Name $stdUser -Password $stdPass -FullName "Secretaria" -Description "Usuário administrativo" -PasswordNeverExpires | Out-Null',
+  );
+  if (hasStdPass) {
+    push(
+     `  $stdPass = ConvertTo-SecureString "${config.standardPassword}" -AsPlainText -Force`,
+      '  New-LocalUser -Name $stdUser -Password $stdPass -FullName "Secretaria" -Description "Usuário administrativo" -PasswordNeverExpires | Out-Null',
+    );
+  } else {
+    push(
+      '  New-LocalUser -Name $stdUser -NoPassword -FullName "Secretaria" -Description "Usuário administrativo" -PasswordNeverExpires | Out-Null',
+    );
+  }
+  push(
     '  Add-LocalGroupMember -Group "Usuários" -Member $stdUser -ErrorAction SilentlyContinue',
     '  Write-OK "Usuário padrão criado: $stdUser"',
     '} else {',
-    '  Set-LocalUser -Name $stdUser -Password $stdPass',
+  );
+  if (hasStdPass) {
+    push(
+     `  $stdPass = ConvertTo-SecureString "${config.standardPassword}" -AsPlainText -Force`,
+      '  Set-LocalUser -Name $stdUser -Password $stdPass',
+    );
+  }
+  push(
     '  Write-OK "Usuário padrão já existe, senha atualizada: $stdUser"',
     '}',
     '',
