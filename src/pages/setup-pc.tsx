@@ -28,6 +28,7 @@ const DEFAULT_FORM = {
   adminPassword: '',
   standardUser: 'secretaria',
   standardPassword: '',
+  wallpaperBase64: '',
   software: {
     winrar: true,
     libreoffice: false,
@@ -77,6 +78,21 @@ export default function SetupPCPage() {
 
   const setOption = (key: string, value: boolean) =>
     setForm(f => ({ ...f, options: { ...f.options, [key]: value } } ));
+
+  const handleWallpaperUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Imagem muito grande. Use uma imagem de até 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      setForm(f => ({ ...f, wallpaperBase64: base64 }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleGenerate = async () => {
     if (!form.pcName.trim() || !form.adminPassword.trim()) {
@@ -141,9 +157,22 @@ export default function SetupPCPage() {
           <ol className="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside">
             <li>Preencha as configurações abaixo e clique em <strong>Gerar Script</strong></li>
             <li>Coloque o arquivo <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.ps1</code> na raiz do pendrive</li>
-            <li>No PC novo, clique com botão direito no arquivo → <strong>Executar com PowerShell</strong></li>
+            <li>
+              No PC novo, abra o <strong>PowerShell como Administrador</strong> e execute:
+              <code className="block mt-1 bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded text-xs break-all">
+                powershell -ExecutionPolicy Bypass -File "E:\Setup_NOME_PC.ps1"
+              </code>
+              <span className="text-xs opacity-75">(substitua E:\ pela letra do pendrive)</span>
+            </li>
             <li>Aguarde a conclusão e reinicie o computador</li>
           </ol>
+        </div>
+
+        {/* Aviso: não copiar e colar */}
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-3 mb-6">
+          <p className="text-xs text-yellow-800 dark:text-yellow-300">
+            ⚠️ <strong>Não copie e cole</strong> o conteúdo do script no PowerShell. Execute sempre como arquivo (<code>.ps1</code>) para que os programas instalem corretamente e o papel de parede funcione.
+          </p>
         </div>
 
         <div className="space-y-6">
@@ -285,6 +314,44 @@ export default function SetupPCPage() {
                 );
               })}
             </div>
+
+            {/* Upload do papel de parede */}
+            {form.options.setWallpaper && (
+              <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <p className="text-sm font-medium text-orange-800 dark:text-orange-300 mb-2">
+                  🖼️ Imagem do papel de parede
+                </p>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg"
+                  onChange={handleWallpaperUpload}
+                  className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-orange-500 file:text-white hover:file:bg-orange-600 file:cursor-pointer cursor-pointer"
+                />
+                {form.wallpaperBase64 ? (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img
+                      src={`data:image/jpeg;base64,${form.wallpaperBase64}`}
+                      alt="Preview"
+                      className="h-16 rounded border border-orange-300 object-cover"
+                    />
+                    <div>
+                      <p className="text-xs text-green-700 dark:text-green-400 font-medium">✅ Imagem carregada — será embutida no script</p>
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, wallpaperBase64: '' }))}
+                        className="text-xs text-red-500 hover:underline mt-0.5"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                    Selecione uma imagem JPG/PNG (máx. 5MB). Ela será embutida diretamente no script.
+                  </p>
+                )}
+              </div>
+            )}
           </Section>
 
           {/* Preview resumo */}

@@ -6,6 +6,7 @@ interface SetupConfig {
   adminPassword: string;
   standardUser: string;
   standardPassword: string;
+  wallpaperBase64?: string;
   software: {
     winrar: boolean;
     libreoffice: boolean;
@@ -213,20 +214,38 @@ function generateScript(config: SetupConfig): string {
   }
 
   if (config.options.setWallpaper) {
-    push(
-      'Write-Step "Configurando papel de parede..."',
-      '$wallpaper = Join-Path $PSScriptRoot "wallpaper.jpg"',
-      'if (Test-Path $wallpaper) {',
-      '  $dest = "C:\\Windows\\Web\\Wallpaper\\Windows\\wallpaper-csdt.jpg"',
-      '  Copy-Item $wallpaper $dest -Force',
-      '  Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "Wallpaper" -Value $dest',
-      '  RUNDLL32.EXE user32.dll, UpdatePerUserSystemParameters',
-      '  Write-OK "Papel de parede aplicado"',
-      '} else {',
-      '  Write-WARN "Arquivo wallpaper.jpg não encontrado no pendrive"',
-      '}',
-      '',
-    );
+    if (config.wallpaperBase64) {
+      // Imagem embutida em Base64 — não precisa de arquivo externo
+      push(
+        'Write-Step "Configurando papel de parede (imagem embutida)..."',
+        '$dest = "C:\\Windows\\Web\\Wallpaper\\Windows\\wallpaper-csdt.jpg"',
+       `$b64 = "${config.wallpaperBase64}"`,
+        '$bytes = [System.Convert]::FromBase64String($b64)',
+        '[System.IO.File]::WriteAllBytes($dest, $bytes)',
+        'Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "Wallpaper" -Value $dest',
+        'Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "WallpaperStyle" -Value "10"',
+        'RUNDLL32.EXE user32.dll, UpdatePerUserSystemParameters',
+        'Write-OK "Papel de parede aplicado"',
+        '',
+      );
+    } else {
+      // Fallback: busca wallpaper.jpg no pendrive
+      push(
+        'Write-Step "Configurando papel de parede..."',
+        '$wallpaper = Join-Path $PSScriptRoot "wallpaper.jpg"',
+        'if (Test-Path $wallpaper) {',
+        '  $dest = "C:\\Windows\\Web\\Wallpaper\\Windows\\wallpaper-csdt.jpg"',
+        '  Copy-Item $wallpaper $dest -Force',
+        '  Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "Wallpaper" -Value $dest',
+        '  Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "WallpaperStyle" -Value "10"',
+        '  RUNDLL32.EXE user32.dll, UpdatePerUserSystemParameters',
+        '  Write-OK "Papel de parede aplicado"',
+        '} else {',
+        '  Write-WARN "Arquivo wallpaper.jpg não encontrado no pendrive"',
+        '}',
+        '',
+      );
+    }
   }
 
   // Finalização
