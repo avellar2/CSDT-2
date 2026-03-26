@@ -91,67 +91,88 @@ function generateScript(config: SetupConfig): string {
     '',
   );
 
-  // 3. Criar usuário padrão
+  // 3. Configurar usuário padrão (renomeia existente ou cria novo)
   const hasStdPass = !!config.standardPassword;
   push(
-    'Write-Step "Criando usuário padrão..."',
+    'Write-Step "Configurando usuário padrão..."',
    `$stdUser = "${config.standardUser}"`,
-    'if (-not (Get-LocalUser -Name $stdUser -ErrorAction SilentlyContinue)) {',
+    '# Contas de sistema que nunca devem ser renomeadas',
+    '$sistemaCtas = @("Administrador","Administrator","Convidado","Guest","DefaultAccount","WDAGUtilityAccount")',
+    '$adminSIDName = (Get-LocalUser | Where-Object { $_.SID -like "*-500" } | Select-Object -First 1).Name',
+    '',
+    '# Busca usuário padrão existente (não-sistema, não o admin embutido)',
+    '$usuarioExistente = Get-LocalUser | Where-Object {',
+    '  $_.Name -ne $adminSIDName -and $_.Name -notin $sistemaCtas',
+    '} | Select-Object -First 1',
+    '',
+    'if ($usuarioExistente -and $usuarioExistente.Name -ne $stdUser) {',
+    '  # Renomeia o usuário existente para o nome desejado',
+    '  Rename-LocalUser -Name $usuarioExistente.Name -NewName $stdUser',
+    '  Write-OK "Usuário \'$($usuarioExistente.Name)\' renomeado para \'$stdUser\'"',
+    '} elseif (-not (Get-LocalUser -Name $stdUser -ErrorAction SilentlyContinue)) {',
+    '  # Nenhum usuário padrão encontrado — cria um novo',
   );
   if (hasStdPass) {
     push(
      `  $stdPass = ConvertTo-SecureString "${config.standardPassword}" -AsPlainText -Force`,
-      '  New-LocalUser -Name $stdUser -Password $stdPass -FullName "Secretaria" -Description "Usuário administrativo" -PasswordNeverExpires | Out-Null',
+      '  New-LocalUser -Name $stdUser -Password $stdPass -FullName "Secretaria" -Description "Usuário padrão" -PasswordNeverExpires | Out-Null',
     );
   } else {
     push(
-      '  New-LocalUser -Name $stdUser -NoPassword -FullName "Secretaria" -Description "Usuário administrativo" -PasswordNeverExpires | Out-Null',
+      '  New-LocalUser -Name $stdUser -NoPassword -FullName "Secretaria" -Description "Usuário padrão" -PasswordNeverExpires | Out-Null',
     );
   }
   push(
     '  Add-LocalGroupMember -Group "Usuários" -Member $stdUser -ErrorAction SilentlyContinue',
     '  Write-OK "Usuário padrão criado: $stdUser"',
     '} else {',
+    '  Write-OK "Usuário padrão já existe: $stdUser"',
+    '}',
+    '',
+    '# Atualiza senha do usuário padrão (se informada)',
   );
   if (hasStdPass) {
     push(
-     `  $stdPass = ConvertTo-SecureString "${config.standardPassword}" -AsPlainText -Force`,
-      '  Set-LocalUser -Name $stdUser -Password $stdPass',
+     `$stdPass = ConvertTo-SecureString "${config.standardPassword}" -AsPlainText -Force`,
+      'Set-LocalUser -Name $stdUser -Password $stdPass -PasswordNeverExpires $true -ErrorAction SilentlyContinue',
+      'Write-OK "Senha do usuário padrão definida"',
     );
   }
-  push(
-    '  Write-OK "Usuário padrão já existe, senha atualizada: $stdUser"',
-    '}',
-    '',
-  );
+  push('',);
 
-  // 4. Software via winget
-  const wingetPkgs: { name: string; id: string; enabled: boolean }[] = [
-    { name: 'WinRAR',          id: 'RARLab.WinRAR',                    enabled: config.software.winrar },
-    { name: 'LibreOffice',     id: 'TheDocumentFoundation.LibreOffice', enabled: config.software.libreoffice },
-    { name: 'Google Chrome',   id: 'Google.Chrome',                    enabled: config.software.chrome },
-    { name: 'Adobe Reader',    id: 'Adobe.Acrobat.Reader.64-bit',      enabled: config.software.adobeReader },
-    { name: 'VLC',             id: 'VideoLAN.VLC',                     enabled: config.software.vlc },
-    { name: 'AnyDesk',         id: 'AnyDeskSoftwareGmbH.AnyDesk',      enabled: config.software.anydesk },
+  // 4. Software via Chocolatey
+  const chocoPkgs: { name: string; id: string; enabled: boolean }[] = [
+    { name: 'WinRAR',        id: 'winrar',        enabled: config.software.winrar },
+    { name: 'LibreOffice',   id: 'libreoffice',   enabled: config.software.libreoffice },
+    { name: 'Google Chrome', id: 'googlechrome',  enabled: config.software.chrome },
+    { name: 'Adobe Reader',  id: 'adobereader',   enabled: config.software.adobeReader },
+    { name: 'VLC',           id: 'vlc',           enabled: config.software.vlc },
+    { name: 'AnyDesk',       id: 'anydesk',       enabled: config.software.anydesk },
   ];
 
-  const enabled = wingetPkgs.filter(p => p.enabled);
+  const enabled = chocoPkgs.filter(p => p.enabled);
   if (enabled.length > 0) {
     push(
-      'Write-Step "Instalando programas via winget..."',
-      '# Garante que winget está disponível',
-      'if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {',
-      '  Write-WARN "winget não encontrado. Pulando instalação automática."',
+      'Write-Step "Instalando Chocolatey (gerenciador de pacotes)..."',
+      'if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {',
+      '  Set-ExecutionPolicy Bypass -Scope Process -Force',
+      '  [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072',
+      '  Invoke-Expression ((New-Object System.Net.WebClient).DownloadString("https://community.chocolatey.org/install.ps1"))',
+      '  Write-OK "Chocolatey instalado"',
       '} else {',
+      '  Write-OK "Chocolatey já instalado"',
+      '}',
+      '',
+      'Write-Step "Instalando programas via Chocolatey..."',
     );
     for (const pkg of enabled) {
       push(
-       `  Write-Host "  Instalando ${pkg.name}..." -ForegroundColor Gray`,
-       `  winget install -e --id ${pkg.id} --accept-license --accept-source-agreements --silent 2>&1 | Out-Null`,
-       `  Write-OK "${pkg.name} instalado"`,
+       `Write-Host "  Instalando ${pkg.name}..." -ForegroundColor Gray`,
+       `choco install ${pkg.id} -y --no-progress 2>&1 | Out-Null`,
+       `Write-OK "${pkg.name} instalado"`,
       );
     }
-    push('}', '');
+    push('');
   }
 
   // 5. Office do pendrive
@@ -223,7 +244,8 @@ function generateScript(config: SetupConfig): string {
         '$bytes = [System.Convert]::FromBase64String($b64)',
         '[System.IO.File]::WriteAllBytes($dest, $bytes)',
         'Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "Wallpaper" -Value $dest',
-        'Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "WallpaperStyle" -Value "10"',
+        'Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "WallpaperStyle" -Value "6"',
+        'Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "TileWallpaper" -Value "0"',
         'RUNDLL32.EXE user32.dll, UpdatePerUserSystemParameters',
         'Write-OK "Papel de parede aplicado"',
         '',
