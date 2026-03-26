@@ -96,49 +96,55 @@ function generateScript(config: SetupConfig): string {
   push(
     'Write-Step "Configurando usuário padrão..."',
    `$stdUser = "${config.standardUser}"`,
-    '# Contas de sistema que nunca devem ser renomeadas',
     '$sistemaCtas = @("Administrador","Administrator","Convidado","Guest","DefaultAccount","WDAGUtilityAccount")',
     '$adminSIDName = (Get-LocalUser | Where-Object { $_.SID -like "*-500" } | Select-Object -First 1).Name',
     '',
-    '# Busca usuário padrão existente (não-sistema, não o admin embutido)',
-    '$usuarioExistente = Get-LocalUser | Where-Object {',
-    '  $_.Name -ne $adminSIDName -and $_.Name -notin $sistemaCtas',
-    '} | Select-Object -First 1',
+    '# Lista todos os usuários locais não-sistema para diagnóstico',
+    '$todosUsuarios = Get-LocalUser | Where-Object { $_.Name -ne $adminSIDName -and $_.Name -notin $sistemaCtas }',
+    'Write-Host "  Usuarios locais encontrados: $($todosUsuarios.Name -join \', \')" -ForegroundColor Gray',
+    '',
+    '$usuarioExistente = $todosUsuarios | Select-Object -First 1',
     '',
     'if ($usuarioExistente -and $usuarioExistente.Name -ne $stdUser) {',
-    '  # Renomeia o usuário existente para o nome desejado',
-    '  Rename-LocalUser -Name $usuarioExistente.Name -NewName $stdUser',
-    '  Write-OK "Usuário \'$($usuarioExistente.Name)\' renomeado para \'$stdUser\'"',
+    '  Write-Host "  Renomeando \'$($usuarioExistente.Name)\' para \'$stdUser\'..." -ForegroundColor Gray',
+    '  try {',
+    '    Rename-LocalUser -Name $usuarioExistente.Name -NewName $stdUser -ErrorAction Stop',
+    '    Set-LocalUser -Name $stdUser -FullName $stdUser -ErrorAction SilentlyContinue',
+    '    Write-OK "Usuário \'$($usuarioExistente.Name)\' renomeado para \'$stdUser\'"',
+    '  } catch {',
+    '    Write-WARN "Não foi possível renomear: $_"',
+    '    Write-WARN "Se for conta Microsoft, faça a troca manualmente em Configurações > Contas"',
+    '  }',
     '} elseif (-not (Get-LocalUser -Name $stdUser -ErrorAction SilentlyContinue)) {',
-    '  # Nenhum usuário padrão encontrado — cria um novo',
+    '  Write-Host "  Nenhum usuário padrão encontrado. Criando novo usuário..." -ForegroundColor Gray',
   );
   if (hasStdPass) {
     push(
      `  $stdPass = ConvertTo-SecureString "${config.standardPassword}" -AsPlainText -Force`,
-      '  New-LocalUser -Name $stdUser -Password $stdPass -FullName "Secretaria" -Description "Usuário padrão" -PasswordNeverExpires | Out-Null',
+      '  New-LocalUser -Name $stdUser -Password $stdPass -FullName $stdUser -Description "Usuário padrão" -PasswordNeverExpires | Out-Null',
     );
   } else {
     push(
-      '  New-LocalUser -Name $stdUser -NoPassword -FullName "Secretaria" -Description "Usuário padrão" -PasswordNeverExpires | Out-Null',
+      '  New-LocalUser -Name $stdUser -NoPassword -FullName $stdUser -Description "Usuário padrão" -PasswordNeverExpires | Out-Null',
     );
   }
   push(
     '  Add-LocalGroupMember -Group "Usuários" -Member $stdUser -ErrorAction SilentlyContinue',
     '  Write-OK "Usuário padrão criado: $stdUser"',
     '} else {',
+    '  Set-LocalUser -Name $stdUser -FullName $stdUser -ErrorAction SilentlyContinue',
     '  Write-OK "Usuário padrão já existe: $stdUser"',
     '}',
     '',
-    '# Atualiza senha do usuário padrão (se informada)',
   );
   if (hasStdPass) {
     push(
      `$stdPass = ConvertTo-SecureString "${config.standardPassword}" -AsPlainText -Force`,
       'Set-LocalUser -Name $stdUser -Password $stdPass -PasswordNeverExpires $true -ErrorAction SilentlyContinue',
       'Write-OK "Senha do usuário padrão definida"',
+      '',
     );
   }
-  push('',);
 
   // 4. Software via Chocolatey
   const chocoPkgs: { name: string; id: string; enabled: boolean }[] = [
@@ -158,18 +164,23 @@ function generateScript(config: SetupConfig): string {
       '  Set-ExecutionPolicy Bypass -Scope Process -Force',
       '  [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072',
       '  Invoke-Expression ((New-Object System.Net.WebClient).DownloadString("https://community.chocolatey.org/install.ps1"))',
+      '  # Atualiza PATH para o choco ficar disponível na mesma sessão',
+      '  $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")',
       '  Write-OK "Chocolatey instalado"',
       '} else {',
       '  Write-OK "Chocolatey já instalado"',
       '}',
+      '',
+      '$choco = "$env:ProgramData\\chocolatey\\bin\\choco.exe"',
+      'if (-not (Test-Path $choco)) { $choco = "choco" }',
       '',
       'Write-Step "Instalando programas via Chocolatey..."',
     );
     for (const pkg of enabled) {
       push(
        `Write-Host "  Instalando ${pkg.name}..." -ForegroundColor Gray`,
-       `choco install ${pkg.id} -y --no-progress 2>&1 | Out-Null`,
-       `Write-OK "${pkg.name} instalado"`,
+       `& $choco install ${pkg.id} -y --no-progress`,
+       `if ($LASTEXITCODE -eq 0) { Write-OK "${pkg.name} instalado com sucesso" } else { Write-WARN "Falha ao instalar ${pkg.name} (codigo: $LASTEXITCODE)" }`,
       );
     }
     push('');
