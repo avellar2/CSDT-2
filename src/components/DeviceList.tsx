@@ -913,7 +913,7 @@ const DeviceList: React.FC = () => {
     }
     if (filters.createdBy?.length > 0) filterDescription.push(`Criado por: ${filters.createdBy.join(', ')}`);
     if (filters.status && filters.status !== 'all') {
-      filterDescription.push(`Status: ${{ csdt: 'No CSDT', chada: 'Na CHADA', schools: 'Em Escolas' }[filters.status as string]}`);
+      filterDescription.push(`Status: ${{ csdt: 'No CSDT', chada: 'Na CHADA', schools: 'Em Escolas', sme: 'Na SME' }[filters.status as string]}`);
     }
 
     // ── Cores ──────────────────────────────────────────────────────
@@ -1306,7 +1306,12 @@ const DeviceList: React.FC = () => {
       {/* Relatórios Avançados */}
       {showReports && (
         <div className="mb-6">
-          <AdvancedReports items={items} schools={schools} />
+          {activeFilters && (
+            <div className="mb-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-300">
+              🔍 Relatório usando <strong>{filteredItems.length} itens filtrados</strong> (filtros do painel acima aplicados)
+            </div>
+          )}
+          <AdvancedReports items={activeFilters ? filteredItems : items} schools={schools} />
         </div>
       )}
 

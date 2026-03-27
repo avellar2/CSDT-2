@@ -38,7 +38,7 @@ interface FilterOptions {
     end: string;
   };
   createdBy: string[];
-  status: 'all' | 'csdt' | 'schools' | 'chada';
+  status: 'all' | 'csdt' | 'schools' | 'chada' | 'sme';
   sortBy: 'name' | 'date' | 'school' | 'type';
   sortOrder: 'asc' | 'desc';
 }
@@ -111,6 +111,27 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       .sort((a, b) => a.localeCompare(b, 'pt-BR'))
       .map(name => ({ value: name, label: name }));
   }, [items]);
+
+  const setorOptions = React.useMemo(() => {
+    const unique = [...new Set(items.map(item => item.School?.name).filter(Boolean))] as string[];
+    return unique
+      .filter(name => SETORES.has(name))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map(name => ({ value: name, label: name }));
+  }, [items]);
+
+  const allLocationOptions = React.useMemo(() => {
+    const unique = [...new Set(items.map(item => item.School?.name).filter(Boolean))] as string[];
+    return unique
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map(name => ({ value: name, label: name }));
+  }, [items]);
+
+  const currentLocationOptions = React.useMemo(() => {
+    if (filters.status === 'schools') return schoolOptions;
+    if (filters.status === 'sme') return setorOptions;
+    return allLocationOptions;
+  }, [filters.status, schoolOptions, setorOptions, allLocationOptions]);
 
   const typeOptions = [
     { value: 'COMPUTADOR', label: 'Computador' },
@@ -196,6 +217,12 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         case 'schools':
           filteredItems = filteredItems.filter(item =>
             item.School?.name != null && !SETORES.has(item.School.name)
+          );
+          break;
+        case 'sme':
+          filteredItems = filteredItems.filter(item =>
+            item.School?.name != null && SETORES.has(item.School.name) &&
+            item.School.name !== 'CSDT' && item.School.name !== 'CHADA'
           );
           break;
       }
@@ -392,6 +419,12 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                         item.School?.name != null && !SETORES.has(item.School.name)
                       );
                       break;
+                    case 'sme':
+                      filteredItems = filteredItems.filter(item =>
+                        item.School?.name != null && SETORES.has(item.School.name) &&
+                        item.School.name !== 'CSDT' && item.School.name !== 'CHADA'
+                      );
+                      break;
                   }
                 }
 
@@ -458,6 +491,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               >
                 <option value="all">Todos</option>
                 <option value="schools">Em Escolas</option>
+                <option value="sme">Na SME</option>
                 <option value="csdt">No CSDT</option>
                 <option value="chada">Na CHADA</option>
               </select>
@@ -468,19 +502,19 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Escolas
+                {filters.status === 'sme' ? 'Setores' : filters.status === 'all' ? 'Escolas / Setores' : 'Escolas'}
               </label>
               <Select
                 isMulti
-                value={schoolOptions.filter(option => filters.selectedSchools.includes(option.value))}
-                onChange={(selected) => setFilters(prev => ({ 
-                  ...prev, 
-                  selectedSchools: selected ? selected.map(s => s.value) : [] 
+                value={currentLocationOptions.filter(option => filters.selectedSchools.includes(option.value))}
+                onChange={(selected) => setFilters(prev => ({
+                  ...prev,
+                  selectedSchools: selected ? selected.map(s => s.value) : []
                 }))}
-                options={schoolOptions}
-                placeholder="Selecionar escolas..."
+                options={currentLocationOptions}
+                placeholder={filters.status === 'sme' ? 'Selecionar setores...' : 'Selecionar escolas...'}
                 className="text-black"
-                noOptionsMessage={() => "Nenhuma escola encontrada"}
+                noOptionsMessage={() => "Nenhuma opção encontrada"}
               />
             </div>
             
