@@ -577,10 +577,10 @@ const Dashboard: React.FC = () => {
         key={card.id}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: index * 0.05 }}
+        transition={{ duration: 0.5, delay: index * 0.1 }}
       >
         <div
-          className={`relative cursor-pointer ${card.color} text-white p-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex flex-col items-center group border-l-4 border-l-white/30`}
+          className={`relative cursor-pointer ${card.color} text-white p-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex flex-col items-center group border-l-4 border-l-blue-500 hover:shadow-md transition-shadow`}
           onClick={() => card.action ? card.action() : card.path && handleNavigate(card.path)}
         >
           {/* Botão de favorito */}
@@ -631,7 +631,7 @@ const Dashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
-                  Menu Principal
+                  Dashboard
                 </h1>
                 <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400">
                   Bem-vindo, {userName || 'Usuário'}
