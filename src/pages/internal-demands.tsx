@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from '@/lib/supabaseClient';
-import { 
-  CheckCircle, 
-  Clock, 
-  MagnifyingGlass, 
+import {
+  CheckCircle,
+  Clock,
+  MagnifyingGlass,
   Funnel,
   CaretDown,
   CaretUp,
@@ -18,6 +18,7 @@ import {
   Info
 } from "phosphor-react";
 import { PDFDocument } from 'pdf-lib';
+import { motion } from 'framer-motion';
 
 
 interface InternalOS {
@@ -363,13 +364,13 @@ const InternalDemands: React.FC = () => {
   // Render do status badge
   const getStatusBadge = (status: string) => {
     const styles: { [key: string]: string } = {
-      'Pendente': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Aceita': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Concluído': 'bg-green-100 text-green-800 border-green-200'
+      'Pendente': 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+      'Aceita': 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+      'Concluído': 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
     };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${styles[status] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${styles[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>
         {status}
       </span>
     );
@@ -377,14 +378,20 @@ const InternalDemands: React.FC = () => {
 
   // Render dos cards de OS
   const renderOSCard = (os: InternalOS) => (
-    <div key={os.id} className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
+    <motion.div
+      key={os.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-none transition-all"
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{os.setor}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{os.setor}</h3>
             {getStatusBadge(os.status)}
           </div>
-          <p className="text-sm text-gray-500 flex items-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
             <Calendar size={14} className="mr-1" />
             {os.createdAt ? `Criado ${getTimeElapsed(os.createdAt)} atrás` : 'Data não disponível'}
           </p>
@@ -392,14 +399,14 @@ const InternalDemands: React.FC = () => {
       </div>
 
       <div className="mb-4">
-        <p className="text-gray-700">{os.problema}</p>
+        <p className="text-gray-700 dark:text-gray-300">{os.problema}</p>
         {os.descricao && (
-          <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
+          <div className="mt-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               <strong>Resolução:</strong> {os.descricao}
             </p>
             {os.peca && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 <strong>Peças:</strong> {os.peca}
               </p>
             )}
@@ -408,10 +415,10 @@ const InternalDemands: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           Atualizado: {new Date(os.updatedAt).toLocaleString('pt-BR')}
         </p>
-        
+
         <div className="flex space-x-2">
           {os.status === 'Pendente' && (
             <button
@@ -421,20 +428,20 @@ const InternalDemands: React.FC = () => {
                 osId: os.id,
                 osTitle: `${os.setor} - ${os.problema.substring(0, 50)}...`
               })}
-              className="flex items-center space-x-1 px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+              className="flex items-center space-x-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors text-sm"
             >
               <CheckCircle size={16} />
               <span>Aceitar</span>
             </button>
           )}
-          
+
           {os.status === 'Aceita' && (
             <button
               onClick={() => {
                 setSelectedOS(os);
                 setIsModalOpen(true);
               }}
-              className="flex items-center space-x-1 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+              className="flex items-center space-x-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm"
             >
               <CheckCircle size={16} />
               <span>Finalizar</span>
@@ -442,32 +449,32 @@ const InternalDemands: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 
   // Loading skeleton
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
         <div className="max-w-6xl mx-auto">
           <div className="mb-6">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-2 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[1,2,3,4].map(i => (
-              <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded"></div>
+              <div key={i} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 animate-pulse">
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
               </div>
             ))}
           </div>
           <div className="space-y-4">
             {[1,2,3].map(i => (
-              <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+              <div key={i} className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 animate-pulse">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
               </div>
             ))}
           </div>
@@ -477,66 +484,84 @@ const InternalDemands: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
             Demandas Internas
           </h1>
-          <p className="text-gray-600">
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Gerencie as demandas da equipe
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
             Bem-vindo, {profile?.displayName || "Carregando..."}
           </p>
-        </div>
+        </motion.div>
 
         {/* Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-xl border border-gray-200">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
+        >
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center">
-              <ClipboardText size={20} className="text-gray-500 mr-2" />
+              <ClipboardText size={20} className="text-gray-500 dark:text-gray-400 mr-2" />
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
               </div>
             </div>
           </div>
-          
-          <div className="bg-white p-4 rounded-xl border border-gray-200">
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center">
-              <Clock size={20} className="text-yellow-500 mr-2" />
+              <Clock size={20} className="text-amber-500 mr-2" />
               <div>
-                <p className="text-2xl font-bold text-yellow-600">{stats.pendentes}</p>
-                <p className="text-sm text-gray-600">Pendentes</p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.pendentes}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Pendentes</p>
               </div>
             </div>
           </div>
-          
-          <div className="bg-white p-4 rounded-xl border border-gray-200">
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center">
               <Wrench size={20} className="text-blue-500 mr-2" />
               <div>
-                <p className="text-2xl font-bold text-blue-600">{stats.aceitas}</p>
-                <p className="text-sm text-gray-600">Em Andamento</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.aceitas}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Em Andamento</p>
               </div>
             </div>
           </div>
-          
-          <div className="bg-white p-4 rounded-xl border border-gray-200">
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center">
-              <CheckCircle size={20} className="text-green-500 mr-2" />
+              <CheckCircle size={20} className="text-emerald-500 mr-2" />
               <div>
-                <p className="text-2xl font-bold text-green-600">{stats.concluidas}</p>
-                <p className="text-sm text-gray-600">Concluídas</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.concluidas}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Concluídas</p>
                 {stats.tempoMedioHoras > 0 && (
-                  <p className="text-xs text-gray-500">~{stats.tempoMedioHoras}h média</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">~{stats.tempoMedioHoras}h média</p>
                 )}
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Abas */}
-        <div className="flex space-x-1 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex space-x-1 mb-6"
+        >
           {[
             { key: 'active', label: 'Ativas', count: stats.pendentes + stats.aceitas },
             { key: 'completed', label: 'Concluídas', count: stats.concluidas },
@@ -547,30 +572,35 @@ const InternalDemands: React.FC = () => {
               onClick={() => setActiveTab(tab.key as TabType)}
               className={`
                 px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                ${activeTab === tab.key 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                ${activeTab === tab.key
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                 }
               `}
             >
               {tab.label} ({tab.count})
             </button>
           ))}
-        </div>
+        </motion.div>
 
         {/* Filtros */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mb-6"
+        >
           <div className="flex flex-col md:flex-row gap-4">
             {/* Busca */}
             <div className="flex-1">
               <div className="relative">
-                <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   placeholder="Buscar por setor ou problema..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                 />
               </div>
             </div>
@@ -580,7 +610,7 @@ const InternalDemands: React.FC = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
               >
                 <option value="all">Todos os Status</option>
                 {uniqueStatus.map(status => (
@@ -594,7 +624,7 @@ const InternalDemands: React.FC = () => {
               <select
                 value={setorFilter}
                 onChange={(e) => setSetorFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
               >
                 <option value="all">Todos os Setores</option>
                 {uniqueSetores.map(setor => (
@@ -606,7 +636,7 @@ const InternalDemands: React.FC = () => {
             {/* Botões */}
             <button
               onClick={resetFilters}
-              className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
             >
               Limpar
             </button>
@@ -614,22 +644,27 @@ const InternalDemands: React.FC = () => {
             <button
               onClick={() => fetchData(false)}
               disabled={refreshing}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {refreshing ? 'Atualizando...' : 'Atualizar'}
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Lista de OS */}
-        <div className="space-y-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="space-y-4"
+        >
           {filteredAndSortedOS.length === 0 ? (
-            <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
-              <ClipboardText size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 text-lg">
+            <div className="bg-white dark:bg-slate-800 p-12 rounded-xl border border-gray-200 dark:border-gray-700 text-center">
+              <ClipboardText size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+              <p className="text-gray-500 dark:text-gray-400 text-lg">
                 {searchTerm || statusFilter !== 'all' || setorFilter !== 'all'
                   ? 'Nenhuma OS encontrada com os filtros aplicados'
-                  : activeTab === 'active' 
+                  : activeTab === 'active'
                     ? 'Nenhuma OS ativa encontrada'
                     : activeTab === 'completed'
                       ? 'Nenhuma OS concluída encontrada'
@@ -650,16 +685,16 @@ const InternalDemands: React.FC = () => {
               {filteredAndSortedOS.map(renderOSCard)}
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Modal de finalização */}
       {isModalOpen && selectedOS && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full shadow-2xl">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Finalizar OS</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Finalizar OS</h2>
                 <button
                   onClick={() => {
                     setIsModalOpen(false);
@@ -667,26 +702,26 @@ const InternalDemands: React.FC = () => {
                     setProblemDescription("");
                     setPeca("");
                   }}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-700">
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Setor:</strong> {selectedOS.setor}
                 </p>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Problema:</strong> {selectedOS.problema}
                 </p>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Email:</strong> {selectedOS.email || "Não informado"}
                 </p>
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Peça para comprar (opcional)
                 </label>
                 <input
@@ -694,12 +729,12 @@ const InternalDemands: React.FC = () => {
                   value={peca}
                   onChange={(e) => setPeca(e.target.value)}
                   placeholder="Ex: HD, Memória, Fonte..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                 />
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Descrição da resolução *
                 </label>
                 <textarea
@@ -707,7 +742,7 @@ const InternalDemands: React.FC = () => {
                   onChange={(e) => setProblemDescription(e.target.value)}
                   placeholder="Descreva como o problema foi resolvido..."
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                 />
               </div>
 
@@ -719,14 +754,14 @@ const InternalDemands: React.FC = () => {
                     setProblemDescription("");
                     setPeca("");
                   }}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={finalizeOS}
                   disabled={isSubmitting || !problemDescription.trim()}
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? "Finalizando..." : "Finalizar"}
                 </button>
@@ -738,24 +773,24 @@ const InternalDemands: React.FC = () => {
 
       {/* Dialog de confirmação */}
       {confirmDialog.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full shadow-2xl">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <CheckCircle size={24} className="text-blue-500" weight="fill" />
-                  <h3 className="text-lg font-semibold text-gray-900">Aceitar OS</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Aceitar OS</h3>
                 </div>
                 <button
                   onClick={() => setConfirmDialog({ isOpen: false, type: 'accept', osId: null, osTitle: '' })}
                   disabled={isSubmitting}
-                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Deseja aceitar a OS: {confirmDialog.osTitle}?
               </p>
 
@@ -763,7 +798,7 @@ const InternalDemands: React.FC = () => {
                 <button
                   onClick={() => setConfirmDialog({ isOpen: false, type: 'accept', osId: null, osTitle: '' })}
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancelar
                 </button>
