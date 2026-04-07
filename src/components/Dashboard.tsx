@@ -580,7 +580,7 @@ const Dashboard: React.FC = () => {
         transition={{ duration: 0.5, delay: index * 0.1 }}
       >
         <div
-          className={`relative cursor-pointer ${card.color} text-white p-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex flex-col items-center group border-l-4 border-l-blue-500 hover:shadow-md transition-shadow`}
+          className={`relative cursor-pointer ${card.color} text-white p-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex flex-col items-center group border-l-4 border-l-blue-500`}
           onClick={() => card.action ? card.action() : card.path && handleNavigate(card.path)}
         >
           {/* Botão de favorito */}
