@@ -35,6 +35,7 @@ import DashboardRegisterForm from "./DashboardRegisterForm";
 import PrinterRequestCard from "./PrinterRequestCard";
 import PreventiveMaintenanceCard from "./PreventiveMaintenanceCard";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
 
 const SchoolsMapModal = dynamic(() => import("./SchoolsMapModal"), { ssr: false });
 
@@ -221,12 +222,14 @@ const Dashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-6" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse" />
-          ))}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="h-12 w-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-8" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="h-32 rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -565,48 +568,54 @@ const Dashboard: React.FC = () => {
     }
   }
 
-  const renderCard = (card: typeof allCards[0]) => {
+  const renderCard = (card: typeof allCards[0], index: number) => {
     const IconComponent = card.icon;
     const isFavorite = favorites.includes(card.id);
-    
+
     return (
-      <div
+      <motion.div
         key={card.id}
-        className={`relative cursor-pointer ${card.color} text-white p-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex flex-col items-center group`}
-        onClick={() => card.action ? card.action() : card.path && handleNavigate(card.path)}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: index * 0.1 }}
       >
-        {/* Botão de favorito */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFavorite(card.id);
-          }}
-          className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/20 transition-colors"
+        <div
+          className={`relative cursor-pointer ${card.color} text-white p-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl flex flex-col items-center group border-l-4 border-l-blue-500`}
+          onClick={() => card.action ? card.action() : card.path && handleNavigate(card.path)}
         >
-          <Star 
-            size={16} 
-            className={isFavorite ? "text-yellow-300" : "text-white/70 group-hover:text-white"}
-            weight={isFavorite ? "fill" : "regular"}
-          />
-        </button>
-        
-        {/* Badge de notificação */}
-        {card.badge && (
-          <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-            {card.badge}
-          </div>
-        )}
-        
-        <IconComponent size={48} className="mb-3" />
-        <p className="text-center text-sm font-medium leading-tight">{card.title}</p>
-        
-        {/* Indicador de favorito */}
-        {isFavorite && (
-          <div className="absolute bottom-2 left-2">
-            <Star size={12} className="text-yellow-300" weight="fill" />
-          </div>
-        )}
-      </div>
+          {/* Botão de favorito */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFavorite(card.id);
+            }}
+            className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/20 transition-colors"
+          >
+            <Star
+              size={16}
+              className={isFavorite ? "text-yellow-300" : "text-white/70 group-hover:text-white"}
+              weight={isFavorite ? "fill" : "regular"}
+            />
+          </button>
+
+          {/* Badge de notificação */}
+          {card.badge && (
+            <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+              {card.badge}
+            </div>
+          )}
+
+          <IconComponent size={48} className="mb-3" />
+          <p className="text-center text-sm font-medium leading-tight">{card.title}</p>
+
+          {/* Indicador de favorito */}
+          {isFavorite && (
+            <div className="absolute bottom-2 left-2">
+              <Star size={12} className="text-yellow-300" weight="fill" />
+            </div>
+          )}
+        </div>
+      </motion.div>
     );
   };
 
@@ -615,57 +624,69 @@ const Dashboard: React.FC = () => {
       {showRegisterForm && (
         <DashboardRegisterForm onClose={() => setShowRegisterForm(false)} />
       )}
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
           {/* Header com busca e notificações */}
-          <div className="mb-8">
+          <div className="mb-12">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                  Menu Principal
+                <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
+                  Dashboard
                 </h1>
-                <p className="text-gray-600 dark:text-gray-300">
+                <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400">
                   Bem-vindo, {userName || 'Usuário'}
                 </p>
               </div>
               
               {/* Notificações rápidas */}
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 {notifications.pendingOS > 0 && (
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
                     onClick={() => handleNavigate('/os-externas-list')}
-                    className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-1 rounded-full text-sm hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-3 py-1.5 rounded-full text-sm hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors cursor-pointer border border-amber-200 dark:border-amber-800"
                   >
-                    <Bell size={16} />
-                    <span>{notifications.pendingOS} OS pendentes</span>
-                  </button>
+                    <Bell size={16} weight="fill" />
+                    <span className="font-medium">{notifications.pendingOS} OS pendentes</span>
+                  </motion.button>
                 )}
                 {notifications.newDemands > 0 && (
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
                     onClick={() => handleNavigate('/daily-demands')}
-                    className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1.5 rounded-full text-sm hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer border border-blue-200 dark:border-blue-800"
                   >
-                    <Calendar size={16} />
-                    <span>{notifications.newDemands} novas demandas</span>
-                  </button>
+                    <Calendar size={16} weight="fill" />
+                    <span className="font-medium">{notifications.newDemands} novas demandas</span>
+                  </motion.button>
                 )}
                 {notifications.delayedDiagnostics > 0 && (
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
                     onClick={() => handleNavigate('/chada')}
-                    className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1.5 rounded-full text-sm hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors cursor-pointer border border-orange-200 dark:border-orange-800"
                   >
-                    <Printer size={16} />
-                    <span>{notifications.delayedDiagnostics} impressoras atrasadas</span>
-                  </button>
+                    <Printer size={16} weight="fill" />
+                    <span className="font-medium">{notifications.delayedDiagnostics} impressoras atrasadas</span>
+                  </motion.button>
                 )}
                 {notifications.chamadosAbertos > 0 && (
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
                     onClick={() => handleNavigate('/scales?view=tickets')}
-                    className="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1.5 rounded-full text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors cursor-pointer border border-purple-200 dark:border-purple-800"
                   >
-                    <Wrench size={16} />
-                    <span>{notifications.chamadosAbertos} chamados abertos</span>
-                  </button>
+                    <Wrench size={16} weight="fill" />
+                    <span className="font-medium">{notifications.chamadosAbertos} chamados abertos</span>
+                  </motion.button>
                 )}
                 {/* Notificação de chamados removida temporariamente */}
                 {/*
@@ -679,32 +700,35 @@ const Dashboard: React.FC = () => {
 
                 {/* Botão de backup - apenas para Vanderson */}
                 {supabaseUserId === process.env.NEXT_PUBLIC_BACKUP_ADMIN_ID && (
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
                     onClick={handleCreateBackup}
                     disabled={isCreatingBackup}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isCreatingBackup 
+                      isCreatingBackup
                         ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                        : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-900/50'
+                        : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
                     }`}
                     title="Fazer backup de todas as tabelas e arquivos"
                   >
-                    <CloudArrowDown size={16} />
-                    <span>{isCreatingBackup ? 'Criando...' : 'Backup'}</span>
-                  </button>
+                    <CloudArrowDown size={16} weight={isCreatingBackup ? "bold" : "fill"} />
+                    <span className="font-medium">{isCreatingBackup ? 'Criando...' : 'Backup'}</span>
+                  </motion.button>
                 )}
               </div>
             </div>
             
             {/* Barra de busca */}
             <div className="relative max-w-md">
-              <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 placeholder="Buscar funcionalidades..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm hover:shadow-md"
               />
             </div>
           </div>
@@ -723,33 +747,46 @@ const Dashboard: React.FC = () => {
           */}
 
           {/* Cards organizados por categoria */}
-          <div className="space-y-8">
-            {Object.entries(groupedCards).map(([category, cards]) => (
-              <div key={category}>
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                  <span className="w-1 h-6 bg-blue-500 rounded"></span>
+          <div className="space-y-10">
+            {Object.entries(groupedCards).map(([category, cards], categoryIndex) => (
+              <motion.div
+                key={category}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: categoryIndex * 0.1 }}
+              >
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-3">
+                  <span className="w-1.5 h-8 bg-gradient-to-b from-blue-600 to-purple-600 rounded-full"></span>
                   {category}
-                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                    ({cards.length})
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full">
+                    {cards.length}
                   </span>
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {cards.map(renderCard)}
+                  {cards.map((card, index) => renderCard(card, index))}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
           
           {/* Mensagem quando não há cards */}
           {filteredCards.length === 0 && (
-            <div className="text-center py-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-center py-16"
+            >
               <div className="text-gray-400 dark:text-gray-500 mb-4">
-                <MagnifyingGlass size={48} className="mx-auto" />
+                <MagnifyingGlass size={56} className="mx-auto" weight="thin" />
               </div>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">
                 Nenhuma funcionalidade encontrada para "{searchTerm}"
               </p>
-            </div>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                Tente buscar por outros termos
+              </p>
+            </motion.div>
           )}
         </div>
       </div>

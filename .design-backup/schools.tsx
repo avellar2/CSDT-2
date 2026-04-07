@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   MagnifyingGlass,
   MapPin,
@@ -21,6 +22,7 @@ import {
 } from 'phosphor-react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface School {
   id: number;
@@ -245,27 +247,26 @@ const SchoolsPage: React.FC = () => {
     } else {
       return valueA < valueB ? 1 : -1;
     }
-  }); 
-
-  console.log(schools);
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-zinc-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
+        <header className="text-center mb-12">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
+            Escolas
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Gerenciamento de instituições de ensino
+          </p>
+        </header>
+
+        {/* Controls */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Escolas do Sistema
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Gerencie e visualize todas as escolas cadastradas no sistema
-              </p>
-            </div>
-
             <div className="flex items-center gap-3">
-              {/* Botão Exportar Excel */}
+              {/* Export Button */}
               <button
                 onClick={exportToExcel}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors font-medium"
@@ -278,8 +279,8 @@ const SchoolsPage: React.FC = () => {
                 </span>
               </button>
 
-              {/* Toggle de Visualização */}
-              <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-zinc-700">
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-600">
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
@@ -304,50 +305,51 @@ const SchoolsPage: React.FC = () => {
                 </button>
               </div>
             </div>
+
           </div>
 
-          {/* Barra de Pesquisa e Filtros */}
+          {/* Search and Filters Bar */}
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="relative flex-1 max-w-md">
               <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Pesquisar escolas por nome..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:bg-slate-800 dark:border-gray-600 dark:text-white"
+                placeholder="Pesquisar escolas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             
-            {/* Botão de Filtros */}
+            {/* Filters Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
-                showFilters 
-                  ? 'bg-blue-500 text-white border-blue-500' 
-                  : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                showFilters
+                  ? 'bg-blue-500 text-white border-blue-500'
+                  : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-slate-700'
               }`}
             >
               <Funnel size={20} />
               Filtros
             </button>
             
-            {/* Ordenação Rápida */}
+            {/* Quick Sort */}
             <div className="flex items-center gap-2">
               <select
                 value={filters.sortBy}
                 onChange={(e) => setFilters({...filters, sortBy: e.target.value})}
-                className="px-3 py-3 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
               >
                 <option value="name">Nome</option>
                 <option value="district">Distrito</option>
                 <option value="students">Alunos</option>
                 <option value="director">Diretor</option>
               </select>
-              
+
               <button
                 onClick={() => setFilters({...filters, sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'})}
-                className="flex items-center justify-center w-12 h-12 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+                className="flex items-center justify-center w-12 h-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
               >
                 {filters.sortOrder === 'asc' ? <SortAscending size={20} /> : <SortDescending size={20} />}
               </button>
@@ -355,9 +357,9 @@ const SchoolsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Painel de Filtros Avançados */}
+        {/* Advanced Filters Panel */}
         {showFilters && (
-          <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 p-6 mb-8">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Filtros Avançados
@@ -383,7 +385,7 @@ const SchoolsPage: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-              {/* Filtro por Distrito */}
+              {/* District Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Distrito
@@ -391,7 +393,7 @@ const SchoolsPage: React.FC = () => {
                 <select
                   value={filters.district}
                   onChange={(e) => setFilters({...filters, district: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                 >
                   <option value="">Todos os distritos</option>
                   {Array.from(new Set(schools.map(school => school.district).filter(Boolean))).map(district => (
@@ -399,8 +401,8 @@ const SchoolsPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-              
-              {/* Filtro por Laboratório */}
+
+              {/* Lab Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Desktop size={14} className="inline mr-1" />
@@ -409,15 +411,15 @@ const SchoolsPage: React.FC = () => {
                 <select
                   value={filters.laboratorio}
                   onChange={(e) => setFilters({...filters, laboratorio: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                 >
                   <option value="">Todas as escolas</option>
                   <option value="com">Com laboratório</option>
                   <option value="sem">Sem laboratório</option>
                 </select>
               </div>
-              
-              {/* Filtro por Anexos */}
+
+              {/* Annexes Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <span className="mr-1">📍</span>
@@ -426,15 +428,15 @@ const SchoolsPage: React.FC = () => {
                 <select
                   value={filters.anexos}
                   onChange={(e) => setFilters({...filters, anexos: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                 >
                   <option value="">Todas as escolas</option>
                   <option value="com">Com anexos</option>
                   <option value="sem">Sem anexos</option>
                 </select>
               </div>
-              
-              {/* Filtro por Diretor */}
+
+              {/* Director Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Diretor
@@ -444,11 +446,11 @@ const SchoolsPage: React.FC = () => {
                   placeholder="Nome do diretor..."
                   value={filters.director}
                   onChange={(e) => setFilters({...filters, director: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                 />
               </div>
-              
-              {/* Filtro por Número Mínimo de Alunos */}
+
+              {/* Min Students Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Mín. Alunos
@@ -458,11 +460,11 @@ const SchoolsPage: React.FC = () => {
                   placeholder="Ex: 100"
                   value={filters.minStudents}
                   onChange={(e) => setFilters({...filters, minStudents: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                 />
               </div>
-              
-              {/* Filtro por Número Máximo de Alunos */}
+
+              {/* Max Students Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Máx. Alunos
@@ -472,250 +474,266 @@ const SchoolsPage: React.FC = () => {
                   placeholder="Ex: 1000"
                   value={filters.maxStudents}
                   onChange={(e) => setFilters({...filters, maxStudents: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* Estatísticas Rápidas */}
+        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
-          <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <GraduationCap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                  <GraduationCap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Escolas Principais</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{mainSchools.length}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Escolas Principais</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{mainSchools.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total de Alunos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {schools.reduce((sum, school) => sum + (school.students || 0), 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-                <MapPin className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total de Alunos</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {schools.reduce((sum, school) => sum + (school.students || 0), 0).toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Distritos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {new Set(schools.map(school => school.district).filter(Boolean)).size}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Desktop className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                  <MapPin className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Distritos</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {new Set(schools.map(school => school.district).filter(Boolean)).size}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Com Laboratório</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {schools.filter(school => school.laboratorio && school.laboratorio > 0).length}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
-                <span className="text-lg">📍</span>
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                  <Desktop className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Com Laboratório</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {schools.filter(school => school.laboratorio && school.laboratorio > 0).length}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Anexos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {schools.filter(school => school.parentSchoolId).length}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-rose-100 dark:bg-rose-900/20 rounded-lg">
-                <Eye className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+                  <span className="text-lg">📍</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Anexos</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {schools.filter(school => school.parentSchoolId).length}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Encontradas</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredSchools.length}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-rose-100 dark:bg-rose-900/20 rounded-lg">
+                  <Eye className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Encontradas</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredSchools.length}</p>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Conteúdo Principal */}
+        {/* Main Content */}
         {viewMode === 'grid' ? (
-          /* Visualização em Cards */
+          /* Grid View */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSchools.map((school) => (
-              <div
+            {filteredSchools.map((school, index) => (
+              <motion.div
                 key={school.id}
-                className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                {/* Header do Card com Distrito */}
-                <div className={`h-2 ${getDistrictColor(school.district)}`}></div>
-                
-                <div className="p-6">
-                  {/* Nome da Escola */}
-                  <div className="mb-4">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                      {school.name}
-                    </h3>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <MapPin size={14} className="mr-1" />
-                      Distrito {school.district || 'N/A'}
-                    </div>
-                  </div>
+                <Card className="hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer overflow-hidden">
+                  {/* District Header */}
+                  <div className={`h-2 ${getDistrictColor(school.district)}`}></div>
 
-                  {/* Informações Básicas */}
-                  <div className="space-y-2 mb-4">
-                    {school.director && (
+                  <CardContent className="p-6">
+                    {/* School Name */}
+                    <div className="mb-4">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                        {school.name}
+                      </h3>
                       <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <GraduationCap size={14} className="mr-2" />
-                        {school.director}
+                        <MapPin size={14} className="mr-1" />
+                        Distrito {school.district || 'N/A'}
+                      </div>
+                    </div>
+
+                    {/* Basic Info */}
+                    <div className="space-y-2 mb-4">
+                      {school.director && (
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                          <GraduationCap size={14} className="mr-2" />
+                          {school.director}
+                        </div>
+                      )}
+                      {school.students && school.students > 0 && (
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                          <Users size={14} className="mr-2" />
+                          {school.students.toLocaleString()} alunos
+                        </div>
+                      )}
+                      {school.laboratorio !== undefined && school.laboratorio > 0 && (
+                        <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
+                          <Desktop size={14} className="mr-2" />
+                          Laboratório: {school.laboratorio} equipamentos
+                        </div>
+                      )}
+                      {school.other_School && school.other_School.length > 0 && (
+                        <div className="flex items-start text-sm text-purple-600 dark:text-purple-400">
+                          <span className="mr-2 mt-1">📍</span>
+                          <div>
+                            <span className="font-medium">Anexos ({school.other_School.length}):</span>
+                            <div className="mt-1 space-y-1">
+                              {school.other_School.map((annex) => (
+                                <div key={annex.id} className="text-xs bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
+                                  {annex.name.replace(/^ANEXO\s*(\([^)]*\))?\s*:?\s*/i, '')}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Clickable Address */}
+                    {school.address && (
+                      <div
+                        onClick={() => openMap(school.address, school.name)}
+                        className="flex items-start text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg transition-colors"
+                      >
+                        <MapPin size={14} className="mr-2 mt-0.5 flex-shrink-0" />
+                        <span className="hover:underline">{school.address}</span>
                       </div>
                     )}
-                    {school.students && school.students > 0 && (
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <Users size={14} className="mr-2" />
-                        {school.students.toLocaleString()} alunos
-                      </div>
-                    )}
-                    {school.laboratorio !== undefined && school.laboratorio > 0 && (
-                      <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
-                        <Desktop size={14} className="mr-2" />
-                        Laboratório: {school.laboratorio} equipamentos
-                      </div>
-                    )}
-                    {school.other_School && school.other_School.length > 0 && (
-                      <div className="flex items-start text-sm text-purple-600 dark:text-purple-400">
-                        <span className="mr-2 mt-1">📍</span>
-                        <div>
-                          <span className="font-medium">Anexos ({school.other_School.length}):</span>
-                          <div className="mt-1 space-y-1">
-                            {school.other_School.map((annex) => (
-                              <div key={annex.id} className="text-xs bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
-                                {annex.name.replace(/^ANEXO\s*(\([^)]*\))?\s*:?\s*/i, '')}
-                              </div>
-                            ))}
+
+                    {/* Contacts */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {school.phone && (
+                        <a
+                          href={`tel:${school.phone}`}
+                          className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs rounded-full hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
+                        >
+                          <Phone size={12} />
+                          {school.phone}
+                        </a>
+                      )}
+                      {school.email && (
+                        <a
+                          href={`mailto:${school.email}`}
+                          className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-300 text-xs rounded-full hover:bg-gray-200 dark:hover:bg-gray-900/30 transition-colors"
+                        >
+                          <EnvelopeSimple size={12} />
+                          Email
+                        </a>
+                      )}
+                    </div>
+
+                    {/* School Stats */}
+                    {schoolStats[school.id] && (
+                      <div className="mb-4 p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Estatísticas</h4>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">OS Total:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{schoolStats[school.id].totalOS}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Itens:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{schoolStats[school.id].items}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Memorandos:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{schoolStats[school.id].memorandos}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">OS Externas:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{schoolStats[school.id].osExternas}</span>
                           </div>
                         </div>
                       </div>
                     )}
-                  </div>
 
-                  {/* Endereço Clicável */}
-                  {school.address && (
-                    <div 
-                      onClick={() => openMap(school.address, school.name)}
-                      className="flex items-start text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg transition-colors"
-                    >
-                      <MapPin size={14} className="mr-2 mt-0.5 flex-shrink-0" />
-                      <span className="hover:underline">{school.address}</span>
-                    </div>
-                  )}
-
-                  {/* Contatos */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {school.phone && (
-                      <a
-                        href={`tel:${school.phone}`}
-                        className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs rounded-full hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => loadSchoolStats(school.id)}
+                        disabled={loadingStats[school.id]}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
                       >
-                        <Phone size={12} />
-                        {school.phone}
-                      </a>
-                    )}
-                    {school.email && (
-                      <a
-                        href={`mailto:${school.email}`}
-                        className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-300 text-xs rounded-full hover:bg-gray-200 dark:hover:bg-gray-900/30 transition-colors"
-                      >
-                        <EnvelopeSimple size={12} />
-                        Email
-                      </a>
-                    )}
-                  </div>
-
-                  {/* Estatísticas da Escola */}
-                  {schoolStats[school.id] && (
-                    <div className="mb-4 p-3 bg-gray-50 dark:bg-zinc-700 rounded-lg">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Estatísticas</h4>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">OS Total:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">{schoolStats[school.id].totalOS}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Itens:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">{schoolStats[school.id].items}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Memorandos:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">{schoolStats[school.id].memorandos}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">OS Externas:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">{schoolStats[school.id].osExternas}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Ações */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => loadSchoolStats(school.id)}
-                      disabled={loadingStats[school.id]}
-                      className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
-                    >
-                      {loadingStats[school.id] ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Carregando...
-                        </>
-                      ) : schoolStats[school.id] ? (
-                        <>📊 Atualizar</>
-                      ) : (
-                        <>📊 Ver Stats</>
-                      )}
-                    </button>
-                    <Link href={`/schools/${school.id}`}>
-                      <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
-                        <Eye size={16} />
-                        Ver Detalhes
+                        {loadingStats[school.id] ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Carregando...
+                          </>
+                        ) : schoolStats[school.id] ? (
+                          <>📊 Atualizar</>
+                        ) : (
+                          <>📊 Ver Stats</>
+                        )}
                       </button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+                      <Link href={`/schools/${school.id}`}>
+                        <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
+                          <Eye size={16} />
+                          Ver Detalhes
+                        </button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         ) : (
-          /* Visualização em Lista/Tabela */
-          <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 overflow-hidden">
+          /* List View */
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-                <thead className="bg-gray-50 dark:bg-zinc-900">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-slate-900">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Escola
@@ -737,9 +755,9 @@ const SchoolsPage: React.FC = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-zinc-800 divide-y divide-gray-200 dark:divide-zinc-700">
+                <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredSchools.map((school) => (
-                    <tr key={school.id} className="hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors">
+                    <tr key={school.id} className="hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className={`w-3 h-3 rounded-full mr-3 ${getDistrictColor(school.district)}`}></div>
@@ -763,7 +781,7 @@ const SchoolsPage: React.FC = () => {
                               </div>
                             )}
                             {school.address && (
-                              <div 
+                              <div
                                 onClick={() => openMap(school.address, school.name)}
                                 className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 cursor-pointer hover:underline flex items-center mt-1"
                               >
@@ -826,7 +844,7 @@ const SchoolsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Estado vazio */}
+        {/* Empty State */}
         {filteredSchools.length === 0 && (
           <div className="text-center py-12">
             <GraduationCap size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
