@@ -17,7 +17,10 @@ import {
   Cube,
   CheckCircle,
   Clock,
-  WarningCircle
+  WarningCircle,
+  Backpack,
+  Printer,
+  Monitor
 } from 'phosphor-react';
 import axios from 'axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -84,6 +87,7 @@ const ItemsPage: React.FC = () => {
     status: '',
     school: '',
     brand: '',
+    type: '',
     sortBy: 'name',
     sortOrder: 'asc' as 'asc' | 'desc'
   });
@@ -154,7 +158,22 @@ const ItemsPage: React.FC = () => {
     const matchesBrand = !filters.brand ||
       item.brand.toLowerCase().includes(filters.brand.toLowerCase());
 
-    return matchesSearch && matchesStatus && matchesSchool && matchesBrand;
+    // Filtro por tipo (baseado no nome do item)
+    const getItemType = (name: string) => {
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes('mochila')) return 'mochila';
+      if (lowerName.includes('notebook') || lowerName.includes('computador') || lowerName.includes('desktop') || lowerName.includes('pc')) return 'computador';
+      if (lowerName.includes('impressora')) return 'impressora';
+      if (lowerName.includes('monitor') || lowerName.includes('tela')) return 'monitor';
+      if (lowerName.includes('tablet')) return 'tablet';
+      if (lowerName.includes('projetor')) return 'projetor';
+      if (lowerName.includes('mouse') || lowerName.includes('teclado')) return 'periferico';
+      return 'outro';
+    };
+
+    const matchesType = !filters.type || getItemType(item.name) === filters.type;
+
+    return matchesSearch && matchesStatus && matchesSchool && matchesBrand && matchesType;
   }).sort((a, b) => {
     let valueA: any, valueB: any;
 
@@ -191,6 +210,24 @@ const ItemsPage: React.FC = () => {
   const brands = Array.from(new Set(items.map(item => item.brand).filter(Boolean)));
   const statusCounts = items.reduce((acc, item) => {
     acc[item.status] = (acc[item.status] || 0) + 1;
+    return acc;
+  }, {} as { [key: string]: number });
+
+  const getItemType = (name: string) => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('mochila')) return 'mochila';
+    if (lowerName.includes('notebook') || lowerName.includes('computador') || lowerName.includes('desktop') || lowerName.includes('pc')) return 'computador';
+    if (lowerName.includes('impressora')) return 'impressora';
+    if (lowerName.includes('monitor') || lowerName.includes('tela')) return 'monitor';
+    if (lowerName.includes('tablet')) return 'tablet';
+    if (lowerName.includes('projetor')) return 'projetor';
+    if (lowerName.includes('mouse') || lowerName.includes('teclado')) return 'periferico';
+    return 'outro';
+  };
+
+  const typeCounts = items.reduce((acc, item) => {
+    const type = getItemType(item.name);
+    acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {} as { [key: string]: number });
 
@@ -289,6 +326,7 @@ const ItemsPage: React.FC = () => {
                       status: '',
                       school: '',
                       brand: '',
+                      type: '',
                       sortBy: 'name',
                       sortOrder: 'asc'
                     });
@@ -300,7 +338,7 @@ const ItemsPage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Status Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -316,6 +354,28 @@ const ItemsPage: React.FC = () => {
                     <option value="EM_MANUTENCAO">Em Manutenção</option>
                     <option value="DEFECTIVO">Defectivo</option>
                     <option value="ALOCADO">Alocado</option>
+                  </select>
+                </div>
+
+                {/* Type Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Tipo
+                  </label>
+                  <select
+                    value={filters.type}
+                    onChange={(e) => setFilters({...filters, type: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                  >
+                    <option value="">Todos os tipos</option>
+                    <option value="mochila">🎒 Mochila</option>
+                    <option value="computador">💻 Computador</option>
+                    <option value="impressora">🖨️ Impressora</option>
+                    <option value="monitor">🖥️ Monitor</option>
+                    <option value="tablet">📱 Tablet</option>
+                    <option value="projetor">📽️ Projetor</option>
+                    <option value="periferico">🖱️ Periférico</option>
+                    <option value="outro">📦 Outro</option>
                   </select>
                 </div>
 
@@ -357,7 +417,7 @@ const ItemsPage: React.FC = () => {
           )}
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
             <Card className="hover:shadow-lg transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -423,6 +483,20 @@ const ItemsPage: React.FC = () => {
                   <div className="ml-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">Alocados</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts['ALOCADO'] || 0}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                    <Backpack className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Mochilas</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{typeCounts['mochila'] || 0}</p>
                   </div>
                 </div>
               </CardContent>
