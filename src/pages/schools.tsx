@@ -247,9 +247,7 @@ const SchoolsPage: React.FC = () => {
     } else {
       return valueA < valueB ? 1 : -1;
     }
-  }); 
-
-  console.log(schools);
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -308,46 +306,6 @@ const SchoolsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Botão Exportar Excel */}
-              <button
-                onClick={exportToExcel}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors font-medium"
-                title={`Exportar ${filteredSchools.length} escola${filteredSchools.length !== 1 ? 's' : ''} para Excel`}
-              >
-                <FileXls size={20} weight="bold" />
-                Exportar Excel
-                <span className="ml-1 px-2 py-0.5 bg-green-700 rounded-full text-xs">
-                  {filteredSchools.length}
-                </span>
-              </button>
-
-              {/* Toggle de Visualização */}
-              <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-zinc-700">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  <SquaresFour size={18} />
-                  Cards
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  <List size={18} />
-                  Lista
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Search and Filters Bar */}
