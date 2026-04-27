@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import prisma from '@/utils/prisma';
@@ -511,7 +511,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             y: templatePage.getHeight() - 30,
             size: 10,
             font: helveticaFont,
-            color: { type: 'RGB', red: 0.2, green: 0.2, blue: 0.2 },
+            color: rgb(0.2, 0.2, 0.2),
           });
         }
 
