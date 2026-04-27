@@ -448,13 +448,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Preencher campos básicos
         form.getTextField("numeroMemorando").setText(`${memorandum.number}`);
 
-        // NOVO: Preencher paginação
-        try {
-          form.getTextField("pagina")?.setText(`Página ${currentPage + 1}/${totalPages}`);
-        } catch (e) {
-          console.log("Campo pagina não encontrado no PDF");
-        }
-
         form.getTextField("dataMemorando").setText(formattedDate);
         form.getTextField("escola").setText(schoolName);
         form.getTextField("distrito").setText(district || "não informado");
@@ -505,6 +498,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         form.flatten();
+
+        // Adicionar numeração de página diretamente no PDF
+        const templatePage = pageTemplate.getPages()[0];
+        const helveticaFont = await pageTemplate.embedFont('Helvetica');
+        const pageText = totalPages > 1 ? `Página ${currentPage + 1}/${totalPages}` : '';
+        if (pageText) {
+          const textWidth = helveticaFont.widthOfTextAtSize(pageText, 10);
+          const pageWidth = templatePage.getWidth();
+          templatePage.drawText(pageText, {
+            x: pageWidth - textWidth - 40,
+            y: templatePage.getHeight() - 30,
+            size: 10,
+            font: helveticaFont,
+            color: { type: 'RGB', red: 0.2, green: 0.2, blue: 0.2 },
+          });
+        }
 
         // Adicionar página ao documento final
         const templatePages = await multiPagePdf.copyPages(pageTemplate, [0]);
