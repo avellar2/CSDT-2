@@ -110,7 +110,8 @@ const DeviceList: React.FC = () => {
   const [relatedData, setRelatedData] = useState<any>(null);
   const [loadingRelatedData, setLoadingRelatedData] = useState(false);
   const itemsPerPage = 10; // Número de itens por página
-  
+  const ITEMS_PER_PAGE = 13; // Itens por página no PDF de entrega
+
   // Novos estados para funcionalidades avançadas
   const [showDashboard, setShowDashboard] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'table'>('list');
@@ -618,15 +619,7 @@ const DeviceList: React.FC = () => {
         alert("Selecione pelo menos um item para entrega.");
         return;
       }
-      
-      if (selectedFromCSDT.length > 13) {
-        setModalMessage(
-          `📦 Limite de itens excedido!\n\nVocê selecionou ${selectedFromCSDT.length} itens, mas o limite máximo para memorandos de entrega é de 13 itens.\n\nPor favor, reduza a seleção para até 13 itens ou crie múltiplos memorandos.`
-        );
-        setModalIsOpen(true);
-        return;
-      }
-      
+
       if (!schoolName) {
         alert("Por favor, selecione uma escola.");
         return;
@@ -667,18 +660,11 @@ const DeviceList: React.FC = () => {
         setModalIsOpen(true);
         return;
       }
-      
+
       if (selectedFromDestino.length > 10) {
         setModalMessage(
           `🚫 Limite excedido!\n\nVocê selecionou ${selectedFromDestino.length} itens da escola, mas o máximo são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
         );
-        setModalIsOpen(true);
-        return;
-      }
-    } else {
-      // Para entrega, manter limite de 13 itens total
-      if (selectedFromCSDT.length > 13) {
-        setModalMessage("Você pode selecionar no máximo 13 itens por memorando.");
         setModalIsOpen(true);
         return;
       }
@@ -1946,23 +1932,19 @@ const DeviceList: React.FC = () => {
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   📋 Itens Selecionados:{" "}
                   {memorandumType === "entrega" ? (
-                    <span className={selectedFromCSDT.length > 13 ? "text-red-500 font-bold" : ""}>
-                      {selectedFromCSDT.length}/13 {selectedFromCSDT.length > 13 && "⚠️"}
-                    </span>
+                    <span>{selectedFromCSDT.length}</span>
                   ) : memorandumType === "troca" ? (
                     selectedFromCSDT.length + selectedFromDestino.length
                   ) : (
                     0
                   )}
                 </p>
-                
-                {/* Aviso de limite excedido */}
-                {memorandumType === "entrega" && selectedFromCSDT.length > 13 && (
-                  <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-sm">
-                    <span className="text-red-600 dark:text-red-400 font-medium">
-                      ⚠️ Limite excedido! Máximo: 13 itens por memorando de entrega.
-                    </span>
-                  </div>
+
+                {/* NOVO: Indicador de páginas */}
+                {memorandumType === "entrega" && selectedFromCSDT.length > 0 && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
+                    📄 Serão geradas {Math.ceil(selectedFromCSDT.length / ITEMS_PER_PAGE)} página(s)
+                  </p>
                 )}
 
                 {/* Container com scroll para muitos itens */}
