@@ -51,3 +51,6 @@ testConnection.ts
 seedOs.ts
 
 /prisma/seed.ts
+
+# worktrees (isolated development workspaces)
+.worktrees/
