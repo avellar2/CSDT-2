@@ -1470,7 +1470,7 @@ const DeviceList: React.FC = () => {
 
         {/* AlertDialog para gerar o memorando */}
         <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black max-w-2xl max-h-[90vh] flex flex-col">
+          <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black max-w-2xl max-h-[90vh] flex flex-col z-[10000]">
             <AlertDialogHeader className="flex-shrink-0">
               <AlertDialogTitle className="dark:text-white">
                 Gerar Memorando
