@@ -71,11 +71,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!district) {
       return res.status(400).json({ error: 'Distrito é obrigatório para entrega.' });
     }
-    if (itemIds.length > 13) {
-      return res.status(400).json({ 
-        error: `Limite de itens excedido. Máximo: 13 itens, recebidos: ${itemIds.length} itens.` 
-      });
-    }
   } else if (type === 'troca') {
     if (!fromSchool || !fromSchool.name) {
       return res.status(400).json({ error: 'Escola de origem é obrigatória para troca.' });
@@ -84,6 +79,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Escola de destino é obrigatória para troca.' });
     }
   }
+
+  // Constante para itens por página
+  const ITEMS_PER_PAGE = 13;
+
+  // Calcular quantidade de páginas necessárias
+  const totalPages = Math.ceil(itemIds.length / ITEMS_PER_PAGE);
+  console.log(`Generating ${totalPages} pages for ${itemIds.length} items`);
 
   try {
     let targetSchool: any;
@@ -228,6 +230,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       generatedBy: userProfile.displayName,
       number: automaticMemorandumNumber,
       type: type, // AGORA PODE INCLUIR
+      pageCount: totalPages,  // NOVO: quantidade de páginas
       updatedAt: new Date(),
       items: {
         create: itemIds.map((id: number) => ({
