@@ -54,3 +54,4 @@ seedOs.ts
 
 # worktrees (isolated development workspaces)
 .worktrees/
+.gstack/
