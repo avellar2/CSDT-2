@@ -447,6 +447,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Preencher campos básicos
         form.getTextField("numeroMemorando").setText(`${memorandum.number}`);
+
+        // NOVO: Preencher paginação
+        try {
+          form.getTextField("pagina")?.setText(`Página ${currentPage + 1}/${totalPages}`);
+        } catch (e) {
+          console.log("Campo pagina não encontrado no PDF");
+        }
+
         form.getTextField("dataMemorando").setText(formattedDate);
         form.getTextField("escola").setText(schoolName);
         form.getTextField("distrito").setText(district || "não informado");
