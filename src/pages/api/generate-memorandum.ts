@@ -71,11 +71,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!district) {
       return res.status(400).json({ error: 'Distrito é obrigatório para entrega.' });
     }
-    if (itemIds.length > 13) {
-      return res.status(400).json({ 
-        error: `Limite de itens excedido. Máximo: 13 itens, recebidos: ${itemIds.length} itens.` 
-      });
-    }
   } else if (type === 'troca') {
     if (!fromSchool || !fromSchool.name) {
       return res.status(400).json({ error: 'Escola de origem é obrigatória para troca.' });
@@ -84,6 +79,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Escola de destino é obrigatória para troca.' });
     }
   }
+
+  // Constante para itens por página
+  const ITEMS_PER_PAGE = 13;
+
+  // Calcular quantidade de páginas necessárias
+  const totalPages = Math.ceil(itemIds.length / ITEMS_PER_PAGE);
+  console.log(`Generating ${totalPages} pages for ${itemIds.length} items`);
 
   try {
     let targetSchool: any;
@@ -228,6 +230,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       generatedBy: userProfile.displayName,
       number: automaticMemorandumNumber,
       type: type, // AGORA PODE INCLUIR
+      pageCount: totalPages,  // NOVO: quantidade de páginas
       updatedAt: new Date(),
       items: {
         create: itemIds.map((id: number) => ({
@@ -422,56 +425,96 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       pdfBase64 = await generateMemorandoTrocaBase64(trocaData);
       
     } else {
-      // Lógica existente para entrega
-      console.log("Using existing PDF filling for entrega...");
-      
+      // Lógica para ENTREGA com suporte a múltiplas páginas
+      console.log("Generating multi-page PDF for entrega...");
+
       const pdfFileName = 'memorando.pdf';
       const pdfPath = path.join(process.cwd(), "public", pdfFileName);
       const pdfBytes = fs.readFileSync(pdfPath);
       const pdfDoc = await PDFDocument.load(pdfBytes);
-      const form = pdfDoc.getForm();
 
-      // Preencher campos básicos
-      form.getTextField("numeroMemorando").setText(`${memorandum.number}`);
+      // Criar novo documento para as múltiplas páginas
+      const multiPagePdf = await PDFDocument.create();
 
-      // Formatar a data no formato "26 de novembro de 2025"
+      // Dados comuns a todas as páginas
       const formattedDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-      form.getTextField("dataMemorando").setText(formattedDate);
 
-      // Preencher campos para entrega
-      form.getTextField("escola").setText(schoolName);
-      form.getTextField("distrito").setText(district || "não informado");
+      // Gerar página por página
+      for (let currentPage = 0; currentPage < totalPages; currentPage++) {
+        // Clonar o template
+        const pageTemplate = await PDFDocument.load(pdfBytes);
+        const form = pageTemplate.getForm();
 
-      // Campos adicionais
-      try {
-        form.getTextField("conferente")?.setText(userProfile.displayName || "");
-      } catch (e) {
-        console.log("Campo conferente não encontrado no PDF");
+        // Preencher campos básicos
+        form.getTextField("numeroMemorando").setText(`${memorandum.number}`);
+
+        // NOVO: Preencher paginação
+        try {
+          form.getTextField("pagina")?.setText(`Página ${currentPage + 1}/${totalPages}`);
+        } catch (e) {
+          console.log("Campo pagina não encontrado no PDF");
+        }
+
+        form.getTextField("dataMemorando").setText(formattedDate);
+        form.getTextField("escola").setText(schoolName);
+        form.getTextField("distrito").setText(district || "não informado");
+
+        // Campos adicionais
+        try {
+          form.getTextField("conferente")?.setText(userProfile.displayName || "");
+        } catch (e) {
+          console.log("Campo conferente não encontrado no PDF");
+        }
+        try {
+          form.getTextField("escola2")?.setText(schoolName);
+        } catch (e) {
+          console.log("Campo escola2 não encontrado no PDF");
+        }
+        try {
+          form.getTextField("tipoOperacao")?.setText("ENTREGA DE EQUIPAMENTOS");
+        } catch (e) {
+          console.log("Campo tipoOperacao não encontrado no PDF");
+        }
+
+        // Calcular itens desta página
+        const startIdx = currentPage * ITEMS_PER_PAGE;
+        const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, itemIds.length);
+        const pageItemIds = itemIds.slice(startIdx, endIdx);
+
+        // Buscar dados dos itens desta página
+        const pageItems = await prisma.item.findMany({
+          where: { id: { in: pageItemIds } },
+        });
+
+        // Preencher itens desta página
+        pageItems.forEach((item, index) => {
+          if (index >= ITEMS_PER_PAGE) return;
+          const itemWithBrand = `${item.brand}`;
+          form.getTextField(`item${index + 1}`).setText(itemWithBrand);
+          form.getTextField(`serial${index + 1}`).setText(item.serialNumber);
+        });
+
+        // Limpar campos vazios (se a página não estiver cheia)
+        for (let emptyIdx = pageItems.length; emptyIdx < ITEMS_PER_PAGE; emptyIdx++) {
+          try {
+            form.getTextField(`item${emptyIdx + 1}`).setText("");
+            form.getTextField(`serial${emptyIdx + 1}`).setText("");
+          } catch (e) {
+            // Campo pode não existir
+          }
+        }
+
+        form.flatten();
+
+        // Adicionar página ao documento final
+        const templatePages = await multiPagePdf.copyPages(pageTemplate, [0]);
+        multiPagePdf.addPage(templatePages[0]);
       }
-      try {
-        form.getTextField("escola2")?.setText(schoolName);
-      } catch (e) {
-        console.log("Campo escola2 não encontrado no PDF");
-      }
 
-      // Campos opcionais
-      try {
-        form.getTextField("tipoOperacao")?.setText("ENTREGA DE EQUIPAMENTOS");
-      } catch (e) {
-        console.log("Campo tipoOperacao não encontrado no PDF");
-      }
-
-      // Preencher itens
-      memorandum.items.forEach((item, index) => {
-        if (index >= 13) return; // Limite de 13 itens
-        const itemWithBrand = `${item.Item.brand}`;
-        form.getTextField(`item${index + 1}`).setText(itemWithBrand);
-        form.getTextField(`serial${index + 1}`).setText(item.Item.serialNumber);
-      });
-
-      form.flatten();
-      const pdfBytesModified = await pdfDoc.save();
+      const pdfBytesModified = await multiPagePdf.save();
       pdfBase64 = Buffer.from(pdfBytesModified).toString("base64");
+
+      console.log(`Multi-page PDF generated with ${totalPages} pages`);
     }
 
     console.log(`PDF de ${type} gerado com sucesso.`);
