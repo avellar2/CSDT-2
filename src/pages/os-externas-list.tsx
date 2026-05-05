@@ -73,6 +73,7 @@ interface PendingDailyDemand {
   schoolDistrict: string;
   description: string;
   createdAt: string;
+  responsibleTechnicians: string[];
 }
 
 const OsExternasList: React.FC = () => {
@@ -454,6 +455,12 @@ const OsExternasList: React.FC = () => {
                         <p className="text-sm text-gray-600 mb-2">
                           {demand.schoolAddress}
                         </p>
+                        {demand.responsibleTechnicians.length > 0 && (
+                          <p className="text-sm text-gray-700 mb-2">
+                            <User size={16} className="inline mr-1" />
+                            Responsável{demand.responsibleTechnicians.length > 1 ? 'is' : ''}: {demand.responsibleTechnicians.join(', ')}
+                          </p>
+                        )}
                         <p className="text-sm text-gray-700 whitespace-pre-line">
                           {demand.description}
                         </p>

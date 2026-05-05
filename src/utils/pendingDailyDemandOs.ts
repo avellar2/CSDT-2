@@ -8,9 +8,10 @@ export interface PendingDailyDemandItem {
   schoolDistrict: string;
   description: string;
   createdAt: string;
+  responsibleTechnicians: string[];
 }
 
-async function getTodayVisitTechnicianIds() {
+async function getTodayVisitTechnicians() {
   const { dateKey } = getBrazilParts();
   const { start, end } = getBrazilDayRange(dateKey);
 
@@ -26,7 +27,28 @@ async function getTodayVisitTechnicianIds() {
     },
   });
 
-  return new Set(visitTechnicians.map((item) => item.technicianId));
+  if (visitTechnicians.length === 0) {
+    return [];
+  }
+
+  const profiles = await prisma.profile.findMany({
+    where: {
+      id: {
+        in: visitTechnicians.map((item) => item.technicianId),
+      },
+    },
+    select: {
+      id: true,
+      displayName: true,
+    },
+  });
+
+  return visitTechnicians.map((item) => ({
+    technicianId: item.technicianId,
+    displayName:
+      profiles.find((profile) => profile.id === item.technicianId)?.displayName ||
+      `Técnico ${item.technicianId}`,
+  }));
 }
 
 export async function getPendingDailyDemandItems(params?: {
@@ -51,7 +73,9 @@ export async function getPendingDailyDemandItems(params?: {
     }
 
     if (profile.role === "TECH") {
-      const visitIds = await getTodayVisitTechnicianIds();
+      const visitIds = new Set(
+        (await getTodayVisitTechnicians()).map((item) => item.technicianId)
+      );
       shouldSeeDemands = visitIds.has(profile.id);
     }
   }
@@ -84,6 +108,10 @@ export async function getPendingDailyDemandItems(params?: {
   if (demands.length === 0) {
     return [];
   }
+
+  const responsibleTechnicians = (await getTodayVisitTechnicians()).map(
+    (item) => item.displayName
+  );
 
   const schoolNames = demands.map((demand) => demand.School.name);
 
@@ -132,5 +160,6 @@ export async function getPendingDailyDemandItems(params?: {
       schoolDistrict: demand.School.district || "",
       description: demand.demand,
       createdAt: demand.createdAt.toISOString(),
+      responsibleTechnicians,
     }));
 }
