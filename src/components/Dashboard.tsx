@@ -135,7 +135,7 @@ const Dashboard: React.FC = () => {
 
   const isTech = ['TECH', 'ADMIN', 'ADMTOTAL'].includes(userRole || '');
 
-  const { data: pendingOSData } = useSWR(userRole ? '/api/dashboard/pending-os' : null, fetcher, { refreshInterval: 60000 });
+  const { data: pendingOSData } = useSWR(userRole && supabaseUserId ? `/api/dashboard/pending-os?userId=${encodeURIComponent(supabaseUserId)}` : null, fetcher, { refreshInterval: 60000 });
   const { data: dailyDemandsData } = useSWR(userRole ? '/api/dashboard/daily-demands-count' : null, fetcher, { refreshInterval: 60000 });
   const { data: internalChatData } = useSWR(isTech ? '/api/internal-chat/count-pending' : null, fetcher, { refreshInterval: 30000 });
   const { data: delayedData } = useSWR(isTech ? '/api/chada-diagnostics/delayed' : null, fetcher, { refreshInterval: 120000 });
@@ -234,7 +234,7 @@ const Dashboard: React.FC = () => {
 
   // Definir categorias de cards
   const cardCategories = {
-    'Ordens de Serviço': ['fill-pdf-form-2', 'os-list', 'os-externas-list', 'create-internal-os'],
+    'Ordens de Serviço': ['fill-pdf-form-2', 'pending-os', 'os-list', 'os-externas-list', 'create-internal-os'],
     'Estatísticas': ['statistics', 'advanced-statistics'],
     'Escolas e Equipamentos': ['schools', 'items', 'device-list', 'printers', 'locados', 'schools-map'],
     'Gestão Diária': ['daily-demands', 'scales', 'internal-demands'],
@@ -286,6 +286,16 @@ const Dashboard: React.FC = () => {
       roles: ['ADMTOTAL', 'TECH'],
       category: 'Ordens de Serviço',
       badge: null
+    },
+    {
+      id: 'pending-os',
+      title: 'OS Pendentes',
+      icon: Bell,
+      color: 'bg-rose-500 hover:bg-rose-700',
+      path: '/os-externas-list?status=Pendente',
+      roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Ordens de Serviço',
+      badge: notifications.pendingOS > 0 ? notifications.pendingOS : null
     },
     {
       id: 'statistics',
@@ -633,7 +643,7 @@ const Dashboard: React.FC = () => {
               <div className="flex items-center gap-4">
                 {notifications.pendingOS > 0 && (
                   <button
-                    onClick={() => handleNavigate('/os-externas-list')}
+                    onClick={() => handleNavigate('/os-externas-list?status=Pendente')}
                     className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-1 rounded-full text-sm hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
                   >
                     <Bell size={16} />
@@ -773,3 +783,4 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+

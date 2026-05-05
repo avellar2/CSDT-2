@@ -52,6 +52,7 @@ const DailyDemands: React.FC = () => {
   const [demands, setDemands] = useState<Demand[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // Technician state
   const [baseTechnicians, setBaseTechnicians] = useState<Technician[]>([]);
@@ -64,6 +65,7 @@ const DailyDemands: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDemand, setEditingDemand] = useState<Demand | null>(null);
+  const [releasedTechnicianIds, setReleasedTechnicianIds] = useState<number[]>([]);
 
   // Format date for API
   const formatDateForAPI = (date: Date) => date.toISOString().split('T')[0];
@@ -150,6 +152,7 @@ const DailyDemands: React.FC = () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error || !user) return;
+      setCurrentUserId(user.id);
 
       const response = await fetch(`/api/get-role?userId=${user.id}`);
       const data = await response.json();
@@ -161,6 +164,24 @@ const DailyDemands: React.FC = () => {
       console.error("Erro ao buscar role do usuário:", error);
     }
   }, []);
+
+  const fetchReleases = useCallback(async (date?: Date) => {
+    const targetDate = date || selectedDate;
+
+    try {
+      const response = await fetch(`/api/daily-demands/releases?date=${formatDateForAPI(targetDate)}`);
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar liberações");
+      }
+
+      const data = await response.json();
+      setReleasedTechnicianIds(data.releasedTechnicianIds || []);
+    } catch (releaseError) {
+      console.error("Erro ao buscar liberações:", releaseError);
+      setReleasedTechnicianIds([]);
+    }
+  }, [selectedDate]);
 
   // Fetch data for selected date
   const fetchData = useCallback(async (date?: Date) => {
@@ -209,13 +230,15 @@ const DailyDemands: React.FC = () => {
         setOffTechnicians([]);
       }
 
+      await fetchReleases(targetDate);
+
     } catch (error) {
       console.error("Erro:", error);
       setError(error instanceof Error ? error.message : "Erro desconhecido");
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, fetchTechnicianNames, checkOSStatus]);
+  }, [selectedDate, fetchTechnicianNames, checkOSStatus, fetchReleases]);
 
   // Fetch schools
   const fetchSchools = useCallback(async () => {
@@ -263,7 +286,55 @@ const DailyDemands: React.FC = () => {
     const school = schools.find(s => s.name === schoolName);
     
     if (school) {
-      router.push(`/fill-pdf-form-2?schoolName=${encodeURIComponent(school.name)}&demand=${encodeURIComponent(demand.description)}`);
+      router.push(`/fill-pdf-form-2?schoolName=${encodeURIComponent(school.name)}&demand=${encodeURIComponent(demand.description)}&origin=daily-demands&demandId=${encodeURIComponent(demand.id)}&demandDate=${encodeURIComponent(formatDateForAPI(selectedDate))}`);
+    }
+  };
+
+  const handleGrantRelease = async (technicianId: number) => {
+    if (!currentUserId) return;
+
+    try {
+      const response = await fetch("/api/daily-demands/releases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUserId,
+          technicianId,
+          date: formatDateForAPI(selectedDate),
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao liberar técnico");
+
+      await fetchReleases(selectedDate);
+    } catch (releaseError) {
+      console.error("Erro ao liberar técnico:", releaseError);
+      alert(releaseError instanceof Error ? releaseError.message : "Erro ao liberar técnico.");
+    }
+  };
+
+  const handleRevokeRelease = async (technicianId: number) => {
+    if (!currentUserId) return;
+
+    try {
+      const response = await fetch("/api/daily-demands/releases", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUserId,
+          technicianId,
+          date: formatDateForAPI(selectedDate),
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao remover liberação");
+
+      await fetchReleases(selectedDate);
+    } catch (releaseError) {
+      console.error("Erro ao remover liberação:", releaseError);
+      alert(releaseError instanceof Error ? releaseError.message : "Erro ao remover liberação.");
     }
   };
 
@@ -592,8 +663,11 @@ Veja o console para mais detalhes!`);
                   technicians={baseTechnicians}
                   type="base"
                   userRole={userRole}
+                  releasedTechnicianIds={releasedTechnicianIds}
                   onRemove={handleRemoveTechnician}
                   onMove={handleMoveTechnician}
+                  onGrantRelease={handleGrantRelease}
+                  onRevokeRelease={handleRevokeRelease}
                 />
                 <TechnicianCard
                   title="Técnicos em Visita"
@@ -601,8 +675,11 @@ Veja o console para mais detalhes!`);
                   technicians={visitTechnicians}
                   type="visit"
                   userRole={userRole}
+                  releasedTechnicianIds={releasedTechnicianIds}
                   onRemove={handleRemoveTechnician}
                   onMove={handleMoveTechnician}
+                  onGrantRelease={handleGrantRelease}
+                  onRevokeRelease={handleRevokeRelease}
                 />
                 <TechnicianCard
                   title="Técnicos de Folga"
@@ -610,8 +687,11 @@ Veja o console para mais detalhes!`);
                   technicians={offTechnicians}
                   type="off"
                   userRole={userRole}
+                  releasedTechnicianIds={releasedTechnicianIds}
                   onRemove={handleRemoveTechnician}
                   onMove={handleMoveTechnician}
+                  onGrantRelease={handleGrantRelease}
+                  onRevokeRelease={handleRevokeRelease}
                 />
               </div>
             )}
@@ -707,8 +787,11 @@ interface TechnicianCardProps {
   technicians: Technician[];
   type: 'base' | 'visit' | 'off';
   userRole: string | null;
+  releasedTechnicianIds: number[];
   onRemove: (id: string, type: 'base' | 'visit' | 'off', technicianName?: string) => void;
   onMove: (id: string, fromType: 'base' | 'visit' | 'off', toType: 'base' | 'visit' | 'off', technicianData: Technician) => void;
+  onGrantRelease: (technicianId: number) => void;
+  onRevokeRelease: (technicianId: number) => void;
 }
 
 const TechnicianCard: React.FC<TechnicianCardProps> = ({
@@ -717,8 +800,11 @@ const TechnicianCard: React.FC<TechnicianCardProps> = ({
   technicians,
   type,
   userRole,
+  releasedTechnicianIds,
   onRemove,
-  onMove
+  onMove,
+  onGrantRelease,
+  onRevokeRelease
 }) => {
   const [showMoveMenuFor, setShowMoveMenuFor] = useState<string | null>(null);
 
@@ -739,16 +825,39 @@ const TechnicianCard: React.FC<TechnicianCardProps> = ({
       </h3>
       {technicians.length > 0 ? (
         <ul className="space-y-2">
-          {technicians.map((tech) => (
+          {technicians.map((tech) => {
+            const isReleased = releasedTechnicianIds.includes(tech.technicianId);
+
+            return (
             <li key={tech.id} className="text-gray-600 text-sm">
               <div className="flex items-center justify-between gap-2 p-2 rounded hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-2 flex-1">
                   <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
-                  <span className="truncate">{tech.name || tech.technicianId}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate">{tech.name || tech.technicianId}</span>
+                    {type === 'visit' && isReleased && (
+                      <span className="text-[11px] font-medium text-emerald-700">
+                        Liberado pelo ADMTOTAL após 17h
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {(userRole === 'ADMTOTAL' || userRole === 'ADMIN') && (
                   <div className="flex items-center gap-1 relative">
+                    {type === 'visit' && userRole === 'ADMTOTAL' && (
+                      <button
+                        onClick={() => isReleased ? onRevokeRelease(tech.technicianId) : onGrantRelease(tech.technicianId)}
+                        className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                          isReleased
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                            : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                        }`}
+                        title={isReleased ? "Remover liberação" : "Liberar lançamento após 17h"}
+                      >
+                        {isReleased ? 'Liberado' : 'Liberar'}
+                      </button>
+                    )}
                     {/* Botão de mover */}
                     <button
                       onClick={() => setShowMoveMenuFor(showMoveMenuFor === tech.id ? null : tech.id)}
@@ -791,7 +900,8 @@ const TechnicianCard: React.FC<TechnicianCardProps> = ({
                 )}
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : (
         <p className="text-gray-500 text-sm">Nenhum técnico alocado</p>

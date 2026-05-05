@@ -7,39 +7,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Contar OS da tabela antiga (todas são pendentes)
-    const pendingOsOld = await prisma.os.count();
+    const { userId } = req.query;
+    let tecnicoResponsavelFilter: string | undefined;
 
-    // Contar OS da tabela nova com status "Pendente"
+    if (userId && typeof userId === 'string') {
+      const profile = await prisma.profile.findUnique({
+        where: { userId },
+        select: { role: true, displayName: true },
+      });
+
+      if (profile?.role === 'TECH') {
+        tecnicoResponsavelFilter = profile.displayName;
+      }
+    }
+
+    const sharedWhere = tecnicoResponsavelFilter
+      ? { tecnicoResponsavel: tecnicoResponsavelFilter }
+      : {};
+
+    const pendingOsOld = await prisma.os.count({
+      where: sharedWhere,
+    });
+
     const pendingOsNew = await prisma.oSExterna.count({
       where: {
-        status: 'Pendente'
-      }
+        status: 'Pendente',
+        ...sharedWhere,
+      },
     });
 
-    // Total de OS pendentes
     const totalPendingOS = pendingOsOld + pendingOsNew;
-
-    console.log('📊 Contagem de OS pendentes:', {
-      pendingOsOld,
-      pendingOsNew,
-      totalPendingOS
-    });
 
     return res.status(200).json({
       success: true,
       data: {
         pendingOsOld,
         pendingOsNew,
-        totalPendingOS
-      }
+        totalPendingOS,
+        scope: tecnicoResponsavelFilter ? 'mine' : 'all',
+      },
     });
-
   } catch (error) {
-    console.error('❌ Erro ao contar OS pendentes:', error);
+    console.error('Erro ao contar OS pendentes:', error);
     return res.status(500).json({
       error: 'Erro interno do servidor',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
+      details: error instanceof Error ? error.message : 'Erro desconhecido',
     });
   }
 }

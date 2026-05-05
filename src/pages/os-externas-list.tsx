@@ -4,6 +4,7 @@ import { useHeaderContext } from '@/context/HeaderContext';
 import { CheckCircle, Clock, Eye, Calendar, User, PaperPlaneTilt, X } from 'phosphor-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/router';
 
 // Atualizar a interface para incluir todos os campos do schema
 interface OsExterna {
@@ -66,6 +67,7 @@ interface OsExterna {
 }
 
 const OsExternasList: React.FC = () => {
+  const router = useRouter();
   const { userName } = useHeaderContext();
   const [osExternas, setOsExternas] = useState<OsExterna[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,13 +80,38 @@ const OsExternasList: React.FC = () => {
   const [emailResult, setEmailResult] = useState<{message: string, escola: string} | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmOsData, setConfirmOsData] = useState<OsExterna | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const statusFilter = typeof router.query.status === 'string' ? router.query.status : '';
+  const pendingOnly = statusFilter === 'Pendente';
 
   useEffect(() => {
-    fetchOsExternas();
-    fetchUserRole();
-  }, []);
+    if (!router.isReady) return;
 
-  const fetchUserRole = async () => {
+    const initializePage = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          setLoading(false);
+          return;
+        }
+
+        setCurrentUserId(user.id);
+        await fetchUserRole(user.id);
+        await fetchOsExternas(user.id);
+      } catch (initError) {
+        console.error('Erro ao inicializar lista de OS:', initError);
+        setLoading(false);
+      }
+    };
+
+    initializePage();
+  }, [router.isReady, router.query.status]);
+
+  const fetchUserRole = async (userIdParam?: string) => {
     try {
       // Pega o usuário logado no Supabase
       const {
@@ -100,7 +127,8 @@ const OsExternasList: React.FC = () => {
       console.log("ID do usuário no Supabase:", user.id);
 
       // Consulta a role no Prisma usando o ID do Supabase
-      const response = await fetch(`/api/get-role?userId=${user.id}`);
+      const effectiveUserId = userIdParam || user.id;
+      const response = await fetch(`/api/get-role?userId=${effectiveUserId}`);
       if (response.ok) {
         const data = await response.json();
         console.log("Role encontrada:", data.role);
@@ -113,9 +141,20 @@ const OsExternasList: React.FC = () => {
     }
   };
 
-  const fetchOsExternas = async () => {
+  const fetchOsExternas = async (userIdParam?: string) => {
     try {
-      const response = await fetch('/api/get-all-os-externas');
+      const effectiveUserId = userIdParam || currentUserId;
+      const params = new URLSearchParams();
+
+      if (effectiveUserId) {
+        params.set('userId', effectiveUserId);
+      }
+
+      if (statusFilter) {
+        params.set('status', statusFilter);
+      }
+
+      const response = await fetch(`/api/get-all-os-externas${params.toString() ? `?${params.toString()}` : ''}`);
       if (response.ok) {
         const data = await response.json();
         console.log('Dados recebidos:', data); // Debug para ver os dados
@@ -236,7 +275,7 @@ const OsExternasList: React.FC = () => {
         });
         setShowSuccessModal(true);
         // Atualizar os dados para refletir o novo envio
-        fetchOsExternas();
+        fetchOsExternas(currentUserId);
       } else {
         const errorData = await response.json();
         setEmailResult({
@@ -296,7 +335,7 @@ const OsExternasList: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            OS Externas - Controle Geral
+            {pendingOnly ? 'OS Pendentes' : 'OS Externas - Controle Geral'}
           </h1>
           <p className="text-gray-600">
             Total: {osExternas.length} | Pendentes: {osExternas.filter(os => os.status === 'Pendente').length} | Assinadas: {osExternas.filter(os => os.status === 'Assinado').length}
@@ -337,7 +376,7 @@ const OsExternasList: React.FC = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className={`grid grid-cols-1 ${pendingOnly ? '' : 'lg:grid-cols-2'} gap-8`}>
           {/* Coluna Esquerda - OS Pendentes */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex items-center mb-6">
@@ -429,6 +468,7 @@ const OsExternasList: React.FC = () => {
           </div>
 
           {/* Coluna Direita - OS Assinadas */}
+          {!pendingOnly && (
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex items-center mb-6">
               <CheckCircle size={24} className="text-green-500 mr-2" />
@@ -485,6 +525,7 @@ const OsExternasList: React.FC = () => {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 

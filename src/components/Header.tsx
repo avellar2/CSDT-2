@@ -39,6 +39,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
   const { userName, handleLogout } = useHeaderContext();
   const [localUserName, setLocalUserName] = useState<string>('');
+  const [supabaseUserId, setSupabaseUserId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,6 +117,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
         if (error || !user) return;
+        setSupabaseUserId(user.id);
 
         const response = await fetch(`/api/get-role?userId=${user.id}`);
         const data = await response.json();
@@ -146,11 +148,11 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
   // Buscar notificações
   useEffect(() => {
     const fetchNotifications = async () => {
-      if (!userRole) return;
+      if (!userRole || !supabaseUserId) return;
 
       try {
         const requests = [
-          fetch('/api/dashboard/pending-os'),
+          fetch(`/api/dashboard/pending-os?userId=${encodeURIComponent(supabaseUserId)}`),
           fetch('/api/dashboard/daily-demands-count')
         ];
 
@@ -181,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
     };
 
     fetchNotifications();
-  }, [userRole]);
+  }, [userRole, supabaseUserId]);
 
   // Definir todos os cards disponíveis (mesmo sistema do Dashboard)
   const allCards = [

@@ -433,6 +433,8 @@ model Profile {
   photoUrl    String?
   role        Role    @default(TECH)
   schoolId    Int     @default(225)
+  DailyDemandOsReleaseReleasedBy DailyDemandOsRelease[] @relation("DailyDemandOsReleaseReleasedBy")
+  DailyDemandOsReleaseTechnician DailyDemandOsRelease[] @relation("DailyDemandOsReleaseTechnician")
   Item        Item[]
   School      School  @relation(fields: [schoolId], references: [id])
 }
@@ -555,6 +557,22 @@ model SchoolDemand {
   demand    String
   createdAt DateTime @default(now())
   School    School   @relation(fields: [schoolId], references: [id])
+}
+
+model DailyDemandOsRelease {
+  id           Int      @id @default(autoincrement())
+  technicianId Int
+  demandDate   DateTime
+  releasedById Int
+  active       Boolean  @default(true)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  ReleasedBy   Profile  @relation("DailyDemandOsReleaseReleasedBy", fields: [releasedById], references: [id])
+  Technician   Profile  @relation("DailyDemandOsReleaseTechnician", fields: [technicianId], references: [id])
+
+  @@index([demandDate])
+  @@unique([technicianId, demandDate])
 }
 
 model ServiceOrder {

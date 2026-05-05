@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
+import { assessDailyDemandOsAvailability } from "@/utils/dailyDemandOsRules";
 
 const prisma = new PrismaClient();
 
@@ -9,12 +10,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { formData } = req.body;
+    const { formData, context } = req.body;
 
     console.log("Dados recebidos:", req.body.formData);
 
     // Filtrar apenas os campos que existem no modelo OSExterna
-    const {
+    let {
       unidadeEscolar,
       tecnicoResponsavel,
       data,
@@ -63,6 +64,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       tabletsProprioOutrosLocais,
       tabletsLocadoOutrosLocais,
     } = formData;
+
+    if (context?.origin === "daily-demands") {
+      if (!context.userId || !context.dailyDemandDate) {
+        return res.status(400).json({ error: "Contexto da demanda diária inválido." });
+      }
+
+      const availability = await assessDailyDemandOsAvailability({
+        userId: context.userId,
+        demandDate: context.dailyDemandDate,
+      });
+
+      if (!availability.allowed) {
+        return res.status(403).json({
+          error: availability.reason || "Esta OS não pode mais ser lançada.",
+          availability,
+        });
+      }
+
+      if (availability.profile?.displayName) {
+        tecnicoResponsavel = availability.profile.displayName;
+      }
+    }
 
     // Certifique-se de que fotosAntes e fotosDepois sejam arrays de strings
     const fotosAntesUrls = Array.isArray(fotosAntes)

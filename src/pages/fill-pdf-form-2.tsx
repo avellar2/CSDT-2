@@ -25,6 +25,17 @@ interface Escola {
   email: string;
 }
 
+interface DailyDemandAvailability {
+  allowed: boolean;
+  reason: string | null;
+  currentDate: string;
+  currentTime: string;
+  demandDate: string;
+  hasRelease: boolean;
+  isVisitTechnician: boolean;
+  isWithinBusinessHours: boolean;
+}
+
 const FillPdfForm: React.FC = () => {
   const { userName } = useHeaderContext();
   const router = useRouter();
@@ -131,7 +142,10 @@ const FillPdfForm: React.FC = () => {
 
   // ADICIONAR estes 2 states após os states existentes
   const [localTecnicoName, setLocalTecnicoName] = useState<string>('');
+  const [localUserId, setLocalUserId] = useState<string>('');
   const [isLoadingTecnico, setIsLoadingTecnico] = useState(true);
+  const [dailyDemandAvailability, setDailyDemandAvailability] = useState<DailyDemandAvailability | null>(null);
+  const [isCheckingDailyDemandAvailability, setIsCheckingDailyDemandAvailability] = useState(false);
   const [escolas, setEscolas] = useState<Escola[]>([]);
   const [alertDialog, setAlertDialog] = useState<{ title: string; description: string; success: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -191,6 +205,49 @@ const FillPdfForm: React.FC = () => {
       }
     }
   }, [router.isReady, router.query]);
+
+  useEffect(() => {
+    const fetchDailyDemandAvailability = async () => {
+      if (!router.isReady || !localUserId || router.query.origin !== 'daily-demands') {
+        setDailyDemandAvailability(null);
+        return;
+      }
+
+      const demandDate = router.query.demandDate;
+      if (typeof demandDate !== 'string') {
+        setDailyDemandAvailability(null);
+        return;
+      }
+
+      try {
+        setIsCheckingDailyDemandAvailability(true);
+        const response = await fetch(`/api/daily-demands/os-availability?userId=${encodeURIComponent(localUserId)}&date=${encodeURIComponent(demandDate)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao validar disponibilidade da OS');
+        }
+
+        setDailyDemandAvailability(data);
+      } catch (availabilityError) {
+        console.error('Erro ao validar disponibilidade da OS:', availabilityError);
+        setDailyDemandAvailability({
+          allowed: false,
+          reason: availabilityError instanceof Error ? availabilityError.message : 'Erro ao validar disponibilidade da OS',
+          currentDate: '',
+          currentTime: '',
+          demandDate: typeof router.query.demandDate === 'string' ? router.query.demandDate : '',
+          hasRelease: false,
+          isVisitTechnician: false,
+          isWithinBusinessHours: false,
+        });
+      } finally {
+        setIsCheckingDailyDemandAvailability(false);
+      }
+    };
+
+    fetchDailyDemandAvailability();
+  }, [router.isReady, router.query.origin, router.query.demandDate, localUserId]);
 
   // 📊 Calculate form completion progress
   const calculateProgress = () => {
@@ -514,6 +571,23 @@ const FillPdfForm: React.FC = () => {
       return;
     }
 
+    if (router.query.origin === 'daily-demands') {
+      if (!localUserId || !dailyDemandAvailability) {
+        showToastMessage('Aguardando validação do técnico para esta demanda.', 'info');
+        return;
+      }
+
+      if (isCheckingDailyDemandAvailability) {
+        showToastMessage('Aguarde a validação da demanda antes de finalizar.', 'info');
+        return;
+      }
+
+      if (dailyDemandAvailability && !dailyDemandAvailability.allowed) {
+        showToastMessage(dailyDemandAvailability.reason || 'Esta OS não pode mais ser lançada.', 'error');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -817,6 +891,8 @@ const FillPdfForm: React.FC = () => {
         return;
       }
 
+      setLocalUserId(user.id);
+
       const token = localStorage.getItem('token');
       if (token) {
         const response = await axios.get('/api/user-profile', {
@@ -880,7 +956,15 @@ const FillPdfForm: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ formData: updatedData }),
+        body: JSON.stringify({
+          formData: updatedData,
+          context: router.query.origin === 'daily-demands' ? {
+            origin: 'daily-demands',
+            dailyDemandId: router.query.demandId,
+            dailyDemandDate: router.query.demandDate,
+            userId: localUserId,
+          } : undefined,
+        }),
       });
 
       const result = await response.json();
@@ -1143,6 +1227,34 @@ const FillPdfForm: React.FC = () => {
               </div>
             </motion.div>
           </motion.div>
+
+          {router.query.origin === 'daily-demands' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mb-6 rounded-2xl border px-5 py-4 ${
+                dailyDemandAvailability?.allowed
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-100'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <Info size={20} className="mt-0.5 flex-shrink-0" />
+                <div className="space-y-1 text-sm">
+                  {isCheckingDailyDemandAvailability ? (
+                    <p>Validando se esta OS pode ser lançada para a demanda diária...</p>
+                  ) : dailyDemandAvailability?.allowed ? (
+                    <p>
+                      OS autorizada para esta demanda. Técnico em visita confirmado
+                      {dailyDemandAvailability.hasRelease ? ' com liberação do ADMTOTAL.' : '.'}
+                    </p>
+                  ) : (
+                    <p>{dailyDemandAvailability?.reason || 'Esta OS não está liberada para lançamento.'}</p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Form Container */}
           <motion.div
