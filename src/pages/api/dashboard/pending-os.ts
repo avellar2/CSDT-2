@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/utils/prisma';
+import { getPendingDailyDemandItems } from '@/utils/pendingDailyDemandOs';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -36,13 +37,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    const totalPendingOS = pendingOsOld + pendingOsNew;
+    const pendingDailyDemands = await getPendingDailyDemandItems({
+      userId: userId && typeof userId === 'string' ? userId : undefined,
+    });
+
+    const totalPendingOS = pendingOsOld + pendingOsNew + pendingDailyDemands.length;
 
     return res.status(200).json({
       success: true,
       data: {
         pendingOsOld,
         pendingOsNew,
+        pendingDailyDemands: pendingDailyDemands.length,
         totalPendingOS,
         scope: tecnicoResponsavelFilter ? 'mine' : 'all',
       },

@@ -66,6 +66,15 @@ interface OsExterna {
   createdAt: string;
 }
 
+interface PendingDailyDemand {
+  demandId: number;
+  schoolName: string;
+  schoolAddress: string;
+  schoolDistrict: string;
+  description: string;
+  createdAt: string;
+}
+
 const OsExternasList: React.FC = () => {
   const router = useRouter();
   const { userName } = useHeaderContext();
@@ -81,6 +90,7 @@ const OsExternasList: React.FC = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmOsData, setConfirmOsData] = useState<OsExterna | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [pendingDailyDemands, setPendingDailyDemands] = useState<PendingDailyDemand[]>([]);
   const statusFilter = typeof router.query.status === 'string' ? router.query.status : '';
   const pendingOnly = statusFilter === 'Pendente';
 
@@ -102,6 +112,7 @@ const OsExternasList: React.FC = () => {
         setCurrentUserId(user.id);
         await fetchUserRole(user.id);
         await fetchOsExternas(user.id);
+        await fetchPendingDailyDemands(user.id);
       } catch (initError) {
         console.error('Erro ao inicializar lista de OS:', initError);
         setLoading(false);
@@ -169,6 +180,29 @@ const OsExternasList: React.FC = () => {
     }
   };
 
+  const fetchPendingDailyDemands = async (userIdParam?: string) => {
+    try {
+      const effectiveUserId = userIdParam || currentUserId;
+      const params = new URLSearchParams();
+
+      if (effectiveUserId) {
+        params.set('userId', effectiveUserId);
+      }
+
+      const response = await fetch(`/api/pending-daily-demands${params.toString() ? `?${params.toString()}` : ''}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setPendingDailyDemands(data.data || []);
+      } else {
+        setPendingDailyDemands([]);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar demandas pendentes sem OS:', error);
+      setPendingDailyDemands([]);
+    }
+  };
+
   // Função para filtrar OS baseada na pesquisa
   const filterOsBySearch = (osList: OsExterna[]) => {
     if (!searchTerm.trim()) return osList;
@@ -185,6 +219,11 @@ const OsExternasList: React.FC = () => {
   // Aplicar filtros de pesquisa
   const osExternasPendentes = filterOsBySearch(osExternas.filter(os => os.status === 'Pendente'));
   const osExternasAssinadas = filterOsBySearch(osExternas.filter(os => os.status === 'Assinado'));
+  const filteredPendingDailyDemands = pendingDailyDemands.filter((demand) =>
+    !searchTerm.trim() ||
+    demand.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    demand.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const formatDate = (dateString: string) => {
     // Para campos de data simples (formato YYYY-MM-DD), adicionar fuso horário brasileiro
@@ -276,6 +315,7 @@ const OsExternasList: React.FC = () => {
         setShowSuccessModal(true);
         // Atualizar os dados para refletir o novo envio
         fetchOsExternas(currentUserId);
+        fetchPendingDailyDemands(currentUserId);
       } else {
         const errorData = await response.json();
         setEmailResult({
@@ -338,7 +378,7 @@ const OsExternasList: React.FC = () => {
             {pendingOnly ? 'OS Pendentes' : 'OS Externas - Controle Geral'}
           </h1>
           <p className="text-gray-600">
-            Total: {osExternas.length} | Pendentes: {osExternas.filter(os => os.status === 'Pendente').length} | Assinadas: {osExternas.filter(os => os.status === 'Assinado').length}
+            Total: {osExternas.length + pendingDailyDemands.length} | Pendentes: {osExternas.filter(os => os.status === 'Pendente').length + pendingDailyDemands.length} | Assinadas: {osExternas.filter(os => os.status === 'Assinado').length}
           </p>
         </div>
 
@@ -371,7 +411,7 @@ const OsExternasList: React.FC = () => {
           {searchTerm && (
             <div className="mt-2 text-sm text-gray-600 text-center">
               Mostrando resultados para: "<span className="font-medium text-gray-800">{searchTerm}</span>"
-              | Pendentes: {osExternasPendentes.length} | Assinadas: {osExternasAssinadas.length}
+              | Pendentes: {osExternasPendentes.length + filteredPendingDailyDemands.length} | Assinadas: {osExternasAssinadas.length}
             </div>
           )}
         </div>
@@ -382,17 +422,53 @@ const OsExternasList: React.FC = () => {
             <div className="flex items-center mb-6">
               <Clock size={24} className="text-orange-500 mr-2" />
               <h2 className="text-xl font-semibold text-gray-800">
-                OS Pendentes ({osExternasPendentes.length})
+                OS Pendentes ({osExternasPendentes.length + filteredPendingDailyDemands.length})
               </h2>
             </div>
 
-            {osExternasPendentes.length === 0 ? (
+            {osExternasPendentes.length === 0 && filteredPendingDailyDemands.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Clock size={48} className="mx-auto mb-4 text-gray-300" />
                 <p>{searchTerm ? 'Nenhuma OS pendente encontrada' : 'Nenhuma OS pendente'}</p>
               </div>
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                {filteredPendingDailyDemands.map((demand) => (
+                  <div key={`daily-demand-${demand.demandId}`} className="border border-red-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-red-50/40">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center mb-3 gap-2">
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
+                            Sem OS criada
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
+                          {demand.schoolDistrict} Distrito - {demand.schoolName}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {demand.schoolAddress}
+                        </p>
+                        <p className="text-sm text-gray-700 whitespace-pre-line">
+                          {demand.description}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => router.push(`/daily-demands`)}
+                        size="sm"
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Ver demanda
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
                 {osExternasPendentes.map((os) => (
                   <div key={os.id} className="border border-orange-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start">
