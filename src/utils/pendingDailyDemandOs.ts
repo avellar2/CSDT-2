@@ -1,5 +1,5 @@
 import prisma from "@/utils/prisma";
-import { getBrazilDayRange, getBrazilParts } from "@/utils/dailyDemandOsRules";
+import { getBrazilDayRange } from "@/utils/dailyDemandOsRules";
 
 export interface PendingDailyDemandItem {
   demandId: number;
@@ -8,56 +8,16 @@ export interface PendingDailyDemandItem {
   schoolDistrict: string;
   description: string;
   createdAt: string;
+  demandDate: string;
+  responsibleTechnicianIds: number[];
   responsibleTechnicians: string[];
-}
-
-async function getTodayVisitTechnicians() {
-  const { dateKey } = getBrazilParts();
-  const { start, end } = getBrazilDayRange(dateKey);
-
-  const visitTechnicians = await prisma.visitTechnician.findMany({
-    where: {
-      createdAt: {
-        gte: start,
-        lte: end,
-      },
-    },
-    select: {
-      technicianId: true,
-    },
-  });
-
-  if (visitTechnicians.length === 0) {
-    return [];
-  }
-
-  const profiles = await prisma.profile.findMany({
-    where: {
-      id: {
-        in: visitTechnicians.map((item) => item.technicianId),
-      },
-    },
-    select: {
-      id: true,
-      displayName: true,
-    },
-  });
-
-  return visitTechnicians.map((item) => ({
-    technicianId: item.technicianId,
-    displayName:
-      profiles.find((profile) => profile.id === item.technicianId)?.displayName ||
-      `Técnico ${item.technicianId}`,
-  }));
 }
 
 export async function getPendingDailyDemandItems(params?: {
   userId?: string;
 }): Promise<PendingDailyDemandItem[]> {
-  const { dateKey } = getBrazilParts();
-  const { start, end } = getBrazilDayRange(dateKey);
-
-  let shouldSeeDemands = true;
+  let profileId: number | null = null;
+  let profileRole: string | null = null;
 
   if (params?.userId) {
     const profile = await prisma.profile.findUnique({
@@ -72,25 +32,11 @@ export async function getPendingDailyDemandItems(params?: {
       return [];
     }
 
-    if (profile.role === "TECH") {
-      const visitIds = new Set(
-        (await getTodayVisitTechnicians()).map((item) => item.technicianId)
-      );
-      shouldSeeDemands = visitIds.has(profile.id);
-    }
-  }
-
-  if (!shouldSeeDemands) {
-    return [];
+    profileId = profile.id;
+    profileRole = profile.role;
   }
 
   const demands = await prisma.schoolDemand.findMany({
-    where: {
-      createdAt: {
-        gte: start,
-        lte: end,
-      },
-    },
     include: {
       School: {
         select: {
@@ -108,10 +54,6 @@ export async function getPendingDailyDemandItems(params?: {
   if (demands.length === 0) {
     return [];
   }
-
-  const responsibleTechnicians = (await getTodayVisitTechnicians()).map(
-    (item) => item.displayName
-  );
 
   const schoolNames = demands.map((demand) => demand.School.name);
 
@@ -136,6 +78,71 @@ export async function getPendingDailyDemandItems(params?: {
     }),
   ]);
 
+  const uniqueDemandDates = Array.from(
+    new Set(
+      demands.map((demand) =>
+        demand.createdAt.toLocaleDateString("en-CA", {
+          timeZone: "America/Sao_Paulo",
+        })
+      )
+    )
+  );
+
+  const visitTechniciansByDate = new Map<
+    string,
+    { technicianId: number; displayName: string }[]
+  >();
+
+  const allVisitTechnicianIds = new Set<number>();
+
+  for (const demandDate of uniqueDemandDates) {
+    const { start, end } = getBrazilDayRange(demandDate);
+    const visitTechnicians = await prisma.visitTechnician.findMany({
+      where: {
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+      },
+      select: {
+        technicianId: true,
+      },
+    });
+
+    visitTechnicians.forEach((item) => allVisitTechnicianIds.add(item.technicianId));
+    visitTechniciansByDate.set(
+      demandDate,
+      visitTechnicians.map((item) => ({
+        technicianId: item.technicianId,
+        displayName: `Técnico ${item.technicianId}`,
+      }))
+    );
+  }
+
+  const profiles = allVisitTechnicianIds.size
+    ? await prisma.profile.findMany({
+        where: {
+          id: { in: Array.from(allVisitTechnicianIds) },
+        },
+        select: {
+          id: true,
+          displayName: true,
+        },
+      })
+    : [];
+
+  for (const [demandDate, technicians] of visitTechniciansByDate.entries()) {
+    visitTechniciansByDate.set(
+      demandDate,
+      technicians.map((technician) => ({
+        technicianId: technician.technicianId,
+        displayName:
+          profiles.find((profile) => profile.id === technician.technicianId)?.displayName ||
+          technician.displayName,
+      }))
+    );
+  }
+
   return demands
     .filter((demand) => {
       const demandDate = new Date(demand.createdAt);
@@ -151,15 +158,45 @@ export async function getPendingDailyDemandItems(params?: {
           new Date(os.createdAt) >= demandDate
       );
 
-      return !hasOldOs && !hasExternalOs;
+      if (hasOldOs || hasExternalOs) {
+        return false;
+      }
+
+      if (profileRole === "TECH" && profileId !== null) {
+        const demandDateKey = demand.createdAt.toLocaleDateString("en-CA", {
+          timeZone: "America/Sao_Paulo",
+        });
+        const responsibleTechnicians =
+          visitTechniciansByDate.get(demandDateKey) || [];
+
+        return responsibleTechnicians.some(
+          (technician) => technician.technicianId === profileId
+        );
+      }
+
+      return true;
     })
-    .map((demand) => ({
-      demandId: demand.id,
-      schoolName: demand.School.name,
-      schoolAddress: demand.School.address || "",
-      schoolDistrict: demand.School.district || "",
-      description: demand.demand,
-      createdAt: demand.createdAt.toISOString(),
-      responsibleTechnicians,
-    }));
+    .map((demand) => {
+      const demandDateKey = demand.createdAt.toLocaleDateString("en-CA", {
+        timeZone: "America/Sao_Paulo",
+      });
+      const responsibleTechnicians =
+        visitTechniciansByDate.get(demandDateKey) || [];
+
+      return {
+        demandId: demand.id,
+        schoolName: demand.School.name,
+        schoolAddress: demand.School.address || "",
+        schoolDistrict: demand.School.district || "",
+        description: demand.demand,
+        createdAt: demand.createdAt.toISOString(),
+        demandDate: demandDateKey,
+        responsibleTechnicianIds: responsibleTechnicians.map(
+          (technician) => technician.technicianId
+        ),
+        responsibleTechnicians: responsibleTechnicians.map(
+          (technician) => technician.displayName
+        ),
+      };
+    });
 }

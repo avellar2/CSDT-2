@@ -73,6 +73,8 @@ interface PendingDailyDemand {
   schoolDistrict: string;
   description: string;
   createdAt: string;
+  demandDate: string;
+  responsibleTechnicianIds: number[];
   responsibleTechnicians: string[];
 }
 
@@ -441,6 +443,9 @@ const OsExternasList: React.FC = () => {
                         <div className="flex items-center mb-3 gap-2">
                           <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
                             Sem OS criada
+                          </span>
+                          <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm font-medium">
+                            Demanda: {new Date(`${demand.demandDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
                           </span>
                           <span className="text-sm text-gray-500">
                             {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
