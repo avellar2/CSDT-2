@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { assessDailyDemandOsAvailability } from "@/utils/dailyDemandOsRules";
+import { getSchoolPendingDailyDemandAvailability } from "@/utils/schoolPendingDailyDemandAvailability";
 
 const prisma = new PrismaClient();
 
@@ -84,6 +85,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (availability.profile?.displayName) {
         tecnicoResponsavel = availability.profile.displayName;
+      }
+    } else if (context?.userId && unidadeEscolar) {
+      const schoolAvailability = await getSchoolPendingDailyDemandAvailability({
+        userId: context.userId,
+        schoolName: String(unidadeEscolar),
+      });
+
+      if (schoolAvailability.applies && schoolAvailability.availability && !schoolAvailability.availability.allowed) {
+        return res.status(403).json({
+          error: schoolAvailability.availability.reason || "Esta OS não pode mais ser lançada.",
+          availability: schoolAvailability.availability,
+          pendingDailyDemand: {
+            demandId: schoolAvailability.demandId,
+            demandDate: schoolAvailability.demandDate,
+            schoolName: schoolAvailability.schoolName,
+          },
+        });
+      }
+
+      if (schoolAvailability.availability?.profile?.displayName) {
+        tecnicoResponsavel = schoolAvailability.availability.profile.displayName;
       }
     }
 
@@ -179,3 +201,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await prisma.$disconnect();
   }
 }
+
+

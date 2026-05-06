@@ -36,6 +36,14 @@ interface DailyDemandAvailability {
   isWithinBusinessHours: boolean;
 }
 
+interface SchoolPendingDailyDemandAvailability {
+  applies: boolean;
+  demandId: number | null;
+  demandDate: string | null;
+  schoolName: string | null;
+  availability: DailyDemandAvailability | null;
+}
+
 const FillPdfForm: React.FC = () => {
   const { userName } = useHeaderContext();
   const router = useRouter();
@@ -146,6 +154,8 @@ const FillPdfForm: React.FC = () => {
   const [isLoadingTecnico, setIsLoadingTecnico] = useState(true);
   const [dailyDemandAvailability, setDailyDemandAvailability] = useState<DailyDemandAvailability | null>(null);
   const [isCheckingDailyDemandAvailability, setIsCheckingDailyDemandAvailability] = useState(false);
+  const [schoolPendingAvailability, setSchoolPendingAvailability] = useState<SchoolPendingDailyDemandAvailability | null>(null);
+  const [isCheckingSchoolPendingAvailability, setIsCheckingSchoolPendingAvailability] = useState(false);
   const [escolas, setEscolas] = useState<Escola[]>([]);
   const [alertDialog, setAlertDialog] = useState<{ title: string; description: string; success: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -389,6 +399,42 @@ const FillPdfForm: React.FC = () => {
     setIsDirty(true);
   };
 
+  useEffect(() => {
+    const fetchSchoolPendingAvailability = async () => {
+      if (
+        !router.isReady ||
+        router.query.origin === 'daily-demands' ||
+        !localUserId ||
+        !formData.unidadeEscolar
+      ) {
+        setSchoolPendingAvailability(null);
+        setIsCheckingSchoolPendingAvailability(false);
+        return;
+      }
+
+      try {
+        setIsCheckingSchoolPendingAvailability(true);
+        const response = await fetch(
+          `/api/daily-demands/school-os-availability?userId=${encodeURIComponent(localUserId)}&schoolName=${encodeURIComponent(formData.unidadeEscolar)}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao validar pendência da escola');
+        }
+
+        setSchoolPendingAvailability(data);
+      } catch (error) {
+        console.error('Erro ao validar pendência da escola:', error);
+        setSchoolPendingAvailability(null);
+      } finally {
+        setIsCheckingSchoolPendingAvailability(false);
+      }
+    };
+
+    fetchSchoolPendingAvailability();
+  }, [router.isReady, router.query.origin, localUserId, formData.unidadeEscolar]);
+
   const handleNext = () => {
     if (canProceedToStep(currentStep + 1, formData)) {
       markStepAsCompleted(currentStep);
@@ -584,6 +630,19 @@ const FillPdfForm: React.FC = () => {
 
       if (dailyDemandAvailability && !dailyDemandAvailability.allowed) {
         showToastMessage(dailyDemandAvailability.reason || 'Esta OS não pode mais ser lançada.', 'error');
+        return;
+      }
+    } else if (schoolPendingAvailability?.applies) {
+      if (isCheckingSchoolPendingAvailability) {
+        showToastMessage('Aguarde a validação da escola antes de finalizar.', 'info');
+        return;
+      }
+
+      if (schoolPendingAvailability.availability && !schoolPendingAvailability.availability.allowed) {
+        showToastMessage(
+          schoolPendingAvailability.availability.reason || 'Esta escola tem uma OS pendente bloqueada.',
+          'error'
+        );
         return;
       }
     }
@@ -963,7 +1022,9 @@ const FillPdfForm: React.FC = () => {
             dailyDemandId: router.query.demandId,
             dailyDemandDate: router.query.demandDate,
             userId: localUserId,
-          } : undefined,
+          } : {
+            userId: localUserId,
+          },
         }),
       });
 
@@ -1250,6 +1311,35 @@ const FillPdfForm: React.FC = () => {
                     </p>
                   ) : (
                     <p>{dailyDemandAvailability?.reason || 'Esta OS não está liberada para lançamento.'}</p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {router.query.origin !== 'daily-demands' && formData.unidadeEscolar && schoolPendingAvailability?.applies && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mb-6 rounded-2xl border px-5 py-4 ${
+                schoolPendingAvailability.availability?.allowed
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-100'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <Info size={20} className="mt-0.5 flex-shrink-0" />
+                <div className="space-y-1 text-sm">
+                  {isCheckingSchoolPendingAvailability ? (
+                    <p>Validando pendência da demanda diária para esta escola...</p>
+                  ) : schoolPendingAvailability.availability?.allowed ? (
+                    <p>
+                      Esta escola tem pendência da demanda de {schoolPendingAvailability.demandDate}, mas o lançamento está autorizado.
+                    </p>
+                  ) : (
+                    <p>
+                      {schoolPendingAvailability.availability?.reason || 'Esta escola tem uma pendência bloqueada da demanda diária.'}
+                    </p>
                   )}
                 </div>
               </div>
