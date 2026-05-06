@@ -232,6 +232,80 @@ const OsExternasList: React.FC = () => {
     (demand.visitReason || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const todayDateKey = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  });
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayDateKey = yesterdayDate.toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  });
+
+  const pendingDailyDemandsToday = filteredPendingDailyDemands.filter(
+    (demand) => demand.demandDate === todayDateKey
+  );
+  const pendingDailyDemandsYesterday = filteredPendingDailyDemands.filter(
+    (demand) => demand.demandDate === yesterdayDateKey
+  );
+
+  const renderPendingDailyDemandCard = (demand: PendingDailyDemand) => (
+    <div key={`daily-demand-${demand.demandId}`} className="border border-red-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-red-50/40">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-1">
+          <div className="flex items-center mb-3 gap-2">
+            <span className={`px-2 py-1 rounded text-sm font-medium ${
+              demand.visitStatus === 'NOT_VISITED'
+                ? 'bg-amber-100 text-amber-800'
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {demand.visitStatus === 'NOT_VISITED' ? 'Não visitada' : 'Sem OS criada'}
+            </span>
+            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm font-medium">
+              Demanda: {new Date(`${demand.demandDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
+            </span>
+            <span className="text-sm text-gray-500">
+              {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </span>
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
+            {demand.schoolDistrict} Distrito - {demand.schoolName}
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            {demand.schoolAddress}
+          </p>
+          {demand.responsibleTechnicians.length > 0 && (
+            <p className="text-sm text-gray-700 mb-2">
+              <User size={16} className="inline mr-1" />
+              Responsável{demand.responsibleTechnicians.length > 1 ? 'is' : ''}: {demand.responsibleTechnicians.join(', ')}
+            </p>
+          )}
+          {demand.visitStatus === 'NOT_VISITED' && demand.visitReason && (
+            <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <div className="font-medium">Motivo</div>
+              <div className="whitespace-pre-line">{demand.visitReason}</div>
+              {demand.visitUpdatedBy && (
+                <div className="mt-1 text-xs text-amber-700">Marcado por: {demand.visitUpdatedBy}</div>
+              )}
+            </div>
+          )}
+          <p className="text-sm text-gray-700 whitespace-pre-line">
+            {demand.description}
+          </p>
+        </div>
+        <Button
+          onClick={() => router.push(`/daily-demands`)}
+          size="sm"
+          className="bg-red-500 hover:bg-red-600 text-white"
+        >
+          Ver demanda
+        </Button>
+      </div>
+    </div>
+  );
+
   const formatDate = (dateString: string) => {
     // Para campos de data simples (formato YYYY-MM-DD), adicionar fuso horário brasileiro
     if (dateString && dateString.length === 10) {
@@ -440,63 +514,27 @@ const OsExternasList: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {filteredPendingDailyDemands.map((demand) => (
-                  <div key={`daily-demand-${demand.demandId}`} className="border border-red-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-red-50/40">
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-3 gap-2">
-                          <span className={`px-2 py-1 rounded text-sm font-medium ${
-                            demand.visitStatus === 'NOT_VISITED'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {demand.visitStatus === 'NOT_VISITED' ? 'Não visitada' : 'Sem OS criada'}
-                          </span>
-                          <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm font-medium">
-                            Demanda: {new Date(`${demand.demandDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
-                          {demand.schoolDistrict} Distrito - {demand.schoolName}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {demand.schoolAddress}
-                        </p>
-                        {demand.responsibleTechnicians.length > 0 && (
-                          <p className="text-sm text-gray-700 mb-2">
-                            <User size={16} className="inline mr-1" />
-                            Responsável{demand.responsibleTechnicians.length > 1 ? 'is' : ''}: {demand.responsibleTechnicians.join(', ')}
-                          </p>
-                        )}
-                        {demand.visitStatus === 'NOT_VISITED' && demand.visitReason && (
-                          <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                            <div className="font-medium">Motivo</div>
-                            <div className="whitespace-pre-line">{demand.visitReason}</div>
-                            {demand.visitUpdatedBy && (
-                              <div className="mt-1 text-xs text-amber-700">Marcado por: {demand.visitUpdatedBy}</div>
-                            )}
-                          </div>
-                        )}
-                        <p className="text-sm text-gray-700 whitespace-pre-line">
-                          {demand.description}
-                        </p>
+                {pendingDailyDemandsToday.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-red-200 bg-red-100 px-3 py-2">
+                      <div className="text-sm font-semibold text-red-900">
+                        Pendencias de hoje ({pendingDailyDemandsToday.length})
                       </div>
-                      <Button
-                        onClick={() => router.push(`/daily-demands`)}
-                        size="sm"
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Ver demanda
-                      </Button>
                     </div>
+                    {pendingDailyDemandsToday.map(renderPendingDailyDemandCard)}
                   </div>
-                ))}
+                )}
+
+                {pendingDailyDemandsYesterday.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-amber-200 bg-amber-100 px-3 py-2">
+                      <div className="text-sm font-semibold text-amber-900">
+                        Pendencias de ontem ({pendingDailyDemandsYesterday.length})
+                      </div>
+                    </div>
+                    {pendingDailyDemandsYesterday.map(renderPendingDailyDemandCard)}
+                  </div>
+                )}
 
                 {osExternasPendentes.map((os) => (
                   <div key={os.id} className="border border-orange-200 rounded-lg p-4 hover:shadow-md transition-shadow">
