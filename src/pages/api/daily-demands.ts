@@ -121,6 +121,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       title: `Demanda - ${demand.School?.name || "Escola não especificada"}`,
       description: demand.demand || "Sem descrição fornecida",
       createdAt: demand.createdAt.toISOString(),
+      visitStatus: demand.visitStatus || null,
+      visitReason: demand.visitReason || null,
+      visitUpdatedBy: demand.visitUpdatedBy || null,
+      visitUpdatedAt: demand.visitUpdatedAt?.toISOString() || null,
       isReagendamento: false, // Flag para identificar tipo
     }));
 

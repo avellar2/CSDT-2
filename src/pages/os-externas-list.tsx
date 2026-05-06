@@ -74,6 +74,9 @@ interface PendingDailyDemand {
   description: string;
   createdAt: string;
   demandDate: string;
+  visitStatus: string | null;
+  visitReason: string | null;
+  visitUpdatedBy: string | null;
   responsibleTechnicianIds: number[];
   responsibleTechnicians: string[];
 }
@@ -225,7 +228,8 @@ const OsExternasList: React.FC = () => {
   const filteredPendingDailyDemands = pendingDailyDemands.filter((demand) =>
     !searchTerm.trim() ||
     demand.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    demand.description.toLowerCase().includes(searchTerm.toLowerCase())
+    demand.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (demand.visitReason || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatDate = (dateString: string) => {
@@ -441,8 +445,12 @@ const OsExternasList: React.FC = () => {
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex-1">
                         <div className="flex items-center mb-3 gap-2">
-                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
-                            Sem OS criada
+                          <span className={`px-2 py-1 rounded text-sm font-medium ${
+                            demand.visitStatus === 'NOT_VISITED'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {demand.visitStatus === 'NOT_VISITED' ? 'Não visitada' : 'Sem OS criada'}
                           </span>
                           <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm font-medium">
                             Demanda: {new Date(`${demand.demandDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
@@ -465,6 +473,15 @@ const OsExternasList: React.FC = () => {
                             <User size={16} className="inline mr-1" />
                             Responsável{demand.responsibleTechnicians.length > 1 ? 'is' : ''}: {demand.responsibleTechnicians.join(', ')}
                           </p>
+                        )}
+                        {demand.visitStatus === 'NOT_VISITED' && demand.visitReason && (
+                          <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                            <div className="font-medium">Motivo</div>
+                            <div className="whitespace-pre-line">{demand.visitReason}</div>
+                            {demand.visitUpdatedBy && (
+                              <div className="mt-1 text-xs text-amber-700">Marcado por: {demand.visitUpdatedBy}</div>
+                            )}
+                          </div>
                         )}
                         <p className="text-sm text-gray-700 whitespace-pre-line">
                           {demand.description}

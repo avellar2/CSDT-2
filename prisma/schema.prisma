@@ -552,11 +552,15 @@ model School {
 }
 
 model SchoolDemand {
-  id        Int      @id @default(autoincrement())
-  schoolId  Int
-  demand    String
-  createdAt DateTime @default(now())
-  School    School   @relation(fields: [schoolId], references: [id])
+  id             Int       @id @default(autoincrement())
+  schoolId       Int
+  demand         String
+  createdAt      DateTime  @default(now())
+  visitStatus    String?
+  visitReason    String?
+  visitUpdatedBy String?
+  visitUpdatedAt DateTime?
+  School         School    @relation(fields: [schoolId], references: [id])
 }
 
 model DailyDemandOsRelease {

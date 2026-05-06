@@ -9,6 +9,9 @@ export interface PendingDailyDemandItem {
   description: string;
   createdAt: string;
   demandDate: string;
+  visitStatus: string | null;
+  visitReason: string | null;
+  visitUpdatedBy: string | null;
   responsibleTechnicianIds: number[];
   responsibleTechnicians: string[];
 }
@@ -191,6 +194,9 @@ export async function getPendingDailyDemandItems(params?: {
         description: demand.demand,
         createdAt: demand.createdAt.toISOString(),
         demandDate: demandDateKey,
+        visitStatus: demand.visitStatus || null,
+        visitReason: demand.visitReason || null,
+        visitUpdatedBy: demand.visitUpdatedBy || null,
         responsibleTechnicianIds: responsibleTechnicians.map(
           (technician) => technician.technicianId
         ),

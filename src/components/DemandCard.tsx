@@ -12,6 +12,9 @@ interface Demand {
   categoria?: string;
   tecnico?: string;
   osOriginal?: string;
+  visitStatus?: 'NOT_VISITED' | null;
+  visitReason?: string | null;
+  visitUpdatedBy?: string | null;
 }
 
 interface School {
@@ -28,6 +31,8 @@ interface DemandCardProps {
   onEdit: (demand: Demand) => void;
   onDelete: (id: string) => void;
   onCreateOS: (demand: Demand) => void;
+  onMarkNotVisited: (demand: Demand) => void;
+  onResetVisitStatus: (demand: Demand) => void;
 }
 
 const DemandCard: React.FC<DemandCardProps> = ({
@@ -37,11 +42,16 @@ const DemandCard: React.FC<DemandCardProps> = ({
   onEdit,
   onDelete,
   onCreateOS,
+  onMarkNotVisited,
+  onResetVisitStatus,
 }) => {
   const getStatusColor = (status?: string, isReagendamento?: boolean) => {
     // Se for reagendamento, usar cor laranja
     if (isReagendamento) {
       return 'bg-orange-50 border-orange-500 shadow-orange-100';
+    }
+    if (demand.visitStatus === 'NOT_VISITED') {
+      return 'bg-red-50 border-red-500 shadow-red-100';
     }
     switch (status) {
       case 'signed': return 'bg-green-50 border-green-500 shadow-green-100';
@@ -64,6 +74,14 @@ const DemandCard: React.FC<DemandCardProps> = ({
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-orange-800 bg-orange-200 rounded-full">
           🔄 Reagendamento
+        </span>
+      );
+    }
+
+    if (demand.visitStatus === 'NOT_VISITED') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-800 bg-red-200 rounded-full">
+          Não visitada
         </span>
       );
     }
@@ -128,6 +146,16 @@ const DemandCard: React.FC<DemandCardProps> = ({
             {demand.description}
           </p>
 
+          {demand.visitStatus === 'NOT_VISITED' && demand.visitReason && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              <div className="font-medium">Motivo da não visita</div>
+              <div className="whitespace-pre-line">{demand.visitReason}</div>
+              {demand.visitUpdatedBy && (
+                <div className="mt-1 text-xs text-red-700">Marcado por: {demand.visitUpdatedBy}</div>
+              )}
+            </div>
+          )}
+
           {/* Footer info */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-gray-100">
             <div className="flex items-center gap-3">
@@ -165,15 +193,37 @@ const DemandCard: React.FC<DemandCardProps> = ({
         <div className="flex items-center gap-2 lg:flex-col lg:items-stretch lg:w-auto">
           {/* Create OS button - apenas para demandas normais pendentes */}
           {demand.osStatus === 'pending' && !demand.isReagendamento && (
-            <button
-              onClick={() => onCreateOS(demand)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
-              title="Preencher OS"
-            >
-              <ClipboardText size={16} />
-              <span className="hidden sm:inline">Preencher OS</span>
-              <span className="sm:hidden">OS</span>
-            </button>
+            <>
+              <button
+                onClick={() => onCreateOS(demand)}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                title="Preencher OS"
+              >
+                <ClipboardText size={16} />
+                <span className="hidden sm:inline">Preencher OS</span>
+                <span className="sm:hidden">OS</span>
+              </button>
+
+              {demand.visitStatus === 'NOT_VISITED' ? (
+                <button
+                  onClick={() => onResetVisitStatus(demand)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition-colors"
+                  title="Reabrir demanda"
+                >
+                  <span className="hidden sm:inline">Reabrir</span>
+                  <span className="sm:hidden">Reabrir</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => onMarkNotVisited(demand)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors"
+                  title="Não fui à escola"
+                >
+                  <span className="hidden sm:inline">Não fui à escola</span>
+                  <span className="sm:hidden">Não fui</span>
+                </button>
+              )}
+            </>
           )}
 
           {/* Botão para reagendamentos - direciona para /fill-pdf-form-2 */}

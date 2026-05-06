@@ -29,6 +29,10 @@ interface Demand {
   createdAt: string;
   osStatus?: 'pending' | 'created' | 'signed';
   numeroOs?: string;
+  visitStatus?: 'NOT_VISITED' | null;
+  visitReason?: string | null;
+  visitUpdatedBy?: string | null;
+  visitUpdatedAt?: string | null;
 }
 
 interface Technician {
@@ -66,6 +70,10 @@ const DailyDemands: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDemand, setEditingDemand] = useState<Demand | null>(null);
   const [releasedTechnicianIds, setReleasedTechnicianIds] = useState<number[]>([]);
+  const [visitStatusModalDemand, setVisitStatusModalDemand] = useState<Demand | null>(null);
+  const [visitReason, setVisitReason] = useState("");
+  const [visitReasonOption, setVisitReasonOption] = useState("Sem tempo hábil");
+  const [savingVisitStatus, setSavingVisitStatus] = useState(false);
 
   // Format date for API
   const formatDateForAPI = (date: Date) => date.toISOString().split('T')[0];
@@ -352,6 +360,85 @@ const DailyDemands: React.FC = () => {
     } catch (error) {
       console.error("Erro ao apagar demanda:", error);
       alert("Erro ao apagar a demanda. Tente novamente.");
+    }
+  };
+
+  const refreshAfterVisitStatusChange = async () => {
+    await fetchData(selectedDate);
+  };
+
+  const handleOpenNotVisitedModal = (demand: Demand) => {
+    setVisitStatusModalDemand(demand);
+    setVisitReasonOption("Sem tempo hábil");
+    setVisitReason("");
+  };
+
+  const handleMarkNotVisited = async () => {
+    if (!visitStatusModalDemand || !currentUserId) return;
+
+    const finalReason =
+      visitReasonOption === "Outro"
+        ? visitReason.trim()
+        : visitReason.trim()
+          ? `${visitReasonOption}: ${visitReason.trim()}`
+          : visitReasonOption;
+
+    if (!finalReason) {
+      alert("Informe o motivo da não visita.");
+      return;
+    }
+
+    try {
+      setSavingVisitStatus(true);
+      const response = await fetch("/api/daily-demands/visit-status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          demandId: Number(visitStatusModalDemand.id),
+          userId: currentUserId,
+          action: "NOT_VISITED",
+          reason: finalReason,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao marcar demanda como não visitada");
+
+      setVisitStatusModalDemand(null);
+      setVisitReason("");
+      await refreshAfterVisitStatusChange();
+    } catch (visitError) {
+      console.error("Erro ao marcar não visitada:", visitError);
+      alert(visitError instanceof Error ? visitError.message : "Erro ao marcar demanda.");
+    } finally {
+      setSavingVisitStatus(false);
+    }
+  };
+
+  const handleResetVisitStatus = async (demand: Demand) => {
+    if (!currentUserId) return;
+
+    try {
+      setSavingVisitStatus(true);
+      const response = await fetch("/api/daily-demands/visit-status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          demandId: Number(demand.id),
+          userId: currentUserId,
+          action: "RESET",
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao reabrir demanda");
+
+      await refreshAfterVisitStatusChange();
+    } catch (visitError) {
+      console.error("Erro ao reabrir demanda:", visitError);
+      alert(visitError instanceof Error ? visitError.message : "Erro ao reabrir demanda.");
+    } finally {
+      setSavingVisitStatus(false);
     }
   };
 
@@ -735,6 +822,8 @@ Veja o console para mais detalhes!`);
                         onEdit={handleEditDemand}
                         onDelete={handleDelete}
                         onCreateOS={handleCreateOS}
+                        onMarkNotVisited={handleOpenNotVisitedModal}
+                        onResetVisitStatus={handleResetVisitStatus}
                       />
                     );
                   })}
@@ -776,6 +865,68 @@ Veja o console para mais detalhes!`);
         }
         schools={schools}
       />
+
+      {visitStatusModalDemand && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Não fui à escola</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Informe o motivo para marcar esta demanda como não visitada.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Motivo</label>
+                <select
+                  value={visitReasonOption}
+                  onChange={(e) => setVisitReasonOption(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option>Sem tempo hábil</option>
+                  <option>Escola fechada</option>
+                  <option>Responsável ausente</option>
+                  <option>Prioridade alterada</option>
+                  <option>Problema logístico</option>
+                  <option>Retorno agendado</option>
+                  <option>Outro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {visitReasonOption === "Outro" ? "Descreva o motivo" : "Observação complementar"}
+                </label>
+                <textarea
+                  value={visitReason}
+                  onChange={(e) => setVisitReason(e.target.value)}
+                  rows={4}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder={visitReasonOption === "Outro" ? "Descreva o motivo da não visita" : "Opcional"}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setVisitStatusModalDemand(null);
+                  setVisitReason("");
+                }}
+                className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleMarkNotVisited}
+                disabled={savingVisitStatus || (visitReasonOption === "Outro" && !visitReason.trim())}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {savingVisitStatus ? "Salvando..." : "Marcar como não visitada"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

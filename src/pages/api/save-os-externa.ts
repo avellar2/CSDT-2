@@ -159,6 +159,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Retornar o ID e o número da OS
+    if (context?.origin === "daily-demands" && context?.dailyDemandId) {
+      await prisma.schoolDemand.update({
+        where: { id: Number(context.dailyDemandId) },
+        data: {
+          visitStatus: null,
+          visitReason: null,
+          visitUpdatedBy: tecnicoResponsavel || null,
+          visitUpdatedAt: new Date(),
+        },
+      });
+    }
+
     return res.status(200).json({ id: updatedRecord.id, numeroOs: updatedRecord.numeroOs });
   } catch (error) {
     console.error("Erro ao salvar dados:", error);
