@@ -389,11 +389,64 @@ const FillPdfForm: React.FC = () => {
     }
   };
 
-  const handleSelectChange = (selectedOption: any) => {
-    const selectedEscola = escolas.find((escola) => escola.name === selectedOption.value);
+  const handleSelectChange = async (selectedOption: any) => {
+    if (!selectedOption?.value) {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        unidadeEscolar: "",
+        emailResponsavel: "",
+      }));
+      setSchoolPendingAvailability(null);
+      return;
+    }
+
+    const selectedSchoolName = selectedOption.value as string;
+    const selectedEscola = escolas.find((escola) => escola.name === selectedSchoolName);
+
+    if (router.query.origin !== "daily-demands" && localUserId) {
+      try {
+        setIsCheckingSchoolPendingAvailability(true);
+        const response = await fetch(
+          `/api/daily-demands/school-os-availability?userId=${encodeURIComponent(localUserId)}&schoolName=${encodeURIComponent(selectedSchoolName)}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Erro ao validar pendencia da escola");
+        }
+
+        setSchoolPendingAvailability(data);
+
+        if (data.applies && data.availability && !data.availability.allowed) {
+          setFormData((prevFormData) => ({
+            ...prevFormData,
+            unidadeEscolar: "",
+            emailResponsavel: "",
+          }));
+          setAlertDialog({
+            title: "Escola bloqueada",
+            description:
+              data.availability.reason || "Esta escola esta bloqueada para lancamento de OS.",
+            success: false,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Erro ao validar pendencia da escola:", error);
+        setAlertDialog({
+          title: "Erro ao validar escola",
+          description: "Erro ao validar a escola selecionada.",
+          success: false,
+        });
+        return;
+      } finally {
+        setIsCheckingSchoolPendingAvailability(false);
+      }
+    }
+
     setFormData((prevFormData) => ({
       ...prevFormData,
-      unidadeEscolar: selectedOption.value,
+      unidadeEscolar: selectedSchoolName,
       emailResponsavel: selectedEscola ? selectedEscola.email : "",
     }));
     setIsDirty(true);
@@ -1311,35 +1364,6 @@ const FillPdfForm: React.FC = () => {
                     </p>
                   ) : (
                     <p>{dailyDemandAvailability?.reason || 'Esta OS não está liberada para lançamento.'}</p>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {router.query.origin !== 'daily-demands' && formData.unidadeEscolar && schoolPendingAvailability?.applies && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`mb-6 rounded-2xl border px-5 py-4 ${
-                schoolPendingAvailability.availability?.allowed
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
-                  : 'border-amber-500/30 bg-amber-500/10 text-amber-100'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <Info size={20} className="mt-0.5 flex-shrink-0" />
-                <div className="space-y-1 text-sm">
-                  {isCheckingSchoolPendingAvailability ? (
-                    <p>Validando pendência da demanda diária para esta escola...</p>
-                  ) : schoolPendingAvailability.availability?.allowed ? (
-                    <p>
-                      Esta escola tem pendência da demanda de {schoolPendingAvailability.demandDate}, mas o lançamento está autorizado.
-                    </p>
-                  ) : (
-                    <p>
-                      {schoolPendingAvailability.availability?.reason || 'Esta escola tem uma pendência bloqueada da demanda diária.'}
-                    </p>
                   )}
                 </div>
               </div>
