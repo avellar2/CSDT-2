@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método não permitido" });
+    return res.status(405).json({ error: "Metodo nao permitido" });
   }
 
   try {
@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("Dados recebidos:", req.body.formData);
 
-    // Filtrar apenas os campos que existem no modelo OSExterna
     let {
       unidadeEscolar,
       tecnicoResponsavel,
@@ -68,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (context?.origin === "daily-demands") {
       if (!context.userId || !context.dailyDemandDate) {
-        return res.status(400).json({ error: "Contexto da demanda diária inválido." });
+        return res.status(400).json({ error: "Contexto da demanda diaria invalido." });
       }
 
       const availability = await assessDailyDemandOsAvailability({
@@ -78,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!availability.allowed) {
         return res.status(403).json({
-          error: availability.reason || "Esta OS não pode mais ser lançada.",
+          error: availability.reason || "Esta OS nao pode mais ser lancada.",
           availability,
         });
       }
@@ -92,9 +91,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         schoolName: String(unidadeEscolar),
       });
 
-      if (schoolAvailability.applies && schoolAvailability.availability && !schoolAvailability.availability.allowed) {
+      if (
+        schoolAvailability.applies &&
+        schoolAvailability.availability &&
+        !schoolAvailability.availability.allowed
+      ) {
         return res.status(403).json({
-          error: schoolAvailability.availability.reason || "Esta OS n�o pode mais ser lan�ada.",
+          error: schoolAvailability.availability.reason || "Esta OS nao pode mais ser lancada.",
           availability: schoolAvailability.availability,
           pendingDailyDemand: {
             demandId: schoolAvailability.demandId,
@@ -109,7 +112,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Certifique-se de que fotosAntes e fotosDepois sejam arrays de strings
     const fotosAntesUrls = Array.isArray(fotosAntes)
       ? fotosAntes.map((file) => (typeof file === "string" ? file : file.url || ""))
       : [];
@@ -117,7 +119,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? fotosDepois.map((file) => (typeof file === "string" ? file : file.url || ""))
       : [];
 
-    // Salvar os dados na tabela OSExterna
     const osExterna = await prisma.oSExterna.create({
       data: {
         unidadeEscolar,
@@ -145,8 +146,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         impressoraComProblema,
         solucionado,
         emailResponsavel,
-        fotosAntes: fotosAntesUrls, // Enviar como array de strings
-        fotosDepois: fotosDepoisUrls, // Enviar como array de strings
+        fotosAntes: fotosAntesUrls,
+        fotosDepois: fotosDepoisUrls,
         pcsProprio: parseInt(pcsProprio, 10),
         pcsLocado: parseInt(pcsLocado, 10),
         notebooksProprio: parseInt(notebooksProprio, 10),
@@ -167,20 +168,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         estabilizadoresLocadoOutrosLocais: parseInt(estabilizadoresLocadoOutrosLocais, 10),
         tabletsProprioOutrosLocais: parseInt(tabletsProprioOutrosLocais, 10),
         tabletsLocadoOutrosLocais: parseInt(tabletsLocadoOutrosLocais, 10),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
     });
 
     const currentYear = new Date().getFullYear();
     const numeroOs = `${osExterna.id}/${currentYear}`;
 
-    // Atualizar o registro com o número da OS
     const updatedRecord = await prisma.oSExterna.update({
       where: { id: osExterna.id },
       data: { numeroOs },
     });
 
-    // Retornar o ID e o número da OS
     if (context?.origin === "daily-demands" && context?.dailyDemandId) {
       await prisma.schoolDemand.update({
         where: { id: Number(context.dailyDemandId) },
@@ -201,5 +200,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await prisma.$disconnect();
   }
 }
-
-
