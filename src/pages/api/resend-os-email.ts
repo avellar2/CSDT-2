@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { osId, unidadeEscolar, emailResponsavel, numeroOs } = req.body;
 
-    if (!osId || !unidadeEscolar || !emailResponsavel || !numeroOs) {
+    if (!osId || !unidadeEscolar || !numeroOs) {
       return res.status(400).json({ error: 'Dados obrigatórios não fornecidos' });
     }
 
@@ -29,6 +29,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (osExterna.status !== 'Pendente') {
       return res.status(400).json({ error: 'Apenas OS pendentes podem ter emails reenviados' });
+    }
+
+    const school = await prisma.school.findUnique({
+      where: { name: unidadeEscolar },
+      select: { email: true },
+    });
+
+    const targetEmail = school?.email?.trim() || osExterna.emailResponsavel || emailResponsavel;
+
+    if (!targetEmail) {
+      return res.status(400).json({ error: 'Nenhum email v�lido foi encontrado para esta escola' });
     }
 
     // Verificar se já foi enviado email hoje
@@ -114,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: emailResponsavel,
+      to: targetEmail,
       subject: `⚠️ URGENTE - CSDT/SME - Assinatura Pendente da OS ${numeroOs} - ${unidadeEscolar}`,
       text: `OS ${numeroOs} - ${unidadeEscolar} - Assinatura Pendente`,
       html: emailHtml,
@@ -134,7 +145,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       await prisma.oSExterna.update({
         where: { id: parseInt(osId) },
-        data: { lastEmailSent: new Date() }
+        data: {
+          lastEmailSent: new Date(),
+          emailResponsavel: targetEmail,
+        }
       });
     } catch (updateError) {
       console.log('Erro ao atualizar lastEmailSent, mas email foi enviado com sucesso:', updateError);

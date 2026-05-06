@@ -34,7 +34,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
     });
 
-    res.status(200).json(osExternas);
+    const schoolNames = Array.from(
+      new Set(
+        osExternas
+          .map((os) => os.unidadeEscolar?.trim())
+          .filter((name): name is string => Boolean(name))
+      )
+    );
+
+    const schools = schoolNames.length
+      ? await prisma.school.findMany({
+          where: {
+            name: {
+              in: schoolNames,
+            },
+          },
+          select: {
+            name: true,
+            email: true,
+          },
+        })
+      : [];
+
+    const schoolEmailByName = new Map(
+      schools.map((school) => [school.name.trim(), school.email?.trim() || null])
+    );
+
+    const normalizedOsExternas = osExternas.map((os) => {
+      const schoolEmail = os.unidadeEscolar
+        ? schoolEmailByName.get(os.unidadeEscolar.trim())
+        : null;
+
+      return {
+        ...os,
+        emailResponsavel: schoolEmail || os.emailResponsavel,
+      };
+    });
+
+    res.status(200).json(normalizedOsExternas);
   } catch (error) {
     console.error('Erro ao buscar OS Externas:', error);
     res.status(500).json({
