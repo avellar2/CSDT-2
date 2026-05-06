@@ -19,6 +19,12 @@ export interface PendingDailyDemandItem {
 export async function getPendingDailyDemandItems(params?: {
   userId?: string;
 }): Promise<PendingDailyDemandItem[]> {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const minimumDemandDateKey = yesterday.toLocaleDateString("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  });
+
   let profileId: number | null = null;
   let profileRole: string | null = null;
 
@@ -148,6 +154,14 @@ export async function getPendingDailyDemandItems(params?: {
 
   return demands
     .filter((demand) => {
+      const demandDateKey = demand.createdAt.toLocaleDateString("en-CA", {
+        timeZone: "America/Sao_Paulo",
+      });
+
+      if (demandDateKey < minimumDemandDateKey) {
+        return false;
+      }
+
       const demandDate = new Date(demand.createdAt);
       const hasOldOs = osOld.some(
         (os) =>
@@ -166,9 +180,6 @@ export async function getPendingDailyDemandItems(params?: {
       }
 
       if (profileRole === "TECH" && profileId !== null) {
-        const demandDateKey = demand.createdAt.toLocaleDateString("en-CA", {
-          timeZone: "America/Sao_Paulo",
-        });
         const responsibleTechnicians =
           visitTechniciansByDate.get(demandDateKey) || [];
 

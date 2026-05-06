@@ -48,12 +48,22 @@ export function getBrazilDayRange(dateKey: string) {
   return { start, end };
 }
 
+function getPreviousDateKey(dateKey: string) {
+  const date = new Date(`${dateKey}T12:00:00-03:00`);
+  date.setDate(date.getDate() - 1);
+
+  return date.toLocaleDateString("en-CA", {
+    timeZone: BRAZIL_TIMEZONE,
+  });
+}
+
 export async function assessDailyDemandOsAvailability(params: {
   userId: string;
   demandDate: string;
 }): Promise<DailyDemandAvailabilityResult> {
   const { userId, demandDate } = params;
   const nowParts = getBrazilParts();
+  const yesterdayDateKey = getPreviousDateKey(nowParts.dateKey);
   const { start, end } = getBrazilDayRange(demandDate);
 
   const profile = await prisma.profile.findUnique({
@@ -133,6 +143,20 @@ export async function assessDailyDemandOsAvailability(params: {
       hasRelease: Boolean(release),
       isVisitTechnician: false,
       isWithinBusinessHours,
+      profile,
+    };
+  }
+
+  if (demandDate < yesterdayDateKey) {
+    return {
+      allowed: true,
+      reason: null,
+      currentDate: nowParts.dateKey,
+      currentTime: nowParts.timeKey,
+      demandDate,
+      hasRelease: true,
+      isVisitTechnician: true,
+      isWithinBusinessHours: false,
       profile,
     };
   }
