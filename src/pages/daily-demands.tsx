@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import { jwtDecode } from "jwt-decode";
+import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
 import {
   Trash,
   ArrowClockwise,
@@ -76,7 +77,21 @@ const DailyDemands: React.FC = () => {
   const [savingVisitStatus, setSavingVisitStatus] = useState(false);
 
   // Format date for API
-  const formatDateForAPI = (date: Date) => date.toISOString().split('T')[0];
+  const formatDateForAPI = (date: Date) => formatBrazilDateKey(date);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const queryDate = router.query.date;
+    if (typeof queryDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(queryDate)) return;
+
+    const parsedDate = new Date(`${queryDate}T12:00:00-03:00`);
+    if (Number.isNaN(parsedDate.getTime())) return;
+
+    if (formatDateForAPI(selectedDate) !== queryDate) {
+      setSelectedDate(parsedDate);
+    }
+  }, [router.isReady, router.query.date]);
   
   // Format date for display
   const formatDateForDisplay = (date: Date) => {
@@ -202,10 +217,13 @@ const DailyDemands: React.FC = () => {
       const demandsResponse = await fetch(
         `/api/daily-demands?date=${formatDateForAPI(targetDate)}`
       );
-      
-      if (!demandsResponse.ok) throw new Error("Erro ao buscar demandas");
-      
+
       const demandsResult = await demandsResponse.json();
+
+      if (!demandsResponse.ok) {
+        throw new Error(demandsResult.message || demandsResult.error || "Erro ao buscar demandas");
+      }
+
       const fetchedDemands = demandsResult.data || [];
       setDemands(fetchedDemands);
 

@@ -1,5 +1,5 @@
 import prisma from "@/utils/prisma";
-import { getBrazilDayRange } from "@/utils/dailyDemandOsRules";
+import { formatBrazilDateKey, getBrazilDayRange } from "@/utils/dailyDemandOsRules";
 
 const DAILY_DEMAND_PENDING_START_DATE = "2026-05-05";
 
@@ -16,6 +16,12 @@ export interface PendingDailyDemandItem {
   visitUpdatedBy: string | null;
   responsibleTechnicianIds: number[];
   responsibleTechnicians: string[];
+}
+
+function pushTimestamp(map: Map<string, number[]>, key: string, timestamp: number) {
+  const items = map.get(key) || [];
+  items.push(timestamp);
+  map.set(key, items);
 }
 
 export async function getPendingDailyDemandItems(params?: {
@@ -41,7 +47,14 @@ export async function getPendingDailyDemandItems(params?: {
     profileRole = profile.role;
   }
 
+  const startDate = getBrazilDayRange(DAILY_DEMAND_PENDING_START_DATE).start;
+
   const demands = await prisma.schoolDemand.findMany({
+    where: {
+      createdAt: {
+        gte: startDate,
+      },
+    },
     include: {
       School: {
         select: {
@@ -60,9 +73,17 @@ export async function getPendingDailyDemandItems(params?: {
     return [];
   }
 
-  const schoolNames = demands.map((demand) => demand.School.name);
+  const schoolNames = Array.from(new Set(demands.map((demand) => demand.School.name)));
+  const uniqueDemandDates = Array.from(
+    new Set(demands.map((demand) => formatBrazilDateKey(demand.createdAt)))
+  );
 
-  const [osOld, osExternas] = await Promise.all([
+  const oldestDemandDate = uniqueDemandDates[uniqueDemandDates.length - 1];
+  const newestDemandDate = uniqueDemandDates[0];
+  const oldestRange = getBrazilDayRange(oldestDemandDate);
+  const newestRange = getBrazilDayRange(newestDemandDate);
+
+  const [osOld, osExternas, visitTechnicians] = await Promise.all([
     prisma.os.findMany({
       where: {
         unidadeEscolar: { in: schoolNames },
@@ -81,53 +102,28 @@ export async function getPendingDailyDemandItems(params?: {
         createdAt: true,
       },
     }),
-  ]);
-
-  const uniqueDemandDates = Array.from(
-    new Set(
-      demands.map((demand) =>
-        demand.createdAt.toLocaleDateString("en-CA", {
-          timeZone: "America/Sao_Paulo",
-        })
-      )
-    )
-  );
-
-  const visitTechniciansByDate = new Map<
-    string,
-    { technicianId: number; displayName: string }[]
-  >();
-
-  const allVisitTechnicianIds = new Set<number>();
-
-  for (const demandDate of uniqueDemandDates) {
-    const { start, end } = getBrazilDayRange(demandDate);
-    const visitTechnicians = await prisma.visitTechnician.findMany({
+    prisma.visitTechnician.findMany({
       where: {
         createdAt: {
-          gte: start,
-          lte: end,
+          gte: oldestRange.start,
+          lte: newestRange.end,
         },
       },
       select: {
         technicianId: true,
+        createdAt: true,
       },
-    });
+    }),
+  ]);
 
-    visitTechnicians.forEach((item) => allVisitTechnicianIds.add(item.technicianId));
-    visitTechniciansByDate.set(
-      demandDate,
-      visitTechnicians.map((item) => ({
-        technicianId: item.technicianId,
-        displayName: `Técnico ${item.technicianId}`,
-      }))
-    );
-  }
+  const visitTechnicianIds = Array.from(
+    new Set(visitTechnicians.map((item) => item.technicianId))
+  );
 
-  const profiles = allVisitTechnicianIds.size
+  const profiles = visitTechnicianIds.length
     ? await prisma.profile.findMany({
         where: {
-          id: { in: Array.from(allVisitTechnicianIds) },
+          id: { in: visitTechnicianIds },
         },
         select: {
           id: true,
@@ -136,39 +132,53 @@ export async function getPendingDailyDemandItems(params?: {
       })
     : [];
 
-  for (const [demandDate, technicians] of visitTechniciansByDate.entries()) {
-    visitTechniciansByDate.set(
-      demandDate,
-      technicians.map((technician) => ({
-        technicianId: technician.technicianId,
-        displayName:
-          profiles.find((profile) => profile.id === technician.technicianId)?.displayName ||
-          technician.displayName,
-      }))
-    );
+  const oldOsBySchool = new Map<string, number[]>();
+  const externalOsBySchool = new Map<string, number[]>();
+
+  for (const os of osOld) {
+    if (os.unidadeEscolar) {
+      pushTimestamp(oldOsBySchool, os.unidadeEscolar, new Date(os.createdAt).getTime());
+    }
+  }
+
+  for (const os of osExternas) {
+    if (os.unidadeEscolar) {
+      pushTimestamp(externalOsBySchool, os.unidadeEscolar, new Date(os.createdAt).getTime());
+    }
+  }
+
+  const profileNameById = new Map(
+    profiles.map((profile) => [profile.id, profile.displayName])
+  );
+
+  const visitTechniciansByDate = new Map<
+    string,
+    { technicianId: number; displayName: string }[]
+  >();
+
+  for (const item of visitTechnicians) {
+    const demandDateKey = formatBrazilDateKey(item.createdAt);
+    const technicians = visitTechniciansByDate.get(demandDateKey) || [];
+
+    technicians.push({
+      technicianId: item.technicianId,
+      displayName: profileNameById.get(item.technicianId) || `Tecnico ${item.technicianId}`,
+    });
+
+    visitTechniciansByDate.set(demandDateKey, technicians);
   }
 
   return demands
     .filter((demand) => {
-      const demandDateKey = demand.createdAt.toLocaleDateString("en-CA", {
-        timeZone: "America/Sao_Paulo",
-      });
+      const demandDateKey = formatBrazilDateKey(demand.createdAt);
+      const demandTimestamp = new Date(demand.createdAt).getTime();
 
-      if (demandDateKey < DAILY_DEMAND_PENDING_START_DATE) {
-        return false;
-      }
-
-      const demandDate = new Date(demand.createdAt);
-      const hasOldOs = osOld.some(
-        (os) =>
-          os.unidadeEscolar === demand.School.name &&
-          new Date(os.createdAt) >= demandDate
+      const hasOldOs = (oldOsBySchool.get(demand.School.name) || []).some(
+        (createdAt) => createdAt >= demandTimestamp
       );
 
-      const hasExternalOs = osExternas.some(
-        (os) =>
-          os.unidadeEscolar === demand.School.name &&
-          new Date(os.createdAt) >= demandDate
+      const hasExternalOs = (externalOsBySchool.get(demand.School.name) || []).some(
+        (createdAt) => createdAt >= demandTimestamp
       );
 
       if (hasOldOs || hasExternalOs) {
@@ -176,8 +186,7 @@ export async function getPendingDailyDemandItems(params?: {
       }
 
       if (profileRole === "TECH" && profileId !== null) {
-        const responsibleTechnicians =
-          visitTechniciansByDate.get(demandDateKey) || [];
+        const responsibleTechnicians = visitTechniciansByDate.get(demandDateKey) || [];
 
         return responsibleTechnicians.some(
           (technician) => technician.technicianId === profileId
@@ -187,11 +196,8 @@ export async function getPendingDailyDemandItems(params?: {
       return true;
     })
     .map((demand) => {
-      const demandDateKey = demand.createdAt.toLocaleDateString("en-CA", {
-        timeZone: "America/Sao_Paulo",
-      });
-      const responsibleTechnicians =
-        visitTechniciansByDate.get(demandDateKey) || [];
+      const demandDateKey = formatBrazilDateKey(demand.createdAt);
+      const responsibleTechnicians = visitTechniciansByDate.get(demandDateKey) || [];
 
       return {
         demandId: demand.id,

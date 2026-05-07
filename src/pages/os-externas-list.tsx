@@ -5,6 +5,7 @@ import { CheckCircle, Clock, Eye, Calendar, User, PaperPlaneTilt, X } from 'phos
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/router';
+import { formatBrazilDateKey } from '@/utils/dailyDemandOsRules';
 
 // Atualizar a interface para incluir todos os campos do schema
 interface OsExterna {
@@ -81,6 +82,19 @@ interface PendingDailyDemand {
   responsibleTechnicians: string[];
 }
 
+interface NotVisitedDailyDemand {
+  demandId: number;
+  schoolName: string;
+  schoolAddress: string;
+  schoolDistrict: string;
+  description: string;
+  createdAt: string;
+  demandDate: string;
+  visitReason: string | null;
+  visitUpdatedBy: string | null;
+  responsibleTechnicians: string[];
+}
+
 const OsExternasList: React.FC = () => {
   const router = useRouter();
   const { userName } = useHeaderContext();
@@ -97,6 +111,9 @@ const OsExternasList: React.FC = () => {
   const [confirmOsData, setConfirmOsData] = useState<OsExterna | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [pendingDailyDemands, setPendingDailyDemands] = useState<PendingDailyDemand[]>([]);
+  const [notVisitedDailyDemands, setNotVisitedDailyDemands] = useState<NotVisitedDailyDemand[]>([]);
+  const [notVisitedDate, setNotVisitedDate] = useState(formatBrazilDateKey(new Date()));
+  const [showNotVisitedModal, setShowNotVisitedModal] = useState(false);
   const statusFilter = typeof router.query.status === 'string' ? router.query.status : '';
   const pendingOnly = statusFilter === 'Pendente';
 
@@ -119,6 +136,7 @@ const OsExternasList: React.FC = () => {
         await fetchUserRole(user.id);
         await fetchOsExternas(user.id);
         await fetchPendingDailyDemands(user.id);
+        await fetchNotVisitedDailyDemands(user.id, notVisitedDate);
       } catch (initError) {
         console.error('Erro ao inicializar lista de OS:', initError);
         setLoading(false);
@@ -127,6 +145,15 @@ const OsExternasList: React.FC = () => {
 
     initializePage();
   }, [router.isReady, router.query.status]);
+
+  useEffect(() => {
+    if (!currentUserId || !userRole || !['ADMIN', 'ADMTOTAL'].includes(userRole)) {
+      setNotVisitedDailyDemands([]);
+      return;
+    }
+
+    fetchNotVisitedDailyDemands(currentUserId, notVisitedDate);
+  }, [currentUserId, userRole, notVisitedDate]);
 
   const fetchUserRole = async (userIdParam?: string) => {
     try {
@@ -209,6 +236,35 @@ const OsExternasList: React.FC = () => {
     }
   };
 
+  const fetchNotVisitedDailyDemands = async (userIdParam?: string, dateParam?: string) => {
+    try {
+      const effectiveUserId = userIdParam || currentUserId;
+      const effectiveDate = dateParam || notVisitedDate;
+
+      if (!effectiveUserId || !effectiveDate) {
+        setNotVisitedDailyDemands([]);
+        return;
+      }
+
+      const params = new URLSearchParams({
+        userId: effectiveUserId,
+        date: effectiveDate,
+      });
+
+      const response = await fetch(`/api/not-visited-daily-demands?${params.toString()}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotVisitedDailyDemands(data.data || []);
+      } else {
+        setNotVisitedDailyDemands([]);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar demandas nao visitadas:', error);
+      setNotVisitedDailyDemands([]);
+    }
+  };
+
   // Função para filtrar OS baseada na pesquisa
   const filterOsBySearch = (osList: OsExterna[]) => {
     if (!searchTerm.trim()) return osList;
@@ -226,21 +282,28 @@ const OsExternasList: React.FC = () => {
   const osExternasPendentes = filterOsBySearch(osExternas.filter(os => os.status === 'Pendente'));
   const osExternasAssinadas = filterOsBySearch(osExternas.filter(os => os.status === 'Assinado'));
   const filteredPendingDailyDemands = pendingDailyDemands.filter((demand) =>
-    !searchTerm.trim() ||
-    demand.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    demand.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (demand.visitReason || '').toLowerCase().includes(searchTerm.toLowerCase())
+    demand.visitStatus !== 'NOT_VISITED' && (
+      !searchTerm.trim() ||
+      demand.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      demand.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (demand.visitReason || '').toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
-  const todayDateKey = new Date().toLocaleDateString('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-  });
+  const todayDateKey = formatBrazilDateKey(new Date());
 
   const pendingDailyDemandsToday = filteredPendingDailyDemands.filter(
     (demand) => demand.demandDate === todayDateKey
   );
   const pendingDailyDemandsPrevious = filteredPendingDailyDemands.filter(
     (demand) => demand.demandDate < todayDateKey
+  );
+
+  const filteredNotVisitedDailyDemands = notVisitedDailyDemands.filter((demand) =>
+    !searchTerm.trim() ||
+    demand.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    demand.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (demand.visitReason || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const renderPendingDailyDemandCard = (demand: PendingDailyDemand) => (
@@ -291,9 +354,63 @@ const OsExternasList: React.FC = () => {
           </p>
         </div>
         <Button
-          onClick={() => router.push(`/daily-demands`)}
+          onClick={() => router.push(`/daily-demands?date=${encodeURIComponent(demand.demandDate)}`)}
           size="sm"
           className="bg-red-500 hover:bg-red-600 text-white"
+        >
+          Ver demanda
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderNotVisitedDailyDemandCard = (demand: NotVisitedDailyDemand) => (
+    <div key={`not-visited-demand-${demand.demandId}`} className="border border-amber-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-amber-50/50">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-1">
+          <div className="flex items-center mb-3 gap-2">
+            <span className="px-2 py-1 rounded text-sm font-medium bg-amber-100 text-amber-800">
+              Nao visitada
+            </span>
+            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm font-medium">
+              Demanda: {new Date(`${demand.demandDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
+            </span>
+            <span className="text-sm text-gray-500">
+              {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </span>
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
+            {demand.schoolDistrict} Distrito - {demand.schoolName}
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            {demand.schoolAddress}
+          </p>
+          {demand.responsibleTechnicians.length > 0 && (
+            <p className="text-sm text-gray-700 mb-2">
+              <User size={16} className="inline mr-1" />
+              Responsavel{demand.responsibleTechnicians.length > 1 ? 'is' : ''}: {demand.responsibleTechnicians.join(', ')}
+            </p>
+          )}
+          {demand.visitReason && (
+            <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <div className="font-medium">Motivo</div>
+              <div className="whitespace-pre-line">{demand.visitReason}</div>
+              {demand.visitUpdatedBy && (
+                <div className="mt-1 text-xs text-amber-700">Marcado por: {demand.visitUpdatedBy}</div>
+              )}
+            </div>
+          )}
+          <p className="text-sm text-gray-700 whitespace-pre-line">
+            {demand.description}
+          </p>
+        </div>
+        <Button
+          onClick={() => router.push(`/daily-demands?date=${encodeURIComponent(demand.demandDate)}`)}
+          size="sm"
+          className="bg-amber-500 hover:bg-amber-600 text-white"
         >
           Ver demanda
         </Button>
@@ -457,6 +574,35 @@ const OsExternasList: React.FC = () => {
             Total: {osExternas.length + pendingDailyDemands.length} | Pendentes: {osExternas.filter(os => os.status === 'Pendente').length + pendingDailyDemands.length} | Assinadas: {osExternas.filter(os => os.status === 'Assinado').length}
           </p>
         </div>
+
+        {userRole && ['ADMIN', 'ADMTOTAL'].includes(userRole) && (
+          <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Escolas Nao Visitadas</h2>
+                <p className="text-sm text-gray-600">
+                  Consulte por dia as demandas marcadas como nao visitadas.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  type="date"
+                  value={notVisitedDate}
+                  min="2026-05-05"
+                  onChange={(e) => setNotVisitedDate(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                />
+                <Button
+                  type="button"
+                  onClick={() => setShowNotVisitedModal(true)}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  Ver nao visitadas
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Barra de Pesquisa */}
         <div className="mb-8 max-w-2xl mx-auto">
@@ -1334,6 +1480,51 @@ const OsExternasList: React.FC = () => {
                   Fechar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNotVisitedModal && userRole && ['ADMIN', 'ADMTOTAL'].includes(userRole) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[85vh] shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Escolas Nao Visitadas</h3>
+                <p className="text-sm text-gray-600">
+                  {new Date(`${notVisitedDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowNotVisitedModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label="Fechar"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 border-b border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <input
+                type="date"
+                value={notVisitedDate}
+                min="2026-05-05"
+                onChange={(e) => setNotVisitedDate(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+              <div className="text-sm text-gray-600">
+                Total: {filteredNotVisitedDailyDemands.length}
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-144px)] space-y-4">
+              {filteredNotVisitedDailyDemands.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-8 text-center text-sm text-amber-900">
+                  Nenhuma escola nao visitada em {new Date(`${notVisitedDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}.
+                </div>
+              ) : (
+                filteredNotVisitedDailyDemands.map(renderNotVisitedDailyDemandCard)
+              )}
             </div>
           </div>
         </div>

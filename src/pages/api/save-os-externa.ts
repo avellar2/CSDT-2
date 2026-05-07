@@ -5,6 +5,23 @@ import { getSchoolPendingDailyDemandAvailability } from "@/utils/schoolPendingDa
 
 const prisma = new PrismaClient();
 
+function preservePartnerSuffix(currentValue: string | null | undefined, primaryTechnician: string) {
+  if (!currentValue || !currentValue.includes(" / ")) {
+    return primaryTechnician;
+  }
+
+  const parts = currentValue
+    .split(" / ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 1) {
+    return primaryTechnician;
+  }
+
+  return `${primaryTechnician} / ${parts.slice(1).join(" / ")}`;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Metodo nao permitido" });
@@ -83,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       if (availability.profile?.displayName) {
-        tecnicoResponsavel = availability.profile.displayName;
+        tecnicoResponsavel = preservePartnerSuffix(typeof tecnicoResponsavel === "string" ? tecnicoResponsavel : null, availability.profile.displayName);
       }
     } else if (context?.userId && unidadeEscolar) {
       const schoolAvailability = await getSchoolPendingDailyDemandAvailability({
@@ -108,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       if (schoolAvailability.availability?.profile?.displayName) {
-        tecnicoResponsavel = schoolAvailability.availability.profile.displayName;
+        tecnicoResponsavel = preservePartnerSuffix(typeof tecnicoResponsavel === "string" ? tecnicoResponsavel : null, schoolAvailability.availability.profile.displayName);
       }
     }
 

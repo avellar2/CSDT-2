@@ -44,6 +44,23 @@ interface SchoolPendingDailyDemandAvailability {
   availability: DailyDemandAvailability | null;
 }
 
+function preservePartnerSuffix(currentValue: string | undefined, primaryTechnician: string) {
+  if (!currentValue || !currentValue.includes(" / ")) {
+    return primaryTechnician;
+  }
+
+  const parts = currentValue
+    .split(" / ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 1) {
+    return primaryTechnician;
+  }
+
+  return `${primaryTechnician} / ${parts.slice(1).join(" / ")}`;
+}
+
 const FillPdfForm: React.FC = () => {
   const { userName } = useHeaderContext();
   const router = useRouter();
@@ -1013,16 +1030,16 @@ const FillPdfForm: React.FC = () => {
 
         if (response.data && response.data.displayName) {
           setLocalTecnicoName(response.data.displayName);
-          setFormData(prev => ({ ...prev, tecnicoResponsavel: response.data.displayName }));
+          setFormData(prev => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, response.data.displayName) }));
         } else {
           const fallback = user.email?.split('@')[0] || 'Técnico';
           setLocalTecnicoName(fallback);
-          setFormData(prev => ({ ...prev, tecnicoResponsavel: fallback }));
+          setFormData(prev => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, fallback) }));
         }
       } else {
         const fallback = user.email?.split('@')[0] || 'Técnico';
         setLocalTecnicoName(fallback);
-        setFormData(prev => ({ ...prev, tecnicoResponsavel: fallback }));
+        setFormData(prev => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, fallback) }));
       }
     } catch (error) {
       setLocalTecnicoName('Técnico');
@@ -1039,7 +1056,7 @@ const FillPdfForm: React.FC = () => {
   useEffect(() => {
     if (userName && !isLoadingTecnico) {
       setLocalTecnicoName(userName);
-      setFormData(prev => ({ ...prev, tecnicoResponsavel: userName }));
+      setFormData(prev => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, userName) }));
     }
   }, [userName, isLoadingTecnico]);
 
