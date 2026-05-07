@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabaseClient';
 import { generateMemorandoTrocaBase64, convertMemorandumDataForTroca } from '@/utils/pdfMemorandoTroca';
+import { buildItemDisplayName } from '@/utils/itemDisplayName';
 
 const ITEMS_PER_PAGE = 13;
 
@@ -143,6 +144,7 @@ async function generateEntregaPdfBase64(
     items: Array<{
       Item: {
         id: number;
+        name: string;
         brand: string;
         serialNumber: string;
       };
@@ -191,7 +193,9 @@ async function generateEntregaPdfBase64(
     const pageItems = memorandum.items.slice(startIdx, endIdx);
 
     pageItems.forEach((item, index) => {
-      form.getTextField(`item${index + 1}`).setText(`${item.Item.brand}`);
+      form.getTextField(`item${index + 1}`).setText(
+        buildItemDisplayName(item.Item.name, item.Item.brand)
+      );
       form.getTextField(`serial${index + 1}`).setText(item.Item.serialNumber);
     });
 

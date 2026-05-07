@@ -1,8 +1,9 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { buildItemDisplayName } from './itemDisplayName';
 
 interface Equipment {
   brand?: string;
@@ -17,16 +18,16 @@ interface MemorandoTrocaData {
   toSchool: string;
   fromDistrict: string;
   toDistrict: string;
-  outgoingEquipment: Equipment[]; // Equipamentos que saem (vão para escola)
-  incomingEquipment: Equipment[]; // Equipamentos que voltam (vão para CSDT)
+  outgoingEquipment: Equipment[];
+  incomingEquipment: Equipment[];
   date?: Date;
 }
 
 export async function fillMemorandoTrocaPDF(data: MemorandoTrocaData): Promise<Uint8Array> {
-  const pdfPath = path.join(process.cwd(), "public", "memorando-troca2.pdf");
-  
+  const pdfPath = path.join(process.cwd(), 'public', 'memorando-troca2.pdf');
+
   if (!fs.existsSync(pdfPath)) {
-    throw new Error("Template memorando-troca2.pdf não encontrado");
+    throw new Error('Template memorando-troca2.pdf nao encontrado');
   }
 
   const pdfBytes = fs.readFileSync(pdfPath);
@@ -34,99 +35,79 @@ export async function fillMemorandoTrocaPDF(data: MemorandoTrocaData): Promise<U
   const form = pdfDoc.getForm();
 
   try {
-    // Carregar fonte em negrito oblíquo (itálico)
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
-    
-    // Data do memorando
-    const formattedDate = format(data.date || new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-    
-    // Preencher campos básicos
+    await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
+
+    const formattedDate = format(data.date || new Date(), "dd 'de' MMMM 'de' yyyy", {
+      locale: ptBR,
+    });
+
     const basicFields = {
-      'data': formattedDate,
-      'numero_memorando': data.memorandumNumber,
-      'origem': data.fromSchool,
-      'destino': data.toSchool,
-      'distrito_origem': data.fromDistrict,
-      'distrito_destino': data.toDistrict,
+      data: formattedDate,
+      numero_memorando: data.memorandumNumber,
+      origem: data.fromSchool,
+      destino: data.toSchool,
+      distrito_origem: data.fromDistrict,
+      distrito_destino: data.toDistrict,
     };
 
-    // Preencher campos básicos
     Object.entries(basicFields).forEach(([fieldName, value]) => {
       try {
         const field = form.getTextField(fieldName);
         field.setText(value || '');
-        
-        // Aplicar formatação em negrito
+
         if (['numero_memorando', 'origem', 'destino'].includes(fieldName)) {
-          try {
-            field.setFontSize(10);
-          } catch (fontError) {
-            // Ignorar erro de fonte
-          }
+          field.setFontSize(10);
         }
-      } catch (error) {
-        // Ignorar campos não encontrados
+      } catch {
+        // ignore missing fields
       }
     });
 
-    // Preencher campos ANTIGO (itens que voltam da escola para CSDT)
     const incomingItems = formatEquipmentForIndividualFields(data.incomingEquipment);
-    
     for (let i = 0; i < 10; i++) {
-      const fieldName = `antigo${i + 1}`; // antigo1, antigo2, ..., antigo10
+      const fieldName = `antigo${i + 1}`;
       const itemText = incomingItems[i] || '';
-      
+
       try {
         const field = form.getTextField(fieldName);
         field.setText(itemText);
-        
+
         if (itemText) {
-          try {
-            field.setFontSize(9);
-          } catch (fontError) {
-            // Ignorar erro de fonte
-          }
+          field.setFontSize(9);
         }
-      } catch (error) {
-        console.warn(`Campo ${fieldName} não encontrado no PDF`);
+      } catch {
+        console.warn(`Campo ${fieldName} nao encontrado no PDF`);
       }
     }
 
-    // Preencher campos NOVO (itens que vão do CSDT para escola)
     const outgoingItems = formatEquipmentForIndividualFields(data.outgoingEquipment);
-    
     for (let i = 0; i < 10; i++) {
-      const fieldName = `novo${i + 1}`; // novo1, novo2, ..., novo10
+      const fieldName = `novo${i + 1}`;
       const itemText = outgoingItems[i] || '';
-      
+
       try {
         const field = form.getTextField(fieldName);
         field.setText(itemText);
-        
+
         if (itemText) {
-          try {
-            field.setFontSize(9);
-          } catch (fontError) {
-            // Ignorar erro de fonte
-          }
+          field.setFontSize(9);
         }
-      } catch (error) {
-        console.warn(`Campo ${fieldName} não encontrado no PDF`);
+      } catch {
+        console.warn(`Campo ${fieldName} nao encontrado no PDF`);
       }
     }
 
     form.flatten();
     return await pdfDoc.save();
-
   } catch (error) {
-    console.error("Erro ao preencher PDF de troca:", error);
+    console.error('Erro ao preencher PDF de troca:', error);
     throw error;
   }
 }
 
 export async function generateMemorandoTrocaBase64(data: MemorandoTrocaData): Promise<string> {
   const pdfBytes = await fillMemorandoTrocaPDF(data);
-  return Buffer.from(pdfBytes).toString("base64");
+  return Buffer.from(pdfBytes).toString('base64');
 }
 
 export function formatEquipmentForIndividualFields(equipment: Equipment[]): string[] {
@@ -134,51 +115,52 @@ export function formatEquipmentForIndividualFields(equipment: Equipment[]): stri
     return [];
   }
 
-  return equipment.map((item, index) => {
-    const itemName = item.name || item.model || "Equipamento";
-    const brand = item.brand || "Marca não informada";
-    const serial = item.serialNumber || "S/N não informado";
-    
-    // Formato individual para cada campo
-    return `${itemName} - ${brand}\nNº Série: ${serial}`;
+  return equipment.map((item) => {
+    const brand = item.brand || 'Marca nao informada';
+    const serial = item.serialNumber || 'S/N nao informado';
+    const itemLabel = buildItemDisplayName(item.name || item.model, brand);
+
+    return `${itemLabel}\nNº Série: ${serial}`;
   });
 }
 
-// Manter função antiga para compatibilidade
 export function formatEquipmentList(equipment: Equipment[]): string {
   if (!equipment || equipment.length === 0) {
-    return "Nenhum equipamento especificado";
+    return 'Nenhum equipamento especificado';
   }
 
-  return equipment.map((item, index) => {
-    const itemName = item.name || item.model || "Equipamento";
-    const brand = item.brand || "Marca não informada";
-    const serial = item.serialNumber || "S/N não informado";
-    
-    return `${index + 1}. ${itemName} - ${brand}\nNº Série: ${serial}`;
-  }).join('\n\n');
+  return equipment
+    .map((item, index) => {
+      const brand = item.brand || 'Marca nao informada';
+      const serial = item.serialNumber || 'S/N nao informado';
+      const itemLabel = buildItemDisplayName(item.name || item.model, brand);
+
+      return `${index + 1}. ${itemLabel}\nNº Série: ${serial}`;
+    })
+    .join('\n\n');
 }
 
-// Função para converter dados do memorando do banco para formato do PDF
-export function convertMemorandumDataForTroca(memorandum: any, fromSchool: any, toSchool: any, frontendData?: any): MemorandoTrocaData {
-  // Separar equipamentos baseado nos arrays do frontend:
-  const outgoingEquipment: Equipment[] = [];  // CSDT → Escola (campo "novo")
-  const incomingEquipment: Equipment[] = [];  // Escola → CSDT (campo "antigo")
+export function convertMemorandumDataForTroca(
+  memorandum: any,
+  fromSchool: any,
+  toSchool: any,
+  frontendData?: any
+): MemorandoTrocaData {
+  const outgoingEquipment: Equipment[] = [];
+  const incomingEquipment: Equipment[] = [];
 
-  // Usar os arrays selectedFromCSDT e selectedFromDestino do frontend
   const selectedFromCSDT = frontendData?.selectedFromCSDT || [];
   const selectedFromDestino = frontendData?.selectedFromDestino || [];
-  
+
   memorandum.items.forEach((item: any) => {
     const equipment = {
       name: item.Item.name,
       brand: item.Item.brand,
-      serialNumber: item.Item.serialNumber
+      serialNumber: item.Item.serialNumber,
     };
 
     const itemId = item.Item.id;
-    
-    // NOVA LÓGICA USANDO OS ARRAYS DO FRONTEND:
+
     if (selectedFromCSDT.includes(itemId)) {
       outgoingEquipment.push(equipment);
     } else if (selectedFromDestino.includes(itemId)) {
@@ -188,12 +170,12 @@ export function convertMemorandumDataForTroca(memorandum: any, fromSchool: any, 
 
   return {
     memorandumNumber: memorandum.number,
-    fromSchool: "CSDT", // SEMPRE CSDT como origem
-    toSchool: toSchool?.name || "Escola não informada",
-    fromDistrict: "SEDE", // CSDT sempre na sede
-    toDistrict: toSchool?.district || "não informado",
+    fromSchool: 'CSDT',
+    toSchool: toSchool?.name || 'Escola nao informada',
+    fromDistrict: 'SEDE',
+    toDistrict: toSchool?.district || 'nao informado',
     outgoingEquipment,
     incomingEquipment,
-    date: new Date()
+    date: new Date(),
   };
 }

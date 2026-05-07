@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabaseClient';
 import { generateMemorandoTrocaBase64, convertMemorandumDataForTroca } from '@/utils/pdfMemorandoTroca';
+import { buildItemDisplayName } from '@/utils/itemDisplayName';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -482,7 +483,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Preencher itens desta página
         pageItems.forEach((item, index) => {
           if (index >= ITEMS_PER_PAGE) return;
-          const itemWithBrand = `${item.brand}`;
+          const itemWithBrand = buildItemDisplayName(item.name, item.brand);
           form.getTextField(`item${index + 1}`).setText(itemWithBrand);
           form.getTextField(`serial${index + 1}`).setText(item.serialNumber);
         });
