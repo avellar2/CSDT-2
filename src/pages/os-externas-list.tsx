@@ -235,17 +235,12 @@ const OsExternasList: React.FC = () => {
   const todayDateKey = new Date().toLocaleDateString('en-CA', {
     timeZone: 'America/Sao_Paulo',
   });
-  const yesterdayDate = new Date();
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayDateKey = yesterdayDate.toLocaleDateString('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-  });
 
   const pendingDailyDemandsToday = filteredPendingDailyDemands.filter(
     (demand) => demand.demandDate === todayDateKey
   );
-  const pendingDailyDemandsYesterday = filteredPendingDailyDemands.filter(
-    (demand) => demand.demandDate === yesterdayDateKey
+  const pendingDailyDemandsPrevious = filteredPendingDailyDemands.filter(
+    (demand) => demand.demandDate < todayDateKey
   );
 
   const renderPendingDailyDemandCard = (demand: PendingDailyDemand) => (
@@ -525,14 +520,14 @@ const OsExternasList: React.FC = () => {
                   </div>
                 )}
 
-                {pendingDailyDemandsYesterday.length > 0 && (
+                {pendingDailyDemandsPrevious.length > 0 && (
                   <div className="space-y-3">
                     <div className="rounded-lg border border-amber-200 bg-amber-100 px-3 py-2">
                       <div className="text-sm font-semibold text-amber-900">
-                        Pendencias de ontem ({pendingDailyDemandsYesterday.length})
+                        Pendencias anteriores ({pendingDailyDemandsPrevious.length})
                       </div>
                     </div>
-                    {pendingDailyDemandsYesterday.map(renderPendingDailyDemandCard)}
+                    {pendingDailyDemandsPrevious.map(renderPendingDailyDemandCard)}
                   </div>
                 )}
 

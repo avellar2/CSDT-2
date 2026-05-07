@@ -1,6 +1,8 @@
 import prisma from "@/utils/prisma";
 import { getBrazilDayRange } from "@/utils/dailyDemandOsRules";
 
+const DAILY_DEMAND_PENDING_START_DATE = "2026-05-05";
+
 export interface PendingDailyDemandItem {
   demandId: number;
   schoolName: string;
@@ -19,12 +21,6 @@ export interface PendingDailyDemandItem {
 export async function getPendingDailyDemandItems(params?: {
   userId?: string;
 }): Promise<PendingDailyDemandItem[]> {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const minimumDemandDateKey = yesterday.toLocaleDateString("en-CA", {
-    timeZone: "America/Sao_Paulo",
-  });
-
   let profileId: number | null = null;
   let profileRole: string | null = null;
 
@@ -158,7 +154,7 @@ export async function getPendingDailyDemandItems(params?: {
         timeZone: "America/Sao_Paulo",
       });
 
-      if (demandDateKey < minimumDemandDateKey) {
+      if (demandDateKey < DAILY_DEMAND_PENDING_START_DATE) {
         return false;
       }
 

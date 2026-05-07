@@ -3,6 +3,7 @@ import prisma from "@/utils/prisma";
 const BRAZIL_TIMEZONE = "America/Sao_Paulo";
 const BUSINESS_START_MINUTES = 8 * 60;
 const BUSINESS_END_MINUTES = 17 * 60;
+const DAILY_DEMAND_PENDING_START_DATE = "2026-05-05";
 
 export interface DailyDemandAvailabilityResult {
   allowed: boolean;
@@ -48,22 +49,12 @@ export function getBrazilDayRange(dateKey: string) {
   return { start, end };
 }
 
-function getPreviousDateKey(dateKey: string) {
-  const date = new Date(`${dateKey}T12:00:00-03:00`);
-  date.setDate(date.getDate() - 1);
-
-  return date.toLocaleDateString("en-CA", {
-    timeZone: BRAZIL_TIMEZONE,
-  });
-}
-
 export async function assessDailyDemandOsAvailability(params: {
   userId: string;
   demandDate: string;
 }): Promise<DailyDemandAvailabilityResult> {
   const { userId, demandDate } = params;
   const nowParts = getBrazilParts();
-  const yesterdayDateKey = getPreviousDateKey(nowParts.dateKey);
   const { start, end } = getBrazilDayRange(demandDate);
 
   const profile = await prisma.profile.findUnique({
@@ -147,7 +138,7 @@ export async function assessDailyDemandOsAvailability(params: {
     };
   }
 
-  if (demandDate < yesterdayDateKey) {
+  if (demandDate < DAILY_DEMAND_PENDING_START_DATE) {
     return {
       allowed: true,
       reason: null,
