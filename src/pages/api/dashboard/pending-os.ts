@@ -26,10 +26,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? { tecnicoResponsavel: tecnicoResponsavelFilter }
       : {};
 
-    const pendingOsOld = await prisma.os.count({
-      where: sharedWhere,
-    });
-
     const pendingOsNew = await prisma.oSExterna.count({
       where: {
         status: 'Pendente',
@@ -41,14 +37,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId: userId && typeof userId === 'string' ? userId : undefined,
     });
 
-    const totalPendingOS = pendingOsOld + pendingOsNew + pendingDailyDemands.length;
+    const visiblePendingDailyDemands = pendingDailyDemands.filter(
+      (item) => item.visitStatus !== 'NOT_VISITED'
+    );
+
+    const totalPendingOS = pendingOsNew + visiblePendingDailyDemands.length;
 
     return res.status(200).json({
       success: true,
       data: {
-        pendingOsOld,
         pendingOsNew,
-        pendingDailyDemands: pendingDailyDemands.length,
+        pendingDailyDemands: visiblePendingDailyDemands.length,
         totalPendingOS,
         scope: tecnicoResponsavelFilter ? 'mine' : 'all',
       },
