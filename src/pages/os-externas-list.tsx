@@ -114,6 +114,7 @@ const OsExternasList: React.FC = () => {
   const [notVisitedDailyDemands, setNotVisitedDailyDemands] = useState<NotVisitedDailyDemand[]>([]);
   const [notVisitedDate, setNotVisitedDate] = useState(formatBrazilDateKey(new Date()));
   const [showNotVisitedModal, setShowNotVisitedModal] = useState(false);
+  const [downloadPdf, setDownloadingPdf] = useState(false);
   const statusFilter = typeof router.query.status === 'string' ? router.query.status : '';
   const pendingOnly = statusFilter === 'Pendente';
 
@@ -567,9 +568,46 @@ const OsExternasList: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            {pendingOnly ? 'OS Pendentes' : 'OS Externas - Controle Geral'}
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <h1 className="text-3xl font-bold text-gray-800">
+              {pendingOnly ? 'OS Pendentes' : 'OS Externas - Controle Geral'}
+            </h1>
+            <button
+              onClick={() => {
+                setDownloadingPdf(true);
+                fetch('/api/generate-sem-os-pdf')
+                  .then(res => {
+                    if (!res.ok) throw new Error('Erro ao gerar PDF');
+                    return res.blob();
+                  })
+                  .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'demandas-sem-os.pdf';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  })
+                  .catch(err => {
+                    console.error('Erro ao baixar PDF:', err);
+                    alert('Erro ao gerar PDF. Tente novamente.');
+                  })
+                  .finally(() => setDownloadingPdf(false));
+              }}
+              disabled={downloadPdf}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center gap-2 disabled:opacity-50"
+            >
+              {downloadPdf ? (
+                <>
+                  <span className="animate-spin">⏳</span> Gerando...
+                </>
+              ) : (
+                <>
+                  📄 Baixar PDF
+                </>
+              )}
+            </button>
+          </div>
           <p className="text-gray-600">
             Total: {osExternas.length + pendingDailyDemands.length} | Pendentes: {osExternas.filter(os => os.status === 'Pendente').length + pendingDailyDemands.length} | Assinadas: {osExternas.filter(os => os.status === 'Assinado').length}
           </p>
