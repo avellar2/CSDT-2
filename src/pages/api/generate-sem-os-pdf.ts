@@ -44,9 +44,14 @@ const COLORS = {
   rowLine: rgb(0.88, 0.91, 0.94),
 };
 
+// pdf-lib StandardFonts don't support accented characters — strip them
+function stripAccents(str: string): string {
+  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/×/g, 'x');
+}
+
 function formatDatePt(dateStr: string): string {
   const dateObj = new Date(`${dateStr}T12:00:00-03:00`);
-  return dateObj.toLocaleDateString('pt-BR');
+  return stripAccents(dateObj.toLocaleDateString('pt-BR'));
 }
 
 function getColPositions(): number[] {
@@ -100,7 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         dateKey,
         items: dateItems,
         formatted: formatDatePt(dateKey),
-        techs: dateItems[0]?.responsibleTechnicians.join(', ') || '',
+        techs: stripAccents(dateItems[0]?.responsibleTechnicians.join(', ') || ''),
       });
     }
 
@@ -145,9 +150,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).send(Buffer.from(pdfBytes));
   } catch (error) {
     console.error('Error generating PDF:', error);
+    const details = error instanceof Error ? `${error.message}\n${error.stack || ''}` : 'Unknown error';
     return res.status(500).json({
       error: 'Erro ao gerar PDF',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      details,
     });
   }
 }
@@ -300,8 +306,8 @@ function drawTableRows(page: PDFPage, fontRegular: any, items: PendingDailyDeman
       y: rowY + 4, size: 8.5, font: fontRegular, color: COLORS.accent,
     });
 
-    // School (truncate)
-    let schoolText = item.schoolName;
+    // School (truncate, strip accents)
+    let schoolText = stripAccents(item.schoolName);
     while (fontRegular.widthOfTextAtSize(schoolText, 8.5) > maxSchoolWidth && schoolText.length > 3) {
       schoolText = schoolText.slice(0, -4) + '...';
     }
@@ -317,8 +323,8 @@ function drawTableRows(page: PDFPage, fontRegular: any, items: PendingDailyDeman
       size: 8.5, font: fontRegular, color: COLORS.descText,
     });
 
-    // Description (truncate)
-    let descText = item.description || '';
+    // Description (truncate, strip accents)
+    let descText = stripAccents(item.description || '');
     while (fontRegular.widthOfTextAtSize(descText, 8.5) > maxDescWidth && descText.length > 3) {
       descText = descText.slice(0, -4) + '...';
     }
