@@ -115,12 +115,46 @@ export default function SetupPCPage() {
       if (!res.ok) throw new Error('Erro ao gerar script');
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Setup_${form.pcName.replace(/\s+/g, '_') || 'PC'}.ps1`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const ps1Name = `Setup_${form.pcName.replace(/\s+/g, '_') || 'PC'}.ps1`;
+      const batName = `Setup_${form.pcName.replace(/\s+/g, '_') || 'PC'}.bat`;
+
+      // Download .ps1
+      const urlPs1 = URL.createObjectURL(blob);
+      const linkPs1 = document.createElement('a');
+      linkPs1.href = urlPs1;
+      linkPs1.download = ps1Name;
+      linkPs1.click();
+      URL.revokeObjectURL(urlPs1);
+
+      // Generate and download .bat launcher (auto-elevates to admin)
+      const batContent = [
+        '@echo off',
+        `title CSDT - Setup ${form.pcName}`,
+        'color 1F',
+        '',
+        ':: === Auto-elevate to Administrator ===',
+        'net session >nul 2>&1',
+        'if %errorLevel% neq 0 (',
+        '    echo.',
+        '    echo   Solicitando privilegios de administrador...',
+        '    echo   Clique em "Sim" na janela que apareceu.',
+        '    echo.',
+        '    powershell -Command "Start-Process -FilePath \'cmd.exe\' -ArgumentList \'/c \\\"%~f0\\\"\' -Verb RunAs"',
+        '    exit /b',
+        ')',
+        '',
+        ':: Running as Administrator',
+        'cd /d "%~dp0"',
+        `powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0${ps1Name}"`,
+      ].join('\r\n');
+      const batBlob = new Blob([batContent], { type: 'text/plain' });
+      const urlBat = URL.createObjectURL(batBlob);
+      const linkBat = document.createElement('a');
+      linkBat.href = urlBat;
+      linkBat.download = batName;
+      linkBat.click();
+      URL.revokeObjectURL(urlBat);
+
       setGenerated(true);
     } catch (e) {
       alert('Erro ao gerar o script. Tente novamente.');
@@ -145,7 +179,7 @@ export default function SetupPCPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Setup Automático de PC</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Preencha as configurações e baixe o script PowerShell pronto para o pendrive
+                Preencha as configurações e baixe os arquivos prontos para o pendrive — basta dar duplo clique no .bat
               </p>
             </div>
           </div>
@@ -156,13 +190,9 @@ export default function SetupPCPage() {
           <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">Como usar:</p>
           <ol className="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside">
             <li>Preencha as configurações abaixo e clique em <strong>Gerar Script</strong></li>
-            <li>Coloque o arquivo <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.ps1</code> na raiz do pendrive</li>
+            <li>Coloque os arquivos <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.bat</code> e <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.ps1</code> na raiz do pendrive</li>
             <li>
-              No PC novo, abra o <strong>PowerShell como Administrador</strong> e execute:
-              <code className="block mt-1 bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded text-xs break-all">
-                powershell -ExecutionPolicy Bypass -File "E:\Setup_NOME_PC.ps1"
-              </code>
-              <span className="text-xs opacity-75">(substitua E:\ pela letra do pendrive)</span>
+              No PC novo, dê <strong>duplo clique</strong> no arquivo <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.bat</code> e clique em <strong>"Sim"</strong> quando pedir permissão de administrador
             </li>
             <li>Aguarde a conclusão e reinicie o computador</li>
           </ol>
@@ -390,15 +420,15 @@ export default function SetupPCPage() {
             ) : generated ? (
               <><CheckCircle size={22} weight="bold" /> Script gerado! Clique para gerar novamente</>
             ) : (
-              <><Download size={22} weight="bold" /> Gerar e Baixar Script (.ps1)</>
+              <><Download size={22} weight="bold" /> Gerar e Baixar Script (.bat + .ps1)</>
             )}
           </button>
 
           {generated && (
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
-              <p className="text-green-800 dark:text-green-300 font-medium">✅ Script baixado com sucesso!</p>
+              <p className="text-green-800 dark:text-green-300 font-medium">✅ Arquivos baixados com sucesso!</p>
               <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                Coloque o <code className="bg-green-100 dark:bg-green-900 px-1 rounded">.ps1</code> na raiz do pendrive e execute como Administrador no PC novo.
+                Coloque o <code className="bg-green-100 dark:bg-green-900 px-1 rounded">.bat</code> e o <code className="bg-green-100 dark:bg-green-900 px-1 rounded">.ps1</code> na raiz do pendrive. No PC novo, basta dar duplo clique no <code className="bg-green-100 dark:bg-green-900 px-1 rounded">.bat</code>.
               </p>
             </div>
           )}

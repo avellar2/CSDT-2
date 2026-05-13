@@ -1,15 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import fs from 'fs';
-import path from 'path';
 import prisma from '@/utils/prisma';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabaseClient';
 import { generateMemorandoTrocaBase64, convertMemorandumDataForTroca } from '@/utils/pdfMemorandoTroca';
-import { buildItemDisplayName } from '@/utils/itemDisplayName';
-
-const ITEMS_PER_PAGE = 13;
+import { generateOneWayMemorandumBase64 } from '@/utils/pdfMemorandoOneWay';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -117,7 +110,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       pdfBase64 = await generateMemorandoTrocaBase64(trocaData);
     } else {
-      pdfBase64 = await generateEntregaPdfBase64(memorandum);
+      pdfBase64 = await generateOneWayMemorandumBase64({
+        memorandumNumber: memorandum.number,
+        schoolName: memorandum.schoolName || '',
+        recipientName:
+          memorandum.type === 'devolucao'
+            ? 'Coordenadoria de Suporte e Desenvolvimento Tecnológico. CSDT/SME'
+            : memorandum.schoolName || '',
+        senderName:
+          memorandum.type === 'devolucao'
+            ? buildReturnSenderLine(memorandum.schoolName || '')
+            : memorandum.schoolName || '',
+        district: memorandum.type === 'devolucao' ? 'SEDE' : (memorandum.district || 'nao informado'),
+        originDistrict: memorandum.type === 'devolucao' ? (memorandum.district || 'nao informado') : undefined,
+        generatedBy: memorandum.generatedBy || '',
+        operationLabel:
+          memorandum.type === 'devolucao'
+            ? 'DEVOLUCAO DE EQUIPAMENTOS'
+            : 'ENTREGA DE EQUIPAMENTOS',
+        operationType: memorandum.type === 'devolucao' ? 'devolucao' : 'entrega',
+        date: new Date(memorandum.createdAt),
+        items: memorandum.items.map((item) => ({
+          name: item.Item.name,
+          brand: item.Item.brand,
+          serialNumber: item.Item.serialNumber,
+        })),
+      });
     }
 
     console.log(`PDF de ${memorandum.type} regenerado com sucesso.`);
@@ -139,94 +157,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-async function generateEntregaPdfBase64(
-  memorandum: Awaited<ReturnType<typeof prisma.newMemorandum.findUnique>> & {
-    items: Array<{
-      Item: {
-        id: number;
-        name: string;
-        brand: string;
-        serialNumber: string;
-      };
-    }>;
+function buildReturnSenderLine(schoolName: string) {
+  const upperName = schoolName.toUpperCase();
+  if (upperName.includes('ANEXO')) {
+    return schoolName;
   }
-) {
-  const pdfPath = path.join(process.cwd(), 'public', 'memorando.pdf');
-  const pdfBytes = fs.readFileSync(pdfPath);
-  const totalPages = Math.max(1, Math.ceil(memorandum.items.length / ITEMS_PER_PAGE));
-  const formattedDate = format(new Date(memorandum.createdAt), "dd 'de' MMMM 'de' yyyy", {
-    locale: ptBR,
-  });
-
-  const multiPagePdf = await PDFDocument.create();
-  const helveticaFont = await multiPagePdf.embedFont(StandardFonts.Helvetica);
-
-  for (let currentPage = 0; currentPage < totalPages; currentPage++) {
-    const pageTemplate = await PDFDocument.load(pdfBytes);
-    const form = pageTemplate.getForm();
-
-    form.getTextField('numeroMemorando').setText(`${memorandum.number}`);
-    form.getTextField('dataMemorando').setText(formattedDate);
-    form.getTextField('escola').setText(memorandum.schoolName || '');
-    form.getTextField('distrito').setText(memorandum.district || 'nao informado');
-
-    try {
-      form.getTextField('tipoOperacao')?.setText('ENTREGA DE EQUIPAMENTOS');
-    } catch {
-      console.log('Campo tipoOperacao nao encontrado no PDF');
-    }
-
-    try {
-      form.getTextField('conferente')?.setText(memorandum.generatedBy || '');
-    } catch {
-      console.log('Campo conferente nao encontrado no PDF');
-    }
-
-    try {
-      form.getTextField('escola2')?.setText(memorandum.schoolName || '');
-    } catch {
-      console.log('Campo escola2 nao encontrado no PDF');
-    }
-
-    const startIdx = currentPage * ITEMS_PER_PAGE;
-    const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, memorandum.items.length);
-    const pageItems = memorandum.items.slice(startIdx, endIdx);
-
-    pageItems.forEach((item, index) => {
-      form.getTextField(`item${index + 1}`).setText(
-        buildItemDisplayName(item.Item.name, item.Item.brand)
-      );
-      form.getTextField(`serial${index + 1}`).setText(item.Item.serialNumber);
-    });
-
-    for (let emptyIdx = pageItems.length; emptyIdx < ITEMS_PER_PAGE; emptyIdx++) {
-      try {
-        form.getTextField(`item${emptyIdx + 1}`).setText('');
-        form.getTextField(`serial${emptyIdx + 1}`).setText('');
-      } catch {
-        console.log('Campo vazio de item nao encontrado no PDF');
-      }
-    }
-
-    form.flatten();
-
-    const templatePage = pageTemplate.getPages()[0];
-    const pageText = totalPages > 1 ? `Pagina ${currentPage + 1}/${totalPages}` : '';
-    if (pageText) {
-      const textWidth = helveticaFont.widthOfTextAtSize(pageText, 10);
-      templatePage.drawText(pageText, {
-        x: templatePage.getWidth() - textWidth - 40,
-        y: templatePage.getHeight() - 30,
-        size: 10,
-        font: helveticaFont,
-        color: rgb(0.2, 0.2, 0.2),
-      });
-    }
-
-    const [copiedPage] = await multiPagePdf.copyPages(pageTemplate, [0]);
-    multiPagePdf.addPage(copiedPage);
+  if (upperName.includes('CRECHE')) {
+    return `ANEXO (Creche): ${schoolName}`;
   }
 
-  const pdfBytesModified = await multiPagePdf.save();
-  return Buffer.from(pdfBytesModified).toString('base64');
+  return `ANEXO: ${schoolName}`;
 }

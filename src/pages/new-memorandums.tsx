@@ -44,7 +44,7 @@ interface Memorandum {
   schoolName: string;
   district: string;
   generatedBy: string;
-  type: 'entrega' | 'troca';
+  type: 'entrega' | 'troca' | 'devolucao';
   fromSchoolName?: string;
   toSchoolName?: string;
   createdAt: string;
@@ -149,13 +149,25 @@ const NewMemorandumsPage: React.FC = () => {
   };
 
   const getTypeIcon = (type: string) => {
-    return type === 'entrega' ? '📦' : '🔄';
+    if (type === 'entrega') return 'E';
+    if (type === 'devolucao') return 'D';
+    return 'T';
   };
 
   const getTypeColor = (type: string) => {
-    return type === 'entrega' 
-      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
-      : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+    if (type === 'entrega') {
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+    }
+    if (type === 'devolucao') {
+      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300';
+    }
+    return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+  };
+
+  const getTypeLabel = (type: Memorandum['type']) => {
+    if (type === 'entrega') return 'Entrega';
+    if (type === 'devolucao') return 'Devolucao';
+    return 'Troca';
   };
 
   const filteredMemorandums = memorandums;
@@ -211,7 +223,9 @@ const NewMemorandumsPage: React.FC = () => {
       link.href = url;
       const fileName = memorandum.type === "entrega"
         ? `memorando-entrega-${memorandum.number}.pdf`
-        : `memorando-troca-${memorandum.number}.pdf`;
+        : memorandum.type === "devolucao"
+          ? `memorando-devolucao-${memorandum.number}.pdf`
+          : `memorando-troca-${memorandum.number}.pdf`;
       link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
@@ -505,7 +519,7 @@ const NewMemorandumsPage: React.FC = () => {
                         #{memorandum.number}
                       </h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(memorandum.type)}`}>
-                        {memorandum.type === 'entrega' ? 'Entrega' : 'Troca'}
+                        {getTypeLabel(memorandum.type)}
                       </span>
                     </div>
                   </div>
@@ -704,7 +718,7 @@ const NewMemorandumsPage: React.FC = () => {
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         {selectedMemorandum.items.length} {selectedMemorandum.items.length === 1 ? 'item' : 'itens'} • 
-                        {' '}{selectedMemorandum.type === 'entrega' ? 'Entrega' : 'Troca'}
+                        {' '}{getTypeLabel(selectedMemorandum.type)}
                       </p>
                     </div>
                   </div>
@@ -753,7 +767,7 @@ const NewMemorandumsPage: React.FC = () => {
                       <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                         <Tag size={16} />
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTypeColor(selectedMemorandum.type)}`}>
-                          {selectedMemorandum.type === 'entrega' ? 'Entrega' : 'Troca'}
+                          {getTypeLabel(selectedMemorandum.type)}
                         </span>
                       </div>
                     </div>
@@ -842,7 +856,7 @@ const NewMemorandumsPage: React.FC = () => {
                     <div>
                       <span className="font-semibold text-blue-900 dark:text-blue-200">Tipo:</span>{' '}
                       <span className="text-blue-700 dark:text-blue-300">
-                        {memorandumToEdit.type === 'entrega' ? 'Entrega' : 'Troca'}
+                        {getTypeLabel(memorandumToEdit.type)}
                       </span>
                     </div>
                     <div>
@@ -1072,7 +1086,7 @@ const NewMemorandumsPage: React.FC = () => {
 
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>Tipo:</strong> {memorandumToCancel.type === 'entrega' ? 'Entrega' : 'Troca'}<br />
+                    <strong>Tipo:</strong> {getTypeLabel(memorandumToCancel.type)}<br />
                     <strong>Escola:</strong> {memorandumToCancel.schoolName}<br />
                     <strong>Distrito:</strong> {memorandumToCancel.district}
                   </p>

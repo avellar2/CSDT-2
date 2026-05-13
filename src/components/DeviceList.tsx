@@ -123,7 +123,7 @@ const DeviceList: React.FC = () => {
   const [showAlerts, setShowAlerts] = useState(false);
 
   // NOVOS ESTADOS para troca de equipamentos
-  const [memorandumType, setMemorandumType] = useState<"entrega" | "troca">(
+  const [memorandumType, setMemorandumType] = useState<"entrega" | "troca" | "devolucao">(
     "entrega",
   );
   const [exchangeFromSchool, setExchangeFromSchool] = useState("");
@@ -605,7 +605,8 @@ const DeviceList: React.FC = () => {
     console.log('Escola destino (troca):', exchangeToSchool);
     console.log('Escola destino (entrega):', schoolName);
     console.log('Distrito:', district);
-    console.log('Itens selecionados:', selectedFromCSDT);
+    console.log('Itens selecionados CSDT:', selectedFromCSDT);
+    console.log('Itens selecionados devolucao/escola:', selectedFromDestino);
 
     const token = localStorage.getItem("token");
     if (!token) {
@@ -627,6 +628,22 @@ const DeviceList: React.FC = () => {
 
       if (!district) {
         alert("O distrito não foi definido. Verifique a escola selecionada.");
+        return;
+      }
+      
+    } else if (memorandumType === "devolucao") {
+      if (selectedFromDestino.length === 0) {
+        alert("Selecione pelo menos um item para devolucao.");
+        return;
+      }
+
+      if (!schoolName) {
+        alert("Por favor, selecione a escola de origem.");
+        return;
+      }
+
+      if (!district) {
+        alert("O distrito nao foi definido. Verifique a escola selecionada.");
         return;
       }
       
@@ -729,6 +746,22 @@ const DeviceList: React.FC = () => {
         }
       }
 
+      if (memorandumType === "devolucao") {
+        const itemsNotInSourceSchool = items.filter(
+          (item) =>
+            selectedFromDestino.includes(item.id) &&
+            item.School?.name !== schoolName,
+        );
+
+        if (itemsNotInSourceSchool.length > 0) {
+          const itemNames = itemsNotInSourceSchool.map((item) => item.name).join(", ");
+          setModalMessage(
+            `O(s) item(s) ${itemNames} nao estao na escola "${schoolName}". Verifique a localizacao dos equipamentos.`,
+          );
+          setModalIsOpen(true);
+          return;
+        }
+      }
 
       // PREPARAR DADOS baseados no tipo de memorando
       let requestData: any = {
@@ -748,6 +781,24 @@ const DeviceList: React.FC = () => {
         requestData = {
           ...requestData,
           itemIds: selectedFromCSDT,
+          schoolName,
+          district,
+          inep: selectedSchool.inep,
+        };
+
+      } else if (memorandumType === "devolucao") {
+        const selectedSchool = schools.find(
+          (school) => school.name === schoolName,
+        );
+
+        if (!selectedSchool) {
+          alert("Por favor, selecione uma escola v??lida.");
+          return;
+        }
+
+        requestData = {
+          ...requestData,
+          itemIds: selectedFromDestino,
           schoolName,
           district,
           inep: selectedSchool.inep,
@@ -820,7 +871,9 @@ const DeviceList: React.FC = () => {
       const fileName =
         memorandumType === "entrega"
           ? `memorando-entrega-${response.data.memorandumNumber}.pdf`
-          : `memorando-troca-${response.data.memorandumNumber}.pdf`;
+          : memorandumType === "devolucao"
+            ? `memorando-devolucao-${response.data.memorandumNumber}.pdf`
+            : `memorando-troca-${response.data.memorandumNumber}.pdf`;
       link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
@@ -1505,6 +1558,20 @@ const DeviceList: React.FC = () => {
                       🔄 Troca de Equipamentos
                     </span>
                   </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value="devolucao"
+                      checked={memorandumType === "devolucao"}
+                      onChange={(e) =>
+                        setMemorandumType(e.target.value as "devolucao")
+                      }
+                      className="form-radio text-blue-500"
+                    />
+                    <span className="dark:text-gray-300">
+                      Devolucao de Equipamentos
+                    </span>
+                  </label>
                 </div>
               </div>
 
@@ -1616,6 +1683,130 @@ const DeviceList: React.FC = () => {
                               <span className="font-medium">{item.name}</span>
                               <span className="text-gray-500 dark:text-gray-400">
                                 {item.brand} • {item.serialNumber}
+                              </span>
+                              <span className="text-gray-400 text-[10px]">
+                                Criado em:{" "}
+                                {format(new Date(item.createdAt), "dd/MM/yyyy")}
+                              </span>
+                            </div>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+
+              {memorandumType === "devolucao" && (
+                <div className="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <h4 className="font-semibold text-emerald-800 dark:text-emerald-300">
+                    Configuracoes de Devolucao
+                  </h4>
+
+                  <label className="block">
+                    <span className="dark:text-gray-300">
+                      Escola de Origem:
+                    </span>
+                    <Select
+                      options={schools
+                        .filter((school) => school.name !== "CSDT")
+                        .map((school) => ({
+                          value: school.name,
+                          label: school.name,
+                        }))}
+                      value={
+                        schoolName
+                          ? { value: schoolName, label: schoolName }
+                          : null
+                      }
+                      onChange={(selectedOption) => {
+                        const selectedSchoolName = selectedOption?.value || "";
+                        setSchoolName(selectedSchoolName);
+                        setSelectedFromDestino([]);
+
+                        const selectedSchool = schools.find(
+                          (school) => school.name === selectedSchoolName,
+                        );
+                        if (selectedSchool) {
+                          setDistrict(selectedSchool.district);
+                        } else {
+                          setDistrict("");
+                        }
+                      }}
+                      className="text-black"
+                      placeholder="Selecione a escola que devolvera os equipamentos"
+                      isClearable
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="dark:text-gray-300">Distrito:</span>
+                    <input
+                      type="text"
+                      value={district}
+                      readOnly
+                      className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100"
+                      placeholder="Distrito sera preenchido automaticamente"
+                    />
+                  </label>
+
+                  <div>
+                    <span className="dark:text-gray-300 font-semibold">
+                      Selecionar itens para devolucao ao CSDT:
+                    </span>
+
+                    <div className="my-2">
+                      <input
+                        type="text"
+                        placeholder="Pesquisar equipamento..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100 border dark:border-zinc-700"
+                      />
+                    </div>
+
+                    <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded border divide-y divide-gray-200 dark:divide-zinc-700">
+                      {items
+                        .filter(
+                          (item) =>
+                            item.School?.name === schoolName &&
+                            (item.name
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                              item.brand
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()) ||
+                              item.serialNumber
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase())),
+                        )
+                        .map((item, idx) => (
+                          <label
+                            key={item.id}
+                            className={`
+                              flex items-center gap-2 text-xs px-2 py-2 cursor-pointer transition
+                              ${idx % 2 === 0 ? "bg-gray-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-800"}
+                              hover:bg-emerald-100 dark:hover:bg-emerald-900
+                              rounded
+                            `}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedFromDestino.includes(item.id)}
+                              onChange={() => {
+                                setSelectedFromDestino((prev) =>
+                                  prev.includes(item.id)
+                                    ? prev.filter((id) => id !== item.id)
+                                    : [...prev, item.id],
+                                );
+                              }}
+                              className="accent-emerald-500"
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{item.name}</span>
+                              <span className="text-gray-500 dark:text-gray-400">
+                                {item.brand} - {item.serialNumber}
                               </span>
                               <span className="text-gray-400 text-[10px]">
                                 Criado em:{" "}
@@ -1933,6 +2124,8 @@ const DeviceList: React.FC = () => {
                   📋 Itens Selecionados:{" "}
                   {memorandumType === "entrega" ? (
                     <span>{selectedFromCSDT.length}</span>
+                  ) : memorandumType === "devolucao" ? (
+                    <span>{selectedFromDestino.length}</span>
                   ) : memorandumType === "troca" ? (
                     selectedFromCSDT.length + selectedFromDestino.length
                   ) : (
@@ -1941,7 +2134,8 @@ const DeviceList: React.FC = () => {
                 </p>
 
                 {/* NOVO: Indicador de páginas */}
-                {memorandumType === "entrega" && selectedFromCSDT.length > 0 && (
+                {((memorandumType === "entrega" && selectedFromCSDT.length > 0) ||
+                  (memorandumType === "devolucao" && selectedFromDestino.length > 0)) && (
                   <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
                     📄 Serão geradas {Math.ceil(selectedFromCSDT.length / ITEMS_PER_PAGE)} página(s)
                   </p>
@@ -1959,6 +2153,21 @@ const DeviceList: React.FC = () => {
                             className="text-xs text-gray-600 dark:text-gray-400"
                           >
                             • {item.name} - {item.brand} ({item.serialNumber})
+                          </p>
+                        ))}
+                    </>
+                  )}
+
+                  {memorandumType === "devolucao" && (
+                    <>
+                      {items
+                        .filter((item) => selectedFromDestino.includes(item.id))
+                        .map((item) => (
+                          <p
+                            key={item.id}
+                            className="text-xs text-gray-600 dark:text-gray-400"
+                          >
+                            ??? {item.name} - {item.brand} ({item.serialNumber})
                           </p>
                         ))}
                     </>

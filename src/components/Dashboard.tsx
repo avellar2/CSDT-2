@@ -378,16 +378,6 @@ const Dashboard: React.FC = () => {
       badge: null
     },
     {
-      id: 'memorandums',
-      title: 'Todos os Memorandos',
-      icon: FileText,
-      color: 'bg-yellow-500 hover:bg-yellow-700',
-      path: '/memorandums',
-      roles: ['ADMTOTAL', 'ADMIN'],
-      category: 'Documentos',
-      badge: null
-    },
-    {
       id: 'new-memorandums',
       title: 'Memorandos (Novo)',
       icon: FileText,
@@ -770,7 +760,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Modal de Manutenção Preventiva */}
-      {showPreventiveMaintenanceCard && (
+       {showPreventiveMaintenanceCard && (
         <PreventiveMaintenanceCard onClose={() => setShowPreventiveMaintenanceCard(false)} />
       )}
 

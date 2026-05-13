@@ -1,13 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PDFDocument, rgb } from 'pdf-lib';
-import fs from 'fs';
-import path from 'path';
 import prisma from '@/utils/prisma';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabaseClient';
 import { generateMemorandoTrocaBase64, convertMemorandumDataForTroca } from '@/utils/pdfMemorandoTroca';
-import { buildItemDisplayName } from '@/utils/itemDisplayName';
+import { generateOneWayMemorandumBase64 } from '@/utils/pdfMemorandoOneWay';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -60,8 +55,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Item IDs are required.' });
   }
 
-  if (!type || !['entrega', 'troca'].includes(type)) {
-    return res.status(400).json({ error: 'Tipo de memorando deve ser "entrega" ou "troca".' });
+  if (!type || !['entrega', 'troca', 'devolucao'].includes(type)) {
+    return res.status(400).json({ error: 'Tipo de memorando deve ser "entrega", "troca" ou "devolucao".' });
   }
 
   // Validações específicas por tipo
@@ -71,6 +66,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     if (!district) {
       return res.status(400).json({ error: 'Distrito é obrigatório para entrega.' });
+    }
+  } else if (type === 'devolucao') {
+    if (!schoolName) {
+      return res.status(400).json({ error: 'Nome da escola é obrigatório para devolução.' });
+    }
+    if (!district) {
+      return res.status(400).json({ error: 'Distrito é obrigatório para devolução.' });
     }
   } else if (type === 'troca') {
     if (!fromSchool || !fromSchool.name) {
@@ -108,6 +110,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       console.log("School upserted:", targetSchool);
 
+    } else if (type === 'devolucao') {
+      console.log("Preparing schools for return...");
+      sourceSchool = await prisma.school.upsert({
+        where: { name: schoolName },
+        update: {},
+        create: {
+          name: schoolName,
+          district: district || "nao informado",
+          inep: typeof inep === "number" ? inep : 0,
+        },
+      });
+
+      targetSchool = await prisma.school.upsert({
+        where: { name: "CSDT" },
+        update: {},
+        create: {
+          name: "CSDT",
+          district: "SEDE",
+          inep: 0,
+        },
+      });
+
+      console.log("Return source school:", sourceSchool);
+      console.log("Return target school:", targetSchool);
     } else if (type === 'troca') {
       // TROCA: Lógica SUPER ROBUSTA para upsert
       console.log("Processing schools for exchange...");
@@ -246,6 +272,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       memorandumData.district = district;
       memorandumData.fromSchoolName = null;
       memorandumData.toSchoolName = schoolName;
+    } else if (type === 'devolucao') {
+      memorandumData.schoolName = schoolName;
+      memorandumData.district = district;
+      memorandumData.fromSchoolName = schoolName;
+      memorandumData.toSchoolName = 'CSDT';
     } else if (type === 'troca') {
       memorandumData.schoolName = `${cleanFromSchoolName} → ${cleanToSchoolName}`;
       memorandumData.district = `${fromSchool.district} → ${toSchool.district}`;
@@ -280,6 +311,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
       console.log(`Entrega: ${itemIds.length} itens movidos para ${targetSchool.name}`);
+      
+    } else if (type === 'devolucao') {
+      await prisma.item.updateMany({
+        where: {
+          id: { in: itemIds },
+        },
+        data: {
+          schoolId: targetSchool.id,
+          updatedAt: new Date(),
+        },
+      });
+      console.log(`Devolucao: ${itemIds.length} itens movidos de ${sourceSchool.name} para CSDT`);
       
     } else if (type === 'troca') {
       // Para troca: atualizar baseado nos arrays do frontend
@@ -363,6 +406,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
       console.log(`Histórico criado para entrega: ${itemIds.length} itens`);
       
+    } else if (type === 'devolucao') {
+      await Promise.all(
+        itemIds.map(async (itemId: number) => {
+          await prisma.itemHistory.create({
+            data: {
+              itemId,
+              movedAt: new Date(),
+              generatedBy: userProfile.displayName,
+              fromSchool: schoolName,
+              toSchool: 'CSDT',
+            },
+          });
+        })
+      );
+      console.log(`Historico criado para devolucao: ${itemIds.length} itens`);
+
     } else if (type === 'troca') {
       // Para troca: registrar movimentos específicos baseado nos arrays
       const { selectedFromCSDT, selectedFromDestino } = req.body;
@@ -421,110 +480,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let pdfBase64: string;
 
     if (type === 'troca') {
-      // Usar a nova função específica para memorando de troca
       const trocaData = convertMemorandumDataForTroca(memorandum, sourceSchool, targetSchool, req.body);
       pdfBase64 = await generateMemorandoTrocaBase64(trocaData);
-      
     } else {
-      // Lógica para ENTREGA com suporte a múltiplas páginas
-      console.log("Generating multi-page PDF for entrega...");
+      const oneWayItems = memorandum.items.map((memorandumItem) => ({
+        name: memorandumItem.Item.name,
+        brand: memorandumItem.Item.brand,
+        serialNumber: memorandumItem.Item.serialNumber,
+      }));
 
-      const pdfFileName = 'memorando.pdf';
-      const pdfPath = path.join(process.cwd(), "public", pdfFileName);
-      const pdfBytes = fs.readFileSync(pdfPath);
-      const pdfDoc = await PDFDocument.load(pdfBytes);
-
-      // Criar novo documento para as múltiplas páginas
-      const multiPagePdf = await PDFDocument.create();
-
-      // Dados comuns a todas as páginas
-      const formattedDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-
-      // Gerar página por página
-      for (let currentPage = 0; currentPage < totalPages; currentPage++) {
-        // Clonar o template
-        const pageTemplate = await PDFDocument.load(pdfBytes);
-        const form = pageTemplate.getForm();
-
-        // Preencher campos básicos
-        form.getTextField("numeroMemorando").setText(`${memorandum.number}`);
-
-        form.getTextField("dataMemorando").setText(formattedDate);
-        form.getTextField("escola").setText(schoolName);
-        form.getTextField("distrito").setText(district || "não informado");
-
-        // Campos adicionais
-        try {
-          form.getTextField("conferente")?.setText(userProfile.displayName || "");
-        } catch (e) {
-          console.log("Campo conferente não encontrado no PDF");
-        }
-        try {
-          form.getTextField("escola2")?.setText(schoolName);
-        } catch (e) {
-          console.log("Campo escola2 não encontrado no PDF");
-        }
-        try {
-          form.getTextField("tipoOperacao")?.setText("ENTREGA DE EQUIPAMENTOS");
-        } catch (e) {
-          console.log("Campo tipoOperacao não encontrado no PDF");
-        }
-
-        // Calcular itens desta página
-        const startIdx = currentPage * ITEMS_PER_PAGE;
-        const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, itemIds.length);
-        const pageItemIds = itemIds.slice(startIdx, endIdx);
-
-        // Buscar dados dos itens desta página
-        const pageItems = await prisma.item.findMany({
-          where: { id: { in: pageItemIds } },
-        });
-
-        // Preencher itens desta página
-        pageItems.forEach((item, index) => {
-          if (index >= ITEMS_PER_PAGE) return;
-          const itemWithBrand = buildItemDisplayName(item.name, item.brand);
-          form.getTextField(`item${index + 1}`).setText(itemWithBrand);
-          form.getTextField(`serial${index + 1}`).setText(item.serialNumber);
-        });
-
-        // Limpar campos vazios (se a página não estiver cheia)
-        for (let emptyIdx = pageItems.length; emptyIdx < ITEMS_PER_PAGE; emptyIdx++) {
-          try {
-            form.getTextField(`item${emptyIdx + 1}`).setText("");
-            form.getTextField(`serial${emptyIdx + 1}`).setText("");
-          } catch (e) {
-            // Campo pode não existir
-          }
-        }
-
-        form.flatten();
-
-        // Adicionar numeração de página diretamente no PDF
-        const templatePage = pageTemplate.getPages()[0];
-        const helveticaFont = await pageTemplate.embedFont('Helvetica');
-        const pageText = totalPages > 1 ? `Página ${currentPage + 1}/${totalPages}` : '';
-        if (pageText) {
-          const textWidth = helveticaFont.widthOfTextAtSize(pageText, 10);
-          const pageWidth = templatePage.getWidth();
-          templatePage.drawText(pageText, {
-            x: pageWidth - textWidth - 40,
-            y: templatePage.getHeight() - 30,
-            size: 10,
-            font: helveticaFont,
-            color: rgb(0.2, 0.2, 0.2),
-          });
-        }
-
-        // Adicionar página ao documento final
-        const templatePages = await multiPagePdf.copyPages(pageTemplate, [0]);
-        multiPagePdf.addPage(templatePages[0]);
-      }
-
-      const pdfBytesModified = await multiPagePdf.save();
-      pdfBase64 = Buffer.from(pdfBytesModified).toString("base64");
-
-      console.log(`Multi-page PDF generated with ${totalPages} pages`);
+      pdfBase64 = await generateOneWayMemorandumBase64({
+        memorandumNumber: memorandum.number,
+        schoolName,
+        recipientName: type === 'devolucao' ? 'Coordenadoria de Suporte e Desenvolvimento Tecnológico. CSDT/SME' : schoolName,
+        senderName: type === 'devolucao' ? buildReturnSenderLine(schoolName) : schoolName,
+        district: type === 'devolucao' ? 'SEDE' : (district || 'nao informado'),
+        originDistrict: type === 'devolucao' ? (district || 'nao informado') : undefined,
+        generatedBy: userProfile.displayName || '',
+        operationLabel: type === 'devolucao' ? 'DEVOLUCAO DE EQUIPAMENTOS' : 'ENTREGA DE EQUIPAMENTOS',
+        operationType: type === 'devolucao' ? 'devolucao' : 'entrega',
+        date: new Date(),
+        items: oneWayItems,
+      });
     }
 
     console.log(`PDF de ${type} gerado com sucesso.`);
@@ -532,8 +509,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       pdfBase64,
       type,
       memorandumNumber: memorandum.number,
-      fromSchool: type === 'troca' ? cleanFromSchoolName : null,
-      toSchool: type === 'troca' ? cleanToSchoolName : schoolName
+      fromSchool: type === 'troca' ? cleanFromSchoolName : type === 'devolucao' ? schoolName : null,
+      toSchool: type === 'troca' ? cleanToSchoolName : type === 'devolucao' ? 'CSDT' : schoolName
     });
 
   } catch (error) {
@@ -548,4 +525,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       stack: error instanceof Error ? error.stack : undefined
     });
   }
+}
+
+function buildReturnSenderLine(schoolName: string) {
+  const upperName = schoolName.toUpperCase();
+  if (upperName.includes('ANEXO')) {
+    return schoolName;
+  }
+  if (upperName.includes('CRECHE')) {
+    return `ANEXO (Creche): ${schoolName}`;
+  }
+
+  return `ANEXO: ${schoolName}`;
 }
