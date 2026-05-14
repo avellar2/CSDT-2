@@ -46,7 +46,7 @@ const COLORS = {
 
 // pdf-lib StandardFonts don't support accented characters — strip them
 function stripAccents(str: string): string {
-  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/×/g, 'x');
+  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/×/g, 'x').replace(/[\n\r]/g, ' ');
 }
 
 function formatDatePt(dateStr: string): string {
