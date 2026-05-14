@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
-import { 
+import {
   FileText, 
   Download, 
   Calendar, 
@@ -90,6 +89,7 @@ const AdvancedReports: React.FC<AdvancedReportsProps> = ({ items, schools }) => 
     setIsGenerating(true);
     
     try {
+      const XLSX = await import("xlsx");
       const workbook = XLSX.utils.book_new();
       
       // Aba 1: Resumo Executivo
@@ -190,6 +190,7 @@ const AdvancedReports: React.FC<AdvancedReportsProps> = ({ items, schools }) => 
     setIsGenerating(true);
     
     try {
+      const XLSX = await import("xlsx");
       const workbook = XLSX.utils.book_new();
       
       // Dados do período
@@ -234,6 +235,7 @@ const AdvancedReports: React.FC<AdvancedReportsProps> = ({ items, schools }) => 
     setIsGenerating(true);
     
     try {
+      const XLSX = await import("xlsx");
       const workbook = XLSX.utils.book_new();
       
       let reportTitle = '';
@@ -300,6 +302,7 @@ const AdvancedReports: React.FC<AdvancedReportsProps> = ({ items, schools }) => 
     setIsGenerating(true);
     
     try {
+      const XLSX = await import("xlsx");
       const maintenanceItems = items.filter(item => item.School?.name === 'CHADA');
       const workbook = XLSX.utils.book_new();
       

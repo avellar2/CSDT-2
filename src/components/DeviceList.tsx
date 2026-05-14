@@ -18,7 +18,6 @@ import {
   FileText,
   Bell
 } from "phosphor-react";
-import * as XLSX from "xlsx";
 import axios from "axios";
 import { SkeletonCard } from "./SkeletonCard";
 import Dashboard from "./Analytics/Dashboard";
@@ -454,7 +453,8 @@ const DeviceList: React.FC = () => {
   };
 
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    const XLSX = await import("xlsx");
     const formattedItems = items.map((item) => ({
       ID: item.id,
       Nome: item.name,
@@ -512,6 +512,7 @@ const DeviceList: React.FC = () => {
       });
       
       // Gerar Excel com múltiplas abas
+      const XLSX = await import("xlsx");
       const workbook = XLSX.utils.book_new();
       
       // Aba de Itens
