@@ -2,6 +2,17 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 const Modal = dynamic(() => import("react-modal"), { ssr: false });
+const Dashboard = dynamic(() => import("./Analytics/Dashboard"), { ssr: false });
+const Drawer = dynamic(() => import("@/components/ui/drawer").then(mod => ({ default: mod.Drawer })), { ssr: false });
+const DrawerClose = dynamic(() => import("@/components/ui/drawer").then(mod => ({ default: mod.DrawerClose })), { ssr: false });
+const DrawerContent = dynamic(() => import("@/components/ui/drawer").then(mod => ({ default: mod.DrawerContent })), { ssr: false });
+const DrawerDescription = dynamic(() => import("@/components/ui/drawer").then(mod => ({ default: mod.DrawerDescription })), { ssr: false });
+const DrawerFooter = dynamic(() => import("@/components/ui/drawer").then(mod => ({ default: mod.DrawerFooter })), { ssr: false });
+const DrawerHeader = dynamic(() => import("@/components/ui/drawer").then(mod => ({ default: mod.DrawerHeader })), { ssr: false });
+const DrawerTitle = dynamic(() => import("@/components/ui/drawer").then(mod => ({ default: mod.DrawerTitle })), { ssr: false });
+const DrawerTrigger = dynamic(() => import("@/components/ui/drawer").then(mod => ({ default: mod.DrawerTrigger })), { ssr: false });
+const Select = dynamic(() => import("react-select"), { ssr: false }) as any;
+const AdvancedFilters = dynamic(() => import("./Filters/AdvancedFilters"), { ssr: false });
 import { jwtDecode } from "jwt-decode";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,22 +31,10 @@ import {
 } from "phosphor-react";
 import axios from "axios";
 import { SkeletonCard } from "./SkeletonCard";
-import Dashboard from "./Analytics/Dashboard";
 import DeviceViews from "./Views/DeviceViews";
-import AdvancedFilters from "./Filters/AdvancedFilters";
 import SmartGrouping from "./Grouping/SmartGrouping";
 import AdvancedReports from "./Reports/AdvancedReports";
 import AlertSystem from "./Alerts/AlertSystem";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -48,7 +47,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import Select from "react-select";
 import {
   Pagination,
   PaginationContent,
@@ -1598,7 +1596,7 @@ const DeviceList: React.FC = () => {
                           ? { value: schoolName, label: schoolName }
                           : null
                       }
-                      onChange={(selectedOption) => {
+                      onChange={(selectedOption: any) => {
                         const selectedSchoolName = selectedOption?.value || "";
                         setSchoolName(selectedSchoolName);
 
@@ -1722,7 +1720,7 @@ const DeviceList: React.FC = () => {
                           ? { value: schoolName, label: schoolName }
                           : null
                       }
-                      onChange={(selectedOption) => {
+                      onChange={(selectedOption: any) => {
                         const selectedSchoolName = selectedOption?.value || "";
                         setSchoolName(selectedSchoolName);
                         setSelectedFromDestino([]);
@@ -1844,7 +1842,7 @@ const DeviceList: React.FC = () => {
                           ? { value: exchangeToSchool, label: exchangeToSchool }
                           : null
                       }
-                      onChange={(selectedOption) => {
+                      onChange={(selectedOption: any) => {
                         setExchangeToSchool(selectedOption?.value || "");
                         setCurrentStep("step1");
                         setSelectedFromCSDT([]);
@@ -2343,17 +2341,17 @@ const DeviceList: React.FC = () => {
               <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Escola / Setor</label>
               <Select
                 options={editSchools.map((s: any) => ({ value: s.id, label: s.name }))}
-                onChange={(opt) => setEditSchoolId(opt ? opt.value : null)}
+                onChange={(opt: any) => setEditSchoolId(opt ? opt.value : null)}
                 placeholder={`Atual: ${itemToEdit?.School?.name} — pesquise para alterar`}
                 isClearable
                 className="mb-4"
                 styles={{
-                  control: (base) => ({ ...base, backgroundColor: "#fff", borderColor: "#d1d5db", color: "#111" }),
-                  input: (base) => ({ ...base, color: "#111" }),
-                  singleValue: (base) => ({ ...base, color: "#111" }),
-                  placeholder: (base) => ({ ...base, color: "#6b7280" }),
-                  menu: (base) => ({ ...base, backgroundColor: "#fff", zIndex: 9999 }),
-                  option: (base, state) => ({
+                  control: (base: any) => ({ ...base, backgroundColor: "#fff", borderColor: "#d1d5db", color: "#111" }),
+                  input: (base: any) => ({ ...base, color: "#111" }),
+                  singleValue: (base: any) => ({ ...base, color: "#111" }),
+                  placeholder: (base: any) => ({ ...base, color: "#6b7280" }),
+                  menu: (base: any) => ({ ...base, backgroundColor: "#fff", zIndex: 9999 }),
+                  option: (base: any, state: any) => ({
                     ...base,
                     backgroundColor: state.isFocused ? "#eff6ff" : "#fff",
                     color: "#111",
