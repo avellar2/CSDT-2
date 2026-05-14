@@ -81,9 +81,7 @@ export default async function handler(
       return res.status(404).json({ error: 'Memorando não encontrado' });
     }
 
-    console.log(`[Edição] Memorando #${memorandum.number} - Iniciando edição...`);
-    console.log(`[Edição] Itens a adicionar: ${itemsToAdd.length}`);
-    console.log(`[Edição] Itens a remover: ${itemsToRemove.length}`);
+
 
     // Extrair o nome da escola de destino
     // Para TROCA: "CSDT → ESCOLA" => pega "ESCOLA"
@@ -91,8 +89,6 @@ export default async function handler(
     const schoolNameToSearch = memorandum.schoolName.includes('→')
       ? memorandum.schoolName.split('→')[1].trim()
       : memorandum.schoolName.trim();
-
-    console.log(`[Edição] Buscando escola: "${schoolNameToSearch}"`);
 
     // Buscar a escola de destino antes da transação
     const targetSchool = await prisma.school.findFirst({
@@ -108,8 +104,6 @@ export default async function handler(
         suggestion: 'Verifique se a escola existe no cadastro ou se o nome está correto. Você pode precisar cadastrar a escola manualmente primeiro.',
       });
     }
-
-    console.log(`[Edição] Escola encontrada: ${targetSchool.name} (ID: ${targetSchool.id})`);
 
     // Executar edições em transação
     const result = await prisma.$transaction(async (tx) => {
@@ -128,7 +122,7 @@ export default async function handler(
           });
 
           if (existingLink) {
-            console.warn(`[Edição] Item ${itemId} já está no memorando, pulando...`);
+
             continue;
           }
 
@@ -139,7 +133,7 @@ export default async function handler(
           });
 
           if (!item) {
-            console.warn(`[Edição] Item ${itemId} não encontrado, pulando...`);
+
             continue;
           }
 
@@ -174,7 +168,6 @@ export default async function handler(
             },
           });
 
-          console.log(
             `[Edição] Item ${itemId} adicionado: ${previousSchoolName} → ${memorandum.schoolName}`
           );
           addedCount++;
@@ -193,7 +186,7 @@ export default async function handler(
           });
 
           if (!existingLink) {
-            console.warn(`[Edição] Item ${itemId} não está no memorando, pulando...`);
+
             continue;
           }
 
@@ -240,7 +233,6 @@ export default async function handler(
             });
           }
 
-          console.log(
             `[Edição] Item ${itemId} removido e restaurado para: ${previousSchoolName}`
           );
           removedCount++;
@@ -249,8 +241,6 @@ export default async function handler(
 
       return { addedCount, removedCount };
     });
-
-    console.log(`[Edição] Memorando #${memorandum.number} editado com sucesso`);
 
     return res.status(200).json({
       success: true,

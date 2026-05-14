@@ -34,7 +34,6 @@ async function uploadToSupabase(
     const filePath = `${folder}/${numeroOs}/${fileName}`;
 
     try {
-      console.log("[Supabase] Fazendo upload do arquivo:", fileName, "no caminho:", filePath);
 
       const { data, error } = await supabase.storage
         .from("os-externa-img")
@@ -49,8 +48,6 @@ async function uploadToSupabase(
         throw new Error("[Supabase] Nenhum dado retornado do upload.");
       }
 
-      console.log("[Supabase] Upload bem-sucedido:", data);
-
       const { data: publicUrlData } = supabase.storage
         .from("os-externa-img")
         .getPublicUrl(filePath);
@@ -59,7 +56,6 @@ async function uploadToSupabase(
         throw new Error("[Supabase] Erro ao obter link público.");
       }
 
-      console.log("[Supabase] Link público gerado:", publicUrlData.publicUrl);
       urls.push(publicUrlData.publicUrl);
     } catch (error) {
       console.error("[Supabase] Erro ao fazer upload da foto:", error);
@@ -94,8 +90,6 @@ async function uploadToCloudinary(
       formData.append('folder', `os-externa-img/${folder}/${numeroOs}`);
       formData.append('fileName', fileName);
 
-      console.log("[Cloudinary] Fazendo upload do arquivo:", fileName);
-
       // Fazer upload via API route do Next.js
       const response = await fetch('/api/upload-cloudinary', {
         method: 'POST',
@@ -109,7 +103,6 @@ async function uploadToCloudinary(
 
       const data = await response.json();
 
-      console.log("[Cloudinary] Upload bem-sucedido. URL:", data.url);
       urls.push(data.url);
     } catch (error) {
       console.error("[Cloudinary] Erro ao fazer upload da foto:", error);
@@ -134,7 +127,6 @@ export async function uploadFiles(
   folder: string,
   numeroOs: string
 ): Promise<string[]> {
-  console.log(`[Storage] Usando provider: ${STORAGE_PROVIDER}`);
 
   if (STORAGE_PROVIDER === "cloudinary") {
     return uploadToCloudinary(files, folder, numeroOs);
@@ -154,7 +146,6 @@ export async function uploadFilesWithProvider(
   numeroOs: string,
   provider: StorageProvider
 ): Promise<string[]> {
-  console.log(`[Storage] Forçando uso do provider: ${provider}`);
 
   if (provider === "cloudinary") {
     return uploadToCloudinary(files, folder, numeroOs);
@@ -183,8 +174,6 @@ async function uploadChadaToSupabase(
     try {
       const fileName = `${itemId}-${Date.now()}-${file.name}`;
 
-      console.log("[Supabase/CHADA] Fazendo upload:", fileName);
-
       const { data: uploadData, error } = await supabase.storage
         .from("os-images")
         .upload(fileName, file, {
@@ -204,7 +193,6 @@ async function uploadChadaToSupabase(
       const publicUrl = publicUrlData.publicUrl;
       urls.push(publicUrl);
 
-      console.log("[Supabase/CHADA] Upload bem-sucedido:", publicUrl);
     } catch (error) {
       console.error("[Supabase/CHADA] Erro ao fazer upload da foto:", error);
     }
@@ -226,8 +214,6 @@ async function uploadChadaToCloudinary(
     try {
       const fileName = `${itemId}-${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
 
-      console.log("[Cloudinary/CHADA] Fazendo upload:", fileName);
-
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'os-images');
@@ -246,7 +232,6 @@ async function uploadChadaToCloudinary(
       const data = await response.json();
       urls.push(data.url);
 
-      console.log("[Cloudinary/CHADA] Upload bem-sucedido:", data.url);
     } catch (error) {
       console.error("[Cloudinary/CHADA] Erro ao fazer upload da foto:", error);
     }
@@ -266,7 +251,6 @@ export async function uploadChadaFiles(
   files: File[],
   itemId: string
 ): Promise<string[]> {
-  console.log(`[Storage/CHADA] Usando provider: ${STORAGE_PROVIDER}`);
 
   if (STORAGE_PROVIDER === "cloudinary") {
     return uploadChadaToCloudinary(files, itemId);

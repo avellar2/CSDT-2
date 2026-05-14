@@ -198,7 +198,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               .download(file.name);
 
             if (downloadError) {
-              console.warn(`Erro ao baixar ${file.name}:`, downloadError);
+
               errorCount++;
               continue;
             }
@@ -209,7 +209,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               downloadedCount++;
             }
           } catch (error) {
-            console.warn(`Erro ao processar arquivo ${file.name}:`, error);
+
             errorCount++;
           }
         }

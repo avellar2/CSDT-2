@@ -50,7 +50,7 @@ const printerCache = {
   setData(data: AgentStatusData): void {
     global.__PRINTER_CACHE__ = data;
     global.__PRINTER_CACHE_TIME__ = Date.now();
-    console.log(`[Cache] Dados armazenados: ${data.printers.length} impressoras às ${new Date().toLocaleTimeString()}`);
+
   },
 
   getData(): { data: AgentStatusData | null; lastUpdateTime: number } {
@@ -89,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Validar chave de API
   if (!validateApiKey(req)) {
-    console.warn('Tentativa de acesso não autorizada ao endpoint do agente local');
+
     return res.status(401).json({ error: 'Unauthorized - Invalid API Key' });
   }
 
@@ -124,8 +124,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     printerCache.setData(processedData);
 
-    console.log(`[Agent] Recebidos dados de ${agentData.printers.length} impressoras do agente local`);
-    console.log(`[Agent] ${agentData.withIssues} impressoras com problemas detectadas`);
 
     // Salvar dados no banco de dados
     try {
@@ -182,7 +180,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      console.log(`[Agent] Status salvo no banco de dados para ${agentData.printers.length} impressoras`);
     } catch (dbError) {
       console.error('[Agent] Erro ao salvar status no banco:', dbError);
       // Não falhar a requisição por erro de banco
@@ -191,7 +188,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Log de impressoras com problemas críticos para monitoramento
     const criticalPrinters = agentData.printers.filter(p => p.hasCriticalErrors);
     if (criticalPrinters.length > 0) {
-      console.warn(`[Agent] ALERTA: ${criticalPrinters.length} impressoras com erros críticos:`,
         criticalPrinters.map(p => `${p.sigla} (${p.ip})`).join(', ')
       );
     }
@@ -225,9 +221,7 @@ export function getCachedPrinterStatus(): {
   const cacheData = printerCache.getData();
   const age = printerCache.getAge();
   const isStale = printerCache.isStale();
-  
-  console.log(`[Cache] Consultando cache: hasData=${printerCache.hasData()}, age=${age}s, isStale=${isStale}`);
-  
+
   return {
     data: cacheData.data,
     isStale,

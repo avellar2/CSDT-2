@@ -28,7 +28,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     };
 
-    console.log('Conectando ao servidor IMAP...');
     const connection = await imaps.connect(config);
 
     // Abrir inbox
@@ -45,10 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       markSeen: false, // Não marcar como lido ainda
     };
 
-    console.log('Buscando emails...');
     const messages = await connection.search(searchCriteria, fetchOptions);
-
-    console.log(`${messages.length} emails encontrados`);
 
     let processed = 0;
     let updated = 0;
@@ -77,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                              from.toLowerCase().includes('vandersonavellar1997@gmail.com'); // Email de teste
 
         if (!isChadaEmail) {
-          console.log(`Email de ${from} não é da CHADA, pulando...`);
+
           continue;
         }
 
@@ -103,13 +99,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const match = searchContent.match(pattern);
           if (match && match[1]) {
             osNumber = match[1];
-            console.log(`Número de OS encontrado: ${osNumber} usando padrão ${pattern}`);
+
             break;
           }
         }
 
         if (!osNumber) {
-          console.log(`Nenhum número de OS encontrado no email: ${subject}`);
+
           results.push({
             from,
             subject,
@@ -125,7 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // MÉTODO 1: Buscar pelo In-Reply-To (email thread) - MAIS CONFIÁVEL
         if (parsed.inReplyTo) {
-          console.log(`Procurando por In-Reply-To: ${parsed.inReplyTo}`);
+
           const chadaItem = await prisma.itemsChada.findFirst({
             where: {
               emailMessageId: parsed.inReplyTo,
@@ -139,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (chadaItem) {
             itemChadaId = chadaItem.id;
             matchMethod = 'in-reply-to';
-            console.log(`✓ Item encontrado por In-Reply-To: ${itemChadaId}`);
+
           }
         }
 
@@ -147,7 +143,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!itemChadaId && parsed.references) {
           const refs = Array.isArray(parsed.references) ? parsed.references : [parsed.references];
           if (refs.length > 0) {
-            console.log(`Procurando por References: ${refs.join(', ')}`);
+
             for (const ref of refs) {
             const chadaItem = await prisma.itemsChada.findFirst({
               where: {
@@ -162,7 +158,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (chadaItem) {
               itemChadaId = chadaItem.id;
               matchMethod = 'references';
-              console.log(`✓ Item encontrado por References: ${itemChadaId}`);
+
               break;
             }
           }
@@ -171,7 +167,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // MÉTODO 3: Buscar por número de série no conteúdo
         if (!itemChadaId) {
-          console.log('Procurando por número de série no conteúdo...');
 
           // Data em que este email foi recebido pela CHADA
           const emailReceivedDate = parsed.date || new Date();
@@ -194,8 +189,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
           });
 
-          console.log(`Encontrados ${pendingChadaItems.length} itens pendentes de OS`);
-
           // Buscar todos os itens de uma vez (evita N+1 queries)
           const itemIds = pendingChadaItems
             .map(i => i.itemId)
@@ -214,17 +207,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
               // Verificar se o número de série está no email (busca case-insensitive)
               if (searchContent.toUpperCase().includes(serial.toUpperCase())) {
-                console.log(`✓ Serial ${serial} encontrado no email`);
+
                 itemChadaId = pendingItem.id;
                 matchMethod = 'serial-number';
-                console.log(`✓ Item encontrado por serial: ${itemChadaId}`);
+
                 break;
               }
             }
           }
 
           if (!itemChadaId) {
-            console.log('Nenhum serial number de itens pendentes encontrado no email');
+
           }
         }
 
@@ -244,7 +237,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           await connection.addFlags(message.attributes.uid, ['\\Seen']);
 
           updated++;
-          console.log(`✓ Item ${itemChadaId} atualizado com OS ${osNumber} (método: ${matchMethod})`);
 
           results.push({
             from,
@@ -255,7 +247,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             status: 'updated',
           });
         } else {
-          console.log(`Não foi possível associar OS ${osNumber} a nenhum item`);
+
           results.push({
             from,
             subject,

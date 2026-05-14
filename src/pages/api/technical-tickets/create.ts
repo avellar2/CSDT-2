@@ -44,8 +44,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log(`Chamado técnico criado: ${ticket.id} - ${ticket.title}`);
-
     res.status(201).json({
       success: true,
       ticket

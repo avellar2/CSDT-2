@@ -31,7 +31,7 @@ const OSList: React.FC = () => {
         const response = await fetch('/os-antigas.json');
         const osAntigas: OSAntiga[] = await response.json();
         setAntigas(osAntigas);
-        console.log('✅ Carregadas', osAntigas.length, 'escolas do JSON');
+
       } catch (error) {
         console.error('❌ Erro ao carregar JSON:', error);
       }

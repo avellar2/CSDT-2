@@ -465,8 +465,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
     
     // Chamar a função de update
     onEventUpdate?.(event.id, updatedEvent);
-    
-    console.log(`Movido evento "${event.title}" para ${formatDate(newDate)}`);
+
   };
 
   const formatTime = (date: Date) => {

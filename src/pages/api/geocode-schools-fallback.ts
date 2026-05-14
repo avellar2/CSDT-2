@@ -23,8 +23,7 @@ const DUQUE_DE_CAXIAS_COORDS = [
 async function geocodeWithFallback(address: string, schoolName: string, schoolId: number): Promise<{ lat: number; lng: number } | null> {
   try {
     // Tenta primeiro o OpenStreetMap
-    console.log(`Tentando geocoding para: ${schoolName}`);
-    
+
     const encodedAddress = encodeURIComponent(`${schoolName}, Duque de Caxias, RJ, Brasil`);
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1&countrycodes=br`,
@@ -39,7 +38,7 @@ async function geocodeWithFallback(address: string, schoolName: string, schoolId
 
     if (data.length > 0) {
       const result = data[0];
-      console.log(`✅ Geocoding real: ${result.display_name}`);
+
       return {
         lat: parseFloat(result.lat),
         lng: parseFloat(result.lon)
@@ -49,9 +48,7 @@ async function geocodeWithFallback(address: string, schoolName: string, schoolId
     // Fallback: usa coordenadas predefinidas baseadas no ID da escola
     const coordIndex = schoolId % DUQUE_DE_CAXIAS_COORDS.length;
     const coords = DUQUE_DE_CAXIAS_COORDS[coordIndex];
-    
-    console.log(`⚠️ Usando coordenadas de fallback para ${schoolName}: ${coords.area}`);
-    
+
     return {
       lat: coords.lat + (Math.random() - 0.5) * 0.01, // Pequena variação para não sobrepor
       lng: coords.lng + (Math.random() - 0.5) * 0.01
@@ -91,13 +88,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log(`Encontradas ${schools.length} escolas para geocodificar`);
-
     const results = [];
     let successCount = 0;
 
     for (const school of schools) {
-      console.log(`Processando: ${school.name}`);
 
       // Tenta geocoding (sempre retorna algo)
       const coords = await geocodeWithFallback(school.address || '', school.name, school.id);

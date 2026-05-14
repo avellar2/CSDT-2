@@ -115,7 +115,7 @@ export const persistentCache = {
         timestamp: Date.now()
       }));
     } catch (error) {
-      console.warn('Failed to save to localStorage:', error);
+
     }
   },
 
@@ -134,7 +134,7 @@ export const persistentCache = {
 
       return parsed.data;
     } catch (error) {
-      console.warn('Failed to read from localStorage:', error);
+
       return null;
     }
   },

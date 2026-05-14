@@ -203,8 +203,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Se tem OIDs específicos do fabricante, testar primeiro
       if (manufacturerOids.length > 0) {
-        console.log(`Testando ${manufacturerOids.length} OIDs específicos para ${manufacturer}`);
-        
+
         session.get(manufacturerOids.slice(0, 10), (manufError: any, manufVarbinds: any[]) => {
           let foundConsumables = false;
 

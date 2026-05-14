@@ -12,7 +12,7 @@ app.use(cors()); // Adicionar middleware CORS
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/parse-pdf', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
-  console.log('Received request to /api/parse-pdf');
+
   const filePath = req.file?.path;
 
   if (!filePath) {
@@ -49,5 +49,5 @@ app.post('/api/parse-pdf', upload.single('file'), async (req: Request, res: Resp
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+
 });

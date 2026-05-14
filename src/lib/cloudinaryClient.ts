@@ -86,11 +86,8 @@ export async function uploadFilesToCloudinary(
         ? `${folder}/${numeroOs}`
         : folder;
 
-      console.log("Fazendo upload para Cloudinary:", fileName, "na pasta:", fullFolder);
-
       const url = await uploadToCloudinary(file, fullFolder, fileName);
 
-      console.log("Upload bem-sucedido. URL:", url);
       urls.push(url);
     } catch (error) {
       console.error("Erro ao fazer upload da foto:", error);

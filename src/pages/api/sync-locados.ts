@@ -127,11 +127,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('🔄 Iniciando sincronização de dados de equipamentos locados...');
 
     // Limpar todos os dados existentes
     await prisma.locados.deleteMany({});
-    console.log('✅ Dados antigos removidos');
 
     // Inserir novos dados
     let count = 0;
@@ -148,8 +146,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       count++;
     }
-
-    console.log(`✅ Sincronização concluída! ${count} escolas importadas.`);
 
     return res.status(200).json({
       success: true,

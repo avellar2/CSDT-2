@@ -169,14 +169,12 @@ const OsExternasList: React.FC = () => {
         return;
       }
 
-      console.log("ID do usuário no Supabase:", user.id);
-
       // Consulta a role no Prisma usando o ID do Supabase
       const effectiveUserId = userIdParam || user.id;
       const response = await fetch(`/api/get-role?userId=${effectiveUserId}`);
       if (response.ok) {
         const data = await response.json();
-        console.log("Role encontrada:", data.role);
+
         setUserRole(data.role);
       } else {
         console.error("Erro ao buscar role:", response.status);
@@ -202,7 +200,6 @@ const OsExternasList: React.FC = () => {
       const response = await fetch(`/api/get-all-os-externas${params.toString() ? `?${params.toString()}` : ''}`);
       if (response.ok) {
         const data = await response.json();
-        console.log('Dados recebidos:', data); // Debug para ver os dados
         setOsExternas(data);
       } else {
         console.error('Erro ao buscar OS Externas');
@@ -543,7 +540,6 @@ const OsExternasList: React.FC = () => {
   };
 
   const handleViewDetails = (os: OsExterna) => {
-    console.log('OS selecionada:', os); // Debug para ver os dados da OS
     setSelectedOs(os);
     setShowModal(true);
   };

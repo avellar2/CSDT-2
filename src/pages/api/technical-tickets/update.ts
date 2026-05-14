@@ -62,8 +62,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log(`Chamado técnico atualizado: ${updatedTicket.id} - Status: ${updatedTicket.status}`);
-
     // Enviar notificação por email se o status mudou
     if (status && status !== currentTicket.status && currentTicket.School.email) {
       try {
@@ -102,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         if (emailResponse.ok) {
-          console.log(`Email de atualização enviado para: ${currentTicket.School.email}`);
+
         } else {
           console.error('Erro ao enviar email de atualização:', await emailResponse.text());
         }

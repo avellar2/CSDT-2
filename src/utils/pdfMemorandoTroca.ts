@@ -76,7 +76,7 @@ export async function fillMemorandoTrocaPDF(data: MemorandoTrocaData): Promise<U
           field.setFontSize(9);
         }
       } catch {
-        console.warn(`Campo ${fieldName} nao encontrado no PDF`);
+
       }
     }
 
@@ -93,7 +93,7 @@ export async function fillMemorandoTrocaPDF(data: MemorandoTrocaData): Promise<U
           field.setFontSize(9);
         }
       } catch {
-        console.warn(`Campo ${fieldName} nao encontrado no PDF`);
+
       }
     }
 

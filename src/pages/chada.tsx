@@ -277,8 +277,6 @@ const ChadaPage: React.FC = () => {
       }
     });
 
-    console.log('🔍 DEBUG - Aba ativa:', activeTab, 'Total items:', items.length, 'Filtrados:', filtered.length);
-    console.log('📊 Items por status:', {
       PENDENTE: items.filter(i => i.statusChada === 'PENDENTE').length,
       RECEBIDO: items.filter(i => i.statusChada === 'RECEBIDO').length,
       EM_ANALISE: items.filter(i => i.statusChada === 'EM_ANALISE').length,
@@ -288,11 +286,9 @@ const ChadaPage: React.FC = () => {
     });
     
     if (activeTab === 'devolvidos') {
-      console.log('👀 ITENS QUE DEVERIAM APARECER NA ABA DEVOLVIDOS:', 
         items.filter(i => i.statusChada === 'DEVOLVIDO' || i.statusChada === 'CONSERTADO' || i.statusChada === 'SEM_CONSERTO')
           .map(i => ({ nome: i.name, status: i.statusChada, id: i.id }))
       );
-      console.log('🔎 FILTROS APLICADOS:', {
         searchTerm, 
         sectorFilter, 
         statusFilter,
@@ -407,7 +403,6 @@ const ChadaPage: React.FC = () => {
       if (error) {
         console.error("Erro ao obter usuário logado:", error);
       } else {
-        console.log("Usuário logado:", user);
 
         const response = await fetch("/api/get-user-displayname", {
           method: "POST",
@@ -598,7 +593,6 @@ const ChadaPage: React.FC = () => {
   };
 
   const handleResolveItem = async (id: string) => {
-    console.log("ID enviado para o backend:", id);
 
     if (!userName) {
       alert("Nome do usuário logado não encontrado.");
@@ -617,8 +611,6 @@ const ChadaPage: React.FC = () => {
           updatedBy: userName, // Nome do usuário logado
         }),
       });
-
-      console.log("Resposta do backend:", response);
 
       if (!response.ok) {
         throw new Error("Erro ao atualizar o status do item");
@@ -676,7 +668,7 @@ const ChadaPage: React.FC = () => {
   };
 
   const handleUploadOS = async (id: string) => {
-    console.log("ID enviado para o backend:", id);
+
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -698,8 +690,6 @@ const ChadaPage: React.FC = () => {
           alert("Erro ao fazer upload das imagens.");
           return;
         }
-
-        console.log("URLs enviadas para osImages:", uploadedUrls);
 
         const response = await fetch("/api/upload-os", {
           method: "POST",
@@ -2442,7 +2432,7 @@ const ChadaPage: React.FC = () => {
                       alert('Status atualizado com sucesso!');
                       // Forçar atualização dos dados
                       const updatedItems = await fetch("/api/chada-items?" + new Date().getTime()).then((res) => res.json());
-                      console.log('Dados atualizados:', updatedItems);
+
                       setItems(updatedItems);
                       // Garantir que o estado seja atualizado
                       setTimeout(() => {

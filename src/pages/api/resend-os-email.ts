@@ -68,10 +68,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let pdfBytes;
     try {
-      console.log("Iniciando geracao do PDF para OS:", osExterna.numeroOs);
-      console.log("Dados da OS:", JSON.stringify(osExterna, null, 2));
+
+
       pdfBytes = await fillOSExternaPDF(osExterna);
-      console.log("PDF gerado com sucesso, tamanho:", pdfBytes.length);
+
     } catch (pdfError) {
       console.error("Erro ao gerar PDF:", pdfError);
       return res.status(500).json({
@@ -144,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
     } catch (updateError) {
-      console.log("Erro ao atualizar lastEmailSent, mas email foi enviado com sucesso:", updateError);
+
     }
 
     res.status(200).json({
@@ -164,23 +164,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 async function fillOSExternaPDF(osExterna: any): Promise<Uint8Array> {
   const pdfPath = path.join(process.cwd(), "public", "os-externa2-EDITADA.pdf");
 
-  console.log("Caminho do PDF:", pdfPath);
-
   if (!fs.existsSync(pdfPath)) {
     console.error(`PDF template nao encontrado em: ${pdfPath}`);
     throw new Error(`Template os-externa2-EDITADA.pdf nao encontrado no caminho: ${pdfPath}`);
   }
 
-  console.log("PDF template encontrado, carregando...");
-
   const pdfBytes = fs.readFileSync(pdfPath);
   const pdfDoc = await PDFDocument.load(pdfBytes);
   const form = pdfDoc.getForm();
 
-  console.log("PDF carregado, obtendo campos do formulario...");
-
   const fields = form.getFields();
-  console.log("Campos disponiveis no PDF:", fields.map((field) => field.getName()));
 
   try {
     const fieldsToFill = {
@@ -231,16 +224,13 @@ async function fillOSExternaPDF(osExterna: any): Promise<Uint8Array> {
         const field = form.getTextField(fieldName);
         field.setText(String(value));
         fieldsPreenchidos++;
-        console.log(`Campo ${fieldName} preenchido com: ${value}`);
+
       } catch {
-        console.warn(`Campo ${fieldName} nao encontrado no PDF`);
+
       }
     });
 
-    console.log(`Total de campos preenchidos: ${fieldsPreenchidos} de ${Object.keys(fieldsToFill).length}`);
-
     form.flatten();
-    console.log("Formulario achatado, salvando PDF...");
 
     return await pdfDoc.save();
   } catch (error) {

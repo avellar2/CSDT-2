@@ -24,7 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const uid = user.id;
 
-  console.log('Dados recebidos:', { name, brand, serialNumber, schoolName, uid }); // Log para depuração
 
   if (!name || !brand || !serialNumber || !schoolName || !uid) {
     return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
@@ -65,7 +64,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Log para depuração
-    console.log('Criando item com os seguintes dados:', {
       name,
       brand,
       serialNumber,
@@ -79,7 +77,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         orderBy: { id: 'desc' },
         take: 1,
       });
-      console.log('Maior ID existente:', maxId[0]?.id);
 
       // Crie o item
       const newItem = await prisma.item.create({

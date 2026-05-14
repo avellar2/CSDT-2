@@ -41,7 +41,6 @@ const ItemForm: React.FC = () => {
       try {
         const response = await fetch('/api/all-schools');
         const data = await response.json();
-        console.log('Dados das escolas recebidos:', data); // Log para depuração
         if (Array.isArray(data)) {
           const schoolOptions = data.map((school: { id: number, name: string }) => ({
             value: school.id.toString(), // Use o ID da escola
@@ -83,7 +82,6 @@ const ItemForm: React.FC = () => {
       schoolName: upperCaseSchool, // Enviando o nome da escola
     };
 
-    console.log('Dados enviados:', requestData); // Log para depuração
 
     try {
       const response = await fetch('/api/createItem', {

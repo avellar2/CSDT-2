@@ -30,8 +30,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { formData, context } = req.body;
 
-    console.log("Dados recebidos:", req.body.formData);
-
     let {
       unidadeEscolar,
       tecnicoResponsavel,

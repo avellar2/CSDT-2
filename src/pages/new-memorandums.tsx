@@ -192,8 +192,6 @@ const NewMemorandumsPage: React.FC = () => {
         return;
       }
 
-      console.log('Regenerando PDF para memorando:', memorandum.id);
-
       const response = await axios.post(
         '/api/regenerate-memorandum-pdf',
         { memorandumId: memorandum.id },
@@ -267,8 +265,6 @@ const NewMemorandumsPage: React.FC = () => {
         alert('Token não encontrado');
         return;
       }
-
-      console.log('Cancelando memorando:', memorandumToCancel.id);
 
       const response = await axios.post(
         '/api/cancel-memorandum',

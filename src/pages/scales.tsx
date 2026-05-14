@@ -539,7 +539,7 @@ const Scales: React.FC = () => {
       const data = await response.json();
       if (data.success) {
         setChamadosEscala(data.data || []);
-        console.log('Chamados de escala carregados:', data.data);
+
       }
     } catch (error) {
       console.error('Erro ao buscar chamados de escala:', error);
@@ -580,7 +580,6 @@ const Scales: React.FC = () => {
       }
 
       const result = await response.json();
-      console.log('Chamado excluído:', result);
 
       // Recarregar listas apropriadas
       if (isChamadoEscala) {
@@ -672,7 +671,7 @@ const Scales: React.FC = () => {
           scaleHistoryData = await historyResponse.json();
         }
       } catch (historyError) {
-        console.log('Histórico não disponível, usando dados de exemplo');
+
         // Dados de exemplo para demonstração - usar datas atuais
         const today = new Date();
         const yesterday = new Date(today);
@@ -817,14 +816,13 @@ const Scales: React.FC = () => {
               }
             });
           } else {
-            console.log('API não retornou dados válidos:', result);
+
           }
         }
         
         // Se não conseguiu dados reais, usar dados de exemplo como fallback
         if (Object.keys(demandsData).length === 0) {
-          console.log('⚠️ Nenhuma demanda real encontrada, usando dados de exemplo');
-          
+
           const exampleDemands = [
             {
               title: 'Problema com impressora',
@@ -929,11 +927,10 @@ const Scales: React.FC = () => {
         endDate.setHours(18, 0, 0, 0);
         
         // Log temporário para verificar correção de datas
-        console.log('📅 Data da escala:', scale.date, '-> Processada:', scaleDate.toLocaleDateString('pt-BR'));
-        
+
         // Log para acompanhar carregamento (pode ser removido em produção)
         if (demandsData[scale.date] && demandsData[scale.date].length > 0) {
-          console.log(`✅ ${demandsData[scale.date].length} demandas carregadas para ${scale.date}`);
+
         }
         
         return {
@@ -993,8 +990,7 @@ const Scales: React.FC = () => {
 
   const handleEventCreate = async (eventData: any) => {
     try {
-      console.log('Dados do evento sendo enviados:', eventData);
-      
+
       const response = await fetch('/api/schedule/events', {
         method: 'POST',
         headers: {
@@ -1002,9 +998,7 @@ const Scales: React.FC = () => {
         },
         body: JSON.stringify(eventData),
       });
-      
-      console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Erro da API:', errorText);
@@ -1012,8 +1006,7 @@ const Scales: React.FC = () => {
       }
       
       const newEvent = await response.json();
-      console.log('Evento criado com sucesso:', newEvent);
-      
+
       const eventWithDates = {
         ...newEvent,
         startDate: new Date(newEvent.startDate),
@@ -1443,27 +1436,22 @@ const Scales: React.FC = () => {
 
   // Adicionar uma escola à lista de selecionadas
   const handleSelectSchool = async (school: any) => {
-    console.log(`🏫 Tentando selecionar escola:`, school); // Esta linha já existe
-    console.log(`🔍 ID da escola sendo enviado:`, school.id); // ADICIONAR
-    console.log(`🔍 Tipo do ID:`, typeof school.id); // ADICIONAR
 
     // Verificar se a escola já está selecionada
     if (selectedSchools.some((s) => s.id === school.id)) {
-      console.log(`ℹ️ Escola já selecionada: ${school.name}`);
+
       setSearchText("");
       return;
     }
 
-    console.log(`🔍 Verificando OS pendentes antes de adicionar escola...`);
     // NOVA VALIDAÇÃO: Verificar OS pendentes
     const hasPending = await checkPendingOs(school.id);
     if (hasPending) {
-      console.log(`❌ Escola BLOQUEADA por OS pendente: ${school.name}`);
+
       setSearchText("");
       return; // Não adiciona a escola se tiver OS pendente
     }
 
-    console.log(`✅ Escola ADICIONADA com sucesso: ${school.name}`);
     // Se não tiver OS pendente, adiciona normalmente
     setSelectedSchools((prev) => [...prev, school]);
     setSearchText("");
@@ -1507,7 +1495,6 @@ const Scales: React.FC = () => {
     ];
 
     // Debug: log current allocations
-    console.log('🔍 Estado atual das alocações:', {
       baseTechnicians,
       visitTechnicians,
       offTechnicians,
@@ -1620,20 +1607,16 @@ const Scales: React.FC = () => {
   // MODIFICAR: Atualizar a mensagem de erro para ser mais específica
   const checkPendingOs = async (schoolId: string): Promise<boolean> => {
     try {
-      console.log(`🔍 Verificando OS pendentes para escola: ${schoolId}`);
 
       const response = await fetch(`/api/check-pending-os?schoolId=${schoolId}`);
-      console.log(`📡 Response status: ${response.status}`);
 
       const data = await response.json();
-      console.log(`📊 Dados recebidos da API:`, data);
 
       if (data.hasPendingOs) {
         // Buscar o nome da escola para a mensagem
         const school = schools.find(s => s.id === schoolId);
         const schoolName = school ? school.name : 'Escola selecionada';
 
-        console.log(`⚠️ OS pendente encontrada para: ${schoolName}`, {
           totalPending: data.totalPending,
           pendingOsOld: data.pendingOsOld,
           pendingOsNew: data.pendingOsNew
@@ -1656,7 +1639,6 @@ const Scales: React.FC = () => {
         return true;
       }
 
-      console.log(`✅ Nenhuma OS pendente encontrada para escola: ${schoolId}`);
       return false;
     } catch (error) {
       console.error('❌ Erro ao verificar OS pendentes:', error);
@@ -3093,7 +3075,7 @@ const Scales: React.FC = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log('Aceitar chamado:', ticket.id);
+
                               }}
                               className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                             >

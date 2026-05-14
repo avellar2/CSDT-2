@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Obtenha o token do cabeçalho
   const token = req.headers.authorization?.split(' ')[1];
-  console.log('Token recebido:', token);
+
   if (!token) {
     return res.status(401).json({ error: 'Unauthorized: Token is missing.' });
   }
@@ -23,8 +23,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Erro ao obter usuário do Supabase:', error);
     return res.status(401).json({ error: 'Unauthorized: User not authenticated.' });
   }
-
-  console.log('Usuário autenticado:', user);
 
   // Busca o perfil do usuário na tabela `profile`
   const userProfile = await prisma.profile.findUnique({
@@ -47,8 +45,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     fromSchool,
     toSchool
   } = req.body;
-
-  console.log('Dados recebidos:', req.body);
 
   // Validações básicas
   if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
@@ -88,7 +84,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Calcular quantidade de páginas necessárias
   const totalPages = Math.ceil(itemIds.length / ITEMS_PER_PAGE);
-  console.log(`Generating ${totalPages} pages for ${itemIds.length} items`);
 
   try {
     let targetSchool: any;
@@ -98,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (type === 'entrega') {
       // ENTREGA: Upsert da escola de destino
-      console.log("Upserting school for delivery...");
+
       targetSchool = await prisma.school.upsert({
         where: { name: schoolName },
         update: {},
@@ -108,10 +103,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           inep: typeof inep === "number" ? inep : 0,
         },
       });
-      console.log("School upserted:", targetSchool);
 
     } else if (type === 'devolucao') {
-      console.log("Preparing schools for return...");
+
       sourceSchool = await prisma.school.upsert({
         where: { name: schoolName },
         update: {},
@@ -132,22 +126,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      console.log("Return source school:", sourceSchool);
-      console.log("Return target school:", targetSchool);
+
     } else if (type === 'troca') {
       // TROCA: Lógica SUPER ROBUSTA para upsert
-      console.log("Processing schools for exchange...");
 
       // Limpar quebras de linha e espaços
       cleanFromSchoolName = fromSchool.name.trim().replace(/\n/g, '');
       cleanToSchoolName = toSchool.name.trim().replace(/\n/g, '');
 
-      console.log("Clean from school name:", cleanFromSchoolName);
-      console.log("Clean to school name:", cleanToSchoolName);
 
       // Função helper MELHORADA para upsert seguro
       const safeUpsertSchool = async (schoolData: any) => {
-        console.log(`Processing school: "${schoolData.name}"`);
 
         // PRIMEIRO: Tentar upsert padrão
         try {
@@ -164,14 +153,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           });
 
-          console.log(`School processed successfully with ID: ${school.id}`);
           return school;
 
         } catch (error) {
           console.error(`Upsert failed for "${schoolData.name}":`, error);
 
           // FALLBACK: Buscar escola existente
-          console.log("Trying fallback search...");
+
           const existingSchool = await prisma.school.findFirst({
             where: {
               name: {
@@ -182,7 +170,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           if (existingSchool) {
-            console.log(`Found existing school via fallback: ${existingSchool.id}`);
+
             return existingSchool;
           }
 
@@ -197,7 +185,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           if (partialMatch) {
-            console.log(`Found partial match: ${partialMatch.name} (ID: ${partialMatch.id})`);
+
             return partialMatch;
           }
 
@@ -220,12 +208,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         inep: toSchool.inep
       });
 
-      console.log("Final source school:", sourceSchool);
-      console.log("Final target school:", targetSchool);
+
     }
 
     // GERAR NÚMERO AUTOMÁTICO DO MEMORANDO
-    console.log("Generating automatic memorandum number...");
+
     const currentYear = new Date().getFullYear();
     
     // Buscar o último memorando do ano atual para determinar o próximo número
@@ -249,10 +236,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     const automaticMemorandumNumber = `${sequentialNumber}/${currentYear}`;
-    console.log("Generated memorandum number:", automaticMemorandumNumber);
 
     // CRIAR MEMORANDO COM NOVOS CAMPOS
-    console.log("Creating memorandum...");
+
     const memorandumData: any = {
       generatedBy: userProfile.displayName,
       number: automaticMemorandumNumber,
@@ -294,11 +280,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
     });
-    console.log("Memorandum created:", memorandum);
 
     // ATUALIZAR LOCALIZAÇÃO DOS ITENS
-    console.log("Updating items location...");
-    
+
     if (type === 'entrega') {
       // Para entrega: todos os itens vão para a escola de destino
       await prisma.item.updateMany({
@@ -310,8 +294,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updatedAt: new Date(),
         },
       });
-      console.log(`Entrega: ${itemIds.length} itens movidos para ${targetSchool.name}`);
-      
+
     } else if (type === 'devolucao') {
       await prisma.item.updateMany({
         where: {
@@ -322,8 +305,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updatedAt: new Date(),
         },
       });
-      console.log(`Devolucao: ${itemIds.length} itens movidos de ${sourceSchool.name} para CSDT`);
-      
+
     } else if (type === 'troca') {
       // Para troca: atualizar baseado nos arrays do frontend
       const { selectedFromCSDT, selectedFromDestino } = req.body;
@@ -340,11 +322,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           error: `Muitos itens da escola selecionados. Máximo: 10, selecionados: ${selectedFromDestino.length}` 
         });
       }
-      
-      console.log('Atualizando localizações para troca:');
-      console.log('selectedFromCSDT:', selectedFromCSDT);
-      console.log('selectedFromDestino:', selectedFromDestino);
-      
+
+
+
       // Itens que saem do CSDT vão para a escola
       if (selectedFromCSDT && selectedFromCSDT.length > 0) {
         await prisma.item.updateMany({
@@ -356,7 +336,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             updatedAt: new Date(),
           },
         });
-        console.log(`Troca: ${selectedFromCSDT.length} itens movidos do CSDT para ${targetSchool.name}`);
+
       }
       
       // Itens que voltam da escola vão para o CSDT
@@ -380,15 +360,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             updatedAt: new Date(),
           },
         });
-        console.log(`Troca: ${selectedFromDestino.length} itens movidos de ${targetSchool.name} para CSDT`);
+
       }
     }
-    
-    console.log("Items location updated.");
 
     // ADICIONAR HISTÓRICO
-    console.log("Adding item history...");
-    
+
     if (type === 'entrega') {
       // Para entrega: todos os itens saem do CSDT para a escola
       await Promise.all(
@@ -404,8 +381,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
         })
       );
-      console.log(`Histórico criado para entrega: ${itemIds.length} itens`);
-      
+
     } else if (type === 'devolucao') {
       await Promise.all(
         itemIds.map(async (itemId: number) => {
@@ -420,7 +396,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
         })
       );
-      console.log(`Historico criado para devolucao: ${itemIds.length} itens`);
 
     } else if (type === 'troca') {
       // Para troca: registrar movimentos específicos baseado nos arrays
@@ -428,15 +403,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       // Histórico para itens que saem do CSDT
       if (selectedFromCSDT && selectedFromCSDT.length > 0) {
-        console.log('=== CRIANDO HISTÓRICO PARA ITENS DO CSDT ===');
-        console.log('selectedFromCSDT:', selectedFromCSDT);
-        console.log('Target school object:', targetSchool);
-        console.log('Target school name:', targetSchool.name);
-        
+
+
+
+
         await Promise.all(
           selectedFromCSDT.map(async (itemId: number) => {
-            console.log(`Criando histórico para item ${itemId}: CSDT → ${targetSchool.name}`);
-            
+
             const historyRecord = await prisma.itemHistory.create({
               data: {
                 itemId,
@@ -446,11 +419,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 toSchool: targetSchool.name,
               },
             });
-            
-            console.log(`✓ Histórico criado para item ${itemId}:`, historyRecord);
+
           })
         );
-        console.log(`Histórico criado: ${selectedFromCSDT.length} itens CSDT → ${targetSchool.name}`);
+
       }
       
       // Histórico para itens que voltam para o CSDT
@@ -468,14 +440,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
           })
         );
-        console.log(`Histórico criado: ${selectedFromDestino.length} itens ${targetSchool.name} → CSDT`);
+
       }
     }
-    
-    console.log("Item history updated.");
 
     // GERAR PDF
-    console.log("Generating PDF...");
 
     let pdfBase64: string;
 
@@ -504,7 +473,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    console.log(`PDF de ${type} gerado com sucesso.`);
     res.status(200).json({
       pdfBase64,
       type,

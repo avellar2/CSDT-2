@@ -27,15 +27,13 @@ const ConfirmarOsExterna: React.FC = () => {
 
   const fetchOsData = async () => {
     try {
-      console.log('🔍 Buscando OS:', numeroOs, 'Token:', token);
+
       const response = await fetch(`/api/get-os-externa?numeroOs=${numeroOs}&token=${token}`);
       const data = await response.json();
 
-      console.log('📦 Resposta da API:', data);
-
       if (response.ok) {
         setOsData(data);
-        console.log('✅ OS carregada com sucesso!');
+
       } else {
         console.error('❌ Erro na resposta:', data);
         setMessage(data.error || 'OS não encontrada ou token inválido.');

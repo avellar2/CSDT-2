@@ -45,8 +45,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Memorando nao encontrado.' });
     }
 
-    console.log('Regenerando PDF para memorando:', memorandum.number);
-
     let pdfBase64: string;
 
     if (memorandum.type === 'troca') {
@@ -96,7 +94,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
 
       if (itemsWithoutHistory.length > 0) {
-        console.warn(
           'Itens sem historico encontrado, assumindo que sairam do CSDT:',
           itemsWithoutHistory
         );
@@ -137,8 +134,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })),
       });
     }
-
-    console.log(`PDF de ${memorandum.type} regenerado com sucesso.`);
 
     return res.status(200).json({
       pdfBase64,

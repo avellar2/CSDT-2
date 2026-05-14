@@ -30,7 +30,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     };
 
-    console.log('📧 Conectando ao servidor IMAP para capturar OS...');
     const connection = await imaps.connect(config);
 
     // Abrir inbox
@@ -47,10 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       markSeen: false, // Não marcar como lido ainda
     };
 
-    console.log('🔍 Buscando emails da XSCAN...');
     const messages = await connection.search(searchCriteria, fetchOptions);
-
-    console.log(`✉️  ${messages.length} emails encontrados`);
 
     let processed = 0;
     let captured = 0;
@@ -78,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                              from.toLowerCase().includes('vandersonavellar1997@gmail.com'); // Email de teste
 
         if (!isXScanEmail) {
-          console.log(`⏭️  Email de ${from} não é da XSCAN, pulando...`);
+
           continue;
         }
 
@@ -93,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const matches = [...searchContent.matchAll(osPattern)];
 
         if (matches.length === 0) {
-          console.log(`⚠️  Nenhuma OS encontrada no email: ${subject}`);
+
           results.push({
             from,
             subject,
@@ -107,8 +103,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const printerSerial = match[1];
           const osNumber = match[2];
 
-          console.log(`🎯 OS encontrada: ${osNumber} para impressora ${printerSerial}`);
-
           // Buscar informações da impressora no inventário
           let printerModel = '';
           let schoolName = '';
@@ -120,9 +114,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (printerInfo) {
             printerModel = printerInfo.modelo;
             schoolName = printerInfo.schoolName;
-            console.log(`✅ Impressora encontrada: ${printerModel} na escola ${schoolName}`);
+
           } else {
-            console.log(`⚠️  Impressora ${printerSerial} não encontrada no inventário`);
+
             printerModel = 'Não identificado';
             schoolName = 'Não identificada';
           }
@@ -147,7 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           if (existing) {
-            console.log(`ℹ️  OS ${osNumber} já existe no banco para serial ${printerSerial}`);
+
             results.push({
               from,
               subject,
@@ -176,11 +170,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           await connection.addFlags(message.attributes.uid, ['\\Seen']);
 
           captured++;
-          console.log(`💾 OS ${osNumber} salva com sucesso!`);
 
           // Enviar notificação por email para CSDT e escola
           try {
-            console.log(`📧 Enviando notificação de OS capturada...`);
 
             // Buscar email da escola
             let schoolEmail = '';
@@ -339,7 +331,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             };
 
             await transporter.sendMail(mailOptions);
-            console.log(`✅ Notificação enviada com sucesso para CSDT${schoolEmail ? ' e escola' : ''}!`);
+
           } catch (emailError) {
             console.error(`⚠️  Erro ao enviar notificação de email:`, emailError);
             // Não falhar a captura se o email falhar
@@ -367,8 +359,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Fechar conexão
     connection.end();
-
-    console.log(`🎉 Captura concluída! ${captured} OS capturadas de ${messages.length} emails.`);
 
     return res.status(200).json({
       success: true,

@@ -11,7 +11,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const agentModule = await import('./printer-status-from-agent');
     const cachedStatus = agentModule.getCachedPrinterStatus();
 
-    console.log('[Test] Dados do cache:', {
       hasData: !!cachedStatus.data,
       isStale: cachedStatus.isStale,
       age: cachedStatus.age,

@@ -31,7 +31,7 @@ async function pingHost(ip: string): Promise<{ isReachable: boolean; responseTim
     const { stdout, stderr } = await execAsync(pingCommand);
     
     if (stderr) {
-      console.warn(`Ping stderr para ${ip}:`, stderr);
+
     }
 
     const isReachable = isWindows 
@@ -74,8 +74,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    console.log(`Fazendo ping em ${allPrinters.length} impressoras...`);
-
     // Fazer ping em todas as impressoras
     const pingPromises = allPrinters.map(async (printer): Promise<PingResult> => {
       const pingResult = await pingHost(printer.ip);
@@ -101,8 +99,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const reachableCount = results.filter(r => r.isReachable).length;
     const unreachableCount = results.filter(r => !r.isReachable && r.status !== 'no-ip').length;
     const noIPCount = results.filter(r => r.status === 'no-ip').length;
-
-    console.log(`Ping concluído: ${reachableCount} alcançáveis, ${unreachableCount} inalcançáveis, ${noIPCount} sem IP`);
 
     res.status(200).json({
       timestamp: new Date().toISOString(),

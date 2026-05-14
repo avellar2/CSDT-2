@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log(`🔍 Verificando OS pendentes para escola ID: ${schoolId}`);
 
     // MELHOR: Buscar o nome da escola diretamente no banco
     const school = await prisma.school.findUnique({
@@ -29,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!school) {
-      console.log(`❌ Escola com ID ${schoolId} não encontrada`);
+
       return res.status(200).json({
         hasPendingOs: false,
         totalPending: 0,
@@ -40,7 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const schoolName = school.name;
-    console.log(`🏫 Nome da escola encontrado: ${schoolName}`);
 
     // Resto do código permanece igual...
     const allOsOld = await prisma.os.findMany({
@@ -69,16 +67,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log(`📝 TODOS os registros encontrados para escola "${schoolName}":`);
-    console.log(`  - Tabela 'Os' (antiga): ${allOsOld.length} registros`);
-    console.log(`  - Tabela 'OSExterna' (nova): ${allOsNew.length} registros`);
+
 
     if (allOsOld.length > 0) {
-      console.log('   📄 Registros tabela antiga:', allOsOld);
+
     }
 
     if (allOsNew.length > 0) {
-      console.log('   📄 Registros tabela nova:', allOsNew);
+
     }
 
     // Filtrar OS não assinadas:
@@ -87,7 +83,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const pendingOsOld = allOsOld; // TODAS as OS da tabela antiga são não-assinadas
     const pendingOsNew = allOsNew.filter(os => os.status === 'Pendente'); // Apenas Pendentes da nova tabela
 
-    console.log(`📊 Resultados PENDENTES:`, {
       schoolId,
       schoolName,
       pendingOsOld: pendingOsOld.length,

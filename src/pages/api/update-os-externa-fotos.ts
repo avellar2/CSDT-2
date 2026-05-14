@@ -11,9 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { numeroOs, fotosAntes, fotosDepois } = req.body;
 
-    console.log('Atualizando fotos para OS:', numeroOs);
-    console.log('Fotos antes:', fotosAntes);
-    console.log('Fotos depois:', fotosDepois);
+
 
     // Buscar a OS pelo número
     const osExistente = await prisma.oSExterna.findFirst({
@@ -37,7 +35,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    console.log('OS atualizada com sucesso:', updatedOs.id);
     res.status(200).json({
       success: true,
       message: 'Fotos atualizadas com sucesso',

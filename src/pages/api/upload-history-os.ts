@@ -15,17 +15,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log("ID recebido:", id);
 
     // Verificar se o registro existe
     let existingHistory = await prisma.itemsHistoryChada.findUnique({
       where: { id: Number(id) },
     });
 
-    console.log("Resultado da consulta:", existingHistory);
-
     if (!existingHistory) {
-      console.log("Criando novo registro para id:", id);
 
       existingHistory = await prisma.itemsHistoryChada.create({
         data: {
@@ -37,7 +33,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      console.log("Novo registro criado:", existingHistory);
     }
 
     // Atualizar o campo images na tabela ItemsHistoryChada

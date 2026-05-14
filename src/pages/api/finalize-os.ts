@@ -9,8 +9,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: "Método não permitido" });
   }
 
-  console.log("Dados recebidos no endpoint:", req.body);
-
   const { osId, status, descricao, peca } = req.body;
 
   if (!osId || !status || !descricao || peca === "-----") {

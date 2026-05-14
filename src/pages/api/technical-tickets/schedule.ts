@@ -79,8 +79,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log(`Chamado técnico agendado: ${updatedTicket.id} para ${scheduledDate} ${scheduledTime}`);
-
     // Enviar email de notificação para a escola
     try {
       const emailData = {
@@ -100,11 +98,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const schoolEmail = ticket.School.email || `contato@${ticket.School.name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.edu.br`;
       
       // Log para debug
-      console.log(`Enviando email para escola ${ticket.School.name}: ${schoolEmail}`);
-      
+
       // Se não há email cadastrado, não tentar enviar
       if (!ticket.School.email) {
-        console.warn(`⚠️ Escola '${ticket.School.name}' não possui email cadastrado. Email não será enviado.`);
+
       }
       
       const emailResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/send-email`, {
@@ -121,7 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       if (emailResponse.ok) {
-        console.log(`Email de notificação enviado para: ${schoolEmail}`);
+
       } else {
         console.error('Erro ao enviar email de notificação:', await emailResponse.text());
       }

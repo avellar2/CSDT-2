@@ -73,8 +73,6 @@ const
         ? `${tecnicoResponsavelLogado} / ${selectedValues}`
         : tecnicoResponsavelLogado;
 
-      console.log('Técnico Responsável atualizado:', newValue);
-
       stableHandleInputChange({
         target: {
           name: 'tecnicoResponsavel',

@@ -98,8 +98,6 @@ export default async function handler(
       },
     });
 
-    console.log(`[Cancelamento] Memorando #${memorandum.number} - Cancelando...`);
-    console.log(`[Cancelamento] Itens a restaurar: ${itemIds.length}`);
 
     // Agrupar históricos por itemId para facilitar busca
     const historyByItem = new Map<number, typeof itemHistories[0]>();
@@ -124,7 +122,7 @@ export default async function handler(
         });
       } else {
         // Se não encontrar histórico, tentar restaurar para null (CSDT)
-        console.warn(`[Cancelamento] Histórico não encontrado para item ${item.itemId}`);
+
         itemUpdates.push({
           itemId: item.itemId,
           previousSchoolName: null,
@@ -154,7 +152,6 @@ export default async function handler(
           },
         });
 
-        console.log(
           `[Cancelamento] Item ${update.itemId} restaurado para: ${
             update.previousSchoolName || 'CSDT (sem escola)'
           }`
@@ -173,21 +170,16 @@ export default async function handler(
         },
       });
 
-      console.log(`[Cancelamento] Histórico de ${itemIds.length} itens removido`);
-
       // 3. Deletar registros de NewMemorandumItem
       await tx.newMemorandumItem.deleteMany({
         where: { memorandumId: memorandumId },
       });
-
-      console.log(`[Cancelamento] Vínculo de ${itemIds.length} itens removido`);
 
       // 4. Deletar o NewMemorandum
       await tx.newMemorandum.delete({
         where: { id: memorandumId },
       });
 
-      console.log(`[Cancelamento] Memorando #${memorandum.number} deletado`);
     });
 
     return res.status(200).json({

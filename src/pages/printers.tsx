@@ -170,8 +170,7 @@ const Printers: React.FC = () => {
       
       if (data.success) {
         // Mostrar resultados em um modal ou console
-        console.log('Detalhes SNMP da impressora:', data.data);
-        
+
         // Criar uma mensagem mais detalhada e organizada
         const results = data.data.oids;
         let message = `=== DIAGNÓSTICO DETALHADO ===\nImpressora: ${ip}\n\n`;
@@ -274,8 +273,7 @@ const Printers: React.FC = () => {
       const data = await response.json();
       
       if (data.success) {
-        console.log('Descoberta de OIDs:', data.data);
-        
+
         const results = data.data;
         let message = `=== DESCOBERTA DE CONSUMÍVEIS ===\nImpressora: ${ip}\n\n`;
         

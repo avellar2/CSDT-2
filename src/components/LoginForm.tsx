@@ -14,14 +14,12 @@ const LoginForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      console.log('Tentativa de login com email:', email); // Log para depuração
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.log('Erro no login:', error); // Log para depuração
         if (error.message === 'Invalid login credentials') {
           setModalMessage('Email ou senha incorretos. Por favor, verifique suas credenciais.');
         } else {
@@ -29,7 +27,6 @@ const LoginForm: React.FC = () => {
         }
         setModalIsOpen(true);
       } else {
-        console.log('Login bem-sucedido:', data); // Log para depuração
         localStorage.setItem('token', data.session?.access_token || '');
         router.push('/dashboard'); // Redireciona para o dashboard
       }

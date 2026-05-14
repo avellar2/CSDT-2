@@ -50,7 +50,7 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
 
   // Estratégia 2: Se falhou e tem bairro, tenta apenas o bairro
   if (!coords && neighborhood && neighborhood.length > 3) {
-    console.log(`Tentando fallback com bairro: ${neighborhood}`);
+
     coords = await tryGeocode(`${neighborhood}, Duque de Caxias, RJ, Brasil`);
   }
 

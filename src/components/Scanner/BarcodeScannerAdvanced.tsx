@@ -72,7 +72,7 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
 
       scanner.render(
         (decodedText, decodedResult) => {
-          console.log('Código escaneado:', decodedText);
+
           setIsScanning(false);
           onScan(decodedText);
           cleanup();
@@ -80,7 +80,7 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
         (errorMessage) => {
           // Don't show continuous scanning errors
           if (!errorMessage.includes('NotFoundException')) {
-            console.warn('Erro no scanner:', errorMessage);
+
             if (onError) {
               onError(errorMessage);
             }
@@ -107,7 +107,7 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
         scannerInstanceRef.current.clear();
         scannerInstanceRef.current = null;
       } catch (err) {
-        console.warn('Erro ao limpar scanner:', err);
+
       }
     }
     setIsScanning(false);
@@ -131,7 +131,7 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
         setTorch(!torch);
       }
     } catch (err) {
-      console.warn('Torch não suportado:', err);
+
     }
   }, [selectedCamera, torch]);
 

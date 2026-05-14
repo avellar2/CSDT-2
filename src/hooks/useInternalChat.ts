@@ -71,7 +71,6 @@ export const useInternalChat = () => {
       const response = await fetch(`/api/get-profile?userId=${session.user.id}`);
       const profileData = await response.json();
       
-      console.log('Profile API response:', profileData); // Debug
       
       if (profileData.error) {
         console.error('Erro ao buscar profile:', profileData.error);
@@ -89,7 +88,6 @@ export const useInternalChat = () => {
       setCurrentUser(userData);
       setConnected(true);
 
-      console.log('Current user loaded:', userData); // Debug
 
       // Pedir permissão de notificação para técnicos
       if (['TECH', 'ADMIN', 'ADMTOTAL'].includes(userData.type)) {
@@ -258,11 +256,11 @@ export const useInternalChat = () => {
   const startTyping = useCallback(() => {
     // Em uma implementação real, você poderia salvar no banco
     // ou usar uma API específica para typing indicators
-    console.log('User started typing');
+
   }, []);
 
   const stopTyping = useCallback(() => {
-    console.log('User stopped typing');
+
   }, []);
 
   // Carregar tickets

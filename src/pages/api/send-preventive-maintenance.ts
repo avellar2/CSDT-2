@@ -57,8 +57,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const BATCH_PAUSE = 5 * 60 * 1000; // Pausa de 5 minutos (em ms)
     const EMAIL_DELAY = 3000; // 3 segundos entre cada email
 
-    console.log(`🚀 Iniciando envio de emails em lotes de ${BATCH_SIZE}...`);
-
     // Para cada escola, buscar impressoras e enviar um email por impressora
     for (const school of schools) {
       // Buscar impressoras desta escola no inventário
@@ -80,13 +78,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Verificar se precisa pausar (a cada 50 emails)
         if (emailsProcessed > 1 && emailsProcessed % BATCH_SIZE === 1) {
           const loteNumber = Math.floor((emailsProcessed - 1) / BATCH_SIZE) + 1;
-          console.log(`⏸️  Lote ${loteNumber} completo. Pausando por 5 minutos...`);
+
           await sleep(BATCH_PAUSE);
-          console.log(`▶️  Retomando envio (Email ${emailsProcessed} de ${totalEmails})...`);
+
         }
 
         try {
-          console.log(`📧 Enviando email ${emailsProcessed}/${totalEmails}: ${school.name} - ${printer.serial}`);
+
           // Montar lista de destinatários em cópia (CC)
           const ccRecipients = [];
           if (school.email) {
@@ -215,8 +213,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           });
 
-          console.log(`✅ Email ${emailsProcessed} enviado com sucesso!`);
-
           // Aguardar 3 segundos antes do próximo email (exceto no último)
           if (emailsProcessed < totalEmails) {
             await sleep(EMAIL_DELAY);
@@ -251,8 +247,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Fechar o transporter
     transporter.close();
-
-    console.log(`🎉 Processo concluído! ${emailsSent.length} emails enviados, ${emailsFailed.length} falharam.`);
 
     res.status(200).json({
       success: true,

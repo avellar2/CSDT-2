@@ -16,8 +16,7 @@ async function geocodeWithOSM(address: string, schoolName: string): Promise<{ la
     ];
 
     for (const query of searchQueries) {
-      console.log(`Tentando geocoding: ${query}`);
-      
+
       const encodedAddress = encodeURIComponent(query);
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=3&addressdetails=1&countrycodes=br`,
@@ -29,7 +28,6 @@ async function geocodeWithOSM(address: string, schoolName: string): Promise<{ la
       );
 
       const data = await response.json();
-      console.log(`Resultado para "${query}":`, data.length, 'resultados');
 
       if (data.length > 0) {
         // Filtra resultados no Rio de Janeiro
@@ -39,7 +37,7 @@ async function geocodeWithOSM(address: string, schoolName: string): Promise<{ la
         );
 
         if (rjResults.length > 0) {
-          console.log(`✅ Encontrado: ${rjResults[0].display_name}`);
+
           return {
             lat: parseFloat(rjResults[0].lat),
             lng: parseFloat(rjResults[0].lon)
@@ -47,7 +45,7 @@ async function geocodeWithOSM(address: string, schoolName: string): Promise<{ la
         }
         
         // Se não encontrou no RJ, usa o primeiro resultado
-        console.log(`⚠️ Usando resultado genérico: ${data[0].display_name}`);
+
         return {
           lat: parseFloat(data[0].lat),
           lng: parseFloat(data[0].lon)
@@ -85,8 +83,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log(`Encontradas ${schools.length} escolas para geocodificar`);
-
     const results = [];
     let successCount = 0;
     let errorCount = 0;
@@ -102,8 +98,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         errorCount++;
         continue;
       }
-
-      console.log(`Geocodificando: ${school.name} - ${school.address}`);
 
       // Tenta geocoding
       const coords = await geocodeWithOSM(school.address, school.name);

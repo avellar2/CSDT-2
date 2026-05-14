@@ -220,7 +220,7 @@ const DeviceList: React.FC = () => {
         const response = await axios.get("/api/all-schools");
         setSchools(response.data);
       } catch (error) {
-        console.log("Error fetching schools:", error);
+
       }
     }
 
@@ -238,7 +238,6 @@ const DeviceList: React.FC = () => {
       try {
         // Decodifica o token para obter o userId
         const decoded = jwtDecode<{ userId: string }>(token);
-        console.log("Decoded Token:", decoded);
 
         // Faz a chamada para o Supabase para garantir que o usuário está autenticado
         const {
@@ -251,15 +250,13 @@ const DeviceList: React.FC = () => {
           return;
         }
 
-        console.log("Usuário do Supabase:", user);
-
         // Faz a chamada para o endpoint /api/get-role
         const response = await fetch(`/api/get-role?userId=${user.id}`);
         const data = await response.json();
 
         if (response.ok && data.role) {
           setUserRole(data.role); // Define a role do usuário
-          console.log("Role do usuário:", data.role);
+
         } else {
           console.error("Erro ao buscar a role:", data.error);
         }
@@ -600,13 +597,12 @@ const DeviceList: React.FC = () => {
   };
 
   const handleGenerateMemorandum = async () => {
-    console.log('=== INÍCIO DA GERAÇÃO DO MEMORANDO ===');
-    console.log('Tipo:', memorandumType);
-    console.log('Escola destino (troca):', exchangeToSchool);
-    console.log('Escola destino (entrega):', schoolName);
-    console.log('Distrito:', district);
-    console.log('Itens selecionados CSDT:', selectedFromCSDT);
-    console.log('Itens selecionados devolucao/escola:', selectedFromDestino);
+
+
+
+
+
+
 
     const token = localStorage.getItem("token");
     if (!token) {
@@ -648,11 +644,10 @@ const DeviceList: React.FC = () => {
       }
       
     } else if (memorandumType === "troca") {
-      console.log('=== VALIDAÇÃO TROCA ===');
-      console.log('exchangeToSchool:', exchangeToSchool);
-      console.log('selectedFromCSDT:', selectedFromCSDT);
-      console.log('selectedFromDestino:', selectedFromDestino);
-      
+
+
+
+
       // Validar escola de destino
       if (!exchangeToSchool) {
         console.error('ERRO: exchangeToSchool está vazio!');
@@ -805,14 +800,12 @@ const DeviceList: React.FC = () => {
         };
         
       } else if (memorandumType === "troca") {
-        console.log('=== PREPARANDO DADOS PARA TROCA ===');
-        
+
         // Para troca, enviar todos os itens selecionados (CSDT + escola)
         const allSelectedItemIds = [...selectedFromCSDT, ...selectedFromDestino];
-        console.log('Itens do CSDT:', selectedFromCSDT);
-        console.log('Itens da escola:', selectedFromDestino);
-        console.log('Todos itens:', allSelectedItemIds);
-        
+
+
+
         const toSchoolData = schools.find(
           (school) => school.name === exchangeToSchool,
         );
@@ -836,11 +829,8 @@ const DeviceList: React.FC = () => {
           selectedFromCSDT,      // Itens que saem do CSDT → campo "novo"
           selectedFromDestino    // Itens que voltam da escola → campo "antigo"
         };
-        
-        console.log('Dados de troca preparados:', requestData);
-      }
 
-      console.log("Dados enviados:", requestData);
+      }
 
       const response = await axios.post(
         "/api/generate-memorandum",

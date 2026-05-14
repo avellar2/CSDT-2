@@ -12,8 +12,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { itemId, problem, userName, sector, status, manutencaoSemMovimentacao, semSerial, itemNameSemSerial, itemTypeSemSerial, itemBrandSemSerial } = req.body;
 
-  console.log("Dados recebidos:", req.body);
-
   if (!problem || !userName || !sector) {
     return res.status(400).json({ error: "Todos os campos são obrigatórios" });
   }
@@ -156,7 +154,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         html: emailContent.html,
       });
       emailMessageId = emailInfo.messageId;
-      console.log('Email enviado para CHADA:', emailInfo.messageId);
+
     } catch (emailError) {
       console.error('Erro ao enviar email para CHADA:', emailError);
     }

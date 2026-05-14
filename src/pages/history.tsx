@@ -87,17 +87,14 @@ const History: React.FC = () => {
       // Buscar dados de OS
       const osResponse = await fetch(`/api/history/internal-os?date=${currentDate}`);
       const osData = await osResponse.json();
-      console.log("osData:", osData);
 
       // Buscar dados de demandas
       const demandResponse = await fetch(`/api/history/school-demands?date=${currentDate}`);
       const demandData = await demandResponse.json();
-      console.log("demandData:", demandData);
 
       // Buscar dados das escolas
       const schoolResponse = await fetch(`/api/schools`);
       const schoolData = await schoolResponse.json();
-      console.log("schoolData:", schoolData);
 
       // Criar um mapa de schoolId para schoolName
       const schoolMap = Array.isArray(schoolData)

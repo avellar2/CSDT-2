@@ -12,7 +12,6 @@ const MemorandumsPage: React.FC = () => {
     const fetchMemorandums = async () => {
       try {
         const response = await axios.get("/api/get-memorandums");
-        console.log("Memorandos recebidos:", response.data); // Verifique os dados aqui
         setMemorandums(response.data);
         setFilteredMemorandums(response.data);
       } catch (error) {

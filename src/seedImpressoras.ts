@@ -39,7 +39,7 @@ async function main() {
         },
       });
     } else {
-      console.log(`Impressora com serial ${serial} já existe. Ignorando...`);
+
     }
   }
 }

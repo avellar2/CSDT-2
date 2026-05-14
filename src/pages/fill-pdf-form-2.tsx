@@ -726,8 +726,6 @@ const FillPdfForm: React.FC = () => {
         throw new Error("Número da OS não foi gerado corretamente.");
       }
 
-      console.log("Dados salvos:", updatedDataFromDb);
-
       const fotosAntesUrls = await uploadFiles(
         formData.fotosAntes as File[],
         "fotos-antes",
@@ -784,8 +782,6 @@ const FillPdfForm: React.FC = () => {
         fotosAntes: fotosAntesUrls,
         fotosDepois: fotosDepoisUrls,
       };
-
-      console.log("Dados finais atualizados:", finalUpdatedData);
 
       // Gerar o PDF preenchido como base64
       const pdfBase64 = await generatePdfBytes(finalUpdatedData);
@@ -1075,7 +1071,6 @@ const FillPdfForm: React.FC = () => {
         }).format(currentDate), // Atualiza a hora no formato HH:mm
       };
 
-      console.log('Dados sendo enviados para API:', {
         tecnicoResponsavel: updatedData.tecnicoResponsavel,
         unidadeEscolar: updatedData.unidadeEscolar
       });
@@ -1105,7 +1100,6 @@ const FillPdfForm: React.FC = () => {
       }
 
       const numeroOs = `${result.id}/${currentDate.getFullYear()}`;
-      console.log("Número da OS gerado:", numeroOs);
 
       return { ...updatedData, numeroOs }; // Retorna os dados atualizados com o número da OS
     } catch (error) {
@@ -1139,7 +1133,6 @@ const FillPdfForm: React.FC = () => {
         throw new Error('Erro ao criar chamado automático');
       }
 
-      console.log('Chamado automático criado com sucesso');
     } catch (error) {
       console.error('Erro ao criar chamado automático:', error);
       showToastMessage('Aviso: Erro ao criar chamado automático', 'warning');
@@ -1208,7 +1201,6 @@ const FillPdfForm: React.FC = () => {
       const filePath = `${folder}/${numeroOs}/${fileName}`;
 
       try {
-        console.log("Tentando fazer upload do arquivo:", fileName, "no caminho:", filePath);
 
         const { data, error } = await supabase.storage
           .from("os-externa-img")
@@ -1224,8 +1216,6 @@ const FillPdfForm: React.FC = () => {
           throw new Error("Erro ao fazer upload do arquivo.");
         }
 
-        console.log("Upload bem-sucedido:", data);
-
         // Obter o link público do arquivo usando o caminho correto
         const { data: publicUrlData } = supabase.storage
           .from("os-externa-img")
@@ -1236,7 +1226,6 @@ const FillPdfForm: React.FC = () => {
           throw new Error("Erro ao obter o link público do arquivo.");
         }
 
-        console.log("Link público gerado:", publicUrlData.publicUrl);
         urls.push(publicUrlData.publicUrl);
       } catch (error) {
         console.error("Erro ao fazer upload da foto:", error);
@@ -1244,7 +1233,6 @@ const FillPdfForm: React.FC = () => {
       }
     }
 
-    console.log("URLs finais geradas:", urls);
     return urls;
   };
   */

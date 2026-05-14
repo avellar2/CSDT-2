@@ -4,8 +4,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   const { osId } = req.query;
 
-  console.log("Recebido osId:", osId);
-
   if (req.method === "POST") {
     const { nameAssigned, cpfOrRegistration } = req.body;
 
@@ -15,7 +13,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       });
 
       if (!os) {
-        console.log("OS não encontrada para osId:", osId);
+
         return res.status(404).send("OS não encontrada");
       }
 

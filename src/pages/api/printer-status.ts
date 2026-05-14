@@ -191,7 +191,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('[API] Buscando status das impressoras do banco de dados...');
 
     // Buscar todas as impressoras com seus status mais recentes
     const allPrinters = await prisma.printer.findMany({
@@ -268,8 +267,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       printer.status === 'offline' ||
       printer.status === 'stopped printing'
     );
-
-    console.log(`[API] Status retornado do banco: ${statusResults.length} impressoras, ${printersWithIssues.length} com problemas`);
 
     return res.status(200).json({
       timestamp: new Date().toISOString(),

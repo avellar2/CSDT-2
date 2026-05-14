@@ -33,7 +33,6 @@ async function main() {
     skipDuplicates: true, // Ignorar duplicatas
   });
 
-  console.log('Seed completed');
 }
 
 main()

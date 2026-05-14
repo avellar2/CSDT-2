@@ -54,8 +54,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      console.log(`Novo comentário no chamado ${ticketId} por ${authorName}`);
-
       res.status(201).json({
         success: true,
         comment

@@ -18,8 +18,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    console.log('Memorandos retornados:', memorandums);
-
     res.status(200).json(memorandums);
   } catch (error) {
     console.error('Error fetching memorandums:', error);

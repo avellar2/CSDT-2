@@ -121,7 +121,7 @@ const CreateInternalOS: React.FC = () => {
         throw new Error("Erro ao buscar OS internas");
       }
       const data = await response.json();
-      console.log(data);
+
       setInternalOSList(data);
     } catch (error) {
       console.error("Erro ao buscar OS internas:", error);
@@ -265,7 +265,6 @@ const CreateInternalOS: React.FC = () => {
     currentPage * itemsPerPage,
   );
 
-  console.log(paginatedOSList);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-md">

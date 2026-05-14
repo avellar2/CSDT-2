@@ -127,7 +127,6 @@ const CreateTechnicalTicket: React.FC = () => {
         throw new Error(result.error || 'Erro ao criar chamado');
       }
 
-      console.log('Chamado criado com sucesso:', result.ticket);
       setShowSuccess(true);
 
       // Limpar formulário

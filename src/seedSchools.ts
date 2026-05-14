@@ -31,14 +31,10 @@ async function seedSchools() {
     const sheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json<{ name: string }>(sheet);
 
-    console.log('Dados extraídos do Excel:', data);
-
     // Itera sobre os dados e insere na tabela `school`
     for (const row of data) {
       const name = row.name?.trim();
       if (!name) continue; // Ignora linhas sem nome
-
-      console.log(`Verificando escola: ${name}`);
 
       // Verifica se o nome já existe na tabela
       const { data: existingSchool, error: fetchError } = await supabase
@@ -53,11 +49,9 @@ async function seedSchools() {
       }
 
       if (existingSchool) {
-        console.log(`Escola "${name}" já existe. Ignorando...`);
+
         continue;
       }
-
-      console.log(`Inserindo escola: ${name}`);
 
       // Insere o novo registro
       const { error: insertError } = await supabase.from('school').insert([
@@ -72,11 +66,10 @@ async function seedSchools() {
       if (insertError) {
         console.error(`Erro ao inserir escola "${name}":`, insertError.message);
       } else {
-        console.log(`Escola "${name}" inserida com sucesso.`);
+
       }
     }
 
-    console.log('Seed concluído.');
   } catch (error) {
     console.error('Erro ao executar o seed:', error);
   }

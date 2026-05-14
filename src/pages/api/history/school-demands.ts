@@ -9,8 +9,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Parâmetro 'date' é obrigatório" });
     }
 
-    console.log("Parâmetro recebido:", req.query.date);
-    console.log("Data recebida no endpoint:", date);
 
     if (!date || isNaN(new Date(date as string).getTime())) {
       return res.status(400).json({ message: "Data inválida ou ausente" });

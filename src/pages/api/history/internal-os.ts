@@ -6,8 +6,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Parâmetro 'date' é obrigatório" });
   }
 
-  console.log("Parâmetro recebido:", req.query.date);
-
   const { date } = req.query;
 
   try {

@@ -102,26 +102,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Debug detalhado para investigação
-    console.log('\n🔍 DEBUG DETALHADO - check-os-status:');
-    console.log('Target Date:', targetDate);
-    console.log('Date Filter:', dateFilter);
-    console.log('School Names:', schoolNames);
-    console.log('OS Tradicionais criadas:', osCreated.length);
-    console.log('OS Externas criadas:', osExternasCreated.map(os => ({
+
+
+
+
+
       escola: os.unidadeEscolar,
       numeroOs: os.numeroOs,
       status: os.status,
       createdAt: os.createdAt,
       updatedAt: os.updatedAt
     })));
-    console.log('OS Externas assinadas (filtradas por data):', osExternas.map(os => ({
       escola: os.unidadeEscolar,
       numeroOs: os.numeroOs,
       status: os.status,
       createdAt: os.createdAt,
       updatedAt: os.updatedAt
     })));
-    console.log('OS Assinadas encontradas:', osAssinadas.map(os => ({
       escola: os.unidadeEscolar,
       numeroOs: os.numeroOs,
       updatedAt: os.updatedAt
@@ -156,7 +153,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const isSigned = isSignedTraditional || isSignedExterna;
 
       // Debug para investigação
-      console.log(`🔍 Debug OS Status - ${schoolName}:`, {
         demandId: demand.id,
         demandDate: demandDate.toISOString(),
         hasOsTraditional: !!hasOsTraditional,

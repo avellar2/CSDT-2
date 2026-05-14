@@ -54,14 +54,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await prisma.scheduleEvent.delete({
           where: { id: currentTicket.eventId }
         });
-        console.log(`Evento ${currentTicket.eventId} removido da agenda`);
+
       } catch (eventError) {
         console.error('Erro ao remover evento da agenda:', eventError);
         // Não falhar a operação se não conseguir remover o evento
       }
     }
-
-    console.log(`Chamado técnico excluído: ${updatedTicket.id} - Motivo: ${deletionReason}`);
 
     res.status(200).json({
       success: true,

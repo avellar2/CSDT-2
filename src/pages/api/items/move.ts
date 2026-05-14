@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('Iniciando movimentação do item:', { itemId, toSchool });
 
     // Buscar o item atual e sua escola
     const currentItem = await prisma.item.findUnique({
@@ -50,8 +49,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    console.log(`Escola do item atualizada de "${fromSchool}" para "${toSchool}".`);
-
     // Registrar o histórico de movimentação
     const history = await prisma.itemHistory.create({
       data: {
@@ -60,8 +57,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         toSchool,
       },
     });
-
-    console.log('Histórico registrado com sucesso:', history);
 
     res.status(200).json({ message: 'Movimentação registrada com sucesso', history });
   } catch (error) {

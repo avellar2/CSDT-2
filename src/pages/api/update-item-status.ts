@@ -8,8 +8,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método não permitido" });
   }
 
-  console.log("Dados recebidos no backend:", req.body);
-
   const { id, status, updatedBy, novoModelo, novoSerial } = req.body;
 
   if (!id || !status || !updatedBy) {
@@ -18,7 +16,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log("Atualizando registro com id:", id);
 
     // Verificar se o registro existe na tabela ItemsChada
     const existingItem = await prisma.itemsChada.findUnique({
@@ -35,8 +32,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { id: String(id) },
       data: { status, updatedBy },
     });
-
-    console.log("Status atualizado com sucesso na tabela ItemsChada:", updatedItem);
 
     // Localizar o registro correspondente na tabela Item usando o itemId
     const itemToUpdate = await prisma.item.findUnique({
@@ -58,8 +53,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { id: itemToUpdate.id },
       data: { schoolId: schoolIdRetorno },
     });
-
-    console.log("schoolId atualizado com sucesso na tabela Item:", updatedItemInItemTable);
 
     await prisma.item.update({
       where: { id: itemToUpdate.id },

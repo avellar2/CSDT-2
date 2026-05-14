@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
-        console.log('Usuário não autenticado');
+
         setLocalUserName('');
         setIsLoading(false);
         return;

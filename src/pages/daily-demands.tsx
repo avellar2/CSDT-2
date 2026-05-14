@@ -703,7 +703,7 @@ const DailyDemands: React.FC = () => {
                   fetch('/api/debug-demands')
                     .then(r => r.json())
                     .then(data => {
-                      console.log('🐛 Debug Info:', data);
+
                       const info = data.debug;
                       alert(`🐛 DEBUG INFO:
 Total demandas: ${info.totalDemands}

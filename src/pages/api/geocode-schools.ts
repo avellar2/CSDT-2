@@ -39,7 +39,6 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
       };
     }
 
-    console.warn(`Geocoding falhou para: ${address} - Status: ${data.status}`);
     return null;
   } catch (error) {
     console.error(`Erro ao geocodificar ${address}:`, error);
