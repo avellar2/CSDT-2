@@ -27,11 +27,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Contar demandas total (para comparação)
     const totalDemandsCount = await prisma.schoolDemand.count();
 
-      dailyDemandsCount,
-      totalDemandsCount,
-      date: now.toLocaleDateString('pt-BR')
-    });
-
     return res.status(200).json({
       success: true,
       data: {

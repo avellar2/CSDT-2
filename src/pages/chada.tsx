@@ -257,47 +257,6 @@ const ChadaPage: React.FC = () => {
              periodFilterCheck() && daysInChadaCheck() && itemTypeCheck() && quickFilterCheck();
     });
 
-    // Ordenação
-    filtered.sort((a, b) => {
-      let aValue: any = a[sortField];
-      let bValue: any = b[sortField];
-
-      // Converter datas para comparação
-      if (sortField === 'createdAt' || sortField === 'updatedAt') {
-        const aTime = new Date(aValue).getTime();
-        const bTime = new Date(bValue).getTime();
-        aValue = aTime;
-        bValue = bTime;
-      }
-
-      if (sortDirection === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
-
-      PENDENTE: items.filter(i => i.statusChada === 'PENDENTE').length,
-      RECEBIDO: items.filter(i => i.statusChada === 'RECEBIDO').length,
-      EM_ANALISE: items.filter(i => i.statusChada === 'EM_ANALISE').length,
-      CONSERTADO: items.filter(i => i.statusChada === 'CONSERTADO').length,
-      SEM_CONSERTO: items.filter(i => i.statusChada === 'SEM_CONSERTO').length,
-      DEVOLVIDO: items.filter(i => i.statusChada === 'DEVOLVIDO').length
-    });
-    
-    if (activeTab === 'devolvidos') {
-        items.filter(i => i.statusChada === 'DEVOLVIDO' || i.statusChada === 'CONSERTADO' || i.statusChada === 'SEM_CONSERTO')
-          .map(i => ({ nome: i.name, status: i.statusChada, id: i.id }))
-      );
-        searchTerm, 
-        sectorFilter, 
-        statusFilter,
-        'Total que passou no tabFilter': items.filter(item => 
-          item.statusChada === 'DEVOLVIDO' || item.statusChada === 'CONSERTADO' || item.statusChada === 'SEM_CONSERTO'
-        ).length
-      });
-    }
-
     return filtered;
   }, [items, activeTab, searchTerm, sectorFilter, statusFilter, sortField, sortDirection, periodFilter, customStartDate, customEndDate, daysInChadaFilter, itemTypeFilter, quickFilter]);
 

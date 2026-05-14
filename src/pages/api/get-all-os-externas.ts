@@ -32,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { status: 'asc' },
         { createdAt: 'desc' },
       ],
+      take: 500,
     });
 
     const schoolNames = Array.from(

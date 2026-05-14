@@ -94,9 +94,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
 
       if (itemsWithoutHistory.length > 0) {
-          'Itens sem historico encontrado, assumindo que sairam do CSDT:',
-          itemsWithoutHistory
-        );
         selectedFromCSDT.push(...itemsWithoutHistory);
       }
 

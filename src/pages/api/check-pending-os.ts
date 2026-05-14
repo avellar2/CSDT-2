@@ -83,13 +83,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const pendingOsOld = allOsOld; // TODAS as OS da tabela antiga são não-assinadas
     const pendingOsNew = allOsNew.filter(os => os.status === 'Pendente'); // Apenas Pendentes da nova tabela
 
-      schoolId,
-      schoolName,
-      pendingOsOld: pendingOsOld.length,
-      pendingOsNew: pendingOsNew.length,
-      totalPending: pendingOsOld.length + pendingOsNew.length
-    });
-
     const hasPendingOs = pendingOsOld.length > 0 || pendingOsNew.length > 0;
     const totalPending = pendingOsOld.length + pendingOsNew.length;
 

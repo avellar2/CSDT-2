@@ -31,11 +31,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const targetDate = new Date(dateString + 'T00:00:00-03:00');
         return new Date(targetDate.getTime());
       };
-      
+
       const target = createBrazilianDate(targetDate);
       const startOfDay = new Date(target.getFullYear(), target.getMonth(), target.getDate(), 0, 0, 0, 0);
       const endOfDay = new Date(target.getFullYear(), target.getMonth(), target.getDate(), 23, 59, 59, 999);
-      
+
       dateFilter = {
         updatedAt: {
           gte: startOfDay,
@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Verificar OS criadas para essas escolas
     const schoolNames = demands.map(d => d.School.name);
-    
+
     const osCreated = await prisma.os.findMany({
       where: {
         unidadeEscolar: { in: schoolNames }
@@ -101,73 +101,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    // Debug detalhado para investigação
-
-
-
-
-
-      escola: os.unidadeEscolar,
-      numeroOs: os.numeroOs,
-      status: os.status,
-      createdAt: os.createdAt,
-      updatedAt: os.updatedAt
-    })));
-      escola: os.unidadeEscolar,
-      numeroOs: os.numeroOs,
-      status: os.status,
-      createdAt: os.createdAt,
-      updatedAt: os.updatedAt
-    })));
-      escola: os.unidadeEscolar,
-      numeroOs: os.numeroOs,
-      updatedAt: os.updatedAt
-    })));
-
     // Mapear status das demandas
     const demandStatus = demands.map(demand => {
       const schoolName = demand.School.name;
       const demandDate = new Date(demand.createdAt);
-      
+
       // Verificar OS criadas APÓS a data da demanda (tradicional ou externa)
-      const hasOsTraditional = osCreated.find(os => 
-        os.unidadeEscolar === schoolName && 
+      const hasOsTraditional = osCreated.find(os =>
+        os.unidadeEscolar === schoolName &&
         new Date(os.createdAt) >= demandDate
       );
-      const hasOsExterna = osExternasCreated.find(os => 
-        os.unidadeEscolar === schoolName && 
+      const hasOsExterna = osExternasCreated.find(os =>
+        os.unidadeEscolar === schoolName &&
         new Date(os.createdAt) >= demandDate
       );
       const hasOs = hasOsTraditional || hasOsExterna;
-      
-      // Verificar OS assinadas APÓS a data da demanda (tradicional ou externa)
-      const isSignedTraditional = osAssinadas.find(os => 
-        os.unidadeEscolar === schoolName && 
-        new Date(os.updatedAt) >= demandDate
-      );
-      const isSignedExterna = osExternas.find(os => 
-        os.unidadeEscolar === schoolName && 
-        new Date(os.updatedAt) >= demandDate
-      );
-      
-      const isSigned = isSignedTraditional || isSignedExterna;
 
-      // Debug para investigação
-        demandId: demand.id,
-        demandDate: demandDate.toISOString(),
-        hasOsTraditional: !!hasOsTraditional,
-        hasOsExterna: !!hasOsExterna,
-        hasOs: !!hasOs,
-        isSignedTraditional: !!isSignedTraditional,
-        isSignedExterna: !!isSignedExterna,
-        isSigned: !!isSigned,
-        finalStatus: isSigned ? 'signed' : hasOs ? 'created' : 'pending',
-        targetDate,
-        osTraditionalDate: hasOsTraditional?.createdAt,
-        osExternaDate: hasOsExterna?.createdAt || hasOsExterna?.updatedAt,
-        osExternasTotal: osExternas.length,
-        osAssinadasTotal: osAssinadas.length
-      });
+      // Verificar OS assinadas APÓS a data da demanda (tradicional ou externa)
+      const isSignedTraditional = osAssinadas.find(os =>
+        os.unidadeEscolar === schoolName &&
+        new Date(os.updatedAt) >= demandDate
+      );
+      const isSignedExterna = osExternas.find(os =>
+        os.unidadeEscolar === schoolName &&
+        new Date(os.updatedAt) >= demandDate
+      );
+
+      const isSigned = isSignedTraditional || isSignedExterna;
 
       return {
         demandId: demand.id,

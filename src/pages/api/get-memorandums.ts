@@ -7,8 +7,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Buscar todos os memorandos e os itens relacionados
+    // Buscar memorandos recentes e os itens relacionados
     const memorandums = await prisma.memorandum.findMany({
+      take: 200,
+      orderBy: { createdAt: 'desc' },
       include: {
         MemorandumItem: {
           include: {

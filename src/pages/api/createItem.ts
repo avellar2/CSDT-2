@@ -63,14 +63,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(409).json({ error: 'Número de série já existe' });
     }
 
-    // Log para depuração
-      name,
-      brand,
-      serialNumber,
-      schoolId: school.id,
-      userId: uid,
-    });
-
     try {
       // Verifique o maior valor de ID no banco de dados
       const maxId = await prisma.item.findMany({

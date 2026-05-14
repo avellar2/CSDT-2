@@ -151,12 +151,7 @@ export default async function handler(
             updatedAt: new Date(),
           },
         });
-
-          `[Cancelamento] Item ${update.itemId} restaurado para: ${
-            update.previousSchoolName || 'CSDT (sem escola)'
-          }`
-        );
-      }
+	      }
 
       // 2. Deletar registros de ItemHistory criados por este memorando
       await tx.itemHistory.deleteMany({

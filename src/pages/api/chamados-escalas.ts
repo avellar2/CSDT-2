@@ -76,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const chamados = await prisma.chamados_escalas.findMany({
         where: whereClause,
+        take: 200,
         orderBy: {
           dataCriacao: 'desc'
         }

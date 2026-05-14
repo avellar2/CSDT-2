@@ -1,20 +1,23 @@
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { GetServerSideProps } from 'next';
 import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import Modal from 'react-modal';
 import styles from './SchoolPage.module.css';
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
-  Title, 
-  Tooltip, 
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
   Legend,
-  ArcElement 
+  ArcElement
 } from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
+
+const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr: false });
+const Doughnut = dynamic(() => import('react-chartjs-2').then(mod => mod.Doughnut), { ssr: false });
 import { 
   MapPin, 
   Phone, 

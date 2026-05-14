@@ -11,6 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Buscar todas as escolas/setores sem filtro
     const schools = await prisma.school.findMany({
+      take: 1000,
       orderBy: {
         name: 'asc'
       }

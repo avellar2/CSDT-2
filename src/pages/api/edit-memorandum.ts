@@ -168,8 +168,6 @@ export default async function handler(
             },
           });
 
-            `[Edição] Item ${itemId} adicionado: ${previousSchoolName} → ${memorandum.schoolName}`
-          );
           addedCount++;
         }
       }
@@ -233,8 +231,6 @@ export default async function handler(
             });
           }
 
-            `[Edição] Item ${itemId} removido e restaurado para: ${previousSchoolName}`
-          );
           removedCount++;
         }
       }

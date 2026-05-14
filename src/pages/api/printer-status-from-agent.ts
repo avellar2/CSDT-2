@@ -187,10 +187,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Log de impressoras com problemas críticos para monitoramento
     const criticalPrinters = agentData.printers.filter(p => p.hasCriticalErrors);
-    if (criticalPrinters.length > 0) {
-        criticalPrinters.map(p => `${p.sigla} (${p.ip})`).join(', ')
-      );
-    }
 
     res.status(200).json({
       success: true,

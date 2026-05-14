@@ -55,7 +55,11 @@ import {
   LineElement,
   PointElement 
 } from 'chart.js';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import dynamic from 'next/dynamic';
+
+const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr: false });
+const Doughnut = dynamic(() => import('react-chartjs-2').then(mod => mod.Doughnut), { ssr: false });
+const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), { ssr: false });
 
 ChartJS.register(
   CategoryScale,
@@ -1495,12 +1499,6 @@ const Scales: React.FC = () => {
     ];
 
     // Debug: log current allocations
-      baseTechnicians,
-      visitTechnicians,
-      offTechnicians,
-      allSelectedTechnicians,
-      totalTechnicians: technicians.length
-    });
 
     // Verificação de erros (já existente)
     const duplicateTechnicians = Array.from(
@@ -1616,11 +1614,6 @@ const Scales: React.FC = () => {
         // Buscar o nome da escola para a mensagem
         const school = schools.find(s => s.id === schoolId);
         const schoolName = school ? school.name : 'Escola selecionada';
-
-          totalPending: data.totalPending,
-          pendingOsOld: data.pendingOsOld,
-          pendingOsNew: data.pendingOsNew
-        });
 
         // NOVA MENSAGEM MELHORADA
         const oldOsText = data.pendingOsOld > 0 ? `${data.pendingOsOld} OS na tabela antiga` : '';

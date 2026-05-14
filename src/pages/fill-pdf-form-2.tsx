@@ -1071,10 +1071,6 @@ const FillPdfForm: React.FC = () => {
         }).format(currentDate), // Atualiza a hora no formato HH:mm
       };
 
-        tecnicoResponsavel: updatedData.tecnicoResponsavel,
-        unidadeEscolar: updatedData.unidadeEscolar
-      });
-
       const response = await fetch("/api/save-os-externa", {
         method: "POST",
         headers: {
@@ -1625,3 +1621,4 @@ export default FillPdfForm;
 
 
 export const getServerSideProps = async () => ({ props: {} });
+

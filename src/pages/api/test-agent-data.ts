@@ -11,13 +11,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const agentModule = await import('./printer-status-from-agent');
     const cachedStatus = agentModule.getCachedPrinterStatus();
 
-      hasData: !!cachedStatus.data,
-      isStale: cachedStatus.isStale,
-      age: cachedStatus.age,
-      dataExists: cachedStatus.data !== null,
-      totalPrinters: cachedStatus.data?.total || 0
-    });
-
     return res.status(200).json({
       success: true,
       hasData: !!cachedStatus.data,

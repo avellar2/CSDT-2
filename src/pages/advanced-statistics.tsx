@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Line, Bar, Doughnut, Pie } from 'react-chartjs-2';
+import dynamic from 'next/dynamic';
+
+const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), { ssr: false });
+const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr: false });
+const Doughnut = dynamic(() => import('react-chartjs-2').then(mod => mod.Doughnut), { ssr: false });
+const Pie = dynamic(() => import('react-chartjs-2').then(mod => mod.Pie), { ssr: false });
 import {
   Chart as ChartJS,
   CategoryScale,

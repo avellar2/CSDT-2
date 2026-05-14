@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(401).json({ error: 'Senha inválida' });
       }
 
-      const token = jwt.sign({ userId: user.id, name: user.name }, SECRET_KEY, { expiresIn: '1h' });
+      const token = jwt.sign({ userId: user.id, name: user.name }, SECRET_KEY!, { expiresIn: '1h' });
 
       res.status(200).json({ token });
     } catch (error) {

@@ -32,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Buscar chamados
     const tickets = await prisma.technicalTicket.findMany({
       where,
+      take: 200,
       include: {
         School: true,
         ScheduleEvent: true

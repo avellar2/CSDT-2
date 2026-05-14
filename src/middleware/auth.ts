@@ -16,7 +16,7 @@ const authMiddleware = (handler: NextApiHandler) => {
     }
 
     try {
-      const decoded = jwt.verify(token, SECRET_KEY) as { userId: number; name: string };
+      const decoded = jwt.verify(token, SECRET_KEY!) as unknown as { userId: number; name: string };
       req.user = decoded; // Adiciona o usuário decodificado ao objeto de solicitação
       return handler(req, res);
     } catch (error) {
