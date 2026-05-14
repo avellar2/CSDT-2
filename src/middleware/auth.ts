@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse, NextApiHandler } from 'next';
 import jwt from 'jsonwebtoken';
 
-const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
+const SECRET_KEY = process.env.JWT_SECRET;
 
 interface AuthenticatedRequest extends NextApiRequest {
   user?: any; // Substitua 'any' pelo tipo correto

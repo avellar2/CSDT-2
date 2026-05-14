@@ -76,7 +76,7 @@ const printerCache = {
 // Função para validar a chave de API
 function validateApiKey(req: NextApiRequest): boolean {
   const providedKey = req.headers.authorization?.replace('Bearer ', '');
-  const validKey = process.env.LOCAL_AGENT_API_KEY || 'default-key';
+  const validKey = process.env.LOCAL_AGENT_API_KEY;
   
   return providedKey === validKey;
 }
