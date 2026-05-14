@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
-import Modal from "react-modal";
+import dynamic from "next/dynamic";
+const Modal = dynamic(() => import("react-modal"), { ssr: false });
 import { jwtDecode } from "jwt-decode";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
