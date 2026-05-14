@@ -66,7 +66,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       totalOsAssinadaTable,
       totalOSExternaAssinadas,
       pendingOS,
-      resolvedOS,
       totalMemorandums,
       totalItems
     ] = await Promise.all([
@@ -88,7 +87,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       prisma.osAssinada.count({ where: createWhereClause() }),
       prisma.oSExterna.count({ where: { ...createWhereClause(), status: 'Assinado' } }),
       prisma.oSExterna.count({ where: { ...createWhereClause(), status: 'Pendente' } }),
-      prisma.oSExterna.count({ where: { ...createWhereClause(), status: 'Assinado' } }),
       prisma.memorandum.count({ where: createWhereClause(true, false, true, false) }),
       prisma.item.count()
     ]);
@@ -384,7 +382,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         totalOsAssinada,
         totalAllOS: totalInternalOS + totalOSExterna + totalOS + totalOsAssinada,
         pendingOS,
-        resolvedOS,
+        resolvedOS: totalOSExternaAssinadas,
         resolutionRate: pendingOS + totalOSExternaAssinadas > 0 ? ((totalOSExternaAssinadas / (pendingOS + totalOSExternaAssinadas)) * 100).toFixed(1) : 0,
         pendingRate: pendingOS + totalOSExternaAssinadas > 0 ? ((pendingOS / (pendingOS + totalOSExternaAssinadas)) * 100).toFixed(1) : 0,
         totalMemorandums,
