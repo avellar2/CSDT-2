@@ -196,11 +196,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           console.log(`Encontrados ${pendingChadaItems.length} itens pendentes de OS`);
 
-          // Para cada item pendente, buscar os dados do item e verificar se o serial aparece no email
+          // Buscar todos os itens de uma vez (evita N+1 queries)
+          const itemIds = pendingChadaItems
+            .map(i => i.itemId)
+            .filter((id): id is number => id != null);
+          const items = await prisma.item.findMany({
+            where: { id: { in: itemIds } },
+          });
+          const itemById = new Map(items.map(i => [i.id, i]));
+
+          // Para cada item pendente, verificar se o serial aparece no email
           for (const pendingItem of pendingChadaItems) {
-            const item = await prisma.item.findUnique({
-              where: { id: pendingItem.itemId ?? undefined },
-            });
+            const item = pendingItem.itemId ? itemById.get(pendingItem.itemId) : undefined;
 
             if (item?.serialNumber) {
               const serial = item.serialNumber;
