@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, Users, FilePdf } from "phosphor-react";
+import { GraduationCap, Users, FileText } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Link from 'next/link';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -88,7 +88,7 @@ const OSList: React.FC = () => {
                 {/* Conteúdo do card */}
                 <div className="relative z-10">
                   <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6 mx-auto group-hover:scale-110 transition-transform duration-300">
-                    <FilePdf size={32} className="text-white" />
+                    <FileText size={32} className="text-white" />
                   </div>
                   
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white text-center leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">

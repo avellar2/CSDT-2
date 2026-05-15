@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
   HardDrive, Download, User, Lock, Monitor, Package,
-  CheckCircle, Wrench, WifiHigh, Desktop
-} from 'phosphor-react';
+  CheckCircle, Wrench, Wifi
+} from 'lucide-react';
 
 const SOFTWARE_OPTIONS = [
   { key: 'winrar',        label: 'WinRAR',                icon: '📦', desc: 'Compactador de arquivos' },
@@ -418,9 +418,9 @@ export default function SetupPCPage() {
             {loading ? (
               <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Gerando script...</>
             ) : generated ? (
-              <><CheckCircle size={22} weight="bold" /> Script gerado! Clique para gerar novamente</>
+              <><CheckCircle size={22} /> Script gerado! Clique para gerar novamente</>
             ) : (
-              <><Download size={22} weight="bold" /> Gerar e Baixar Script (.bat + .ps1)</>
+              <><Download size={22} /> Gerar e Baixar Script (.bat + .ps1)</>
             )}
           </button>
 

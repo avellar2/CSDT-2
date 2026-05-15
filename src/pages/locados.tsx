@@ -1,21 +1,21 @@
 import { useEffect, useState, useMemo } from "react";
 import Select from "react-select";
 import {
-  Desktop,
+  Monitor,
   Laptop,
-  DeviceTablet,
+  Tablet,
   Power,
-  Lightning,
+  Zap,
   Printer,
-  Buildings,
-  MagnifyingGlass,
+  Building2,
+  Search,
   Download,
-  ArrowClockwise,
-  ChartBar,
-  ListBullets,
+  RefreshCw,
+  BarChart3,
+  List,
   Package,
   X
-} from "phosphor-react";
+} from "lucide-react";
 import * as XLSX from 'xlsx';
 
 const LocadosPage = () => {
@@ -187,7 +187,7 @@ const LocadosPage = () => {
                 }}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
-                <ArrowClockwise size={18} />
+                <RefreshCw size={18} />
                 <span className="hidden sm:inline">Atualizar</span>
               </button>
               <button
@@ -246,7 +246,7 @@ const LocadosPage = () => {
                 Buscar Escola/Setor
               </label>
               <div className="relative">
-                <MagnifyingGlass
+                <Search
                   size={18}
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                 />
@@ -293,7 +293,7 @@ const LocadosPage = () => {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <ChartBar size={16} />
+              <BarChart3 size={16} />
               Cards
             </button>
             <button
@@ -304,7 +304,7 @@ const LocadosPage = () => {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <ListBullets size={16} />
+              <List size={16} />
               Tabela
             </button>
           </div>
@@ -375,7 +375,7 @@ const LocadosPage = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <Buildings size={16} className="text-gray-400 mr-2" />
+                              <Building2 size={16} className="text-gray-400 mr-2" />
                               <span className="text-sm text-gray-900">
                                 {impressora.School?.name || 'CSDT'}
                               </span>
@@ -428,7 +428,7 @@ const LocadosPage = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
               <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg rounded-xl p-4 border border-blue-400">
                 <div className="flex items-center justify-between mb-2">
-                  <Desktop size={24} weight="duotone" />
+                  <Monitor size={24} />
                 </div>
                 <div className="text-3xl font-bold mb-1">{totals.pcs.toLocaleString()}</div>
                 <div className="text-sm text-blue-100">PCs/Desktops</div>
@@ -436,7 +436,7 @@ const LocadosPage = () => {
 
               <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg rounded-xl p-4 border border-indigo-400">
                 <div className="flex items-center justify-between mb-2">
-                  <Laptop size={24} weight="duotone" />
+                  <Laptop size={24} />
                 </div>
                 <div className="text-3xl font-bold mb-1">{totals.notebooks.toLocaleString()}</div>
                 <div className="text-sm text-indigo-100">Notebooks</div>
@@ -444,7 +444,7 @@ const LocadosPage = () => {
 
               <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg rounded-xl p-4 border border-purple-400">
                 <div className="flex items-center justify-between mb-2">
-                  <DeviceTablet size={24} weight="duotone" />
+                  <Tablet size={24} />
                 </div>
                 <div className="text-3xl font-bold mb-1">{totals.tablets.toLocaleString()}</div>
                 <div className="text-sm text-purple-100">Tablets</div>
@@ -452,7 +452,7 @@ const LocadosPage = () => {
 
               <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg rounded-xl p-4 border border-cyan-400">
                 <div className="flex items-center justify-between mb-2">
-                  <Power size={24} weight="duotone" />
+                  <Power size={24} />
                 </div>
                 <div className="text-3xl font-bold mb-1">{totals.nobreaks.toLocaleString()}</div>
                 <div className="text-sm text-cyan-100">Nobreaks</div>
@@ -460,7 +460,7 @@ const LocadosPage = () => {
 
               <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg rounded-xl p-4 border border-orange-400">
                 <div className="flex items-center justify-between mb-2">
-                  <Lightning size={24} weight="duotone" />
+                  <Zap size={24} />
                 </div>
                 <div className="text-3xl font-bold mb-1">{totals.estabilizadores.toLocaleString()}</div>
                 <div className="text-sm text-orange-100">Estabilizadores</div>
@@ -468,7 +468,7 @@ const LocadosPage = () => {
 
               <div className="bg-gradient-to-br from-pink-500 to-pink-600 text-white shadow-lg rounded-xl p-4 border border-pink-400">
                 <div className="flex items-center justify-between mb-2">
-                  <Printer size={24} weight="duotone" />
+                  <Printer size={24} />
                 </div>
                 <div className="text-3xl font-bold mb-1">{totals.impressoras.toLocaleString()}</div>
                 <div className="text-sm text-pink-100">Impressoras</div>
@@ -476,7 +476,7 @@ const LocadosPage = () => {
 
               <div className="bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg rounded-xl p-4 border border-green-400">
                 <div className="flex items-center justify-between mb-2">
-                  <Package size={24} weight="duotone" />
+                  <Package size={24} />
                 </div>
                 <div className="text-3xl font-bold mb-1">{grandTotal.toLocaleString()}</div>
                 <div className="text-sm text-green-100">Total Geral</div>
@@ -530,7 +530,7 @@ const LocadosPage = () => {
                           <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                <Buildings size={18} className="text-gray-400 mr-2" />
+                                <Building2 size={18} className="text-gray-400 mr-2" />
                                 <span className="text-sm font-medium text-gray-900">
                                   {item.name}
                                 </span>
@@ -609,13 +609,13 @@ const LocadosPage = () => {
                       className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-center gap-2 mb-3">
-                        <Buildings size={20} className="text-blue-600" />
+                        <Building2 size={20} className="text-blue-600" />
                         <h3 className="font-semibold text-gray-900 text-sm">{item.name}</h3>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         {item.pcs > 0 && (
                           <div className="flex items-center gap-2">
-                            <Desktop size={16} className="text-blue-500" />
+                            <Monitor size={16} className="text-blue-500" />
                             <span className="text-gray-600">PCs:</span>
                             <span className="font-semibold text-gray-900">{item.pcs}</span>
                           </div>
@@ -629,7 +629,7 @@ const LocadosPage = () => {
                         )}
                         {item.tablets > 0 && (
                           <div className="flex items-center gap-2">
-                            <DeviceTablet size={16} className="text-purple-500" />
+                            <Tablet size={16} className="text-purple-500" />
                             <span className="text-gray-600">Tablets:</span>
                             <span className="font-semibold text-gray-900">{item.tablets}</span>
                           </div>
@@ -643,7 +643,7 @@ const LocadosPage = () => {
                         )}
                         {item.estabilizadores > 0 && (
                           <div className="flex items-center gap-2">
-                            <Lightning size={16} className="text-orange-500" />
+                            <Zap size={16} className="text-orange-500" />
                             <span className="text-gray-600">Estabiliz.:</span>
                             <span className="font-semibold text-gray-900">
                               {item.estabilizadores}
@@ -672,7 +672,7 @@ const LocadosPage = () => {
 
             {filteredItems.length === 0 && (
               <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
-                <Buildings size={48} className="mx-auto text-gray-300 mb-4" />
+                <Building2 size={48} className="mx-auto text-gray-300 mb-4" />
                 <p className="text-gray-500 text-lg">Nenhuma escola/setor encontrado</p>
                 <p className="text-gray-400 text-sm mt-2">
                   Tente ajustar os filtros de busca

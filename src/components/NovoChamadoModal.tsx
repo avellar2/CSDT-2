@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Phone, Buildings, Warning } from 'phosphor-react';
+import { X, Phone, Building2, AlertTriangle } from 'lucide-react';
 
 interface School {
   id: number;
@@ -132,7 +132,7 @@ const NovoChamadoModal: React.FC<NovoChamadoModalProps> = ({
               </label>
               {formData.schoolId ? (
                 <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-                  <Buildings className="text-green-600" size={16} />
+                  <Building2 className="text-green-600" size={16} />
                   <span className="text-green-700 dark:text-green-300 font-medium">
                     {formData.schoolName}
                   </span>

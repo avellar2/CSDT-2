@@ -18,17 +18,7 @@ import {
 
 const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr: false });
 const Doughnut = dynamic(() => import('react-chartjs-2').then(mod => mod.Doughnut), { ssr: false });
-import { 
-  MapPin, 
-  Phone, 
-  EnvelopeSimple, 
-  Users, 
-  GraduationCap, 
-  ChartBar,
-  ArrowLeft,
-  Camera,
-  FileText
-} from 'phosphor-react';
+import { MapPin, Phone, Mail, Users, GraduationCap, BarChart3, ArrowLeft, Camera, FileText } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -269,7 +259,7 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
                     </a>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                    <EnvelopeSimple size={16} />
+                    <Mail size={16} />
                     <a href={`mailto:${school.email}`} className="hover:text-blue-500 transition-colors">
                       {school.email}
                     </a>
@@ -289,7 +279,7 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
             {/* Estatísticas rápidas */}
             <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <ChartBar size={20} />
+                <BarChart3 size={20} />
                 Resumo Rápido
               </h3>
               {loadingStats ? (

@@ -1,22 +1,22 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from '@/lib/supabaseClient';
-import { 
-  CheckCircle, 
-  Clock, 
-  MagnifyingGlass, 
-  Funnel,
-  CaretDown,
-  CaretUp,
+import {
+  CheckCircle,
+  Clock,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronUp,
   Eye,
   Calendar,
   User,
-  ClipboardText,
-  ChartBar,
+  ClipboardList,
+  BarChart3,
   Wrench,
   X,
-  WaveTriangle,
+  AlertTriangle,
   Info
-} from "phosphor-react";
+} from "lucide-react";
 import { PDFDocument } from 'pdf-lib';
 
 
@@ -493,7 +493,7 @@ const InternalDemands: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl border border-gray-200">
             <div className="flex items-center">
-              <ClipboardText size={20} className="text-gray-500 mr-2" />
+              <ClipboardList size={20} className="text-gray-500 mr-2" />
               <div>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                 <p className="text-sm text-gray-600">Total</p>
@@ -564,7 +564,7 @@ const InternalDemands: React.FC = () => {
             {/* Busca */}
             <div className="flex-1">
               <div className="relative">
-                <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Buscar por setor ou problema..."
@@ -625,7 +625,7 @@ const InternalDemands: React.FC = () => {
         <div className="space-y-4">
           {filteredAndSortedOS.length === 0 ? (
             <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
-              <ClipboardText size={48} className="mx-auto text-gray-300 mb-4" />
+              <ClipboardList size={48} className="mx-auto text-gray-300 mb-4" />
               <p className="text-gray-500 text-lg">
                 {searchTerm || statusFilter !== 'all' || setorFilter !== 'all'
                   ? 'Nenhuma OS encontrada com os filtros aplicados'
@@ -743,7 +743,7 @@ const InternalDemands: React.FC = () => {
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <CheckCircle size={24} className="text-blue-500" weight="fill" />
+                  <CheckCircle size={24} className="text-blue-500" />
                   <h3 className="text-lg font-semibold text-gray-900">Aceitar OS</h3>
                 </div>
                 <button
@@ -796,10 +796,10 @@ const InternalDemands: React.FC = () => {
         {toasts.map((toast) => {
           const getIcon = (type: Toast['type']) => {
             switch (type) {
-              case 'success': return <CheckCircle size={20} weight="fill" className="text-green-600" />;
-              case 'error': return <X size={20} weight="bold" className="text-red-600" />;
-              case 'warning': return <WaveTriangle size={20} weight="fill" className="text-yellow-600" />;
-              case 'info': return <Info size={20} weight="fill" className="text-blue-600" />;
+              case 'success': return <CheckCircle size={20} className="text-green-600" />;
+              case 'error': return <X size={20} className="text-red-600" />;
+              case 'warning': return <AlertTriangle size={20} className="text-yellow-600" />;
+              case 'info': return <Info size={20} className="text-blue-600" />;
             }
           };
 

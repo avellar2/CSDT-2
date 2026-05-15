@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Warning, X, Printer, Clock, Globe } from 'phosphor-react';
+import { AlertTriangle, X, Printer, Clock, Globe } from 'lucide-react';
 import { usePrinterNotifications } from '@/context/PrinterNotificationContext';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -107,7 +107,7 @@ export const PrinterCriticalAlert: React.FC = () => {
         }`}>
           <div className="flex items-center gap-3 text-white">
             <div className="p-2 bg-white bg-opacity-20 rounded-full">
-              <Warning size={24} weight="fill" />
+              <AlertTriangle size={24} />
             </div>
             <div>
               <h3 className="font-bold text-lg">ALERTA CRÍTICO</h3>

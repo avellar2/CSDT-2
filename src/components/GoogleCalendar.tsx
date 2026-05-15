@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { expandRecurringEvents, RecurringEvent, getRecurrenceDescription } from '@/utils/recurrence';
 import { COMMON_TIMEZONES, getAllRegions, getTimezonesByRegion, formatEventTime, getCurrentTimezone, getTimezoneDisplayName } from '@/utils/timezone';
 import { exportSingleEvent, exportMultipleEvents, ICalEvent } from '@/utils/icalExport';
+import { getPriorityHex } from '@/utils/colors';
+import { formatDateShort } from '@/utils/date';
 
 interface Calendar {
   id: number;
@@ -475,16 +477,6 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
     });
   };
 
-  const getPriorityColor = (priority: string): string => {
-    const priorityColors = {
-      'LOW': '#10b981',      // Verde suave
-      'MEDIUM': '#3b82f6',   // Azul padrão  
-      'HIGH': '#f59e0b',     // Laranja/Amarelo
-      'URGENT': '#ef4444'    // Vermelho
-    };
-    
-    return priorityColors[priority as keyof typeof priorityColors] || '#3b82f6';
-  };
 
   const getPriorityLabel = (priority: string): string => {
     const priorityLabels = {
@@ -495,14 +487,6 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
     };
     
     return priorityLabels[priority as keyof typeof priorityLabels] || priority;
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit', 
-      year: 'numeric'
-    });
   };
 
   const renderMonthView = () => (
@@ -568,7 +552,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                       draggedEvent?.id === event.id ? 'opacity-50 scale-95' : ''
                     }`}
                     style={{ 
-                      backgroundColor: (event as any).scaleData ? '#059669' : getPriorityColor(event.priority),
+                      backgroundColor: (event as any).scaleData ? '#059669' : getPriorityHex(event.priority),
                       border: (event as any).scaleData ? '2px solid #10b981' : 'none'
                     }}
                     title={`${event.title} - ${formatTime(event.startDate)}${(event as any).scaleData ? ' (Escala de Trabalho)' : ` - ${getPriorityLabel(event.priority)}`}`}
@@ -660,7 +644,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                           <div
                             key={event.id}
                             className="absolute inset-x-1 top-1 p-1 rounded text-xs text-white truncate cursor-pointer hover:opacity-80"
-                            style={{ backgroundColor: getPriorityColor(event.priority) }}
+                            style={{ backgroundColor: getPriorityHex(event.priority) }}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedEvent(event);
@@ -725,7 +709,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                       <div
                         key={event.id}
                         className="p-2 rounded text-sm text-white cursor-pointer hover:opacity-80 mb-1"
-                        style={{ backgroundColor: getPriorityColor(event.priority) }}
+                        style={{ backgroundColor: getPriorityHex(event.priority) }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedEvent(event);
@@ -783,7 +767,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                 <div className="flex items-start space-x-3">
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0 mt-1"
-                    style={{ backgroundColor: getPriorityColor(event.priority) }}
+                    style={{ backgroundColor: getPriorityHex(event.priority) }}
                   ></div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
@@ -794,7 +778,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                         isToday ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
                         'bg-gray-100 text-gray-600 dark:bg-zinc-700 dark:text-zinc-300'
                       }`}>
-                        {isToday ? 'Hoje' : formatDate(event.startDate)}
+                        {isToday ? 'Hoje' : formatDateShort(event.startDate.toISOString())}
                       </span>
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -1008,10 +992,10 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
               <h3 className="font-medium text-gray-900 dark:text-white mb-3 text-sm">Prioridades</h3>
               <div className="space-y-2">
                 {[
-                  { key: 'URGENT', label: 'Urgente', color: getPriorityColor('URGENT') },
-                  { key: 'HIGH', label: 'Alta', color: getPriorityColor('HIGH') },
-                  { key: 'MEDIUM', label: 'Média', color: getPriorityColor('MEDIUM') },
-                  { key: 'LOW', label: 'Baixa', color: getPriorityColor('LOW') }
+                  { key: 'URGENT', label: 'Urgente', color: getPriorityHex('URGENT') },
+                  { key: 'HIGH', label: 'Alta', color: getPriorityHex('HIGH') },
+                  { key: 'MEDIUM', label: 'Média', color: getPriorityHex('MEDIUM') },
+                  { key: 'LOW', label: 'Baixa', color: getPriorityHex('LOW') }
                 ].map(priority => (
                   <div key={priority.key} className="flex items-center space-x-2">
                     <div
@@ -1418,7 +1402,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                         </select>
                         <div 
                           className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full pointer-events-none"
-                          style={{ backgroundColor: getPriorityColor(eventForm.priority) }}
+                          style={{ backgroundColor: getPriorityHex(eventForm.priority) }}
                         ></div>
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2100,7 +2084,7 @@ const GoogleCalendar: React.FC<GoogleCalendarProps> = ({
                       <span className="text-xl">📅</span>
                       <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">DATA</span>
                     </div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{formatDate(selectedEvent.startDate)}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{formatDateShort(selectedEvent.startDate.toISOString())}</p>
                   </div>
 
                   <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">

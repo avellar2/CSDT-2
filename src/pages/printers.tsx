@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MagnifyingGlass, Warning, CheckCircle, XCircle, Clock, Printer as PrinterIcon, Bell } from 'phosphor-react';
+import { Search, AlertTriangle, CheckCircle, XCircle, Clock, Printer as PrinterIcon, Bell } from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
 import { jwtDecode } from "jwt-decode";
 
@@ -150,7 +150,7 @@ const Printers: React.FC = () => {
 
   const getStatusIcon = (status: PrinterStatus | undefined) => {
     if (!status || !status.isOnline) return <XCircle size={20} />;
-    if (status.errors.some(error => error !== 'Sem Erro')) return <Warning size={20} />;
+    if (status.errors.some(error => error !== 'Sem Erro')) return <AlertTriangle size={20} />;
     return <CheckCircle size={20} />;
   };
 
@@ -430,7 +430,7 @@ const Printers: React.FC = () => {
       {showNotifications && printersWithIssues.length > 0 && (userRole === 'ADMIN' || userRole === 'ADMTOTAL') && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
           <div className="flex items-center mb-2">
-            <Warning className="text-red-500 mr-2" size={24} />
+            <AlertTriangle className="text-red-500 mr-2" size={24} />
             <h3 className="text-lg font-semibold text-red-800">
               Impressoras com Problemas ({printersWithIssues.length})
             </h3>
@@ -541,7 +541,7 @@ const Printers: React.FC = () => {
                 <p className="text-sm text-gray-600">Com Problemas</p>
                 <p className="text-2xl font-bold text-red-600">{printerStatus.withIssues}</p>
               </div>
-              <Warning className="text-red-400" size={32} />
+              <AlertTriangle className="text-red-400" size={32} />
             </div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
@@ -567,7 +567,7 @@ const Printers: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full p-3 pl-10 rounded-lg dark:bg-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={24} />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={24} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPrinters.map((printer) => {
@@ -686,7 +686,7 @@ const Printers: React.FC = () => {
                               'bg-yellow-100 border border-yellow-300'
                             }`}>
                               <div className="flex items-center gap-1 font-medium">
-                                <Warning size={12} className={
+                                <AlertTriangle size={12} className={
                                   errorDetail.severity === 'critical' ? 'text-red-600' :
                                   errorDetail.severity === 'error' ? 'text-orange-600' :
                                   'text-yellow-600'
@@ -711,7 +711,7 @@ const Printers: React.FC = () => {
                           // Fallback para erros sem detalhes
                           status.errors.filter(error => error !== 'Sem Erro').map((error, idx) => (
                             <div key={idx} className="flex items-center gap-1 text-xs text-red-700">
-                              <Warning size={12} />
+                              <AlertTriangle size={12} />
                               {error}
                             </div>
                           ))

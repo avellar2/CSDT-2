@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { MagnifyingGlass } from "phosphor-react";
+import { Search } from "lucide-react";
 
 const MemorandumsPage: React.FC = () => {
   const [memorandums, setMemorandums] = useState<any[]>([]);
@@ -70,7 +70,7 @@ const MemorandumsPage: React.FC = () => {
           className="w-full p-3 pl-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <MagnifyingGlass size={20} className="text-gray-400" />
+          <Search size={20} className="text-gray-400" />
         </div>
       </div>
 

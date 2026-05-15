@@ -2,17 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import { 
-  FileText, 
-  Download, 
-  Calendar, 
-  Buildings,
-  MapPin,
-  Clock,
-  ChartBar,
-  Wrench,
-  Archive
-} from 'phosphor-react';
+import { FileText, Download, Calendar, Building2, MapPin, Clock, BarChart3, Wrench, Archive } from 'lucide-react';
 
 interface Item {
   id: number;
@@ -377,7 +367,7 @@ const AdvancedReports: React.FC<AdvancedReportsProps> = ({ items, schools }) => 
               : 'border-gray-200 dark:border-zinc-700 hover:border-blue-300'
           }`}
         >
-          <ChartBar size={32} className={`mx-auto mb-2 ${selectedReportType === 'consolidated' ? 'text-blue-500' : 'text-gray-400'}`} />
+          <BarChart3 size={32} className={`mx-auto mb-2 ${selectedReportType === 'consolidated' ? 'text-blue-500' : 'text-gray-400'}`} />
           <h3 className="font-semibold text-gray-800 dark:text-white">Consolidado</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">Relatório completo com todas as métricas</p>
         </button>
@@ -403,7 +393,7 @@ const AdvancedReports: React.FC<AdvancedReportsProps> = ({ items, schools }) => 
               : 'border-gray-200 dark:border-zinc-700 hover:border-purple-300'
           }`}
         >
-          <Buildings size={32} className={`mx-auto mb-2 ${selectedReportType === 'school' ? 'text-purple-500' : 'text-gray-400'}`} />
+          <Building2 size={32} className={`mx-auto mb-2 ${selectedReportType === 'school' ? 'text-purple-500' : 'text-gray-400'}`} />
           <h3 className="font-semibold text-gray-800 dark:text-white">Escola/Distrito</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">Relatório específico por localização</p>
         </button>

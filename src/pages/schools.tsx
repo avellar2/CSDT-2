@@ -1,24 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  MagnifyingGlass,
+  Search,
   MapPin,
   Phone,
-  EnvelopeSimple,
+  Mail,
   Users,
   GraduationCap,
   Eye,
   List,
-  SquaresFour,
-  Funnel,
-  SortAscending,
-  SortDescending,
+  LayoutGrid,
+  Filter,
+  ArrowUpDown,
   X,
   Monitor,
-  Desktop,
-  FileXls,
+  FileSpreadsheet,
+  ListFilter,
   Download
-} from 'phosphor-react';
+} from 'lucide-react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
@@ -269,7 +268,7 @@ const SchoolsPage: React.FC = () => {
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors font-medium"
                 title={`Exportar ${filteredSchools.length} escola${filteredSchools.length !== 1 ? 's' : ''} para Excel`}
               >
-                <FileXls size={20} weight="bold" />
+                <FileSpreadsheet size={20} />
                 Exportar Excel
                 <span className="ml-1 px-2 py-0.5 bg-green-700 rounded-full text-xs">
                   {filteredSchools.length}
@@ -286,7 +285,7 @@ const SchoolsPage: React.FC = () => {
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  <SquaresFour size={18} />
+                  <LayoutGrid size={18} />
                   Cards
                 </button>
                 <button
@@ -307,7 +306,7 @@ const SchoolsPage: React.FC = () => {
           {/* Barra de Pesquisa e Filtros */}
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="relative flex-1 max-w-md">
-              <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
                 placeholder="Pesquisar escolas por nome..."
@@ -326,7 +325,7 @@ const SchoolsPage: React.FC = () => {
                   : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
               }`}
             >
-              <Funnel size={20} />
+              <ListFilter size={20} />
               Filtros
             </button>
             
@@ -347,7 +346,7 @@ const SchoolsPage: React.FC = () => {
                 onClick={() => setFilters({...filters, sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'})}
                 className="flex items-center justify-center w-12 h-12 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
               >
-                {filters.sortOrder === 'asc' ? <SortAscending size={20} /> : <SortDescending size={20} />}
+                {filters.sortOrder === 'asc' ? <ArrowUpDown size={20} /> : <ArrowUpDown size={20} />}
               </button>
             </div>
           </div>
@@ -401,7 +400,7 @@ const SchoolsPage: React.FC = () => {
               {/* Filtro por Laboratório */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <Desktop size={14} className="inline mr-1" />
+                  <Monitor size={14} className="inline mr-1" />
                   Laboratório
                 </label>
                 <select
@@ -522,7 +521,7 @@ const SchoolsPage: React.FC = () => {
           <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-700">
             <div className="flex items-center">
               <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Desktop className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <Monitor className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="ml-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Com Laboratório</p>
@@ -600,7 +599,7 @@ const SchoolsPage: React.FC = () => {
                     )}
                     {school.laboratorio !== undefined && school.laboratorio > 0 && (
                       <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
-                        <Desktop size={14} className="mr-2" />
+                        <Monitor size={14} className="mr-2" />
                         Laboratório: {school.laboratorio} equipamentos
                       </div>
                     )}
@@ -648,7 +647,7 @@ const SchoolsPage: React.FC = () => {
                         href={`mailto:${school.email}`}
                         className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-300 text-xs rounded-full hover:bg-gray-200 dark:hover:bg-gray-900/30 transition-colors"
                       >
-                        <EnvelopeSimple size={12} />
+                        <Mail size={12} />
                         Email
                       </a>
                     )}
@@ -784,7 +783,7 @@ const SchoolsPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {school.laboratorio && school.laboratorio > 0 ? (
                           <div className="flex items-center text-blue-600 dark:text-blue-400">
-                            <Desktop size={16} className="mr-1" />
+                            <Monitor size={16} className="mr-1" />
                             {school.laboratorio} equipamentos
                           </div>
                         ) : (
@@ -806,7 +805,7 @@ const SchoolsPage: React.FC = () => {
                               href={`mailto:${school.email}`}
                               className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
                             >
-                              <EnvelopeSimple size={16} />
+                              <Mail size={16} />
                             </a>
                           )}
                           <Link href={`/schools/${school.id}`}>

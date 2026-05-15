@@ -5,16 +5,16 @@ import { jwtDecode } from "jwt-decode";
 import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
 import {
   Trash,
-  ArrowClockwise,
+  RefreshCw,
   Plus,
   Users,
   User,
   Coffee,
   CalendarCheck,
-  Funnel,
+  Filter,
   X,
-  ArrowsLeftRight
-} from "phosphor-react";
+  ArrowLeftRight
+} from "lucide-react";
 
 // Components
 import DemandModal from "../components/DemandModal";
@@ -693,7 +693,7 @@ const DailyDemands: React.FC = () => {
                 disabled={refreshing}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
-                <ArrowClockwise size={16} className={refreshing ? "animate-spin" : ""} />
+                <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
                 Atualizar
               </button>
               
@@ -1033,7 +1033,7 @@ const TechnicianCard: React.FC<TechnicianCardProps> = ({
                       className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                       title="Mover para outra categoria"
                     >
-                      <ArrowsLeftRight size={14} />
+                      <ArrowLeftRight size={14} />
                     </button>
 
                     {/* Botão de remover */}

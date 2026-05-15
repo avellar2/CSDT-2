@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabaseClient';
 import Select, { SingleValue } from "react-select";
-import { 
-  X, 
-  User, 
-  Envelope, 
-  Lock, 
-  Users, 
-  MapPin, 
-  Check, 
-  Warning 
-} from "phosphor-react";
+import {
+  X,
+  User,
+  Mail,
+  Lock,
+  Users,
+  MapPin,
+  Check,
+  AlertTriangle
+} from "lucide-react";
 
 
 interface School {
@@ -228,7 +228,7 @@ const DashboardRegisterForm: React.FC<DashboardRegisterFormProps> = ({ onClose }
               Email *
             </label>
             <div className="relative">
-              <Envelope size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="email"
                 name="email"
@@ -375,7 +375,7 @@ const DashboardRegisterForm: React.FC<DashboardRegisterFormProps> = ({ onClose }
               {message.type === "success" ? (
                 <Check size={20} />
               ) : (
-                <Warning size={20} />
+                <AlertTriangle size={20} />
               )}
               <span className="text-sm">{message.text}</span>
             </div>

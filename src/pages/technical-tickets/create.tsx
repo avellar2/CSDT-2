@@ -2,20 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Header } from '@/components/Header';
 import { supabase } from '@/lib/supabaseClient';
-import {
-  Wrench,
-  ArrowLeft,
-  Check,
-  X,
-  Desktop,
-  DeviceMobile,
-  Laptop,
-  Printer,
-  WifiHigh,
-  Code,
-  Gear,
-  Question
-} from 'phosphor-react';
+import { Wrench, ArrowLeft, Check, X, Monitor, Smartphone, Laptop, Printer, Wifi, Code, Settings2, HelpCircle } from 'lucide-react';
 
 interface SchoolProfile {
   schoolId: number;
@@ -39,14 +26,14 @@ const CreateTechnicalTicket: React.FC = () => {
   });
 
   const categories = [
-    { value: 'COMPUTER', label: 'Computador/Desktop', icon: Desktop },
+    { value: 'COMPUTER', label: 'Computador/Desktop', icon: Monitor },
     { value: 'NOTEBOOK', label: 'Notebook', icon: Laptop },
-    { value: 'TABLET', label: 'Tablet', icon: DeviceMobile },
+    { value: 'TABLET', label: 'Tablet', icon: Smartphone },
     { value: 'PRINTER', label: 'Impressora', icon: Printer },
-    { value: 'NETWORK', label: 'Rede/Internet', icon: WifiHigh },
+    { value: 'NETWORK', label: 'Rede/Internet', icon: Wifi },
     { value: 'SOFTWARE', label: 'Software', icon: Code },
-    { value: 'MAINTENANCE', label: 'Manutenção Geral', icon: Gear },
-    { value: 'OTHER', label: 'Outros', icon: Question }
+    { value: 'MAINTENANCE', label: 'Manutenção Geral', icon: Settings2 },
+    { value: 'OTHER', label: 'Outros', icon: HelpCircle }
   ];
 
   // Carregar perfil da escola logada

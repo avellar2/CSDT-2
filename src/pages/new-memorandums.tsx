@@ -7,24 +7,23 @@ import {
   MapPin,
   User,
   Package,
-  CaretLeft,
-  CaretRight,
+  ChevronLeft,
+  ChevronRight,
   Eye,
-  Buildings,
-  ArrowsClockwise,
+  Building2,
+  RefreshCw,
   X,
   ListChecks,
   Hash,
   Tag,
-  FilePdf,
   Download,
   Trash,
-  Warning,
-  PencilSimple,
+  AlertTriangle,
+  PencilLine,
   Plus,
   Minus,
-  MagnifyingGlass
-} from 'phosphor-react';
+  Search
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -476,7 +475,7 @@ const NewMemorandumsPage: React.FC = () => {
                          bg-white dark:bg-zinc-800 text-gray-900 dark:text-white
                          focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
-              <MagnifyingGlass className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             </div>
             <button
               onClick={handleSearch}
@@ -525,19 +524,19 @@ const NewMemorandumsPage: React.FC = () => {
                 <div className="space-y-3 mb-4">
                   {memorandum.type === 'entrega' ? (
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Buildings size={16} />
+                      <Building2 size={16} />
                       <span className="font-medium">Para:</span>
                       <span className="text-gray-900 dark:text-white">{memorandum.schoolName}</span>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <ArrowsClockwise size={16} />
+                        <RefreshCw size={16} />
                         <span className="font-medium">De:</span>
                         <span className="text-gray-900 dark:text-white">{memorandum.fromSchoolName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <Buildings size={16} />
+                        <Building2 size={16} />
                         <span className="font-medium">Para:</span>
                         <span className="text-gray-900 dark:text-white">{memorandum.toSchoolName}</span>
                       </div>
@@ -581,7 +580,7 @@ const NewMemorandumsPage: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <FilePdf size={14} />
+                          <FileText size={14} />
                           PDF
                         </>
                       )}
@@ -593,7 +592,7 @@ const NewMemorandumsPage: React.FC = () => {
                                rounded-full transition-colors duration-200"
                       title="Editar memorando (adicionar ou remover itens)"
                     >
-                      <PencilSimple size={14} />
+                      <PencilLine size={14} />
                       Editar
                     </button>
                     <button
@@ -670,7 +669,7 @@ const NewMemorandumsPage: React.FC = () => {
                          bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300
                          hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CaretLeft size={16} />
+                <ChevronLeft size={16} />
               </button>
               
               <span className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -684,7 +683,7 @@ const NewMemorandumsPage: React.FC = () => {
                          bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300
                          hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CaretRight size={16} />
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
@@ -741,17 +740,17 @@ const NewMemorandumsPage: React.FC = () => {
                       </div>
                       {selectedMemorandum.type === 'entrega' ? (
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <Buildings size={16} />
+                          <Building2 size={16} />
                           <span>{selectedMemorandum.schoolName}</span>
                         </div>
                       ) : (
                         <>
                           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <ArrowsClockwise size={16} />
+                            <RefreshCw size={16} />
                             <span>De: {selectedMemorandum.fromSchoolName}</span>
                           </div>
                           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <Buildings size={16} />
+                            <Building2 size={16} />
                             <span>Para: {selectedMemorandum.toSchoolName}</span>
                           </div>
                         </>
@@ -828,7 +827,7 @@ const NewMemorandumsPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-3 bg-white/20 rounded-full">
-                      <PencilSimple size={24} className="text-white" />
+                      <PencilLine size={24} className="text-white" />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white">Editar Memorando</h2>
@@ -923,7 +922,7 @@ const NewMemorandumsPage: React.FC = () => {
 
                   {/* Campo de busca */}
                   <div className="mb-3 relative">
-                    <MagnifyingGlass
+                    <Search
                       size={20}
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                     />
@@ -968,7 +967,7 @@ const NewMemorandumsPage: React.FC = () => {
                               <span>SN: {item.serialNumber}</span>
                               <span>•</span>
                               <span className="flex items-center gap-1">
-                                <Buildings size={12} />
+                                <Building2 size={12} />
                                 {item.schoolName}
                               </span>
                             </div>
@@ -1036,7 +1035,7 @@ const NewMemorandumsPage: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <PencilSimple size={16} />
+                      <PencilLine size={16} />
                       Salvar Alterações
                     </>
                   )}
@@ -1054,7 +1053,7 @@ const NewMemorandumsPage: React.FC = () => {
               <div className="p-6 bg-gradient-to-r from-rose-500 to-pink-600">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-white/20 rounded-full">
-                    <Warning size={24} className="text-white" />
+                    <AlertTriangle size={24} className="text-white" />
                   </div>
                   <h2 className="text-xl font-bold text-white">Cancelar Memorando</h2>
                 </div>
@@ -1068,7 +1067,7 @@ const NewMemorandumsPage: React.FC = () => {
 
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
                   <div className="flex gap-2">
-                    <Warning size={20} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle size={20} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                     <div className="text-sm text-amber-800 dark:text-amber-200">
                       <p className="font-semibold mb-1">Esta ação irá:</p>
                       <ul className="list-disc list-inside space-y-1 ml-2">

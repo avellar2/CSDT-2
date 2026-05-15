@@ -5,10 +5,10 @@ import { Dialog, Transition } from "@headlessui/react";
 import {
   CheckCircle,
   Trash,
-  PencilSimple,
-  MagnifyingGlass,
+  PencilLine,
+  Search,
   Eye,
-} from "phosphor-react"; // Ícones de sucesso, lixeira, lápis e lupa
+} from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import {
   DropdownMenu,
@@ -572,7 +572,7 @@ const CreateInternalOS: React.FC = () => {
             className="w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-4 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <MagnifyingGlass size={20} className="text-gray-400" />
+            <Search size={20} className="text-gray-400" />
           </div>
         </div>
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -654,7 +654,7 @@ const CreateInternalOS: React.FC = () => {
                       onClick={() => handleEdit(os)}
                       className="text-blue-500 hover:text-blue-700"
                     >
-                      <PencilSimple size={20} />
+                      <PencilLine size={20} />
                     </button>
                     <button
                       onClick={() => handleDelete(os.id)}

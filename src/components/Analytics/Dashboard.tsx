@@ -18,16 +18,7 @@ import {
 } from 'recharts';
 import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  ChartBar, 
-  ChartPie, 
-  TrendUp, 
-  Clock,
-  Warning,
-  Calendar,
-  Buildings,
-  Laptop
-} from 'phosphor-react';
+import { BarChart3, PieChart as PieChartIcon, TrendingUp, Clock, AlertTriangle, Calendar, Building2, Laptop } from 'lucide-react';
 
 interface Item {
   id: number;
@@ -290,7 +281,7 @@ const Dashboard: React.FC<DashboardProps> = ({ items, schools }) => {
                 {metrics.inSchools} ({metrics.deploymentRate}%)
               </p>
             </div>
-            <Buildings size={32} className="text-green-500" />
+            <Building2 size={32} className="text-green-500" />
           </div>
         </div>
 
@@ -312,7 +303,7 @@ const Dashboard: React.FC<DashboardProps> = ({ items, schools }) => {
                 {metrics.inCHADA} ({metrics.maintenanceRate}%)
               </p>
             </div>
-            <Warning size={32} className="text-red-500" />
+            <AlertTriangle size={32} className="text-red-500" />
           </div>
         </div>
       </div>
@@ -321,7 +312,7 @@ const Dashboard: React.FC<DashboardProps> = ({ items, schools }) => {
       {(alertsData.maintenance > 0 || alertsData.oldEquipments > 0 || alertsData.overloadedSchools > 0) && (
         <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-300 mb-2 flex items-center gap-2">
-            <Warning size={20} />
+            <AlertTriangle size={20} />
             Alertas do Sistema
           </h3>
           <div className="space-y-2 text-sm">
@@ -373,7 +364,7 @@ const Dashboard: React.FC<DashboardProps> = ({ items, schools }) => {
                 : 'bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-600'
             }`}
           >
-            <ChartBar size={16} className="inline mr-1" />
+            <BarChart3 size={16} className="inline mr-1" />
             Distribuição por Escola
           </button>
           
@@ -385,7 +376,7 @@ const Dashboard: React.FC<DashboardProps> = ({ items, schools }) => {
                 : 'bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-600'
             }`}
           >
-            <ChartPie size={16} className="inline mr-1" />
+            <PieChartIcon size={16} className="inline mr-1" />
             Categorias
           </button>
           
@@ -397,7 +388,7 @@ const Dashboard: React.FC<DashboardProps> = ({ items, schools }) => {
                 : 'bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-600'
             }`}
           >
-            <TrendUp size={16} className="inline mr-1" />
+            <TrendingUp size={16} className="inline mr-1" />
             Timeline
           </button>
           

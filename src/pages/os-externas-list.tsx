@@ -1,344 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { Header } from '@/components/Header';
-import { useHeaderContext } from '@/context/HeaderContext';
-import { CheckCircle, Clock, Eye, Calendar, User, PaperPlaneTilt, X } from 'phosphor-react';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabaseClient';
-import { useRouter } from 'next/router';
-import { formatBrazilDateKey } from '@/utils/dailyDemandOsRules';
-
-// Atualizar a interface para incluir todos os campos do schema
-interface OsExterna {
-  id: number;
-  numeroOs: string;
-  data: string;
-  hora: string;
-  unidadeEscolar: string;
-  tecnicoResponsavel: string;
-  emailResponsavel: string;
-  fotosAntes: string[];
-  fotosDepois: string[];
-  pcsProprio?: number;
-  pcsLocado?: number;
-  notebooksProprio?: number;
-  notebooksLocado?: number;
-  monitoresProprio?: number;
-  monitoresLocado?: number;
-  estabilizadoresProprio?: number;
-  estabilizadoresLocado?: number;
-  tabletsProprio?: number;
-  tabletsLocado?: number;
-  pcsProprioOutrosLocais?: number;
-  pcsLocadoOutrosLocais?: number;
-  notebooksProprioOutrosLocais?: number;
-  notebooksLocadoOutrosLocais?: number;
-  monitoresProprioOutrosLocais?: number;
-  monitoresLocadoOutrosLocais?: number;
-  estabilizadoresProprioOutrosLocais?: number;
-  estabilizadoresLocadoOutrosLocais?: number;
-  tabletsProprioOutrosLocais?: number;
-  tabletsLocadoOutrosLocais?: number;
-  pecasOuMaterial?: string;
-  relatorio?: string;
-  solicitacaoDaVisita?: string;
-  temLaboratorio?: boolean;
-  diretoraNaEscola?: boolean;
-  redeBr?: string;
-  educacaoConectada?: string;
-  naoHaProvedor?: string;
-  rack?: number;
-  switch?: number;
-  roteador?: number;
-  oki?: number;
-  kyocera?: number;
-  hp?: number;
-  ricoh?: number;
-  outrasImpressoras?: number;
-  temImpressoraComProblema?: boolean;
-  relatorioImpressora?: string;
-  impressoraComProblema?: string;
-  solucionado?: string;
-  status: string;
-  assinado?: string;
-  cpf?: string;
-  cargoResponsavel?: string;
-  lastEmailSent?: string; // Data do último email enviado
-  updatedAt: string;
-  createdAt: string;
-}
-
-interface PendingDailyDemand {
-  demandId: number;
-  schoolName: string;
-  schoolAddress: string;
-  schoolDistrict: string;
-  description: string;
-  createdAt: string;
-  demandDate: string;
-  visitStatus: string | null;
-  visitReason: string | null;
-  visitUpdatedBy: string | null;
-  responsibleTechnicianIds: number[];
-  responsibleTechnicians: string[];
-}
-
-interface NotVisitedDailyDemand {
-  demandId: number;
-  schoolName: string;
-  schoolAddress: string;
-  schoolDistrict: string;
-  description: string;
-  createdAt: string;
-  demandDate: string;
-  visitReason: string | null;
-  visitUpdatedBy: string | null;
-  responsibleTechnicians: string[];
-}
+import React from "react";
+import { Header } from "@/components/Header";
+import { Clock, CheckCircle, Eye, User, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/router";
+import { formatDateShort, formatDateTime } from "@/utils/date";
+import { useOsExternasList, type OsExterna, type PendingDailyDemand } from "@/hooks/useOsExternasList";
+import OsExternasDetailModal from "@/components/OsExternas/OsExternasDetailModal";
+import OsExternasModals from "@/components/OsExternas/OsExternasModals";
 
 const OsExternasList: React.FC = () => {
   const router = useRouter();
-  const { userName } = useHeaderContext();
-  const [osExternas, setOsExternas] = useState<OsExterna[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedOs, setSelectedOs] = useState<OsExterna | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [resendingEmail, setResendingEmail] = useState<number | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [emailResult, setEmailResult] = useState<{message: string, escola: string} | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmOsData, setConfirmOsData] = useState<OsExterna | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string>('');
-  const [pendingDailyDemands, setPendingDailyDemands] = useState<PendingDailyDemand[]>([]);
-  const [notVisitedDailyDemands, setNotVisitedDailyDemands] = useState<NotVisitedDailyDemand[]>([]);
-  const [notVisitedDate, setNotVisitedDate] = useState(formatBrazilDateKey(new Date()));
-  const [showNotVisitedModal, setShowNotVisitedModal] = useState(false);
-  const [downloadPdf, setDownloadingPdf] = useState(false);
-  const statusFilter = typeof router.query.status === 'string' ? router.query.status : '';
-  const pendingOnly = statusFilter === 'Pendente';
-
-  useEffect(() => {
-    if (!router.isReady) return;
-
-    const initializePage = async () => {
-      try {
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (error || !user) {
-          setLoading(false);
-          return;
-        }
-
-        setCurrentUserId(user.id);
-        await fetchUserRole(user.id);
-        await fetchOsExternas(user.id);
-        await fetchPendingDailyDemands(user.id);
-        await fetchNotVisitedDailyDemands(user.id, notVisitedDate);
-      } catch (initError) {
-        console.error('Erro ao inicializar lista de OS:', initError);
-        setLoading(false);
-      }
-    };
-
-    initializePage();
-  }, [router.isReady, router.query.status]);
-
-  useEffect(() => {
-    if (!currentUserId || !userRole || !['ADMIN', 'ADMTOTAL'].includes(userRole)) {
-      setNotVisitedDailyDemands([]);
-      return;
-    }
-
-    fetchNotVisitedDailyDemands(currentUserId, notVisitedDate);
-  }, [currentUserId, userRole, notVisitedDate]);
-
-  const fetchUserRole = async (userIdParam?: string) => {
-    try {
-      // Pega o usuário logado no Supabase
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-
-      if (error || !user) {
-        console.error("Erro ao buscar usuário no Supabase:", error);
-        return;
-      }
-
-      // Consulta a role no Prisma usando o ID do Supabase
-      const effectiveUserId = userIdParam || user.id;
-      const response = await fetch(`/api/get-role?userId=${effectiveUserId}`);
-      if (response.ok) {
-        const data = await response.json();
-
-        setUserRole(data.role);
-      } else {
-        console.error("Erro ao buscar role:", response.status);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar role do usuário:', error);
-    }
-  };
-
-  const fetchOsExternas = async (userIdParam?: string) => {
-    try {
-      const effectiveUserId = userIdParam || currentUserId;
-      const params = new URLSearchParams();
-
-      if (effectiveUserId) {
-        params.set('userId', effectiveUserId);
-      }
-
-      if (statusFilter) {
-        params.set('status', statusFilter);
-      }
-
-      const response = await fetch(`/api/get-all-os-externas${params.toString() ? `?${params.toString()}` : ''}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOsExternas(data);
-      } else {
-        console.error('Erro ao buscar OS Externas');
-      }
-    } catch (error) {
-      console.error('Erro ao buscar OS Externas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPendingDailyDemands = async (userIdParam?: string) => {
-    try {
-      const effectiveUserId = userIdParam || currentUserId;
-      const params = new URLSearchParams();
-
-      if (effectiveUserId) {
-        params.set('userId', effectiveUserId);
-      }
-
-      const response = await fetch(`/api/pending-daily-demands${params.toString() ? `?${params.toString()}` : ''}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        setPendingDailyDemands(data.data || []);
-      } else {
-        setPendingDailyDemands([]);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar demandas pendentes sem OS:', error);
-      setPendingDailyDemands([]);
-    }
-  };
-
-  const fetchNotVisitedDailyDemands = async (userIdParam?: string, dateParam?: string) => {
-    try {
-      const effectiveUserId = userIdParam || currentUserId;
-      const effectiveDate = dateParam || notVisitedDate;
-
-      if (!effectiveUserId || !effectiveDate) {
-        setNotVisitedDailyDemands([]);
-        return;
-      }
-
-      const params = new URLSearchParams({
-        userId: effectiveUserId,
-        date: effectiveDate,
-      });
-
-      const response = await fetch(`/api/not-visited-daily-demands?${params.toString()}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        setNotVisitedDailyDemands(data.data || []);
-      } else {
-        setNotVisitedDailyDemands([]);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar demandas nao visitadas:', error);
-      setNotVisitedDailyDemands([]);
-    }
-  };
-
-  // Função para filtrar OS baseada na pesquisa
-  const filterOsBySearch = (osList: OsExterna[]) => {
-    if (!searchTerm.trim()) return osList;
-
-    return osList.filter(os =>
-      os.numeroOs?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      os.unidadeEscolar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      os.tecnicoResponsavel?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      os.emailResponsavel?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      os.assinado?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  // Aplicar filtros de pesquisa
-  const osExternasPendentes = filterOsBySearch(osExternas.filter(os => os.status === 'Pendente'));
-  const osExternasAssinadas = filterOsBySearch(osExternas.filter(os => os.status === 'Assinado'));
-  const filteredPendingDailyDemands = pendingDailyDemands.filter((demand) =>
-    demand.visitStatus !== 'NOT_VISITED' && (
-      !searchTerm.trim() ||
-      demand.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      demand.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (demand.visitReason || '').toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
-
-  const todayDateKey = formatBrazilDateKey(new Date());
-
-  const pendingDailyDemandsToday = filteredPendingDailyDemands.filter(
-    (demand) => demand.demandDate === todayDateKey
-  );
-  const pendingDailyDemandsPrevious = filteredPendingDailyDemands.filter(
-    (demand) => demand.demandDate < todayDateKey
-  );
-
-  const filteredNotVisitedDailyDemands = notVisitedDailyDemands.filter((demand) =>
-    !searchTerm.trim() ||
-    demand.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    demand.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (demand.visitReason || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const hook = useOsExternasList();
 
   const renderPendingDailyDemandCard = (demand: PendingDailyDemand) => (
     <div key={`daily-demand-${demand.demandId}`} className="border border-red-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-red-50/40">
       <div className="flex justify-between items-start gap-4">
         <div className="flex-1">
           <div className="flex items-center mb-3 gap-2">
-            <span className={`px-2 py-1 rounded text-sm font-medium ${
-              demand.visitStatus === 'NOT_VISITED'
-                ? 'bg-amber-100 text-amber-800'
-                : 'bg-red-100 text-red-800'
-            }`}>
-              {demand.visitStatus === 'NOT_VISITED' ? 'Não visitada' : 'Sem OS criada'}
+            <span className={`px-2 py-1 rounded text-sm font-medium ${demand.visitStatus === "NOT_VISITED" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"}`}>
+              {demand.visitStatus === "NOT_VISITED" ? "Nao visitada" : "Sem OS criada"}
             </span>
             <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm font-medium">
-              Demanda: {new Date(`${demand.demandDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
+              Demanda: {new Date(`${demand.demandDate}T12:00:00-03:00`).toLocaleDateString("pt-BR")}
             </span>
             <span className="text-sm text-gray-500">
-              {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+              {new Date(demand.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
             {demand.schoolDistrict} Distrito - {demand.schoolName}
           </h3>
-          <p className="text-sm text-gray-600 mb-2">
-            {demand.schoolAddress}
-          </p>
+          <p className="text-sm text-gray-600 mb-2">{demand.schoolAddress}</p>
           {demand.responsibleTechnicians.length > 0 && (
             <p className="text-sm text-gray-700 mb-2">
               <User size={16} className="inline mr-1" />
-              Responsável{demand.responsibleTechnicians.length > 1 ? 'is' : ''}: {demand.responsibleTechnicians.join(', ')}
+              Responsavel{demand.responsibleTechnicians.length > 1 ? "is" : ""}: {demand.responsibleTechnicians.join(", ")}
             </p>
           )}
-          {demand.visitStatus === 'NOT_VISITED' && demand.visitReason && (
+          {demand.visitStatus === "NOT_VISITED" && demand.visitReason && (
             <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
               <div className="font-medium">Motivo</div>
               <div className="whitespace-pre-line">{demand.visitReason}</div>
@@ -347,9 +46,7 @@ const OsExternasList: React.FC = () => {
               )}
             </div>
           )}
-          <p className="text-sm text-gray-700 whitespace-pre-line">
-            {demand.description}
-          </p>
+          <p className="text-sm text-gray-700 whitespace-pre-line">{demand.description}</p>
         </div>
         <Button
           onClick={() => router.push(`/daily-demands?date=${encodeURIComponent(demand.demandDate)}`)}
@@ -362,194 +59,7 @@ const OsExternasList: React.FC = () => {
     </div>
   );
 
-  const renderNotVisitedDailyDemandCard = (demand: NotVisitedDailyDemand) => (
-    <div key={`not-visited-demand-${demand.demandId}`} className="border border-amber-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-amber-50/50">
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-1">
-          <div className="flex items-center mb-3 gap-2">
-            <span className="px-2 py-1 rounded text-sm font-medium bg-amber-100 text-amber-800">
-              Nao visitada
-            </span>
-            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm font-medium">
-              Demanda: {new Date(`${demand.demandDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
-            </span>
-            <span className="text-sm text-gray-500">
-              {new Date(demand.createdAt).toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </span>
-          </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
-            {demand.schoolDistrict} Distrito - {demand.schoolName}
-          </h3>
-          <p className="text-sm text-gray-600 mb-2">
-            {demand.schoolAddress}
-          </p>
-          {demand.responsibleTechnicians.length > 0 && (
-            <p className="text-sm text-gray-700 mb-2">
-              <User size={16} className="inline mr-1" />
-              Responsavel{demand.responsibleTechnicians.length > 1 ? 'is' : ''}: {demand.responsibleTechnicians.join(', ')}
-            </p>
-          )}
-          {demand.visitReason && (
-            <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              <div className="font-medium">Motivo</div>
-              <div className="whitespace-pre-line">{demand.visitReason}</div>
-              {demand.visitUpdatedBy && (
-                <div className="mt-1 text-xs text-amber-700">Marcado por: {demand.visitUpdatedBy}</div>
-              )}
-            </div>
-          )}
-          <p className="text-sm text-gray-700 whitespace-pre-line">
-            {demand.description}
-          </p>
-        </div>
-        <Button
-          onClick={() => router.push(`/daily-demands?date=${encodeURIComponent(demand.demandDate)}`)}
-          size="sm"
-          className="bg-amber-500 hover:bg-amber-600 text-white"
-        >
-          Ver demanda
-        </Button>
-      </div>
-    </div>
-  );
-
-  const formatDate = (dateString: string) => {
-    // Para campos de data simples (formato YYYY-MM-DD), adicionar fuso horário brasileiro
-    if (dateString && dateString.length === 10) {
-      return new Date(dateString + 'T12:00:00-03:00').toLocaleDateString('pt-BR');
-    }
-    // Para timestamps completos, usar fuso horário brasileiro
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  };
-
-  const canSendEmailToday = (os: OsExterna) => {
-    if (!os.lastEmailSent) return true;
-    
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    
-    const lastEmailDate = new Date(os.lastEmailSent);
-    lastEmailDate.setHours(0, 0, 0, 0);
-    
-    return lastEmailDate.getTime() !== hoje.getTime();
-  };
-
-  const getLastEmailText = (os: OsExterna) => {
-    if (!os.lastEmailSent) return '';
-    
-    const lastEmailDate = new Date(os.lastEmailSent);
-    const hoje = new Date();
-    
-    const diffTime = hoje.getTime() - lastEmailDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      return 'Enviado hoje';
-    } else if (diffDays === 1) {
-      return 'Enviado ontem';
-    } else {
-      return `Enviado há ${diffDays} dias`;
-    }
-  };
-
-  const handleResendEmail = async (os: OsExterna) => {
-    if (!userRole || !['ADMIN', 'ADMTOTAL'].includes(userRole)) {
-      alert('Você não tem permissão para reenviar emails.');
-      return;
-    }
-    
-    if (!canSendEmailToday(os)) {
-      setEmailResult({
-        message: 'Já foi enviado um email para esta OS hoje. Limite: 1 email por OS por dia.',
-        escola: os.unidadeEscolar
-      });
-      setShowSuccessModal(true);
-      return;
-    }
-    
-    setConfirmOsData(os);
-    setShowConfirmModal(true);
-  };
-
-  const confirmResendEmail = async () => {
-    if (!confirmOsData) return;
-    
-    setShowConfirmModal(false);
-    const os = confirmOsData;
-    setConfirmOsData(null);
-
-    try {
-      setResendingEmail(os.id);
-      
-      const response = await fetch('/api/resend-os-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          osId: os.id,
-          unidadeEscolar: os.unidadeEscolar,
-          emailResponsavel: os.emailResponsavel,
-          numeroOs: os.numeroOs,
-        }),
-      });
-
-      if (response.ok) {
-        setEmailResult({
-          message: 'Email reenviado com sucesso!',
-          escola: os.unidadeEscolar
-        });
-        setShowSuccessModal(true);
-        // Atualizar os dados para refletir o novo envio
-        fetchOsExternas(currentUserId);
-        fetchPendingDailyDemands(currentUserId);
-      } else {
-        const errorData = await response.json();
-        setEmailResult({
-          message: `Erro ao reenviar email: ${errorData.error || 'Erro desconhecido'}`,
-          escola: os.unidadeEscolar
-        });
-        setShowSuccessModal(true);
-      }
-    } catch (error) {
-      console.error('Erro ao reenviar email:', error);
-      setEmailResult({
-        message: 'Erro ao reenviar email. Tente novamente.',
-        escola: os.unidadeEscolar
-      });
-      setShowSuccessModal(true);
-    } finally {
-      setResendingEmail(null);
-    }
-  };
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR', { 
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
-  const handleViewDetails = (os: OsExterna) => {
-    setSelectedOs(os);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedOs(null);
-  };
-
-  if (loading) {
+  if (hook.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -566,69 +76,56 @@ const OsExternasList: React.FC = () => {
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-4 mb-2">
             <h1 className="text-3xl font-bold text-gray-800">
-              {pendingOnly ? 'OS Pendentes' : 'OS Externas - Controle Geral'}
+              {hook.pendingOnly ? "OS Pendentes" : "OS Externas - Controle Geral"}
             </h1>
             <button
               onClick={() => {
-                setDownloadingPdf(true);
-                fetch('/api/generate-sem-os-pdf')
-                  .then(res => {
-                    if (!res.ok) throw new Error('Erro ao gerar PDF');
+                hook.setDownloadingPdf(true);
+                fetch("/api/generate-sem-os-pdf")
+                  .then((res) => {
+                    if (!res.ok) throw new Error("Erro ao gerar PDF");
                     return res.blob();
                   })
-                  .then(blob => {
+                  .then((blob) => {
                     const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
+                    const a = document.createElement("a");
                     a.href = url;
-                    a.download = 'demandas-sem-os.pdf';
+                    a.download = "demandas-sem-os.pdf";
                     a.click();
                     URL.revokeObjectURL(url);
                   })
-                  .catch(err => {
-                    console.error('Erro ao baixar PDF:', err);
-                    alert('Erro ao gerar PDF. Tente novamente.');
-                  })
-                  .finally(() => setDownloadingPdf(false));
+                  .catch(() => alert("Erro ao gerar PDF. Tente novamente."))
+                  .finally(() => hook.setDownloadingPdf(false));
               }}
-              disabled={downloadPdf}
+              disabled={hook.downloadPdf}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center gap-2 disabled:opacity-50"
             >
-              {downloadPdf ? (
-                <>
-                  <span className="animate-spin">⏳</span> Gerando...
-                </>
-              ) : (
-                <>
-                  📄 Baixar PDF
-                </>
-              )}
+              {hook.downloadPdf ? <><span className="animate-spin">⏳</span> Gerando...</> : <>📄 Baixar PDF</>}
             </button>
           </div>
           <p className="text-gray-600">
-            Total: {osExternas.length + pendingDailyDemands.length} | Pendentes: {osExternas.filter(os => os.status === 'Pendente').length + pendingDailyDemands.length} | Assinadas: {osExternas.filter(os => os.status === 'Assinado').length}
+            Total: {hook.osExternas.length + hook.pendingDailyDemands.length} | Pendentes: {hook.osExternas.filter((os) => os.status === "Pendente").length + hook.pendingDailyDemands.length} | Assinadas: {hook.osExternas.filter((os) => os.status === "Assinado").length}
           </p>
         </div>
 
-        {userRole && ['ADMIN', 'ADMTOTAL'].includes(userRole) && (
+        {hook.userRole && ["ADMIN", "ADMTOTAL"].includes(hook.userRole) && (
           <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">Escolas Nao Visitadas</h2>
-                <p className="text-sm text-gray-600">
-                  Consulte por dia as demandas marcadas como nao visitadas.
-                </p>
+                <p className="text-sm text-gray-600">Consulte por dia as demandas marcadas como nao visitadas.</p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <input
                   type="date"
-                  value={notVisitedDate}
+                  value={hook.notVisitedDate}
                   min="2026-05-05"
-                  onChange={(e) => setNotVisitedDate(e.target.value)}
+                  onChange={(e) => hook.setNotVisitedDate(e.target.value)}
                   className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 />
                 <Button
                   type="button"
-                  onClick={() => setShowNotVisitedModal(true)}
+                  onClick={() => hook.setShowNotVisitedModal(true)}
                   className="bg-amber-500 hover:bg-amber-600 text-white"
                 >
                   Ver nao visitadas
@@ -648,132 +145,102 @@ const OsExternasList: React.FC = () => {
             </div>
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Pesquisar por número da OS, escola, técnico, email ou responsável..."
+              value={hook.searchTerm}
+              onChange={(e) => hook.setSearchTerm(e.target.value)}
+              placeholder="Pesquisar por numero da OS, escola, tecnico, email ou responsavel..."
               className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
+            {hook.searchTerm && (
+              <button onClick={() => hook.setSearchTerm("")} className="absolute inset-y-0 right-0 pr-3 flex items-center">
                 <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             )}
           </div>
-          {searchTerm && (
+          {hook.searchTerm && (
             <div className="mt-2 text-sm text-gray-600 text-center">
-              Mostrando resultados para: "<span className="font-medium text-gray-800">{searchTerm}</span>"
-              | Pendentes: {osExternasPendentes.length + filteredPendingDailyDemands.length} | Assinadas: {osExternasAssinadas.length}
+              Mostrando resultados para: "<span className="font-medium text-gray-800">{hook.searchTerm}</span>"
+              | Pendentes: {hook.osExternasPendentes.length + hook.filteredPendingDailyDemands.length} | Assinadas: {hook.osExternasAssinadas.length}
             </div>
           )}
         </div>
 
-        <div className={`grid grid-cols-1 ${pendingOnly ? '' : 'lg:grid-cols-2'} gap-8`}>
+        <div className={`grid grid-cols-1 ${hook.pendingOnly ? "" : "lg:grid-cols-2"} gap-8`}>
           {/* Coluna Esquerda - OS Pendentes */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex items-center mb-6">
               <Clock size={24} className="text-orange-500 mr-2" />
               <h2 className="text-xl font-semibold text-gray-800">
-                OS Pendentes ({osExternasPendentes.length + filteredPendingDailyDemands.length})
+                OS Pendentes ({hook.osExternasPendentes.length + hook.filteredPendingDailyDemands.length})
               </h2>
             </div>
 
-            {osExternasPendentes.length === 0 && filteredPendingDailyDemands.length === 0 ? (
+            {hook.osExternasPendentes.length === 0 && hook.filteredPendingDailyDemands.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Clock size={48} className="mx-auto mb-4 text-gray-300" />
-                <p>{searchTerm ? 'Nenhuma OS pendente encontrada' : 'Nenhuma OS pendente'}</p>
+                <p>{hook.searchTerm ? "Nenhuma OS pendente encontrada" : "Nenhuma OS pendente"}</p>
               </div>
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {pendingDailyDemandsToday.length > 0 && (
+                {hook.pendingDailyDemandsToday.length > 0 && (
                   <div className="space-y-3">
                     <div className="rounded-lg border border-red-200 bg-red-100 px-3 py-2">
                       <div className="text-sm font-semibold text-red-900">
-                        Pendencias de hoje ({pendingDailyDemandsToday.length})
+                        Pendencias de hoje ({hook.pendingDailyDemandsToday.length})
                       </div>
                     </div>
-                    {pendingDailyDemandsToday.map(renderPendingDailyDemandCard)}
+                    {hook.pendingDailyDemandsToday.map(renderPendingDailyDemandCard)}
                   </div>
                 )}
 
-                {pendingDailyDemandsPrevious.length > 0 && (
+                {hook.pendingDailyDemandsPrevious.length > 0 && (
                   <div className="space-y-3">
                     <div className="rounded-lg border border-amber-200 bg-amber-100 px-3 py-2">
                       <div className="text-sm font-semibold text-amber-900">
-                        Pendencias anteriores ({pendingDailyDemandsPrevious.length})
+                        Pendencias anteriores ({hook.pendingDailyDemandsPrevious.length})
                       </div>
                     </div>
-                    {pendingDailyDemandsPrevious.map(renderPendingDailyDemandCard)}
+                    {hook.pendingDailyDemandsPrevious.map(renderPendingDailyDemandCard)}
                   </div>
                 )}
 
-                {osExternasPendentes.map((os) => (
+                {hook.osExternasPendentes.map((os) => (
                   <div key={os.id} className="border border-orange-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center mb-3">
-                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm font-medium">
-                            {os.numeroOs}
-                          </span>
-                          <span className="ml-2 text-sm text-gray-500">
-                            {formatDate(os.data)}
-                          </span>
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm font-medium">{os.numeroOs}</span>
+                          <span className="ml-2 text-sm text-gray-500">{formatDateShort(os.data)}</span>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
-                          {os.unidadeEscolar}
-                        </h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{os.unidadeEscolar}</h3>
                         <p className="text-sm text-gray-600 mb-2">
-                          <User size={16} className="inline mr-1" />
-                          {os.tecnicoResponsavel}
+                          <User size={16} className="inline mr-1" />{os.tecnicoResponsavel}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          Criada: {formatDateTime(os.createdAt)}
-                        </p>
+                        <p className="text-xs text-gray-500">Criada: {formatDateTime(os.createdAt)}</p>
                       </div>
                       <div className="flex flex-col gap-2 ml-4">
-                        <Button
-                          onClick={() => handleViewDetails(os)}
-                          size="sm"
-                          className="bg-orange-500 hover:bg-orange-600 text-white"
-                        >
-                          <Eye size={16} className="mr-1" />
-                          Ver
+                        <Button onClick={() => hook.handleViewDetails(os)} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+                          <Eye size={16} className="mr-1" />Ver
                         </Button>
-                        
-                        {/* Botão de reenvio de email - apenas para ADMIN e ADMTOTAL */}
-                        {(userRole && ['ADMIN', 'ADMTOTAL'].includes(userRole)) && (
+                        {(hook.userRole && ["ADMIN", "ADMTOTAL"].includes(hook.userRole)) && (
                           <div className="flex flex-col">
                             <Button
-                              onClick={() => handleResendEmail(os)}
+                              onClick={() => hook.handleResendEmail(os)}
                               size="sm"
-                              disabled={resendingEmail === os.id || !canSendEmailToday(os)}
-                              className={`text-white disabled:opacity-50 disabled:cursor-not-allowed ${
-                                canSendEmailToday(os) 
-                                  ? 'bg-blue-500 hover:bg-blue-600' 
-                                  : 'bg-gray-400'
-                              }`}
-                              title={canSendEmailToday(os) 
-                                ? "Reenviar email de lembrete para a escola" 
-                                : "Já foi enviado um email hoje (limite: 1 por dia)"
-                              }
+                              disabled={hook.resendingEmail === os.id || !hook.canSendEmailToday(os)}
+                              className={`text-white disabled:opacity-50 disabled:cursor-not-allowed ${hook.canSendEmailToday(os) ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-400"}`}
+                              title={hook.canSendEmailToday(os) ? "Reenviar email de lembrete para a escola" : "Ja foi enviado um email hoje (limite: 1 por dia)"}
                             >
-                              {resendingEmail === os.id ? (
+                              {hook.resendingEmail === os.id ? (
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
                               ) : (
-                                <PaperPlaneTilt size={16} className="mr-1" />
+                                <Send size={16} className="mr-1" />
                               )}
-                              {resendingEmail === os.id ? 'Enviando...' : 'Reenviar'}
+                              {hook.resendingEmail === os.id ? "Enviando..." : "Reenviar"}
                             </Button>
-                            
-                            {/* Mostrar data do último envio */}
                             {os.lastEmailSent && (
-                              <span className="text-xs text-gray-500 mt-1 text-center">
-                                {getLastEmailText(os)}
-                              </span>
+                              <span className="text-xs text-gray-500 mt-1 text-center">{hook.getLastEmailText(os)}</span>
                             )}
                           </div>
                         )}
@@ -786,783 +253,74 @@ const OsExternasList: React.FC = () => {
           </div>
 
           {/* Coluna Direita - OS Assinadas */}
-          {!pendingOnly && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center mb-6">
-              <CheckCircle size={24} className="text-green-500 mr-2" />
-              <h2 className="text-xl font-semibold text-gray-800">
-                OS Assinadas ({osExternasAssinadas.length})
-              </h2>
-            </div>
+          {!hook.pendingOnly && (
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="flex items-center mb-6">
+                <CheckCircle size={24} className="text-green-500 mr-2" />
+                <h2 className="text-xl font-semibold text-gray-800">
+                  OS Assinadas ({hook.osExternasAssinadas.length})
+                </h2>
+              </div>
 
-            {osExternasAssinadas.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <CheckCircle size={48} className="mx-auto mb-4 text-gray-300" />
-                <p>{searchTerm ? 'Nenhuma OS assinada encontrada' : 'Nenhuma OS assinada'}</p>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {osExternasAssinadas.map((os) => (
-                  <div key={os.id} className="border border-green-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-3">
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">
-                            {os.numeroOs}
-                          </span>
-                          <span className="ml-2 text-sm text-gray-500">
-                            {formatDate(os.data)}
-                          </span>
+              {hook.osExternasAssinadas.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <CheckCircle size={48} className="mx-auto mb-4 text-gray-300" />
+                  <p>{hook.searchTerm ? "Nenhuma OS assinada encontrada" : "Nenhuma OS assinada"}</p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {hook.osExternasAssinadas.map((os) => (
+                    <div key={os.id} className="border border-green-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center mb-3">
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">{os.numeroOs}</span>
+                            <span className="ml-2 text-sm text-gray-500">{formatDateShort(os.data)}</span>
+                          </div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{os.unidadeEscolar}</h3>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <User size={16} className="inline mr-1" />{os.tecnicoResponsavel}
+                          </p>
+                          <p className="text-sm text-green-600 mb-2">
+                            <CheckCircle size={16} className="inline mr-1" />
+                            Assinado por: {os.assinado}
+                          </p>
+                          <p className="text-xs text-gray-500">Criada: {formatDateTime(os.createdAt)}</p>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
-                          {os.unidadeEscolar}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-1">
-                          <User size={16} className="inline mr-1" />
-                          {os.tecnicoResponsavel}
-                        </p>
-                        <p className="text-sm text-green-600 mb-2">
-                          <CheckCircle size={16} className="inline mr-1" />
-                          Assinado por: {os.assinado}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Criada: {formatDateTime(os.createdAt)}
-                        </p>
+                        <Button onClick={() => hook.handleViewDetails(os)} size="sm" className="ml-4 bg-green-500 hover:bg-green-600 text-white">
+                          <Eye size={16} className="mr-1" />Ver
+                        </Button>
                       </div>
-                      <Button
-                        onClick={() => handleViewDetails(os)}
-                        size="sm"
-                        className="ml-4 bg-green-500 hover:bg-green-600 text-white"
-                      >
-                        <Eye size={16} className="mr-1" />
-                        Ver
-                      </Button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Modal com TODOS os dados baseados no schema */}
-      {showModal && selectedOs && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    {selectedOs.unidadeEscolar}
-                  </h3>
-                  <p className="text-gray-600">OS Externa - Detalhes Completos</p>
-                </div>
-                <button
-                  onClick={closeModal}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ✕
-                </button>
-              </div>
+      <OsExternasDetailModal
+        showModal={hook.showModal}
+        selectedOs={hook.selectedOs}
+        closeModal={hook.closeModal}
+      />
 
-              {/* Informações Principais */}
-              <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                <table className="w-full">
-                  <tbody>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50 w-1/3">
-                        Técnico Responsável
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {(() => {
-                          // Verificar se há técnicos parceiros (separados por " / ")
-                          if (selectedOs.tecnicoResponsavel?.includes(' / ')) {
-                            const tecnicos = selectedOs.tecnicoResponsavel.split(' / ');
-                            const principal = tecnicos[0];
-                            const parceiros = tecnicos.slice(1);
-
-                            return (
-                              <div className="space-y-2">
-                                <div>
-                                  <span className="font-semibold text-blue-600">{principal}</span>
-                                  <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-                                    Técnico
-                                  </span>
-                                </div>
-                                <div className="pl-4 border-l-2 border-gray-300">
-                                  <div className="text-sm text-gray-600 font-medium mb-1">
-                                    Técnicos Parceiros:
-                                  </div>
-                                  {parceiros.map((parceiro, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 mb-1">
-                                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
-                                      <span className="text-gray-700">{parceiro}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          // Se não houver parceiros, exibir normalmente
-                          return <span className="font-semibold">{selectedOs.tecnicoResponsavel}</span>;
-                        })()}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        Número OS
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.numeroOs}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        Assinatura
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.status === 'Assinado' ? selectedOs.assinado : 'Pendente'}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        CPF/Matrícula
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.cpf || 'Não informado'}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        Data
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.data}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        Hora
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.hora}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        Status
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedOs.status === 'Pendente'
-                          ? 'bg-orange-100 text-orange-800'
-                          : 'bg-green-100 text-green-800'
-                          }`}>
-                          {selectedOs.status === 'Pendente' ? 'Pendente' : 'Confirmada'}
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        E-mail Responsável
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.emailResponsavel}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        Cargo do Responsável
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.cargoResponsavel || 'Não informado'}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        Tem Laboratório ?
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        {selectedOs.temLaboratorio ? 'Sim' : 'Não'}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">
-                        Diretora Estava na Escola?
-                      </td>
-                      <td className="px-4 py-3">
-                        {selectedOs.diretoraNaEscola === true ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                            ✅ Sim
-                          </span>
-                        ) : selectedOs.diretoraNaEscola === false ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                            ❌ Não
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">Não informado</span>
-                        )}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Solicitação da Visita */}
-              <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <h4 className="font-bold text-gray-700">Solicitação da Visita</h4>
-                </div>
-                <div className="px-4 py-3">
-                  <p className="text-gray-900 whitespace-pre-wrap">{selectedOs.solicitacaoDaVisita}</p>
-                </div>
-              </div>
-
-              {/* Relatório */}
-              {selectedOs.relatorio && (
-                <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <h4 className="font-bold text-gray-700">Relatório</h4>
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="text-gray-900 whitespace-pre-wrap">{selectedOs.relatorio}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Equipamentos - Laboratório */}
-              <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <h4 className="font-bold text-gray-700">Equipamentos - Laboratório</h4>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b">Item</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Próprio</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Locado</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">PC</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.pcsProprio || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.pcsLocado || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.pcsProprio || 0) + (selectedOs.pcsLocado || 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Notebook</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.notebooksProprio || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.notebooksLocado || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.notebooksProprio || 0) + (selectedOs.notebooksLocado || 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Tablet</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.tabletsProprio || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.tabletsLocado || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.tabletsProprio || 0) + (selectedOs.tabletsLocado || 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Monitor</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.monitoresProprio || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.monitoresLocado || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.monitoresProprio || 0) + (selectedOs.monitoresLocado || 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Estabilizador</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.estabilizadoresProprio || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.estabilizadoresLocado || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.estabilizadoresProprio || 0) + (selectedOs.estabilizadoresLocado || 0)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Equipamentos - Outros Locais */}
-              <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <h4 className="font-bold text-gray-700">Equipamentos - Outros Locais</h4>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b">Item</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Próprio</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Locado</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">PC</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.pcsProprioOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.pcsLocadoOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.pcsProprioOutrosLocais || 0) + (selectedOs.pcsLocadoOutrosLocais || 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Notebook</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.notebooksProprioOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.notebooksLocadoOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.notebooksProprioOutrosLocais || 0) + (selectedOs.notebooksLocadoOutrosLocais || 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Tablet</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.tabletsProprioOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.tabletsLocadoOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.tabletsProprioOutrosLocais || 0) + (selectedOs.tabletsLocadoOutrosLocais || 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Monitor</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.monitoresProprioOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.monitoresLocadoOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.monitoresProprioOutrosLocais || 0) + (selectedOs.monitoresLocadoOutrosLocais || 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Estabilizador</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.estabilizadoresProprioOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.estabilizadoresLocadoOutrosLocais || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.estabilizadoresProprioOutrosLocais || 0) + (selectedOs.estabilizadoresLocadoOutrosLocais || 0)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Impressoras */}
-              <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <h4 className="font-bold text-gray-700">Impressoras</h4>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b">Item</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">OKI</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Kyocera</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">HP</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Ricoh</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Outras</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Impressora</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.oki || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.kyocera || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.hp || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.ricoh || 0}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.outrasImpressoras || 0}</td>
-                        <td className="px-4 py-2 text-center font-medium text-gray-900">
-                          {(selectedOs.oki || 0) + (selectedOs.kyocera || 0) + (selectedOs.hp || 0) + (selectedOs.ricoh || 0) + (selectedOs.outrasImpressoras || 0)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Problemas com Impressoras */}
-              {selectedOs.temImpressoraComProblema !== undefined && (
-                <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                    <h4 className="font-bold text-gray-700">Problemas com Impressoras</h4>
-                  </div>
-                  <div className="px-4 py-3">
-                    <div className="mb-3">
-                      <span className="font-medium text-gray-700">Existe impressora com problema?</span>
-                      <span className="ml-3">
-                        {selectedOs.temImpressoraComProblema === true ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                            ⚠️ Sim - Há problema
-                          </span>
-                        ) : selectedOs.temImpressoraComProblema === false ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                            ✅ Não - Tudo funcionando
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">Não informado</span>
-                        )}
-                      </span>
-                    </div>
-
-                    {/* Mostrar detalhes se houver problema */}
-                    {selectedOs.temImpressoraComProblema === true && (
-                      <div className="mt-4 space-y-4">
-                        {/* Relatório do Problema */}
-                        {selectedOs.relatorioImpressora && (
-                          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
-                            <div className="flex items-start">
-                              <div className="flex-shrink-0">
-                                <span className="text-lg">📝</span>
-                              </div>
-                              <div className="ml-3 flex-1">
-                                <h5 className="text-sm font-bold text-red-900 mb-2">
-                                  Relatório do Problema
-                                </h5>
-                                <p className="text-sm text-red-800 whitespace-pre-wrap">
-                                  {selectedOs.relatorioImpressora}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Identificação da Impressora */}
-                        {selectedOs.impressoraComProblema && (
-                          <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded">
-                            <div className="flex items-start">
-                              <div className="flex-shrink-0">
-                                <span className="text-lg">🖨️</span>
-                              </div>
-                              <div className="ml-3 flex-1">
-                                <h5 className="text-sm font-bold text-orange-900 mb-2">
-                                  Identificação da Impressora
-                                </h5>
-                                <p className="text-sm text-orange-800 font-mono">
-                                  {selectedOs.impressoraComProblema}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Internet e Rede */}
-              <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <h4 className="font-bold text-gray-700">Internet e Rede</h4>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b">Item</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Rede BR</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Educação Conectada</th>
-                        <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Não Há Provedor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-gray-200">
-                        <td className="px-4 py-2 font-medium text-gray-700">Internet</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.redeBr || '-'}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.educacaoConectada || '-'}</td>
-                        <td className="px-4 py-2 text-center text-gray-900">{selectedOs.naoHaProvedor || '-'}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Equipamentos de Rede */}
-                <div className="px-4 py-3 border-t border-gray-200">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <span className="font-medium text-gray-700">Rack:</span>
-                      <span className="ml-2 text-gray-900">{selectedOs.rack || 0}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Switch:</span>
-                      <span className="ml-2 text-gray-900">{selectedOs.switch || 0}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Roteador:</span>
-                      <span className="ml-2 text-gray-900">{selectedOs.roteador || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Peças ou Material */}
-              {selectedOs.pecasOuMaterial && (
-                <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <h4 className="font-bold text-gray-700">Peças ou Material</h4>
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="text-gray-900 whitespace-pre-wrap">{selectedOs.pecasOuMaterial}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Solucionado */}
-              {selectedOs.solucionado && (
-                <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <h4 className="font-bold text-gray-700">Problema Solucionado</h4>
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="text-gray-900 whitespace-pre-wrap">{selectedOs.solucionado}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Fotos Antes */}
-              {selectedOs.fotosAntes && selectedOs.fotosAntes.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <h4 className="font-bold text-gray-700">Fotos Antes</h4>
-                  </div>
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {selectedOs.fotosAntes.map((foto, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={foto}
-                            alt={`Antes ${index + 1}`}
-                            className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => window.open(foto, '_blank')}
-                          />
-                          <p className="text-center text-sm text-gray-600 mt-1">
-                            Foto Antes {index + 1}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Fotos Depois */}
-              {selectedOs.fotosDepois && selectedOs.fotosDepois.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <h4 className="font-bold text-gray-700">Fotos Depois</h4>
-                  </div>
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {selectedOs.fotosDepois.map((foto, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={foto}
-                            alt={`Depois ${index + 1}`}
-                            className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => window.open(foto, '_blank')}
-                          />
-                          <p className="text-center text-sm text-gray-600 mt-1">
-                            Foto Depois {index + 1}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Informações do Sistema */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg">
-                <div className="px-4 py-3 bg-gray-100 border-b border-gray-200">
-                  <h4 className="font-bold text-gray-700">Informações do Sistema</h4>
-                </div>
-                <div className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-700">ID da OS:</span>
-                      <span className="ml-2 text-gray-900">{selectedOs.id}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Criada em:</span>
-                      <span className="ml-2 text-gray-900">{formatDateTime(selectedOs.createdAt)}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Atualizada em:</span>
-                      <span className="ml-2 text-gray-900">{formatDateTime(selectedOs.updatedAt)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end">
-                <Button onClick={closeModal} className="bg-gray-500 hover:bg-gray-600 text-white">
-                  Fechar
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Confirmação */}
-      {showConfirmModal && confirmOsData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full mx-auto shadow-2xl transform transition-all">
-            <div className="p-6">
-              {/* Header do Modal */}
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                  <PaperPlaneTilt className="w-8 h-8 text-orange-600" weight="fill" />
-                </div>
-              </div>
-
-              {/* Título */}
-              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
-                Reenviar Email da OS
-              </h3>
-
-              {/* Mensagem */}
-              <p className="text-gray-600 text-center mb-4">
-                Deseja reenviar o email para <strong>{confirmOsData.unidadeEscolar}</strong>?
-              </p>
-
-              {/* Detalhes */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">OS:</span> {confirmOsData.numeroOs}</p>
-                  <p><span className="font-medium">Email:</span> {confirmOsData.emailResponsavel}</p>
-                  <p className="text-orange-600">
-                    ⚠️ Isso enviará um lembrete sobre a OS pendente com o PDF anexado
-                  </p>
-                </div>
-              </div>
-
-              {/* Botões */}
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={() => setShowConfirmModal(false)}
-                  className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmResendEmail}
-                  className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
-                >
-                  Enviar Email
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Sucesso/Erro do Email */}
-      {showSuccessModal && emailResult && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full mx-auto shadow-2xl transform transition-all">
-            <div className="p-6">
-              {/* Header do Modal */}
-              <div className="flex items-center justify-center mb-4">
-                {emailResult.message.includes('sucesso') ? (
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-8 h-8 text-green-600" weight="fill" />
-                  </div>
-                ) : (
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                    <X className="w-8 h-8 text-red-600" weight="bold" />
-                  </div>
-                )}
-              </div>
-
-              {/* Título */}
-              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
-                {emailResult.message.includes('sucesso') ? 'Email Enviado!' : 'Erro no Envio'}
-              </h3>
-
-              {/* Mensagem */}
-              <p className="text-gray-600 text-center mb-4">
-                {emailResult.message}
-              </p>
-
-              {/* Escola */}
-              <div className="bg-gray-50 rounded-lg p-3 mb-6">
-                <p className="text-sm text-gray-600 text-center">
-                  <span className="font-medium">Escola:</span> {emailResult.escola}
-                </p>
-              </div>
-
-              {/* Botão de Fechar */}
-              <div className="flex justify-center">
-                <button
-                  onClick={() => setShowSuccessModal(false)}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                    emailResult.message.includes('sucesso')
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
-                >
-                  Fechar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showNotVisitedModal && userRole && ['ADMIN', 'ADMTOTAL'].includes(userRole) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[85vh] shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Escolas Nao Visitadas</h3>
-                <p className="text-sm text-gray-600">
-                  {new Date(`${notVisitedDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowNotVisitedModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-                aria-label="Fechar"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="px-6 py-4 border-b border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <input
-                type="date"
-                value={notVisitedDate}
-                min="2026-05-05"
-                onChange={(e) => setNotVisitedDate(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              />
-              <div className="text-sm text-gray-600">
-                Total: {filteredNotVisitedDailyDemands.length}
-              </div>
-            </div>
-
-            <div className="p-6 overflow-y-auto max-h-[calc(85vh-144px)] space-y-4">
-              {filteredNotVisitedDailyDemands.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-8 text-center text-sm text-amber-900">
-                  Nenhuma escola nao visitada em {new Date(`${notVisitedDate}T12:00:00-03:00`).toLocaleDateString('pt-BR')}.
-                </div>
-              ) : (
-                filteredNotVisitedDailyDemands.map(renderNotVisitedDailyDemandCard)
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <OsExternasModals
+        showConfirmModal={hook.showConfirmModal}
+        setShowConfirmModal={hook.setShowConfirmModal}
+        confirmOsData={hook.confirmOsData}
+        confirmResendEmail={hook.confirmResendEmail}
+        showSuccessModal={hook.showSuccessModal}
+        setShowSuccessModal={hook.setShowSuccessModal}
+        emailResult={hook.emailResult}
+        showNotVisitedModal={hook.showNotVisitedModal}
+        setShowNotVisitedModal={hook.setShowNotVisitedModal}
+        notVisitedDate={hook.notVisitedDate}
+        setNotVisitedDate={hook.setNotVisitedDate}
+        filteredNotVisitedDailyDemands={hook.filteredNotVisitedDailyDemands}
+        userRole={hook.userRole}
+      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Wrench, EnvelopeSimple, CheckCircle, Eye, DownloadSimple, ClockCounterClockwise, XCircle } from 'phosphor-react';
+import { X, Wrench, Mail, CheckCircle, Eye, Download, History, XCircle } from 'lucide-react';
 import Select from 'react-select';
 
 interface School {
@@ -240,7 +240,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Wrench size={32} weight="fill" />
+            <Wrench size={32} />
             <div>
               <h2 className="text-2xl font-bold">Manutenção Preventiva</h2>
               <p className="text-green-100 text-sm">Solicitar manutenção preventiva para escolas</p>
@@ -250,7 +250,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
             onClick={onClose}
             className="hover:bg-white/20 p-2 rounded-lg transition-colors"
           >
-            <X size={24} weight="bold" />
+            <X size={24} />
           </button>
         </div>
 
@@ -264,7 +264,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <EnvelopeSimple size={20} className="inline mr-2" weight="bold" />
+            <Mail size={20} className="inline mr-2" />
             Enviar Solicitações
           </button>
           <button
@@ -275,7 +275,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <Eye size={20} className="inline mr-2" weight="bold" />
+            <Eye size={20} className="inline mr-2" />
             Ver OS Capturadas ({osList.length})
           </button>
           <button
@@ -286,7 +286,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <ClockCounterClockwise size={20} className="inline mr-2" weight="bold" />
+            <History size={20} className="inline mr-2" />
             Histórico ({statistics.totalLogs})
           </button>
         </div>
@@ -369,7 +369,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                       key={school.value}
                       className="flex items-center gap-2 p-2 bg-white dark:bg-zinc-800 rounded border border-gray-200 dark:border-zinc-600"
                     >
-                      <CheckCircle size={16} className="text-green-600" weight="fill" />
+                      <CheckCircle size={16} className="text-green-600" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {school.label}
@@ -410,7 +410,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                 </>
               ) : (
                 <>
-                  <EnvelopeSimple size={24} weight="bold" />
+                  <Mail size={24} />
                   Enviar Solicitação
                 </>
               )}
@@ -440,7 +440,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                   </>
                 ) : (
                   <>
-                    <DownloadSimple size={20} weight="bold" />
+                    <Download size={20} />
                     Capturar OS dos Emails
                   </>
                 )}
@@ -473,7 +473,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                 </div>
               ) : osList.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 dark:bg-zinc-700 rounded-lg">
-                  <DownloadSimple size={48} className="mx-auto text-gray-400 mb-4" />
+                  <Download size={48} className="mx-auto text-gray-400 mb-4" />
                   <p className="text-gray-600 dark:text-gray-400">Nenhuma OS capturada ainda</p>
                   <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
                     Clique em "Capturar OS dos Emails" para verificar
@@ -603,7 +603,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                 </div>
               ) : emailLogs.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 dark:bg-zinc-700 rounded-lg">
-                  <ClockCounterClockwise size={48} className="mx-auto text-gray-400 mb-4" />
+                  <History size={48} className="mx-auto text-gray-400 mb-4" />
                   <p className="text-gray-600 dark:text-gray-400">Nenhum envio registrado</p>
                 </div>
               ) : (
@@ -621,9 +621,9 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
                         <div className="flex-1">
                           <h4 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                             {log.status === 'success' ? (
-                              <CheckCircle size={20} className="text-green-600" weight="fill" />
+                              <CheckCircle size={20} className="text-green-600" />
                             ) : (
-                              <XCircle size={20} className="text-red-600" weight="fill" />
+                              <XCircle size={20} className="text-red-600" />
                             )}
                             {log.schoolName}
                           </h4>

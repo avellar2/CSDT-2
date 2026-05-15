@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { X, MapPin, SpinnerGap, Warning, MagnifyingGlass, PencilSimple, List, Check, Star } from 'phosphor-react';
+import { X, MapPin, Loader2, AlertTriangle, Search, PencilLine, List, Check, Star } from 'lucide-react';
 
 interface School {
   id: number;
@@ -292,7 +292,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-teal-600 text-white shadow-md flex-shrink-0">
         <div className="flex items-center gap-3">
-          <MapPin size={22} weight="fill" />
+          <MapPin size={22} />
           <h2 className="text-xl font-semibold">Mapa de Escolas</h2>
           {!isLoading && !error && schools.length > 0 && (
             <span className="bg-white/20 text-white text-sm px-2 py-0.5 rounded-full">
@@ -305,7 +305,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
               className="ml-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
               title="Geocodificar escolas restantes"
             >
-              <MapPin size={16} weight="fill" />
+              <MapPin size={16} />
               Geocodificar
             </button>
           )}
@@ -314,7 +314,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
               onClick={stopGeocoding}
               className="ml-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
             >
-              <SpinnerGap size={16} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
               Pausar
             </button>
           )}
@@ -348,7 +348,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
             />
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
-                <MagnifyingGlass size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Pesquisar escola..."
@@ -384,7 +384,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                   </div>
                   {prioritySchoolIds.length > 0 && (
                     <div className="flex items-center gap-1 mt-1">
-                      <Star size={12} weight="fill" className="text-yellow-500" />
+                      <Star size={12} className="text-yellow-500" />
                       <span className="text-xs text-yellow-600 dark:text-yellow-500">
                         {prioritySchoolIds.length} prioritária(s)
                       </span>
@@ -435,7 +435,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                       ) : (
                         <>
                           <div className="flex items-center gap-2">
-                            <SpinnerGap size={14} className="animate-spin text-blue-500" />
+                            <Loader2 size={14} className="animate-spin text-blue-500" />
                             <span className="text-xs text-gray-500 dark:text-gray-400 italic">
                               Calculando rota real via OSRM...
                             </span>
@@ -471,7 +471,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                               </span>
                               <span className="text-gray-700 dark:text-gray-300 flex items-center gap-1">
                                 {visit.school?.name || 'Escola'}
-                                {isPriority && <Star size={12} weight="fill" className="text-yellow-500" />}
+                                {isPriority && <Star size={12} className="text-yellow-500" />}
                               </span>
                             </li>
                           );
@@ -532,8 +532,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                             >
                               <Star
                                 size={16}
-                                weight={prioritySchoolIds.includes(school.id) ? "fill" : "regular"}
-                                className={prioritySchoolIds.includes(school.id) ? "text-yellow-500" : "text-gray-400"}
+                                className={prioritySchoolIds.includes(school.id) ? "text-yellow-500 fill-yellow-500" : "text-gray-400"}
                               />
                             </button>
                           )}
@@ -579,7 +578,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                         className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors flex-shrink-0"
                         title="Editar endereço"
                       >
-                        <PencilSimple size={18} className="text-gray-600 dark:text-gray-300" />
+                        <PencilLine size={18} className="text-gray-600 dark:text-gray-300" />
                       </button>
                     </div>
                   </div>
@@ -665,7 +664,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                 >
                   {isSaving ? (
                     <>
-                      <SpinnerGap size={18} className="animate-spin" />
+                      <Loader2 size={18} className="animate-spin" />
                       Salvando...
                     </>
                   ) : (
@@ -707,7 +706,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
         {error && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center text-red-500">
-              <Warning size={48} className="mx-auto mb-3" />
+              <AlertTriangle size={48} className="mx-auto mb-3" />
               <p className="text-lg font-medium">{error}</p>
               <button onClick={onClose} className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
                 Fechar
@@ -720,7 +719,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
         {noSchools && (
           <div className="absolute inset-0 flex items-center justify-center p-6">
             <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
-              <MapPin size={56} className="mx-auto mb-4 text-teal-500" weight="duotone" />
+              <MapPin size={56} className="mx-auto mb-4 text-teal-500" />
               <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
                 Nenhuma escola no mapa ainda
               </h3>
@@ -741,7 +740,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
               {isAdmin && isGeocoding && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-center gap-2 text-teal-600">
-                    <SpinnerGap size={20} className="animate-spin" />
+                    <Loader2 size={20} className="animate-spin" />
                     <span className="font-medium text-sm">Geocodificando...</span>
                   </div>
                   {geocodingProgress.total > 0 && (
@@ -779,7 +778,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
         {/* Geocodificando com escolas já existentes (progresso flutuante) */}
         {isGeocoding && schools.length > 0 && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white dark:bg-gray-800 rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 min-w-[300px]">
-            <SpinnerGap size={20} className="animate-spin text-teal-600 flex-shrink-0" />
+            <Loader2 size={20} className="animate-spin text-teal-600 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 {geocodingProgress.done}/{geocodingProgress.total} geocodificadas

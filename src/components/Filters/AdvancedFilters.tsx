@@ -2,16 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Select from 'react-select';
-import { 
-  FunnelSimple, 
-  X, 
-  FloppyDisk, 
-  Trash,
-  CalendarBlank,
-  MagnifyingGlass,
-  SortAscending,
-  FileArrowDown
-} from 'phosphor-react';
+import { Filter, X, Save, Trash, CalendarDays, Search, ArrowUpDown, FileDown } from 'lucide-react';
 
 interface Item {
   id: number;
@@ -330,7 +321,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
         >
-          <FunnelSimple size={20} />
+          <Filter size={20} />
           Filtros Avançados
           {activeFiltersCount() > 0 && (
             <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
@@ -355,7 +346,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors"
             title="Salvar Filtros Atuais"
           >
-            <FloppyDisk size={20} />
+            <Save size={20} />
           </button>
 
           {onGenerateReport && activeFiltersCount() > 0 && (
@@ -455,7 +446,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
               title="Gerar Relatório com Filtros Aplicados"
             >
-              <FileArrowDown size={20} />
+              <FileDown size={20} />
             </button>
           )}
         </div>
@@ -468,7 +459,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <MagnifyingGlass size={16} className="inline mr-1" />
+                <Search size={16} className="inline mr-1" />
                 Buscar
               </label>
               <input
@@ -541,7 +532,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <CalendarBlank size={16} className="inline mr-1" />
+                <CalendarDays size={16} className="inline mr-1" />
                 Data Inicial
               </label>
               <input
@@ -593,7 +584,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <SortAscending size={16} className="inline mr-1" />
+                <ArrowUpDown size={16} className="inline mr-1" />
                 Ordenar por
               </label>
               <select

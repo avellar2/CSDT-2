@@ -1,4 +1,4 @@
-import { Lock, SignIn, User, WarningCircle } from 'phosphor-react';
+import { Lock, LogIn, User, AlertCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Modal from 'react-modal';
@@ -90,7 +90,7 @@ const LoginForm: React.FC = () => {
           }`} 
           disabled={!email || !password}
         >
-          <SignIn size={20} className={email && password ? 'animate-pulse' : ''} />
+          <LogIn size={20} className={email && password ? 'animate-pulse' : ''} />
           {email && password ? 'Entrar' : 'Preencha os campos'}
         </button>
       </form>
@@ -105,7 +105,7 @@ const LoginForm: React.FC = () => {
         <div className="bg-slate-800 border border-red-500/20 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform animate-in fade-in zoom-in duration-300">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center">
-              <WarningCircle size={32} className="text-red-400" />
+              <AlertCircle size={32} className="text-red-400" />
             </div>
             <h2 className="text-xl font-bold text-white">Oops! Algo deu errado</h2>
             <p className="text-slate-300 text-sm leading-relaxed">{modalMessage}</p>

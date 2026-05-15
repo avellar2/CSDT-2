@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  MapPin, 
-  Clock, 
-  Car, 
-  NavigationArrow,
+import {
+  MapPin,
+  Clock,
+  Car,
+  Navigation,
   Copy,
   CheckCircle,
-  WaveTriangle,
+  TriangleAlert,
   Plus,
   X,
   ArrowRight,
-  Path,
-  ArrowSquareOut
-} from 'phosphor-react';
+  Route,
+  ExternalLink
+} from 'lucide-react';
 
 interface School {
   id: number;
@@ -208,7 +208,7 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold flex items-center gap-3">
-                <Path size={28} />
+                <Route size={28} />
                 Rotas Rápidas
               </h2>
               <p className="text-blue-100 mt-1">
@@ -293,7 +293,7 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
                           disabled={loading}
                           className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-sm font-medium disabled:opacity-50"
                         >
-                          <NavigationArrow size={14} className="inline mr-1" />
+                          <Navigation size={14} className="inline mr-1" />
                           Otimizar
                         </button>
                       )}
@@ -317,7 +317,7 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
                             rel="noopener noreferrer"
                             className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
                           >
-                            <ArrowSquareOut size={14} className="inline mr-1" />
+                            <ExternalLink size={14} className="inline mr-1" />
                             Abrir Rota
                           </a>
                         </div>

@@ -3,6 +3,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { Header } from '@/components/Header';
 import { useInternalChat } from '@/hooks/useInternalChat';
 import { NewTicketModal } from '@/components/NewTicketModal';
+import { getPriorityClasses } from '@/utils/colors';
 import { 
   MessageCircle, 
   Send, 
@@ -78,16 +79,6 @@ const InternalChat: React.FC = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'URGENT': return 'text-red-500 bg-red-50';
-      case 'HIGH': return 'text-orange-500 bg-orange-50';
-      case 'NORMAL': return 'text-blue-500 bg-blue-50';
-      case 'LOW': return 'text-gray-500 bg-gray-50';
-      default: return 'text-gray-500 bg-gray-50';
     }
   };
 
@@ -185,7 +176,7 @@ const InternalChat: React.FC = () => {
                     </div>
                     
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityClasses(ticket.priority)}`}>
                         {ticket.priority}
                       </span>
                       <span className="text-xs text-gray-500">

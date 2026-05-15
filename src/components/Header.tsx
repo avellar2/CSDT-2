@@ -3,28 +3,28 @@ import { Button } from "./ui/button";
 import { useHeaderContext } from "../context/HeaderContext";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useRouter } from "next/router";
-import { 
-  ChartBar, 
-  ClipboardText, 
-  File, 
-  FileText, 
-  GraduationCap, 
-  House, 
-  List, 
-  PlusCircle, 
+import {
+  BarChart3,
+  ClipboardList,
+  File,
+  FileText,
+  GraduationCap,
+  House,
+  List,
+  PlusCircle,
   Printer,
-  MagnifyingGlass,
+  Search,
   Star,
   Bell,
   Calendar,
   Users,
-  Desktop,
-  ChartPie,
-  Gear,
+  Monitor,
+  PieChart,
+  Settings,
   Clock,
   X,
   HardDrive
-} from "phosphor-react";
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -222,7 +222,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
     {
       id: 'statistics',
       title: 'Estatísticas de OS',
-      icon: ChartBar,
+      icon: BarChart3,
       path: '/statistics',
       roles: ['ADMTOTAL', 'ADMIN'],
       category: 'Estatísticas'
@@ -230,7 +230,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
     {
       id: 'advanced-statistics',
       title: 'Dashboard Avançado',
-      icon: ChartPie,
+      icon: PieChart,
       path: '/advanced-statistics',
       roles: ['ADMTOTAL', 'ADMIN'],
       category: 'Estatísticas'
@@ -246,7 +246,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
     {
       id: 'os-list',
       title: 'OS Externas (Antigo)',
-      icon: ClipboardText,
+      icon: ClipboardList,
       path: '/os-list',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
       category: 'Ordens de Serviço'
@@ -254,7 +254,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
     {
       id: 'os-externas-list',
       title: 'OS Externas (Novo)',
-      icon: ClipboardText,
+      icon: ClipboardList,
       path: '/os-externas-list',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
       category: 'Ordens de Serviço'
@@ -310,7 +310,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
     {
       id: 'internal-demands',
       title: 'Demandas Internas',
-      icon: ClipboardText,
+      icon: ClipboardList,
       path: '/internal-demands',
       roles: ['TECH'],
       category: 'Gestão Diária'
@@ -318,7 +318,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
     {
       id: 'chada',
       title: 'CHADA',
-      icon: Desktop,
+      icon: Monitor,
       path: '/chada',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
       category: 'Outros'
@@ -479,7 +479,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
 
                 {/* Busca */}
                 <div className="relative">
-                  <MagnifyingGlass size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <Search size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                   <input
                     type="text"
                     placeholder="Buscar funcionalidades..."
@@ -503,7 +503,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
                 {favoriteCards.length > 0 && (
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                      <Star size={18} className="text-yellow-500" weight="fill" />
+                      <Star size={18} className="text-yellow-500" />
                       Favoritos ({favoriteCards.length})
                     </h3>
                     <div className="space-y-3">
@@ -526,7 +526,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
                               }}
                               className="opacity-70 group-hover:opacity-100 transition-opacity p-1"
                             >
-                              <Star size={18} className="text-yellow-500" weight="fill" />
+                              <Star size={18} className="text-yellow-500" />
                             </button>
                           </div>
                         );
@@ -608,7 +608,7 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
                 {/* Mensagem quando não há resultados */}
                 {filteredCards.length === 0 && searchTerm && (
                   <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                    <MagnifyingGlass size={48} className="mx-auto mb-4 text-gray-400 dark:text-gray-500" />
+                    <Search size={48} className="mx-auto mb-4 text-gray-400 dark:text-gray-500" />
                     <p className="text-lg font-semibold mb-2">Nenhuma funcionalidade encontrada</p>
                     <p className="text-base">para "{searchTerm}"</p>
                   </div>

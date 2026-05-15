@@ -1,7 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, Trash, Eye, GridFour, Table, ListBullets, PencilSimple } from 'phosphor-react';
+import { Clock, Trash, Eye, LayoutGrid, Table, List, PencilLine } from 'lucide-react';
 
 interface Item {
   id: number;
@@ -53,7 +53,7 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
         }`}
         title="Lista Compacta"
       >
-        <ListBullets size={18} />
+        <List size={18} />
         <span className="hidden sm:inline">Lista</span>
       </button>
       
@@ -66,7 +66,7 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
         }`}
         title="Grade de Cards"
       >
-        <GridFour size={18} />
+        <LayoutGrid size={18} />
         <span className="hidden sm:inline">Grid</span>
       </button>
       
@@ -135,7 +135,7 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
                 className="text-yellow-400 hover:text-yellow-300 transition-colors"
                 title="Editar Item"
               >
-                <PencilSimple size={24} />
+                <PencilLine size={24} />
               </button>
             )}
             {item.Profile?.userId === userId && (
@@ -187,7 +187,7 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
                   className="text-yellow-400 hover:text-yellow-300 transition-colors"
                   title="Editar Item"
                 >
-                  <PencilSimple size={20} />
+                  <PencilLine size={20} />
                 </button>
               )}
               {item.Profile?.userId === userId && (
@@ -340,7 +340,7 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
                         className="text-yellow-500 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 transition-colors"
                         title="Editar Item"
                       >
-                        <PencilSimple size={20} />
+                        <PencilLine size={20} />
                       </button>
                     )}
                     {item.Profile?.userId === userId && (

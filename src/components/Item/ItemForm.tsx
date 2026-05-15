@@ -4,7 +4,7 @@ import BarcodeScanner from "@/components/Scanner/BarcodeScanner";
 import Select from "react-select";
 import Modal from 'react-modal';
 import { jwtDecode } from "jwt-decode";
-import { CheckCircle, WarningCircle, DeviceMobile, Tag, Barcode, GraduationCap, WindowsLogo, Cpu } from "phosphor-react";
+import { CheckCircle, AlertCircle, Smartphone, Tag, Barcode, GraduationCap, Monitor, Cpu } from "lucide-react";
 import { ButtonLoading } from "@/components/ui/ButtonLoading"; // Importando o componente ButtonLoading
 
 interface SchoolOption {
@@ -149,7 +149,7 @@ const ItemForm: React.FC = () => {
           />
         </div>
         <div className="mb-4 relative">
-          <WindowsLogo size={24} className="absolute left-3 top-2/3 transform -translate-y-1/2 text-gray-700" />
+          <Monitor size={24} className="absolute left-3 top-2/3 transform -translate-y-1/2 text-gray-700" />
           <label className="block text-gray-700">Marca</label>
           <input
             type="text"
@@ -215,7 +215,7 @@ const ItemForm: React.FC = () => {
             {modalMessage.includes('sucesso') ? (
               <CheckCircle className="text-green-500 text-3xl mr-2" />
             ) : (
-              <WarningCircle className="text-red-500 text-3xl mr-2" />
+              <AlertCircle className="text-red-500 text-3xl mr-2" />
             )}
             <p>{modalMessage}</p>
           </div>

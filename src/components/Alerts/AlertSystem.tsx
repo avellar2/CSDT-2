@@ -1,19 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { format, parseISO, differenceInDays, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  Bell, 
-  Warning, 
-  Clock, 
-  TrendUp, 
-  X,
-  Eye,
-  EyeSlash,
-  Gear,
-  Archive,
-  Buildings,
-  Wrench
-} from 'phosphor-react';
+import { Bell, AlertTriangle, Clock, TrendingUp, X, Eye, EyeOff, Settings, Archive, Building2, Wrench } from 'lucide-react';
 
 interface Item {
   id: number;
@@ -216,7 +204,7 @@ const AlertSystem: React.FC<AlertSystemProps> = ({ items, schools }) => {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'maintenance': return <Wrench size={20} />;
-      case 'overloaded': return <Buildings size={20} />;
+      case 'overloaded': return <Building2 size={20} />;
       case 'old_equipment': return <Archive size={20} />;
       case 'inactive': return <Clock size={20} />;
       default: return <Bell size={20} />;
@@ -266,7 +254,7 @@ const AlertSystem: React.FC<AlertSystemProps> = ({ items, schools }) => {
               }`}
               title={showOnlyUnacknowledged ? 'Mostrar todos' : 'Mostrar apenas não confirmados'}
             >
-              {showOnlyUnacknowledged ? <Eye size={20} /> : <EyeSlash size={20} />}
+              {showOnlyUnacknowledged ? <Eye size={20} /> : <EyeOff size={20} />}
             </button>
             
             <button
@@ -274,7 +262,7 @@ const AlertSystem: React.FC<AlertSystemProps> = ({ items, schools }) => {
               className="p-2 bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors"
               title="Configurações de Alertas"
             >
-              <Gear size={20} />
+              <Settings size={20} />
             </button>
           </div>
         </div>
@@ -483,7 +471,7 @@ const AlertSystem: React.FC<AlertSystemProps> = ({ items, schools }) => {
                       className="p-2 bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors"
                       title="Desmarcar como confirmado"
                     >
-                      <EyeSlash size={16} />
+                      <EyeOff size={16} />
                     </button>
                   ) : (
                     <button

@@ -3,28 +3,28 @@ import {
   PlusCircle,
   List,
   FileText,
-  ChartBar,
+  BarChart3,
   GraduationCap,
-  ClipboardText,
+  ClipboardList,
   Printer,
-  ChartPie,
-  MagnifyingGlass,
+  PieChart,
+  Search,
   Star,
   Bell,
   Calendar,
-  Gear,
+  Settings,
   Users,
-  Desktop,
+  Monitor,
   Plus,
   Wrench,
   Trash,
   CheckCircle,
-  ChatCircle,
-  CloudArrowDown,
+  MessageCircle,
+  Download,
   Phone,
   BookOpen,
-  MapTrifold
-} from "phosphor-react";
+  MapPin
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import useSWR from "swr";
 import { jwtDecode } from "jwt-decode";
@@ -300,7 +300,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'statistics',
       title: 'Estatísticas de OS',
-      icon: ChartBar,
+      icon: BarChart3,
       color: 'bg-purple-500 hover:bg-purple-700',
       path: '/statistics',
       roles: ['ADMTOTAL', 'ADMIN'],
@@ -310,7 +310,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'advanced-statistics',
       title: 'Dashboard Avançado',
-      icon: ChartPie,
+      icon: PieChart,
       color: 'bg-violet-500 hover:bg-violet-700',
       path: '/advanced-statistics',
       roles: ['ADMTOTAL', 'ADMIN'],
@@ -330,7 +330,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'os-list',
       title: 'OS Externas (Antigo)',
-      icon: ClipboardText,
+      icon: ClipboardList,
       color: 'bg-indigo-500 hover:bg-indigo-700',
       path: '/os-list',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
@@ -340,7 +340,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'os-externas-list',
       title: 'OS Externas (Novo)',
-      icon: ClipboardText,
+      icon: ClipboardList,
       color: 'bg-emerald-500 hover:bg-emerald-700',
       path: '/os-externas-list',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
@@ -420,7 +420,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'internal-demands',
       title: 'Demandas Internas',
-      icon: ClipboardText,
+      icon: ClipboardList,
       color: 'bg-yellow-600 hover:bg-yellow-800',
       path: '/internal-demands',
       roles: ['TECH'],
@@ -430,7 +430,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'chada',
       title: 'CHADA',
-      icon: Desktop,
+      icon: Monitor,
       color: 'bg-gray-600 hover:bg-gray-800',
       path: '/chada',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
@@ -450,7 +450,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'schools-map',
       title: 'Mapa de Escolas',
-      icon: MapTrifold,
+      icon: MapPin,
       color: 'bg-teal-500 hover:bg-teal-700',
       action: () => setShowSchoolsMap(true),
       roles: ['ADMTOTAL', 'ADMIN', 'TECH', 'ONLYREAD'],
@@ -500,7 +500,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'internal-chat',
       title: 'Chat Interno - Setores',
-      icon: ChatCircle,
+      icon: MessageCircle,
       color: 'bg-blue-600 hover:bg-blue-800',
       path: '/internal-chat',
       roles: ['ADMIN', 'ADMTOTAL', 'TECH', 'SCHOOL'],
@@ -520,7 +520,7 @@ const Dashboard: React.FC = () => {
     {
       id: 'setup-pc',
       title: 'Setup de PC',
-      icon: Desktop,
+      icon: Monitor,
       color: 'bg-cyan-600 hover:bg-cyan-800',
       path: '/setup-pc',
       roles: ['ADMIN', 'ADMTOTAL', 'TECH'],
@@ -583,10 +583,9 @@ const Dashboard: React.FC = () => {
           }}
           className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/20 transition-colors"
         >
-          <Star 
-            size={16} 
-            className={isFavorite ? "text-yellow-300" : "text-white/70 group-hover:text-white"}
-            weight={isFavorite ? "fill" : "regular"}
+          <Star
+            size={16}
+            className={isFavorite ? "text-yellow-300 fill-yellow-300" : "text-white/70 group-hover:text-white"}
           />
         </button>
         
@@ -603,7 +602,7 @@ const Dashboard: React.FC = () => {
         {/* Indicador de favorito */}
         {isFavorite && (
           <div className="absolute bottom-2 left-2">
-            <Star size={12} className="text-yellow-300" weight="fill" />
+            <Star size={12} className="text-yellow-300 fill-yellow-300" />
           </div>
         )}
       </div>
@@ -689,7 +688,7 @@ const Dashboard: React.FC = () => {
                     }`}
                     title="Fazer backup de todas as tabelas e arquivos"
                   >
-                    <CloudArrowDown size={16} />
+                    <Download size={16} />
                     <span>{isCreatingBackup ? 'Criando...' : 'Backup'}</span>
                   </button>
                 )}
@@ -698,7 +697,7 @@ const Dashboard: React.FC = () => {
             
             {/* Barra de busca */}
             <div className="relative max-w-md">
-              <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Buscar funcionalidades..."
@@ -744,7 +743,7 @@ const Dashboard: React.FC = () => {
           {filteredCards.length === 0 && (
             <div className="text-center py-12">
               <div className="text-gray-400 dark:text-gray-500 mb-4">
-                <MagnifyingGlass size={48} className="mx-auto" />
+                <Search size={48} className="mx-auto" />
               </div>
               <p className="text-gray-600 dark:text-gray-400">
                 Nenhuma funcionalidade encontrada para "{searchTerm}"

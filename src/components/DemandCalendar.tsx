@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarBlank, CaretLeft, CaretRight } from 'phosphor-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DemandCalendarProps {
   selectedDate: Date;
@@ -75,7 +75,7 @@ const DemandCalendar: React.FC<DemandCalendarProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <CalendarBlank size={20} className="text-blue-500" />
+          <Calendar size={20} className="text-blue-500" />
           Calendário de Demandas
         </h3>
         
@@ -84,7 +84,7 @@ const DemandCalendar: React.FC<DemandCalendarProps> = ({
             onClick={() => navigateMonth('prev')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <CaretLeft size={16} />
+            <ChevronLeft size={16} />
           </button>
           
           <span className="font-semibold text-gray-700 min-w-[120px] text-center">
@@ -95,7 +95,7 @@ const DemandCalendar: React.FC<DemandCalendarProps> = ({
             onClick={() => navigateMonth('next')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <CaretRight size={16} />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>

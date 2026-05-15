@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Select from 'react-select';
-import { GoogleMap, LoadScript, Marker, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
-import { Clock, MapPin, Route, Users, Calculator, RefreshCw, Download } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Clock, MapPin, Route, Users, Calculator, RefreshCw, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
+
+// Importação dinâmica para evitar SSR issues com Leaflet
+const MapWithRoutes = dynamic(() => import('@/components/MapWithRoutes'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-[500px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="text-center">
+        <RefreshCw className="animate-spin mx-auto mb-2" size={24} />
+        <p>Carregando mapa...</p>
+      </div>
+    </div>
+  )
+});
 
 interface School {
   id: number;
@@ -37,16 +50,6 @@ interface OptimizedRoute {
   visits: RouteVisit[];
 }
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '500px'
-};
-
-const center = {
-  lat: -22.7858, // Duque de Caxias
-  lng: -43.3119
-};
-
 const RouteOptimizer: React.FC = () => {
   const router = useRouter();
   const [schools, setSchools] = useState<School[]>([]);
@@ -57,8 +60,7 @@ const RouteOptimizer: React.FC = () => {
   const [optimizedRoute, setOptimizedRoute] = useState<OptimizedRoute | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
-  const [startLocation, setStartLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [geocodingResults, setGeocodingResults] = useState<any>(null);
 
   // Carrega dados iniciais
   useEffect(() => {
@@ -88,6 +90,8 @@ const RouteOptimizer: React.FC = () => {
 
   const handleGeocode = async () => {
     setIsGeocoding(true);
+    setGeocodingResults(null);
+    
     try {
       const selectedSchoolIds = selectedSchools.map(s => s.value);
       const response = await fetch('/api/geocode-schools', {
@@ -100,14 +104,17 @@ const RouteOptimizer: React.FC = () => {
       });
 
       const result = await response.json();
+      setGeocodingResults(result);
       
       if (result.success) {
-        alert(`Geocoding concluído: ${result.summary.success} sucessos, ${result.summary.errors} erros`);
         fetchSchools(); // Atualiza lista
       }
     } catch (error) {
       console.error('Erro no geocoding:', error);
-      alert('Erro ao geocodificar endereços');
+      setGeocodingResults({ 
+        success: false, 
+        error: 'Erro ao geocodificar endereços' 
+      });
     }
     setIsGeocoding(false);
   };
@@ -115,6 +122,17 @@ const RouteOptimizer: React.FC = () => {
   const handleOptimize = async () => {
     if (!selectedTechnician || selectedSchools.length === 0) {
       alert('Selecione um técnico e pelo menos uma escola');
+      return;
+    }
+
+    // Verifica se as escolas têm coordenadas
+    const schoolsWithoutCoords = selectedSchools.filter(selected => {
+      const school = schools.find(s => s.id === selected.value);
+      return !school?.latitude || !school?.longitude;
+    });
+
+    if (schoolsWithoutCoords.length > 0) {
+      alert('Algumas escolas não têm coordenadas. Execute o geocoding primeiro.');
       return;
     }
 
@@ -126,8 +144,7 @@ const RouteOptimizer: React.FC = () => {
         body: JSON.stringify({
           technicianId: selectedTechnician.value,
           date: selectedDate,
-          schools: selectedSchools.map(s => s.value),
-          startLocation
+          schools: selectedSchools.map(s => s.value)
         })
       });
 
@@ -135,12 +152,6 @@ const RouteOptimizer: React.FC = () => {
       
       if (result.success) {
         setOptimizedRoute(result.optimization);
-        
-        // Gera rota no Google Maps
-        if (result.optimization.visits.length > 1) {
-          generateDirections(result.optimization.visits);
-        }
-        
         alert(`Rota otimizada! ${result.metrics.algorithm === 'genetic' ? 'Algoritmo Genético' : 'Vizinho Mais Próximo'} utilizado.`);
       } else {
         alert(result.error || 'Erro na otimização');
@@ -150,40 +161,6 @@ const RouteOptimizer: React.FC = () => {
       alert('Erro ao otimizar rota');
     }
     setIsOptimizing(false);
-  };
-
-  const generateDirections = (visits: RouteVisit[]) => {
-    if (visits.length < 2) return;
-
-    const waypoints = visits.slice(1, -1).map(visit => ({
-      location: new google.maps.LatLng(
-        visit.school.latitude!,
-        visit.school.longitude!
-      ),
-      stopover: true
-    }));
-
-    const directionsService = new google.maps.DirectionsService();
-    directionsService.route(
-      {
-        origin: new google.maps.LatLng(
-          visits[0].school.latitude!,
-          visits[0].school.longitude!
-        ),
-        destination: new google.maps.LatLng(
-          visits[visits.length - 1].school.latitude!,
-          visits[visits.length - 1].school.longitude!
-        ),
-        waypoints,
-        optimizeWaypoints: false, // Já otimizamos
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === 'OK') {
-          setDirectionsResponse(result);
-        }
-      }
-    );
   };
 
   const exportRoute = () => {
@@ -212,13 +189,18 @@ const RouteOptimizer: React.FC = () => {
   const schoolOptions = schools.map(school => ({
     value: school.id,
     label: `${school.name} ${school.latitude ? '📍' : '❌'}`,
-    isDisabled: !school.latitude
+    isDisabled: false // Permite selecionar mesmo sem coordenadas para geocodificar depois
   }));
 
   const technicianOptions = technicians.map(tech => ({
     value: tech.id,
     label: tech.name
   }));
+
+  // Escolas selecionadas para mostrar no mapa
+  const selectedSchoolsData = schools.filter(school => 
+    selectedSchools.some(selected => selected.value === school.id)
+  );
 
   return (
     <ProtectedRoute>
@@ -229,7 +211,7 @@ const RouteOptimizer: React.FC = () => {
             Otimizador de Rotas
           </h1>
           <p className="text-gray-600">
-            Otimize as rotas dos técnicos para reduzir tempo de deslocamento
+            Otimize as rotas dos técnicos para reduzir tempo de deslocamento (usando OpenStreetMap gratuito)
           </p>
         </div>
 
@@ -286,7 +268,7 @@ const RouteOptimizer: React.FC = () => {
                   <button
                     onClick={handleGeocode}
                     disabled={isGeocoding || selectedSchools.length === 0}
-                    className="flex-1 bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center"
+                    className="flex-1 bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center text-sm"
                   >
                     {isGeocoding ? (
                       <RefreshCw className="animate-spin mr-2" size={16} />
@@ -299,7 +281,7 @@ const RouteOptimizer: React.FC = () => {
                   <button
                     onClick={handleOptimize}
                     disabled={isOptimizing || selectedSchools.length === 0 || !selectedTechnician}
-                    className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"
+                    className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center text-sm"
                   >
                     {isOptimizing ? (
                       <RefreshCw className="animate-spin mr-2" size={16} />
@@ -310,6 +292,30 @@ const RouteOptimizer: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Resultado do Geocoding */}
+              {geocodingResults && (
+                <div className={`mt-4 p-3 rounded-lg ${geocodingResults.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <div className="flex items-center mb-2">
+                    {geocodingResults.success ? (
+                      <CheckCircle className="text-green-600 mr-2" size={16} />
+                    ) : (
+                      <AlertCircle className="text-red-600 mr-2" size={16} />
+                    )}
+                    <span className="text-sm font-medium">
+                      {geocodingResults.success ? 'Geocoding Concluído' : 'Erro no Geocoding'}
+                    </span>
+                  </div>
+                  {geocodingResults.success && geocodingResults.summary && (
+                    <div className="text-xs text-gray-600">
+                      <div>Sucessos: {geocodingResults.summary.success}</div>
+                      <div>Erros: {geocodingResults.summary.errors}</div>
+                      <div>Total: {geocodingResults.summary.total}</div>
+                      <div>Serviço: {geocodingResults.usedService}</div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Resultados */}
@@ -365,46 +371,22 @@ const RouteOptimizer: React.FC = () => {
                 Visualização da Rota
               </h2>
 
-              <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
-                  center={center}
-                  zoom={11}
-                >
-                  {/* Marcadores das escolas selecionadas */}
-                  {selectedSchools.map((selected, index) => {
-                    const school = schools.find(s => s.id === selected.value);
-                    if (!school?.latitude || !school?.longitude) return null;
-                    
-                    return (
-                      <Marker
-                        key={school.id}
-                        position={{ lat: school.latitude, lng: school.longitude }}
-                        label={{
-                          text: `${index + 1}`,
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}
-                        title={school.name}
-                      />
-                    );
-                  })}
+              <MapWithRoutes
+                schools={selectedSchoolsData}
+                route={optimizedRoute?.visits}
+              />
 
-                  {/* Rota otimizada */}
-                  {directionsResponse && (
-                    <DirectionsRenderer
-                      directions={directionsResponse}
-                      options={{
-                        suppressMarkers: true, // Usa nossos marcadores customizados
-                        polylineOptions: {
-                          strokeColor: '#2563eb',
-                          strokeWeight: 4
-                        }
-                      }}
-                    />
-                  )}
-                </GoogleMap>
-              </LoadScript>
+              <div className="mt-4 text-sm text-gray-600">
+                <div className="flex items-center justify-between">
+                  <span>Escolas selecionadas: {selectedSchools.length}</span>
+                  <span>Geocodificadas: {selectedSchoolsData.filter(s => s.latitude).length}</span>
+                </div>
+                {optimizedRoute && (
+                  <div className="text-blue-600 font-medium">
+                    Rota otimizada com {optimizedRoute.visits.length} paradas
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

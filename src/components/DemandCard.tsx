@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash, Pencil, ClipboardText, CheckCircle } from 'phosphor-react';
+import { Trash, Pencil, ClipboardList, CheckCircle } from 'lucide-react';
 
 interface Demand {
   id: string;
@@ -63,8 +63,8 @@ const DemandCard: React.FC<DemandCardProps> = ({
   const getStatusIcon = (status?: string) => {
     switch (status) {
       case 'signed': return <CheckCircle size={18} className="text-green-600" />;
-      case 'created': return <ClipboardText size={18} className="text-yellow-600" />;
-      default: return <ClipboardText size={18} className="text-gray-400" />;
+      case 'created': return <ClipboardList size={18} className="text-yellow-600" />;
+      default: return <ClipboardList size={18} className="text-gray-400" />;
     }
   };
 
@@ -199,7 +199,7 @@ const DemandCard: React.FC<DemandCardProps> = ({
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
                 title="Preencher OS"
               >
-                <ClipboardText size={16} />
+                <ClipboardList size={16} />
                 <span className="hidden sm:inline">Preencher OS</span>
                 <span className="sm:hidden">OS</span>
               </button>
@@ -233,7 +233,7 @@ const DemandCard: React.FC<DemandCardProps> = ({
               className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
               title="Preencher OS de Reagendamento"
             >
-              <ClipboardText size={16} />
+              <ClipboardList size={16} />
               <span className="hidden sm:inline">Preencher OS</span>
               <span className="sm:hidden">OS</span>
             </button>

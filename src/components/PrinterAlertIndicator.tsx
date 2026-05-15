@@ -1,5 +1,5 @@
 import React from 'react';
-import { Warning, Printer } from 'phosphor-react';
+import { AlertTriangle, Printer } from 'lucide-react';
 import { usePrinterNotifications } from '@/context/PrinterNotificationContext';
 
 export const PrinterAlertIndicator: React.FC = () => {
@@ -21,7 +21,7 @@ export const PrinterAlertIndicator: React.FC = () => {
         <span className="text-sm font-medium">
           {criticalErrors.length === 1 ? '1 Alerta Crítico' : `${criticalErrors.length} Alertas Críticos`}
         </span>
-        <Warning size={16} className="text-red-600" />
+        <AlertTriangle size={16} className="text-red-600" />
       </div>
       
       {isCheckingErrors && (

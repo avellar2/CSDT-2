@@ -1,4 +1,4 @@
-import { FileText, ComputerTower, WifiHigh, Printer, ClipboardText, CheckCircle, Buildings } from "phosphor-react";
+import { FileText, Server, Wifi, Printer, ClipboardList, CheckCircle, Building2 } from "lucide-react";
 import { FormStep } from "../types/formSteps";
 
 export const formSteps: FormStep[] = [
@@ -13,21 +13,21 @@ export const formSteps: FormStep[] = [
     id: "laboratorio",
     title: "Laboratório",
     description: "Equipamentos do laboratório",
-    icon: ComputerTower,
+    icon: Server,
     fields: ["temLaboratorio", "pcsProprio", "pcsLocado", "notebooksProprio", "notebooksLocado", "monitoresProprio", "monitoresLocado", "estabilizadoresProprio", "estabilizadoresLocado", "tabletsProprio", "tabletsLocado"]
   },
   {
     id: "outros-locais",
     title: "Outros Locais",
     description: "Equipamentos em outros locais",
-    icon: Buildings,
+    icon: Building2,
     fields: ["pcsProprioOutrosLocais", "pcsLocadoOutrosLocais", "notebooksProprioOutrosLocais", "notebooksLocadoOutrosLocais", "monitoresProprioOutrosLocais", "monitoresLocadoOutrosLocais", "estabilizadoresProprioOutrosLocais", "estabilizadoresLocadoOutrosLocais", "tabletsProprioOutrosLocais", "tabletsLocadoOutrosLocais"]
   },
   {
     id: "internet",
     title: "Internet",
     description: "Configurações de rede",
-    icon: WifiHigh,
+    icon: Wifi,
     fields: ["redeBr", "educacaoConectada", "naoHaProvedor", "rack", "switch", "roteador"]
   },
   {
@@ -41,7 +41,7 @@ export const formSteps: FormStep[] = [
     id: "relatorio",
     title: "Relatório",
     description: "Relatório, fotos e materiais",
-    icon: ClipboardText,
+    icon: ClipboardList,
     fields: ["pecasOuMaterial", "relatorio", "fotosAntes", "fotosDepois"]
   },
   {

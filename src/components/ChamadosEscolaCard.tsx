@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Phone, Plus, X, Check, Clock } from 'phosphor-react';
+import { Phone, Plus, X, Check, Clock } from 'lucide-react';
+import { getPriorityClasses } from '@/utils/colors';
+import { formatDateTime } from '@/utils/date';
 
 interface ChamadoEscola {
   id: string;
@@ -59,15 +61,6 @@ const ChamadosEscolaCard: React.FC<ChamadosEscolaCardProps> = ({
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'URGENT': return 'text-red-600 bg-red-100';
-      case 'HIGH': return 'text-orange-600 bg-orange-100';
-      case 'MEDIUM': return 'text-yellow-600 bg-yellow-100';
-      case 'LOW': return 'text-green-600 bg-green-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -110,16 +103,6 @@ const ChamadosEscolaCard: React.FC<ChamadosEscolaCardProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   return (
@@ -167,7 +150,7 @@ const ChamadosEscolaCard: React.FC<ChamadosEscolaCardProps> = ({
                       <h4 className="font-semibold text-gray-900 dark:text-white">
                         {chamado.title}
                       </h4>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(chamado.priority)}`}>
+                      <span className={`px-2 py-1 text-xs rounded-full ${getPriorityClasses(chamado.priority)}`}>
                         {chamado.priority}
                       </span>
                     </div>
@@ -185,7 +168,7 @@ const ChamadosEscolaCard: React.FC<ChamadosEscolaCardProps> = ({
                         {getStatusText(chamado.status)}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatDate(chamado.createdAt)}
+                        {formatDateTime(chamado.createdAt)}
                       </span>
                     </div>
                   </div>
@@ -221,7 +204,7 @@ const ChamadosEscolaCard: React.FC<ChamadosEscolaCardProps> = ({
                       {selectedChamado.title}
                     </h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(selectedChamado.priority)}`}>
+                      <span className={`px-2 py-1 text-xs rounded-full ${getPriorityClasses(selectedChamado.priority)}`}>
                         {selectedChamado.priority}
                       </span>
                       <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedChamado.status)}`}>
@@ -274,9 +257,9 @@ const ChamadosEscolaCard: React.FC<ChamadosEscolaCardProps> = ({
                 )}
 
                 <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 pt-4 border-t border-gray-200 dark:border-gray-600">
-                  <span>Criado em: {formatDate(selectedChamado.createdAt)}</span>
+                  <span>Criado em: {formatDateTime(selectedChamado.createdAt)}</span>
                   {selectedChamado.resolvedAt && (
-                    <span>Resolvido em: {formatDate(selectedChamado.resolvedAt)}</span>
+                    <span>Resolvido em: {formatDateTime(selectedChamado.resolvedAt)}</span>
                   )}
                 </div>
               </div>

@@ -2,17 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Header } from '@/components/Header';
 import { supabase } from '@/lib/supabaseClient';
-import { 
-  CheckCircle, 
-  ArrowLeft,
-  Calendar,
-  User,
-  MapPin,
-  Clock,
-  Eye,
-  MagnifyingGlass,
-  Wrench
-} from 'phosphor-react';
+import { CheckCircle, ArrowLeft, Calendar, User, MapPin, Clock, Eye, Search, Wrench } from 'lucide-react';
+import { getPriorityClasses } from '@/utils/colors';
 
 interface AcceptedTicket {
   id: number;
@@ -267,14 +258,6 @@ const AcceptedTickets: React.FC = () => {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'URGENT': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'HIGH': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-      case 'MEDIUM': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      default: return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-    }
-  };
 
   const getPriorityText = (priority: string) => {
     switch (priority) {
@@ -344,7 +327,7 @@ const AcceptedTickets: React.FC = () => {
             {/* Filtros */}
             <div className="flex flex-col sm:flex-row gap-4 mt-6">
               <div className="relative flex-1">
-                <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Pesquisar chamados..."
@@ -402,7 +385,7 @@ const AcceptedTickets: React.FC = () => {
                           {ticket.status === 'SCHEDULED' ? 'Agendado' :
                            ticket.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Resolvido'}
                         </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityClasses(ticket.priority)}`}>
                           {getPriorityText(ticket.priority)}
                         </span>
                       </div>

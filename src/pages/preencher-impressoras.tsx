@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, X, Printer, Plus, Trash, User, Briefcase, FileText } from 'phosphor-react';
+import { CheckCircle, X, Printer, Plus, Trash, User, Briefcase, FileText } from 'lucide-react';
 
 interface PrinterData {
   marca: string;
@@ -141,7 +141,7 @@ const PreencherImpressoras: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100">
         <div className="bg-white p-10 rounded-2xl shadow-2xl text-center max-w-md">
           <div className="bg-red-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-            <X size={64} weight="fill" className="text-red-500" />
+            <X size={64} className="text-red-500" />
           </div>
           <h2 className="text-3xl font-bold text-red-700 mb-3">Link Inválido</h2>
           <p className="text-gray-700 text-lg mb-2">
@@ -173,7 +173,7 @@ const PreencherImpressoras: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100">
         <div className="bg-white p-10 rounded-2xl shadow-2xl text-center max-w-md">
           <div className="bg-red-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-            <X size={64} weight="fill" className="text-red-500" />
+            <X size={64} className="text-red-500" />
           </div>
           <h2 className="text-3xl font-bold text-red-700 mb-3">Erro</h2>
           <p className="text-gray-700 text-lg mb-4">{message}</p>
@@ -188,7 +188,7 @@ const PreencherImpressoras: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
         <div className="bg-white p-10 rounded-2xl shadow-2xl text-center max-w-md">
           <div className="bg-green-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={64} weight="fill" className="text-green-500" />
+            <CheckCircle size={64} className="text-green-500" />
           </div>
           <h2 className="text-3xl font-bold text-green-700 mb-3">Enviado!</h2>
           <p className="text-gray-700 text-lg mb-2">{message}</p>
@@ -206,7 +206,7 @@ const PreencherImpressoras: React.FC = () => {
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-8 rounded-t-2xl shadow-lg">
           <h1 className="text-3xl font-bold text-center mb-2 flex items-center justify-center">
-            <Printer size={32} className="mr-3" weight="fill" />
+            <Printer size={32} className="mr-3" />
             Informações sobre Impressoras Locadas
           </h1>
           <p className="text-center text-purple-100">
@@ -219,7 +219,7 @@ const PreencherImpressoras: React.FC = () => {
             {requestData.status === 'Concluído' && (
               <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg mb-6 shadow-md">
                 <div className="flex items-center">
-                  <CheckCircle size={24} className="mr-3" weight="bold" />
+                  <CheckCircle size={24} className="mr-3" />
                   <span className="font-medium">Esta solicitação já foi preenchida anteriormente.</span>
                 </div>
               </div>
@@ -230,7 +230,7 @@ const PreencherImpressoras: React.FC = () => {
                 {/* Dados do Responsável */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
                   <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <User size={24} className="mr-2 text-blue-600" weight="fill" />
+                    <User size={24} className="mr-2 text-blue-600" />
                     Dados do Responsável
                   </h3>
 
@@ -286,7 +286,7 @@ const PreencherImpressoras: React.FC = () => {
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold text-gray-800 flex items-center">
-                      <Printer size={24} className="mr-2 text-purple-600" weight="fill" />
+                      <Printer size={24} className="mr-2 text-purple-600" />
                       Impressoras Locadas
                     </h3>
                     <button
@@ -294,7 +294,7 @@ const PreencherImpressoras: React.FC = () => {
                       onClick={addPrinter}
                       className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium"
                     >
-                      <Plus size={20} weight="bold" />
+                      <Plus size={20} />
                       Adicionar Impressora
                     </button>
                   </div>
@@ -310,7 +310,7 @@ const PreencherImpressoras: React.FC = () => {
                               onClick={() => removePrinter(index)}
                               className="text-red-600 hover:text-red-800 transition-colors"
                             >
-                              <Trash size={20} weight="bold" />
+                              <Trash size={20} />
                             </button>
                           )}
                         </div>
@@ -353,7 +353,7 @@ const PreencherImpressoras: React.FC = () => {
                 {message && !success && (
                   <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow-md">
                     <div className="flex items-center">
-                      <X size={24} className="mr-3" weight="bold" />
+                      <X size={24} className="mr-3" />
                       <span className="font-medium">{message}</span>
                     </div>
                   </div>
@@ -375,7 +375,7 @@ const PreencherImpressoras: React.FC = () => {
                     </span>
                   ) : (
                     <span className="flex items-center justify-center">
-                      <CheckCircle size={24} className="mr-2" weight="bold" />
+                      <CheckCircle size={24} className="mr-2" />
                       Enviar Informações
                     </span>
                   )}

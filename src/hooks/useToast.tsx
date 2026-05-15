@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { CheckCircle, X, Warning, Info } from 'phosphor-react';
+import { CheckCircle, X, AlertTriangle, Info } from 'lucide-react';
 
 interface Toast {
   id: string;
@@ -46,10 +46,10 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const getIcon = (type: Toast['type']) => {
     switch (type) {
-      case 'success': return <CheckCircle size={20} weight="fill" />;
-      case 'error': return <X size={20} weight="bold" />;
-      case 'warning': return <Warning size={20} weight="fill" />;
-      case 'info': return <Info size={20} weight="fill" />;
+      case 'success': return <CheckCircle size={20} />;
+      case 'error': return <X size={20} />;
+      case 'warning': return <AlertTriangle size={20} />;
+      case 'info': return <Info size={20} />;
     }
   };
 

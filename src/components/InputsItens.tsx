@@ -1,6 +1,6 @@
 import React, { ChangeEvent, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Camera, FileImage } from 'phosphor-react';
+import { Upload, Camera, FileImage } from 'lucide-react';
 import Select, { MultiValue } from 'react-select';
 
 interface InputsItensProps {

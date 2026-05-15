@@ -2,13 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Header } from '@/components/Header';
 import { supabase } from '@/lib/supabaseClient';
-import { 
-  Trash, 
-  ArrowLeft,
-  Calendar,
-  User,
-  WaveTriangle
-} from 'phosphor-react';
+import { Trash, ArrowLeft, Calendar, User, AlertTriangle } from 'lucide-react';
 
 interface SchoolProfile {
   schoolId: number;
@@ -204,7 +198,7 @@ const DeletedTickets: React.FC = () => {
                     
                     <div>
                       <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <WaveTriangle size={16} className="text-red-500" />
+                        <AlertTriangle size={16} className="text-red-500" />
                         Motivo da Exclusão:
                       </h4>
                       <p className="text-gray-700 dark:text-gray-300 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">

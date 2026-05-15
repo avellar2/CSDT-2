@@ -1,24 +1,15 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/router";
-import Modal from "react-modal";
-import { jwtDecode } from "jwt-decode";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import React from "react";
 import {
-  MagnifyingGlass,
-  Trash,
-  FileArrowDown,
-  Clock,
-  File,
+  Search,
+  FileDown,
   Database,
-  CloudArrowDown,
   ChartLine,
   Eye,
   FileText,
-  Bell
-} from "phosphor-react";
-import * as XLSX from "xlsx";
-import axios from "axios";
+  Bell,
+  File,
+} from "lucide-react";
+import { useDeviceList } from "@/hooks/useDeviceList";
 import { SkeletonCard } from "./SkeletonCard";
 import Dashboard from "./Analytics/Dashboard";
 import DeviceViews from "./Views/DeviceViews";
@@ -26,29 +17,6 @@ import AdvancedFilters from "./Filters/AdvancedFilters";
 import SmartGrouping from "./Grouping/SmartGrouping";
 import AdvancedReports from "./Reports/AdvancedReports";
 import AlertSystem from "./Alerts/AlertSystem";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import Select from "react-select";
 import {
   Pagination,
   PaginationContent,
@@ -58,1155 +26,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { supabase } from "@/lib/supabaseClient";
-
-interface Item {
-  id: number;
-  name: string;
-  brand: string;
-  serialNumber: string;
-  createdAt: string;
-  inep: string;
-  Profile: {
-    displayName: string;
-    userId: string;
-  };
-  School: {
-    name: string;
-  };
-}
+import DeviceListModals from "./Device/DeviceListModals";
+import DeviceListMemorandumDialog from "./Device/DeviceListMemorandumDialog";
 
 const DeviceList: React.FC = () => {
-  const router = useRouter();
-  const [items, setItems] = useState<Item[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [schoolItemCount, setSchoolItemCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [schools, setSchools] = useState<any[]>([]);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [itemHistory, setItemHistory] = useState<any[]>([]);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false); // Estado para controlar o modal
-  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para controlar o AlertDialog
-  const [schoolName, setSchoolName] = useState("");
-  const [district, setDistrict] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [userRole, setUserRole] = useState<string | null>(null); // Estado para armazenar a role do usuário
-  const [currentStep, setCurrentStep] = useState<"step1" | "step2">("step1");
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<any>(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [itemToEdit, setItemToEdit] = useState<any>(null);
-  const [editName, setEditName] = useState("");
-  const [editBrand, setEditBrand] = useState("");
-  const [editSerial, setEditSerial] = useState("");
-  const [editSchoolId, setEditSchoolId] = useState<number | null>(null);
-  const [editSchools, setEditSchools] = useState<any[]>([]);
-  const [editLoading, setEditLoading] = useState(false);
-  const [relatedData, setRelatedData] = useState<any>(null);
-  const [loadingRelatedData, setLoadingRelatedData] = useState(false);
-  const itemsPerPage = 10; // Número de itens por página
-  const ITEMS_PER_PAGE = 13; // Itens por página no PDF de entrega
+  const hook = useDeviceList();
 
-  // Novos estados para funcionalidades avançadas
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'table'>('list');
-  const [groupBy, setGroupBy] = useState<'school' | 'type' | 'status' | 'date' | 'district'>('school');
-  const [showGrouping, setShowGrouping] = useState(false);
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
-  const [activeFilters, setActiveFilters] = useState<any>(null);
-  const [showReports, setShowReports] = useState(false);
-  const [showAlerts, setShowAlerts] = useState(false);
-
-  // NOVOS ESTADOS para troca de equipamentos
-  const [memorandumType, setMemorandumType] = useState<"entrega" | "troca" | "devolucao">(
-    "entrega",
-  );
-  const [exchangeFromSchool, setExchangeFromSchool] = useState("");
-  const [exchangeToSchool, setExchangeToSchool] = useState("");
-
-  // Para troca: selecionar equipamentos que vão do CSDT para a escola destino
-  const [selectedFromCSDT, setSelectedFromCSDT] = useState<number[]>([]);
-  // Para troca: selecionar equipamentos que vão da escola destino para o CSDT
-  const [selectedFromDestino, setSelectedFromDestino] = useState<number[]>([]);
-
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setModalMessage("Usuário não autenticado. Por favor, faça login.");
-      setModalIsOpen(true);
-      return;
-    }
-
-    try {
-      const decoded = jwtDecode<{ userId: string; name: string }>(token);
-      if (!decoded) {
-        setModalMessage("Usuário não autenticado. Por favor, faça login.");
-        setModalIsOpen(true);
-        return;
-      }
-      setUserName(decoded.name);
-      setUserId(decoded.userId);
-    } catch (error) {
-      setModalMessage("Usuário não autenticado. Por favor, faça login.");
-      setModalIsOpen(true);
-      return;
-    }
-
-    const fetchItems = async () => {
-      try {
-        const response = await fetch("/api/items", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          const text = await response.text();
-          console.error("Expected JSON but got:", text);
-          setModalMessage(
-            "Erro ao buscar itens. Resposta inesperada do servidor.",
-          );
-          setModalIsOpen(true);
-          return;
-        }
-
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setItems(data);
-        } else {
-          console.error("Expected an array but got:", data);
-        }
-      } catch (error) {
-        console.error("Error fetching items:", error);
-        setModalMessage("Erro ao buscar itens.");
-        setModalIsOpen(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchItems();
-  }, []);
-
-  useEffect(() => {
-    const countItemsInSchool = () => {
-      const count = items.filter(
-        (item) =>
-          item.School &&
-          item.School.name.toLowerCase().includes(searchTerm.toLowerCase()),
-      ).length;
-      setSchoolItemCount(count);
-    };
-
-    if (Array.isArray(items)) {
-      countItemsInSchool();
-      // Inicializar filteredItems se não há filtros ativos
-      if (!activeFilters) {
-        setFilteredItems(items);
-      }
-    }
-  }, [searchTerm, items, activeFilters]);
-
-  useEffect(() => {
-    async function fetchItems() {
-      try {
-        const response = await axios.get("/api/all-schools");
-        setSchools(response.data);
-      } catch (error) {
-
-      }
-    }
-
-    fetchItems();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token não encontrado no localStorage.");
-        return;
-      }
-
-      try {
-        // Decodifica o token para obter o userId
-        const decoded = jwtDecode<{ userId: string }>(token);
-
-        // Faz a chamada para o Supabase para garantir que o usuário está autenticado
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (error || !user) {
-          console.error("Erro ao buscar usuário no Supabase:", error);
-          return;
-        }
-
-        // Faz a chamada para o endpoint /api/get-role
-        const response = await fetch(`/api/get-role?userId=${user.id}`);
-        const data = await response.json();
-
-        if (response.ok && data.role) {
-          setUserRole(data.role); // Define a role do usuário
-
-        } else {
-          console.error("Erro ao buscar a role:", data.error);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar a role do usuário:", error);
-      }
-    };
-
-    fetchUserRole();
-  }, []);
-
-  // Filtros básicos (mantidos para compatibilidade)
-  const basicFilteredItems = Array.isArray(items)
-    ? items
-        .filter(
-          (item) =>
-            (item.name &&
-              item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.brand &&
-              item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.serialNumber &&
-              item.serialNumber
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())) ||
-            (item.School &&
-              item.School.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())),
-        )
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        ) // Ordena por data de criação (mais recentes primeiro)
-    : [];
-
-  // Use filteredItems se há filtros avançados, senão use básicos
-  const displayItems = activeFilters ? filteredItems : basicFilteredItems;
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = displayItems.slice(indexOfFirstItem, indexOfLastItem);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const totalPages = Math.ceil(displayItems.length / itemsPerPage);
-
-  const fetchRelatedData = async (itemId: number) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setModalMessage("Usuário não autenticado. Por favor, faça login.");
-      setModalIsOpen(true);
-      return null;
-    }
-
-    setLoadingRelatedData(true);
-    try {
-      const response = await fetch(`/api/items/${itemId}/related-data`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data;
-      } else {
-        const errorData = await response.json();
-        setModalMessage(`Erro ao buscar dados relacionados: ${errorData.error}`);
-        setModalIsOpen(true);
-        return null;
-      }
-    } catch (error) {
-      console.error("Erro ao buscar dados relacionados:", error);
-      setModalMessage("Erro ao buscar dados relacionados");
-      setModalIsOpen(true);
-      return null;
-    } finally {
-      setLoadingRelatedData(false);
-    }
-  };
-
-  const openEditModal = async (item: any) => {
-    setItemToEdit(item);
-    setEditName(item.name || "");
-    setEditBrand(item.brand || "");
-    setEditSerial(item.serialNumber || "");
-    setEditSchoolId(null);
-    if (editSchools.length === 0) {
-      const res = await fetch("/api/all-locations");
-      const data = await res.json();
-      setEditSchools(data);
-    }
-    setEditModalOpen(true);
-  };
-
-  const handleEditSave = async () => {
-    if (!itemToEdit) return;
-    setEditLoading(true);
-    try {
-      const res = await fetch("/api/update-item", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: itemToEdit.id,
-          name: editName,
-          brand: editBrand,
-          serialNumber: editSerial,
-          schoolId: editSchoolId || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        alert(err.error || "Erro ao atualizar item.");
-        return;
-      }
-      const updated = await res.json();
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === updated.id ? { ...i, ...updated } : i
-        )
-      );
-      setEditModalOpen(false);
-    } catch {
-      alert("Erro ao salvar. Tente novamente.");
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  const openDeleteModal = async (item: any) => {
-    setItemToDelete(item);
-    const data = await fetchRelatedData(item.id);
-    if (data) {
-      setRelatedData(data);
-      setDeleteModalOpen(true);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!itemToDelete) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setModalMessage("Usuário não autenticado. Por favor, faça login.");
-      setModalIsOpen(true);
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/items/${itemToDelete.id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Mostrar resumo do que foi deletado
-        setModalMessage(
-          `✅ Item deletado com sucesso!\n\n` +
-          `📦 Item: ${result.deletedData.item.name} (${result.deletedData.item.serialNumber})\n\n` +
-          `🗑️ Dados relacionados removidos:\n` +
-          `• ${result.deletedData.relatedRecords.itemHistory} registros de histórico\n` +
-          `• ${result.deletedData.relatedRecords.memorandumItems} itens de memorando\n` +
-          `• ${result.deletedData.relatedRecords.chadaRecords} registros CHADA\n\n` +
-          `Todos os dados foram removidos permanentemente.`
-        );
-        setModalIsOpen(true);
-        
-        // Atualizar lista de itens
-        setItems(items.filter((item) => item.id !== itemToDelete.id));
-        
-      } else {
-        const errorData = await response.json();
-        setModalMessage(`❌ Erro ao apagar item: ${errorData.error}`);
-        setModalIsOpen(true);
-      }
-    } catch (error) {
-      console.error("Erro ao apagar item:", error);
-      setModalMessage("❌ Erro ao apagar item");
-      setModalIsOpen(true);
-    } finally {
-      setDeleteModalOpen(false);
-      setItemToDelete(null);
-      setRelatedData(null);
-    }
-  };
-
-
-  const exportToExcel = () => {
-    const formattedItems = items.map((item) => ({
-      ID: item.id,
-      Nome: item.name,
-      Marca: item.brand,
-      "Número de Série": item.serialNumber,
-      Escola: item.School.name,
-      "Data de Criação": format(
-        new Date(item.createdAt),
-        "dd/MM/yyyy, HH:mm:ss",
-        { locale: ptBR },
-      ),
-      "Adicionado por": item.Profile.displayName,
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(formattedItems);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Itens");
-    XLSX.writeFile(workbook, "itens.xlsx");
-  };
-
-  const generateCompleteBackup = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setModalMessage("Usuário não autenticado. Por favor, faça login.");
-      setModalIsOpen(true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Buscar todos os dados para backup
-      const [itemsRes, schoolsRes, historiesRes] = await Promise.all([
-        fetch("/api/items", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/all-schools", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/backup/histories", { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-
-      const backupData = {
-        exportDate: new Date().toISOString(),
-        version: "1.0",
-        items: await itemsRes.json(),
-        schools: await schoolsRes.json(), 
-        histories: await historiesRes.json(),
-        summary: {
-          totalItems: items.length,
-          totalSchools: schools.length,
-          exportedBy: userName,
-          categories: calculateTotals()
-        }
-      };
-
-      // Gerar arquivo JSON
-      const jsonBlob = new Blob([JSON.stringify(backupData, null, 2)], { 
-        type: "application/json" 
-      });
-      
-      // Gerar Excel com múltiplas abas
-      const workbook = XLSX.utils.book_new();
-      
-      // Aba de Itens
-      const formattedItems = backupData.items.map((item: any) => ({
-        ID: item.id,
-        Nome: item.name,
-        Marca: item.brand,
-        "Número de Série": item.serialNumber,
-        Escola: item.School?.name || "N/A",
-        INEP: item.inep || "N/A",
-        "Data de Criação": format(new Date(item.createdAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
-        "Adicionado por": item.Profile?.displayName || "N/A",
-        "Status": item.School?.name === "CHADA" ? "Manutenção" : "Ativo"
-      }));
-      
-      // Aba de Escolas
-      const formattedSchools = backupData.schools.map((school: any) => ({
-        ID: school.id,
-        Nome: school.name,
-        Distrito: school.district,
-        INEP: school.inep,
-        "Qtd Equipamentos": backupData.items.filter((item: any) => item.School?.name === school.name).length
-      }));
-      
-      // Aba de Resumo
-      const summaryData = [
-        { "Categoria": "Total de Equipamentos", "Quantidade": backupData.summary.totalItems },
-        { "Categoria": "Total de Escolas", "Quantidade": backupData.summary.totalSchools },
-        { "Categoria": "COMPUTADORES", "Quantidade": backupData.summary.categories.COMPUTADOR },
-        { "Categoria": "NOTEBOOKS", "Quantidade": backupData.summary.categories.NOTEBOOK },
-        { "Categoria": "MONITORES", "Quantidade": backupData.summary.categories.MONITOR },
-        { "Categoria": "MOUSES", "Quantidade": backupData.summary.categories.MOUSE },
-        { "Categoria": "TECLADOS", "Quantidade": backupData.summary.categories.TECLADO },
-        { "Categoria": "ESTABILIZADORES", "Quantidade": backupData.summary.categories.ESTABILIZADOR },
-        { "Categoria": "IMPRESSORAS", "Quantidade": backupData.summary.categories.IMPRESSORA },
-        { "Categoria": "Data do Backup", "Quantidade": format(new Date(), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) },
-        { "Categoria": "Gerado por", "Quantidade": userName || "N/A" }
-      ];
-
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(formattedItems), "Equipamentos");
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(formattedSchools), "Escolas");
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(summaryData), "Resumo");
-      
-      // Downloads
-      const timestamp = format(new Date(), "yyyy-MM-dd_HH-mm-ss");
-      
-      // Download JSON
-      const jsonUrl = URL.createObjectURL(jsonBlob);
-      const jsonLink = document.createElement("a");
-      jsonLink.href = jsonUrl;
-      jsonLink.download = `backup-csdt-${timestamp}.json`;
-      document.body.appendChild(jsonLink);
-      jsonLink.click();
-      jsonLink.remove();
-      URL.revokeObjectURL(jsonUrl);
-      
-      // Download Excel
-      XLSX.writeFile(workbook, `backup-csdt-${timestamp}.xlsx`);
-      
-      setModalMessage(
-        `✅ Backup gerado com sucesso!\n\n` +
-        `📁 Arquivos baixados:\n` +
-        `• backup-csdt-${timestamp}.json (dados completos)\n` +
-        `• backup-csdt-${timestamp}.xlsx (planilha com 3 abas)\n\n` +
-        `📊 Resumo do backup:\n` +
-        `• ${backupData.summary.totalItems} equipamentos\n` +
-        `• ${backupData.summary.totalSchools} escolas\n` +
-        `• Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}`
-      );
-      setModalIsOpen(true);
-      
-    } catch (error) {
-      console.error("Erro ao gerar backup:", error);
-      setModalMessage("❌ Erro ao gerar backup. Tente novamente.");
-      setModalIsOpen(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const closeGenerateMemorandumModal = () => {
-    setIsModalOpen(false);
-  };
-
-  const handleGenerateMemorandum = async () => {
-
-
-
-
-
-
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Usuário não autenticado. Por favor, faça login.");
-      return;
-    }
-
-    // VALIDAÇÕES ESPECÍFICAS POR TIPO DE MEMORANDO
-    if (memorandumType === "entrega") {
-      if (selectedFromCSDT.length === 0) {
-        alert("Selecione pelo menos um item para entrega.");
-        return;
-      }
-
-      if (!schoolName) {
-        alert("Por favor, selecione uma escola.");
-        return;
-      }
-
-      if (!district) {
-        alert("O distrito não foi definido. Verifique a escola selecionada.");
-        return;
-      }
-      
-    } else if (memorandumType === "devolucao") {
-      if (selectedFromDestino.length === 0) {
-        alert("Selecione pelo menos um item para devolucao.");
-        return;
-      }
-
-      if (!schoolName) {
-        alert("Por favor, selecione a escola de origem.");
-        return;
-      }
-
-      if (!district) {
-        alert("O distrito nao foi definido. Verifique a escola selecionada.");
-        return;
-      }
-      
-    } else if (memorandumType === "troca") {
-
-
-
-
-      // Validar escola de destino
-      if (!exchangeToSchool) {
-        console.error('ERRO: exchangeToSchool está vazio!');
-        alert("Por favor, selecione a escola de destino.");
-        return;
-      }
-      
-      // Validar se há pelo menos um item selecionado
-      if (selectedFromCSDT.length === 0 && selectedFromDestino.length === 0) {
-        alert("Selecione pelo menos um item para troca (que sai do CSDT ou que volta da escola).");
-        return;
-      }
-    }
-
-
-    // Para troca, verificar limite individual de 10 itens por categoria
-    if (memorandumType === "troca") {
-      if (selectedFromCSDT.length > 10) {
-        setModalMessage(
-          `🚫 Limite excedido!\n\nVocê selecionou ${selectedFromCSDT.length} itens do CSDT, mas o máximo são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
-        );
-        setModalIsOpen(true);
-        return;
-      }
-
-      if (selectedFromDestino.length > 10) {
-        setModalMessage(
-          `🚫 Limite excedido!\n\nVocê selecionou ${selectedFromDestino.length} itens da escola, mas o máximo são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
-        );
-        setModalIsOpen(true);
-        return;
-      }
-    }
-
-    try {
-      // Para TROCA: Verificar se os itens estão nas escolas corretas
-      if (memorandumType === "troca") {
-        // Verificar itens que saem do CSDT
-        const itemsNotInCSDT = items.filter(
-          (item) =>
-            selectedFromCSDT.includes(item.id) &&
-            item.School?.name !== "CSDT",
-        );
-
-        if (itemsNotInCSDT.length > 0) {
-          const itemNames = itemsNotInCSDT
-            .map((item) => item.name)
-            .join(", ");
-          setModalMessage(
-            `O(s) item(s) ${itemNames} não está(ão) no CSDT. Verifique a localização dos equipamentos.`,
-          );
-          setModalIsOpen(true);
-          return;
-        }
-
-        // Verificar itens que saem da escola destino
-        if (selectedFromDestino.length > 0) {
-          const itemsNotInDestination = items.filter(
-            (item) =>
-              selectedFromDestino.includes(item.id) &&
-              item.School?.name !== exchangeToSchool,
-          );
-
-          if (itemsNotInDestination.length > 0) {
-            const itemNames = itemsNotInDestination
-              .map((item) => item.name)
-              .join(", ");
-            setModalMessage(
-              `O(s) item(s) ${itemNames} não está(ão) na escola "${exchangeToSchool}". Verifique a localização dos equipamentos.`,
-            );
-            setModalIsOpen(true);
-            return;
-          }
-        }
-      }
-
-      // Para ENTREGA: Verificar se algum item está na escola CHADA
-      if (memorandumType === "entrega") {
-        const itemsInChada = items.filter(
-          (item) =>
-            selectedFromCSDT.includes(item.id) && item.School?.name === "CHADA",
-        );
-
-        if (itemsInChada.length > 0) {
-          const itemNames = itemsInChada.map((item) => item.name).join(", ");
-          setModalMessage(
-            `O(s) item(s) ${itemNames} está(ão) na CHADA. Por favor, dar baixa no(s) item(s) para o CSDT antes de fazer o memorando.`,
-          );
-          setModalIsOpen(true);
-          return;
-        }
-      }
-
-      if (memorandumType === "devolucao") {
-        const itemsNotInSourceSchool = items.filter(
-          (item) =>
-            selectedFromDestino.includes(item.id) &&
-            item.School?.name !== schoolName,
-        );
-
-        if (itemsNotInSourceSchool.length > 0) {
-          const itemNames = itemsNotInSourceSchool.map((item) => item.name).join(", ");
-          setModalMessage(
-            `O(s) item(s) ${itemNames} nao estao na escola "${schoolName}". Verifique a localizacao dos equipamentos.`,
-          );
-          setModalIsOpen(true);
-          return;
-        }
-      }
-
-      // PREPARAR DADOS baseados no tipo de memorando
-      let requestData: any = {
-        type: memorandumType,
-      };
-
-      if (memorandumType === "entrega") {
-        const selectedSchool = schools.find(
-          (school) => school.name === schoolName,
-        );
-
-        if (!selectedSchool) {
-          alert("Por favor, selecione uma escola válida.");
-          return;
-        }
-
-        requestData = {
-          ...requestData,
-          itemIds: selectedFromCSDT,
-          schoolName,
-          district,
-          inep: selectedSchool.inep,
-        };
-
-      } else if (memorandumType === "devolucao") {
-        const selectedSchool = schools.find(
-          (school) => school.name === schoolName,
-        );
-
-        if (!selectedSchool) {
-          alert("Por favor, selecione uma escola v??lida.");
-          return;
-        }
-
-        requestData = {
-          ...requestData,
-          itemIds: selectedFromDestino,
-          schoolName,
-          district,
-          inep: selectedSchool.inep,
-        };
-        
-      } else if (memorandumType === "troca") {
-
-        // Para troca, enviar todos os itens selecionados (CSDT + escola)
-        const allSelectedItemIds = [...selectedFromCSDT, ...selectedFromDestino];
-
-
-
-        const toSchoolData = schools.find(
-          (school) => school.name === exchangeToSchool,
-        );
-
-        if (!toSchoolData) {
-          alert("Escola de destino não encontrada. Por favor, selecione uma escola válida.");
-          return;
-        }
-
-        // Escola de origem sempre será CSDT para simplificar
-        const fromSchoolData = schools.find(
-          (school) => school.name === "CSDT",
-        ) || { name: "CSDT", district: "SEDE", inep: 0 };
-
-        requestData = {
-          ...requestData,
-          itemIds: allSelectedItemIds,
-          fromSchool: fromSchoolData,
-          toSchool: toSchoolData,
-          // Dados específicos para separação no PDF
-          selectedFromCSDT,      // Itens que saem do CSDT → campo "novo"
-          selectedFromDestino    // Itens que voltam da escola → campo "antigo"
-        };
-
-      }
-
-      const response = await axios.post(
-        "/api/generate-memorandum",
-        requestData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      // Decodificar o PDF Base64
-      const pdfBase64 = response.data.pdfBase64;
-      const binaryString = atob(pdfBase64);
-      const binaryLen = binaryString.length;
-      const bytes = new Uint8Array(binaryLen);
-
-      for (let i = 0; i < binaryLen; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
-      const pdfBlob = new Blob([bytes], { type: "application/pdf" });
-
-      // Criar um link para download
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      const fileName =
-        memorandumType === "entrega"
-          ? `memorando-entrega-${response.data.memorandumNumber}.pdf`
-          : memorandumType === "devolucao"
-            ? `memorando-devolucao-${response.data.memorandumNumber}.pdf`
-            : `memorando-troca-${response.data.memorandumNumber}.pdf`;
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-
-      // Atualizar os itens no frontend após a geração do memorando
-      const updatedItemsResponse = await axios.get("/api/items");
-      setItems(updatedItemsResponse.data);
-
-      // Limpar os campos
-      setSelectedFromCSDT([]);
-      setSelectedFromDestino([]);
-      setMemorandumType("entrega");
-      setSchoolName("");
-      setDistrict("");
-      setExchangeFromSchool("");
-      setExchangeToSchool("");  
-      setCurrentStep("step1");
-      setIsDialogOpen(false);
-    } catch (error) {
-      console.error("Erro ao gerar memorando:", error);
-      alert("Falha ao gerar o memorando. Verifique os dados enviados.");
-    }
-  };
-
-  // Função para calcular os totais por título
-  const calculateTotals = () => {
-    const totals = {
-      COMPUTADOR: 0,
-      MONITOR: 0,
-      MOUSE: 0,
-      TECLADO: 0,
-      ESTABILIZADOR: 0,
-      IMPRESSORA: 0,
-      NOTEBOOK: 0,
-    };
-
-    items.forEach((item) => {
-      const title = item.name.toUpperCase().trim() as keyof typeof totals;
-      if (totals.hasOwnProperty(title)) {
-        totals[title]++;
-      }
-    });
-
-    return totals;
-  };
-
-  // Handlers para filtros avançados - DEVE vir antes do return early
-  const handleFiltersChange = useCallback((newFilteredItems: Item[], newActiveFilters: any) => {
-    setFilteredItems(newFilteredItems);
-    setActiveFilters(newActiveFilters);
-    setCurrentPage(1); // Reset página ao filtrar
-  }, []);
-
-  // Handler para mudança de modo de visualização
-  const handleViewModeChange = (mode: 'list' | 'grid' | 'table') => {
-    setViewMode(mode);
-  };
-
-  // Handler para agrupamento
-  const handleGroupByChange = (newGroupBy: 'school' | 'type' | 'status' | 'date' | 'district') => {
-    setGroupBy(newGroupBy);
-  };
-
-  // Handler para gerar relatório baseado nos filtros
-  const handleGenerateFilteredReport = async (filteredItems: Item[], filters: any) => {
-    const ExcelJS = (await import('exceljs')).default;
-
-    // ── Descrição dos filtros ──────────────────────────────────────
-    const filterDescription: string[] = [];
-    if (filters.searchTerm) filterDescription.push(`Busca: "${filters.searchTerm}"`);
-    if (filters.selectedSchools?.length > 0) filterDescription.push(`Escolas: ${filters.selectedSchools.join(', ')}`);
-    if (filters.selectedTypes?.length > 0)   filterDescription.push(`Tipos: ${filters.selectedTypes.join(', ')}`);
-    if (filters.dateRange?.start && filters.dateRange?.end) {
-      filterDescription.push(`Período: ${format(new Date(filters.dateRange.start), 'dd/MM/yyyy', { locale: ptBR })} a ${format(new Date(filters.dateRange.end), 'dd/MM/yyyy', { locale: ptBR })}`);
-    }
-    if (filters.createdBy?.length > 0) filterDescription.push(`Criado por: ${filters.createdBy.join(', ')}`);
-    if (filters.status && filters.status !== 'all') {
-      filterDescription.push(`Status: ${{ csdt: 'No CSDT', chada: 'Na CHADA', schools: 'Em Escolas', sme: 'Na SME' }[filters.status as string]}`);
-    }
-
-    // ── Cores ──────────────────────────────────────────────────────
-    const COR_TITULO   = '1F3864';  // azul escuro
-    const COR_HEADER   = '2E75B6';  // azul médio
-    const COR_ZEBRA    = 'F2F2F2';  // cinza claríssimo
-    const COR_BRANCO   = 'FFFFFF';
-
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'CSDT';
-    wb.created = new Date();
-
-    // ══════════════════════════════════════════════════════════════
-    //  ABA 1 — EQUIPAMENTOS
-    // ══════════════════════════════════════════════════════════════
-    const ws = wb.addWorksheet('Equipamentos');
-
-    // — Título
-    ws.mergeCells('A1:H1');
-    const titulo = ws.getCell('A1');
-    titulo.value = `CSDT — Relatório de Equipamentos  |  ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`;
-    titulo.font = { bold: true, size: 13, color: { argb: COR_BRANCO } };
-    titulo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_TITULO } };
-    titulo.alignment = { horizontal: 'center', vertical: 'middle' };
-    ws.getRow(1).height = 30;
-
-    // — Filtros aplicados (linha 2)
-    ws.mergeCells('A2:H2');
-    const filtroCell = ws.getCell('A2');
-    filtroCell.value = filterDescription.length > 0
-      ? `Filtros: ${filterDescription.join('  |  ')}`
-      : 'Sem filtros aplicados';
-    filtroCell.font = { italic: true, size: 10, color: { argb: '444444' } };
-    filtroCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DDEEFF' } };
-    filtroCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-    ws.getRow(2).height = 20;
-
-    // — Cabeçalhos (linha 3)
-    const headers = ['#', 'Tipo', 'Marca', 'Número de Série', 'Escola / Localização', 'Status', 'Data de Cadastro', 'Adicionado por'];
-    const headerRow = ws.addRow(headers);
-    headerRow.eachCell((cell: any) => {
-      cell.font = { bold: true, color: { argb: COR_BRANCO }, size: 11 };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_HEADER } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = {
-        top:    { style: 'thin', color: { argb: COR_TITULO } },
-        bottom: { style: 'thin', color: { argb: COR_TITULO } },
-        left:   { style: 'thin', color: { argb: COR_TITULO } },
-        right:  { style: 'thin', color: { argb: COR_TITULO } },
-      };
-    });
-    headerRow.height = 24;
-
-    // — Larguras
-    ws.columns = [
-      { key: 'seq',    width: 5  },
-      { key: 'tipo',   width: 16 },
-      { key: 'marca',  width: 18 },
-      { key: 'serial', width: 22 },
-      { key: 'escola', width: 36 },
-      { key: 'status', width: 14 },
-      { key: 'data',   width: 20 },
-      { key: 'autor',  width: 22 },
-    ];
-
-    // — Dados com zebra
-    filteredItems.forEach((item, idx) => {
-      const escola = item.School?.name || 'N/A';
-      const status = escola === 'CHADA' ? 'Manutenção' : escola === 'CSDT' ? 'Depósito' : 'Em Operação';
-      const row = ws.addRow([
-        idx + 1,
-        item.name || '',
-        item.brand || '',
-        item.serialNumber || '',
-        escola,
-        status,
-        format(new Date(item.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
-        item.Profile?.displayName || '',
-      ]);
-
-      const bg = idx % 2 === 0 ? COR_BRANCO : COR_ZEBRA;
-      row.eachCell({ includeEmpty: true }, (cell: any, col: number) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-        cell.font = { size: 10 };
-        cell.alignment = { vertical: 'middle', horizontal: col === 1 ? 'center' : 'left' };
-        cell.border = {
-          top:    { style: 'hair', color: { argb: 'CCCCCC' } },
-          bottom: { style: 'hair', color: { argb: 'CCCCCC' } },
-          left:   { style: 'hair', color: { argb: 'CCCCCC' } },
-          right:  { style: 'hair', color: { argb: 'CCCCCC' } },
-        };
-      });
-      row.height = 25;
-    });
-
-    // — AutoFilter na linha de cabeçalhos
-    ws.autoFilter = { from: 'A3', to: 'H3' };
-
-    // ══════════════════════════════════════════════════════════════
-    //  ABA 2 — RESUMO
-    // ══════════════════════════════════════════════════════════════
-    const ws2 = wb.addWorksheet('Resumo');
-
-    ws2.mergeCells('A1:B1');
-    const tituloResumo = ws2.getCell('A1');
-    tituloResumo.value = 'Resumo do Relatório';
-    tituloResumo.font = { bold: true, size: 13, color: { argb: COR_BRANCO } };
-    tituloResumo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_TITULO } };
-    tituloResumo.alignment = { horizontal: 'center', vertical: 'middle' };
-    ws2.getRow(1).height = 28;
-
-    const resumoHeaders = ws2.addRow(['Critério', 'Valor']);
-    resumoHeaders.eachCell((cell: any) => {
-      cell.font = { bold: true, color: { argb: COR_BRANCO }, size: 11 };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_HEADER } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    });
-    resumoHeaders.height = 22;
-
-    const statsRows = [
-      ['Total de Equipamentos', filteredItems.length],
-      ['Em Operação',           filteredItems.filter(i => i.School?.name !== 'CSDT' && i.School?.name !== 'CHADA').length],
-      ['No Depósito (CSDT)',    filteredItems.filter(i => i.School?.name === 'CSDT').length],
-      ['Em Manutenção (CHADA)', filteredItems.filter(i => i.School?.name === 'CHADA').length],
-      ['', ''],
-      ['Gerado por', userName || 'N/A'],
-      ['Data do Relatório', format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })],
-      ['Filtros Aplicados', filterDescription.join(' | ') || 'Nenhum'],
-    ];
-
-    statsRows.forEach((r, idx) => {
-      const row = ws2.addRow(r);
-      const bg = idx % 2 === 0 ? COR_BRANCO : COR_ZEBRA;
-      row.eachCell({ includeEmpty: true }, (cell: any) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-        cell.font = { size: 10 };
-        cell.alignment = { vertical: 'middle' };
-        cell.border = {
-          top:    { style: 'hair', color: { argb: 'CCCCCC' } },
-          bottom: { style: 'hair', color: { argb: 'CCCCCC' } },
-          left:   { style: 'hair', color: { argb: 'CCCCCC' } },
-          right:  { style: 'hair', color: { argb: 'CCCCCC' } },
-        };
-      });
-      row.height = 25;
-    });
-
-    ws2.columns = [{ width: 28 }, { width: 50 }];
-
-    // ══════════════════════════════════════════════════════════════
-    //  ABA 3 — ITENS POR ESCOLA
-    // ══════════════════════════════════════════════════════════════
-    const ws3 = wb.addWorksheet('Por Escola');
-
-    ws3.mergeCells('A1:C1');
-    const tituloPorEscola = ws3.getCell('A1');
-    tituloPorEscola.value = `Quantidade de Itens por Escola  |  ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`;
-    tituloPorEscola.font = { bold: true, size: 13, color: { argb: COR_BRANCO } };
-    tituloPorEscola.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_TITULO } };
-    tituloPorEscola.alignment = { horizontal: 'center', vertical: 'middle' };
-    ws3.getRow(1).height = 30;
-
-    // — Filtros (linha 2)
-    ws3.mergeCells('A2:C2');
-    const filtroPorEscola = ws3.getCell('A2');
-    filtroPorEscola.value = filterDescription.length > 0
-      ? `Filtros: ${filterDescription.join('  |  ')}`
-      : 'Sem filtros aplicados';
-    filtroPorEscola.font = { italic: true, size: 10, color: { argb: '444444' } };
-    filtroPorEscola.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DDEEFF' } };
-    filtroPorEscola.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-    ws3.getRow(2).height = 20;
-
-    // — Cabeçalho
-    const headerPorEscola = ws3.addRow(['#', 'Escola', 'Quantidade']);
-    headerPorEscola.eachCell((cell: any) => {
-      cell.font = { bold: true, color: { argb: COR_BRANCO }, size: 11 };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_HEADER } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = {
-        top:    { style: 'thin', color: { argb: COR_TITULO } },
-        bottom: { style: 'thin', color: { argb: COR_TITULO } },
-        left:   { style: 'thin', color: { argb: COR_TITULO } },
-        right:  { style: 'thin', color: { argb: COR_TITULO } },
-      };
-    });
-    headerPorEscola.height = 24;
-
-    // — Agrupar por escola e contar
-    const contagemPorEscola = filteredItems.reduce((acc, item) => {
-      const nome = item.School?.name || 'Sem escola';
-      acc[nome] = (acc[nome] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const escolasOrdenadas = Object.entries(contagemPorEscola)
-      .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'));
-
-    escolasOrdenadas.forEach(([nome, qtd], idx) => {
-      const row = ws3.addRow([idx + 1, nome, qtd]);
-      const bg = idx % 2 === 0 ? COR_BRANCO : COR_ZEBRA;
-      row.eachCell({ includeEmpty: true }, (cell: any, col: number) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-        cell.font = { size: 10 };
-        cell.alignment = { vertical: 'middle', horizontal: col === 3 ? 'center' : col === 1 ? 'center' : 'left' };
-        cell.border = {
-          top:    { style: 'hair', color: { argb: 'CCCCCC' } },
-          bottom: { style: 'hair', color: { argb: 'CCCCCC' } },
-          left:   { style: 'hair', color: { argb: 'CCCCCC' } },
-          right:  { style: 'hair', color: { argb: 'CCCCCC' } },
-        };
-      });
-      row.height = 25;
-    });
-
-    // — Linha de total
-    const totalRow = ws3.addRow(['', 'TOTAL', filteredItems.length]);
-    totalRow.eachCell({ includeEmpty: true }, (cell: any) => {
-      cell.font = { bold: true, size: 10, color: { argb: COR_BRANCO } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COR_TITULO } };
-      cell.alignment = { vertical: 'middle', horizontal: 'center' };
-    });
-    totalRow.height = 22;
-
-    ws3.columns = [{ width: 5 }, { width: 42 }, { width: 14 }];
-    ws3.autoFilter = { from: 'A3', to: 'C3' };
-
-    // ── Cabeçalho repetido em todas as páginas + rodapé com nº de folha ──
-    const rodape = '&CPágina &P de &N';
-    const configPagina = { fitToPage: true, fitToWidth: 1, orientation: 'landscape' as const };
-
-    ws.pageSetup  = { ...configPagina, printTitlesRow: '1:3' };
-    ws.headerFooter.oddFooter  = rodape;
-
-    ws2.pageSetup = { ...configPagina, printTitlesRow: '1:2' };
-    ws2.headerFooter.oddFooter = rodape;
-
-    ws3.pageSetup = { ...configPagina, printTitlesRow: '1:3' };
-    ws3.headerFooter.oddFooter = rodape;
-
-    // ── Download ───────────────────────────────────────────────────
-    const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm', { locale: ptBR });
-    const filename = `Relatorio_Equipamentos_${timestamp}.xlsx`;
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    setModalMessage(
-      `✅ Relatório gerado com sucesso!\n\n` +
-      `📁 ${filename}\n` +
-      `📊 ${filteredItems.length} equipamentos incluídos\n\n` +
-      `🔍 ${filterDescription.length > 0 ? filterDescription.join('\n') : 'Sem filtros aplicados'}`
-    );
-    setModalIsOpen(true);
-  };
-
-  const totals = calculateTotals();
-
-  if (loading) {
+  if (hook.loading) {
     return (
       <div className="space-y-4 mt-24">
         {[...Array(5)].map((_, index) => (
@@ -1216,107 +42,87 @@ const DeviceList: React.FC = () => {
     );
   }
 
-  function escolaFiltradaPeloId(id: number) {
-    const schoolFilteredById = schools.filter((school) => school.id === id);
-    return schoolFilteredById[0].name;
-  }
-
-  const openHistoryDrawer = async (item: any) => {
-    setSelectedItem(item);
-    try {
-      const response = await axios.get(`/api/items/${item.id}/history`);
-
-      setItemHistory(response.data);
-      setIsDrawerOpen(true);
-    } catch (error) {
-      console.error("Erro ao buscar histórico:", error);
-      alert("Falha ao buscar o histórico do item.");
-    }
-  };
-
-  const closeHistoryDrawer = () => {
-    setIsDrawerOpen(false);
-    setSelectedItem(null);
-    setItemHistory([]);
-  };
-
+  const totals = hook.totals;
+  const displayItems = hook.displayItems;
+  const indexOfFirstItem = hook.indexOfFirstItem;
+  const indexOfLastItem = hook.indexOfLastItem;
 
   return (
     <div className="dark:bg-zinc-950 bg-zinc-200 rounded-lg text-white p-6 container mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4">
         <h1 className="text-2xl font-bold mb-4 md:mb-0 dark:text-zinc-100 text-zinc-700">
-          Gestão de Dispositivos
+          Gestao de Dispositivos
         </h1>
         <div className="flex gap-2 flex-wrap">
           <button
-            onClick={() => setShowDashboard(!showDashboard)}
+            onClick={() => hook.setShowDashboard(!hook.showDashboard)}
             className={`p-2 rounded flex items-center gap-1 transition-colors ${
-              showDashboard 
-                ? 'bg-blue-500 text-white' 
+              hook.showDashboard
+                ? 'bg-blue-500 text-white'
                 : 'bg-gray-500 hover:bg-gray-600 text-white'
             }`}
           >
             <ChartLine size={20} />
-            <span className="hidden sm:inline">{showDashboard ? 'Ocultar' : 'Dashboard'}</span>
+            <span className="hidden sm:inline">{hook.showDashboard ? 'Ocultar' : 'Dashboard'}</span>
           </button>
-          
+
           <button
-            onClick={() => setShowGrouping(!showGrouping)}
+            onClick={() => hook.setShowGrouping(!hook.showGrouping)}
             className={`p-2 rounded flex items-center gap-1 transition-colors ${
-              showGrouping 
-                ? 'bg-purple-500 text-white' 
+              hook.showGrouping
+                ? 'bg-purple-500 text-white'
                 : 'bg-gray-500 hover:bg-gray-600 text-white'
             }`}
           >
             <Eye size={20} />
-            <span className="hidden sm:inline">{showGrouping ? 'Lista' : 'Agrupar'}</span>
+            <span className="hidden sm:inline">{hook.showGrouping ? 'Lista' : 'Agrupar'}</span>
           </button>
 
           <button
-            onClick={() => setShowReports(!showReports)}
+            onClick={() => hook.setShowReports(!hook.showReports)}
             className={`p-2 rounded flex items-center gap-1 transition-colors ${
-              showReports 
-                ? 'bg-green-500 text-white' 
+              hook.showReports
+                ? 'bg-green-500 text-white'
                 : 'bg-gray-500 hover:bg-gray-600 text-white'
             }`}
           >
             <FileText size={20} />
-            <span className="hidden sm:inline">{showReports ? 'Ocultar' : 'Relatórios'}</span>
+            <span className="hidden sm:inline">{hook.showReports ? 'Ocultar' : 'Relatorios'}</span>
           </button>
 
           <button
-            onClick={() => setShowAlerts(!showAlerts)}
+            onClick={() => hook.setShowAlerts(!hook.showAlerts)}
             className={`p-2 rounded flex items-center gap-1 transition-colors ${
-              showAlerts 
-                ? 'bg-red-500 text-white' 
+              hook.showAlerts
+                ? 'bg-red-500 text-white'
                 : 'bg-gray-500 hover:bg-gray-600 text-white'
             }`}
           >
             <Bell size={20} />
-            <span className="hidden sm:inline">{showAlerts ? 'Ocultar' : 'Alertas'}</span>
+            <span className="hidden sm:inline">{hook.showAlerts ? 'Ocultar' : 'Alertas'}</span>
           </button>
           <button
-            onClick={exportToExcel}
+            onClick={hook.exportToExcel}
             className="bg-green-500 hover:bg-green-700 text-white p-2 rounded flex items-center"
           >
-            <FileArrowDown size={24} className="mr-2" />
+            <FileDown size={24} className="mr-2" />
             Exportar Excel
           </button>
           <button
-            onClick={generateCompleteBackup}
+            onClick={hook.generateCompleteBackup}
             className="bg-purple-500 hover:bg-purple-700 text-white p-2 rounded flex items-center"
-            disabled={loading}
+            disabled={hook.loading}
           >
-            {loading ? (
+            {hook.loading ? (
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
             ) : (
               <Database size={24} className="mr-2" />
             )}
-            {loading ? "Gerando..." : "Backup Completo"}
+            {hook.loading ? "Gerando..." : "Backup Completo"}
           </button>
-          {(userRole === "ADMTOTAL" || userRole === "ADMIN") && (
+          {(hook.userRole === "ADMTOTAL" || hook.userRole === "ADMIN") && (
             <button
-              onClick={() => setIsDialogOpen(true)} // Abre direto sem validação
+              onClick={hook.handleOpenMemorandumDialog}
               className="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded flex items-center"
             >
               <File size={24} className="mr-2" />
@@ -1325,62 +131,63 @@ const DeviceList: React.FC = () => {
           )}
         </div>
       </div>
-      {/* Sistema de Alertas */}
-      {showAlerts && (
+
+      {/* Alertas */}
+      {hook.showAlerts && (
         <div className="mb-6">
-          <AlertSystem items={items} schools={schools} />
+          <AlertSystem items={hook.items} schools={hook.schools} />
         </div>
       )}
 
-      {/* Relatórios Avançados */}
-      {showReports && (
+      {/* Relatorios Avancados */}
+      {hook.showReports && (
         <div className="mb-6">
-          {activeFilters && (
+          {hook.activeFilters && (
             <div className="mb-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-300">
-              🔍 Relatório usando <strong>{filteredItems.length} itens filtrados</strong> (filtros do painel acima aplicados)
+              🔍 Relatorio usando <strong>{hook.filteredItems.length} itens filtrados</strong> (filtros do painel acima aplicados)
             </div>
           )}
-          <AdvancedReports items={activeFilters ? filteredItems : items} schools={schools} />
+          <AdvancedReports items={hook.activeFilters ? hook.filteredItems : hook.items} schools={hook.schools} />
         </div>
       )}
 
-      {/* Dashboard Analytics */}
-      {showDashboard && (
+      {/* Dashboard */}
+      {hook.showDashboard && (
         <div className="mb-6">
-          <Dashboard items={items} schools={schools} />
+          <Dashboard items={hook.items} schools={hook.schools} />
         </div>
       )}
 
-      {/* Filtros Avançados */}
+      {/* Filtros Avancados */}
       <AdvancedFilters
-        items={items}
-        schools={schools}
-        onFiltersChange={handleFiltersChange}
-        onGenerateReport={handleGenerateFilteredReport}
+        items={hook.items}
+        schools={hook.schools}
+        onFiltersChange={hook.handleFiltersChange}
+        onGenerateReport={hook.handleGenerateFilteredReport}
       />
-      
-      {/* Busca rápida (mantida para compatibilidade) */}
-      {!activeFilters && (
+
+      {/* Busca rapida */}
+      {!hook.activeFilters && (
         <div className="relative mb-4">
           <input
             type="text"
-            placeholder="Pesquisar (use filtros avançados para mais opções)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Pesquisar (use filtros avancados para mais opcoes)"
+            value={hook.searchTerm}
+            onChange={(e) => hook.setSearchTerm(e.target.value)}
             className="w-full p-2 pl-10 rounded dark:bg-zinc-900 dark:text-white"
           />
-          <MagnifyingGlass
+          <Search
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
             size={20}
           />
         </div>
       )}
 
-      {/* Totalizadores por categoria */}
+      {/* Totalizadores */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4 mb-4">
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Total.</h3>
-          <p className="text-2xl font-semibold">{items.length}</p>
+          <p className="text-2xl font-semibold">{hook.items.length}</p>
         </div>
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Comp.</h3>
@@ -1412,1090 +219,116 @@ const DeviceList: React.FC = () => {
         </div>
       </div>
 
-      {/* Conteúdo principal - Agrupamento ou Visualizações */}
-      {showGrouping ? (
+      {/* Conteudo principal */}
+      {hook.showGrouping ? (
         <SmartGrouping
           items={displayItems}
-          schools={schools}
-          onHistoryClick={openHistoryDrawer}
-          onDeleteClick={openDeleteModal}
-          userId={userId}
-          groupBy={groupBy}
-          onGroupByChange={handleGroupByChange}
+          schools={hook.schools}
+          onHistoryClick={hook.openHistoryDrawer}
+          onDeleteClick={hook.openDeleteModal}
+          userId={hook.userId}
+          groupBy={hook.groupBy}
+          onGroupByChange={hook.handleGroupByChange}
         />
       ) : (
         <DeviceViews
-          items={currentItems}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          onHistoryClick={openHistoryDrawer}
-          onDeleteClick={openDeleteModal}
-          onEditClick={openEditModal}
-          userId={userId}
-          userRole={userRole}
+          items={hook.currentItems}
+          viewMode={hook.viewMode}
+          onViewModeChange={hook.handleViewModeChange}
+          onHistoryClick={hook.openHistoryDrawer}
+          onDeleteClick={hook.openDeleteModal}
+          onEditClick={hook.openEditModal}
+          userId={hook.userId}
+          userRole={hook.userRole}
         />
       )}
 
       <div className="mt-6 flex justify-center">
-        {/* Paginação - só mostrar se não estiver no modo agrupamento */}
-        {!showGrouping && (
+        {!hook.showGrouping && (
           <div className="w-full flex flex-wrap justify-center gap-2">
             <Pagination
               total={displayItems.length}
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-              onPageChange={handlePageChange}
+              currentPage={hook.currentPage}
+              itemsPerPage={10}
+              onPageChange={hook.handlePageChange}
             />
           </div>
         )}
-        
-        {/* Informações dos resultados */}
+
         <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          {showGrouping ? (
+          {hook.showGrouping ? (
             `Mostrando ${displayItems.length} equipamentos agrupados por ${{
               school: 'escola',
               type: 'tipo',
               status: 'status',
               date: 'data',
               district: 'distrito'
-            }[groupBy]}`
+            }[hook.groupBy]}`
           ) : (
             `Mostrando ${Math.min(indexOfFirstItem + 1, displayItems.length)}-${Math.min(indexOfLastItem, displayItems.length)} de ${displayItems.length} equipamentos`
           )}
-          {activeFilters && ' (filtrados)'}
+          {hook.activeFilters && ' (filtrados)'}
         </div>
 
-        {/* Modal moderno para avisos */}
-        <AlertDialog open={modalIsOpen} onOpenChange={setModalIsOpen}>
-          <AlertDialogContent className="dark:bg-zinc-900 bg-white max-w-md">
-            <AlertDialogHeader className="text-center">
-              <AlertDialogTitle className="dark:text-white text-xl font-bold flex items-center justify-center gap-2">
-                {modalMessage.includes('🚫') ? (
-                  <>
-                    <span className="text-2xl">🚫</span>
-                    Limite Excedido
-                  </>
-                ) : (
-                  <>
-                    <span className="text-2xl">ℹ️</span>
-                    Informação
-                  </>
-                )}
-              </AlertDialogTitle>
-              <AlertDialogDescription className="dark:text-gray-300 text-gray-600 text-base whitespace-pre-line">
-                {modalMessage.replace(/🚫|ℹ️/g, '').trim()}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex justify-center">
-              <AlertDialogAction
-                onClick={() => setModalIsOpen(false)}
-                className="bg-blue-500 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
-              >
-                Entendi
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeviceListModals
+          modalIsOpen={hook.modalIsOpen}
+          setModalIsOpen={hook.setModalIsOpen}
+          modalMessage={hook.modalMessage}
+          isDrawerOpen={hook.isDrawerOpen}
+          setIsDrawerOpen={hook.setIsDrawerOpen}
+          selectedItem={hook.selectedItem}
+          itemHistory={hook.itemHistory}
+          closeHistoryDrawer={hook.closeHistoryDrawer}
+          editModalOpen={hook.editModalOpen}
+          setEditModalOpen={hook.setEditModalOpen}
+          itemToEdit={hook.itemToEdit}
+          editName={hook.editName}
+          setEditName={hook.setEditName}
+          editBrand={hook.editBrand}
+          setEditBrand={hook.setEditBrand}
+          editSerial={hook.editSerial}
+          setEditSerial={hook.setEditSerial}
+          editSchoolId={hook.editSchoolId}
+          setEditSchoolId={hook.setEditSchoolId}
+          editSchools={hook.editSchools}
+          editLoading={hook.editLoading}
+          handleEditSave={hook.handleEditSave}
+          deleteModalOpen={hook.deleteModalOpen}
+          setDeleteModalOpen={hook.setDeleteModalOpen}
+          itemToDelete={hook.itemToDelete}
+          setItemToDelete={hook.setItemToDelete}
+          relatedData={hook.relatedData}
+          setRelatedData={hook.setRelatedData}
+          loadingRelatedData={hook.loadingRelatedData}
+          confirmDelete={hook.confirmDelete}
+        />
 
-        {/* AlertDialog para gerar o memorando */}
-        <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <AlertDialogContent className="dark:bg-zinc-900 bg-white text-black max-w-2xl max-h-[90vh] flex flex-col z-[10000]">
-            <AlertDialogHeader className="flex-shrink-0">
-              <AlertDialogTitle className="dark:text-white">
-                Gerar Memorando
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Escolha o tipo de memorando e preencha as informações
-                necessárias.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            {/* Container com scroll para o conteúdo principal */}
-            <div className="flex-1 overflow-y-auto space-y-6 px-1">
-              {/* SELETOR DE TIPO DE MEMORANDO */}
-              <div className="space-y-3">
-                <label className="block">
-                  <span className="dark:text-gray-300 font-semibold">
-                    Tipo de Memorando:
-                  </span>
-                </label>
-                <div className="flex space-x-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      value="entrega"
-                      checked={memorandumType === "entrega"}
-                      onChange={(e) =>
-                        setMemorandumType(e.target.value as "entrega")
-                      }
-                      className="form-radio text-blue-500"
-                    />
-                    <span className="dark:text-gray-300">
-                      📦 Entrega de Equipamentos
-                    </span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      value="troca"
-                      checked={memorandumType === "troca"}
-                      onChange={(e) =>
-                        setMemorandumType(e.target.value as "troca")
-                      }
-                      className="form-radio text-blue-500"
-                    />
-                    <span className="dark:text-gray-300">
-                      🔄 Troca de Equipamentos
-                    </span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      value="devolucao"
-                      checked={memorandumType === "devolucao"}
-                      onChange={(e) =>
-                        setMemorandumType(e.target.value as "devolucao")
-                      }
-                      className="form-radio text-blue-500"
-                    />
-                    <span className="dark:text-gray-300">
-                      Devolucao de Equipamentos
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              {/* CAMPOS PARA ENTREGA */}
-              {memorandumType === "entrega" && (
-                <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-300">
-                    📦 Configurações de Entrega
-                  </h4>
-
-                  <label className="block">
-                    <span className="dark:text-gray-300">
-                      Escola de Destino:
-                    </span>
-                    <Select
-                      options={schools.map((school) => ({
-                        value: school.name,
-                        label: school.name,
-                      }))}
-                      value={
-                        schoolName
-                          ? { value: schoolName, label: schoolName }
-                          : null
-                      }
-                      onChange={(selectedOption) => {
-                        const selectedSchoolName = selectedOption?.value || "";
-                        setSchoolName(selectedSchoolName);
-
-                        const selectedSchool = schools.find(
-                          (school) => school.name === selectedSchoolName,
-                        );
-                        if (selectedSchool) {
-                          setDistrict(selectedSchool.district);
-                        }
-                      }}
-                      className="text-black"
-                      placeholder="Selecione a escola que receberá os equipamentos"
-                      isClearable
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="dark:text-gray-300">Distrito:</span>
-                    <input
-                      type="text"
-                      value={district}
-                      readOnly
-                      className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100"
-                      placeholder="Distrito será preenchido automaticamente"
-                    />
-                  </label>
-
-                  {/* Lista de itens para seleção na entrega */}
-                  <div>
-                    <span className="dark:text-gray-300 font-semibold">
-                      Selecionar itens para entrega:
-                    </span>
-
-                    {/* Barra de pesquisa para entrega */}
-                    <div className="my-2">
-                      <input
-                        type="text"
-                        placeholder="Pesquisar equipamento..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100 border dark:border-zinc-700"
-                      />
-                    </div>
-
-                    {/* Lista com altura limitada e scroll */}
-                    <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded border divide-y divide-gray-200 dark:divide-zinc-700">
-                      {items
-                        .filter(
-                          (item) =>
-                            item.School?.name === "CSDT" &&
-                            (item.name
-                              .toLowerCase()
-                              .includes(searchTerm.toLowerCase()) ||
-                              item.brand
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase()) ||
-                              item.serialNumber
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase())),
-                        )
-                        .map((item, idx) => (
-                          <label
-                            key={item.id}
-                            className={`
-                              flex items-center gap-2 text-xs px-2 py-2 cursor-pointer transition
-                              ${idx % 2 === 0 ? "bg-gray-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-800"}
-                              hover:bg-blue-100 dark:hover:bg-blue-900
-                              rounded
-                            `}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedFromCSDT.includes(item.id)}
-                              onChange={() => {
-                                setSelectedFromCSDT((prev) =>
-                                  prev.includes(item.id)
-                                    ? prev.filter((id) => id !== item.id)
-                                    : [...prev, item.id],
-                                );
-                              }}
-                              className="accent-blue-500"
-                            />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{item.name}</span>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                {item.brand} • {item.serialNumber}
-                              </span>
-                              <span className="text-gray-400 text-[10px]">
-                                Criado em:{" "}
-                                {format(new Date(item.createdAt), "dd/MM/yyyy")}
-                              </span>
-                            </div>
-                          </label>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-
-
-              {memorandumType === "devolucao" && (
-                <div className="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                  <h4 className="font-semibold text-emerald-800 dark:text-emerald-300">
-                    Configuracoes de Devolucao
-                  </h4>
-
-                  <label className="block">
-                    <span className="dark:text-gray-300">
-                      Escola de Origem:
-                    </span>
-                    <Select
-                      options={schools
-                        .filter((school) => school.name !== "CSDT")
-                        .map((school) => ({
-                          value: school.name,
-                          label: school.name,
-                        }))}
-                      value={
-                        schoolName
-                          ? { value: schoolName, label: schoolName }
-                          : null
-                      }
-                      onChange={(selectedOption) => {
-                        const selectedSchoolName = selectedOption?.value || "";
-                        setSchoolName(selectedSchoolName);
-                        setSelectedFromDestino([]);
-
-                        const selectedSchool = schools.find(
-                          (school) => school.name === selectedSchoolName,
-                        );
-                        if (selectedSchool) {
-                          setDistrict(selectedSchool.district);
-                        } else {
-                          setDistrict("");
-                        }
-                      }}
-                      className="text-black"
-                      placeholder="Selecione a escola que devolvera os equipamentos"
-                      isClearable
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="dark:text-gray-300">Distrito:</span>
-                    <input
-                      type="text"
-                      value={district}
-                      readOnly
-                      className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100"
-                      placeholder="Distrito sera preenchido automaticamente"
-                    />
-                  </label>
-
-                  <div>
-                    <span className="dark:text-gray-300 font-semibold">
-                      Selecionar itens para devolucao ao CSDT:
-                    </span>
-
-                    <div className="my-2">
-                      <input
-                        type="text"
-                        placeholder="Pesquisar equipamento..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100 border dark:border-zinc-700"
-                      />
-                    </div>
-
-                    <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded border divide-y divide-gray-200 dark:divide-zinc-700">
-                      {items
-                        .filter(
-                          (item) =>
-                            item.School?.name === schoolName &&
-                            (item.name
-                              .toLowerCase()
-                              .includes(searchTerm.toLowerCase()) ||
-                              item.brand
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase()) ||
-                              item.serialNumber
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase())),
-                        )
-                        .map((item, idx) => (
-                          <label
-                            key={item.id}
-                            className={`
-                              flex items-center gap-2 text-xs px-2 py-2 cursor-pointer transition
-                              ${idx % 2 === 0 ? "bg-gray-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-800"}
-                              hover:bg-emerald-100 dark:hover:bg-emerald-900
-                              rounded
-                            `}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedFromDestino.includes(item.id)}
-                              onChange={() => {
-                                setSelectedFromDestino((prev) =>
-                                  prev.includes(item.id)
-                                    ? prev.filter((id) => id !== item.id)
-                                    : [...prev, item.id],
-                                );
-                              }}
-                              className="accent-emerald-500"
-                            />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{item.name}</span>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                {item.brand} - {item.serialNumber}
-                              </span>
-                              <span className="text-gray-400 text-[10px]">
-                                Criado em:{" "}
-                                {format(new Date(item.createdAt), "dd/MM/yyyy")}
-                              </span>
-                            </div>
-                          </label>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* CAMPOS PARA TROCA - com altura limitada */}
-              {memorandumType === "troca" && (
-                <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                  <h4 className="font-semibold text-orange-800 dark:text-orange-300">
-                    🔄 Configurações de Troca
-                  </h4>
-
-                  {/* Escolher escola destino */}
-                  <label className="block">
-                    <span className="dark:text-gray-300">
-                      Escola de Destino:
-                    </span>
-                    <Select
-                      options={schools.map((school) => ({
-                        value: school.name,
-                        label: school.name,
-                      }))}
-                      value={
-                        exchangeToSchool
-                          ? { value: exchangeToSchool, label: exchangeToSchool }
-                          : null
-                      }
-                      onChange={(selectedOption) => {
-                        setExchangeToSchool(selectedOption?.value || "");
-                        setCurrentStep("step1");
-                        setSelectedFromCSDT([]);
-                        setSelectedFromDestino([]);
-                      }}
-                      className="text-black"
-                      placeholder="Selecione a escola de destino"
-                      isClearable
-                    />
-                  </label>
-
-                  {/* Exibir etapas apenas se escola de destino foi selecionada */}
-                  {exchangeToSchool && (
-                    <div>
-                      {/* Indicador de etapas */}
-                      <div className="flex items-center justify-between mb-4 p-2 bg-gray-100 dark:bg-zinc-700 rounded">
-                        <div
-                          className={`px-3 py-1 rounded ${
-                            currentStep === "step1"
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-300 text-gray-700"
-                          }`}
-                        >
-                          Etapa 1: CSDT → {exchangeToSchool}
-                        </div>
-                        <div className="text-gray-400">→</div>
-                        <div
-                          className={`px-3 py-1 rounded ${
-                            currentStep === "step2"
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-300 text-gray-700"
-                          }`}
-                        >
-                          Etapa 2: {exchangeToSchool} → CSDT
-                        </div>
-                      </div>
-
-                      {/* ETAPA 1: Selecionar equipamentos que vão do CSDT para a escola destino */}
-                      {currentStep === "step1" && (
-                        <div>
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="dark:text-gray-300 font-semibold">
-                              Equipamentos que vão do CSDT para{" "}
-                              {exchangeToSchool}
-                            </span>
-                            <span className="text-sm text-gray-500">
-                              {selectedFromCSDT.length} selecionados
-                            </span>
-                          </div>
-
-                          {/* Barra de pesquisa */}
-                          <div className="my-2">
-                            <input
-                              type="text"
-                              placeholder="Pesquisar equipamento..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100 border dark:border-zinc-700"
-                            />
-                          </div>
-
-                          {/* Lista com altura limitada */}
-                          <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded border divide-y divide-gray-200 dark:divide-zinc-700">
-                            {items
-                              .filter(
-                                (item) =>
-                                  item.School?.name === "CSDT" &&
-                                  (item.name
-                                    .toLowerCase()
-                                    .includes(searchTerm.toLowerCase()) ||
-                                    item.brand
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()) ||
-                                    item.serialNumber
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase())),
-                              )
-                              .map((item, idx) => (
-                                <label
-                                  key={item.id}
-                                  className={`
-                                    flex items-center gap-2 text-xs px-2 py-2 cursor-pointer transition
-                                    ${idx % 2 === 0 ? "bg-gray-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-800"}
-                                    hover:bg-blue-100 dark:hover:bg-blue-900
-                                    rounded
-                                  `}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedFromCSDT.includes(item.id)}
-                                    onChange={() => {
-                                      setSelectedFromCSDT((prev) => {
-                                        if (prev.includes(item.id)) {
-                                          // Remover item
-                                          return prev.filter((id) => id !== item.id);
-                                        } else {
-                                          // Adicionar item - verificar limite
-                                          if (prev.length >= 10) {
-                                            setModalMessage(
-                                              `🚫 Limite excedido!\n\nVocê tentou selecionar ${prev.length + 1} itens do CSDT, mas o máximo permitido são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
-                                            );
-                                            setModalIsOpen(true);
-                                            return prev; // Não adicionar
-                                          }
-                                          return [...prev, item.id];
-                                        }
-                                      });
-                                    }}
-                                    className="accent-blue-500"
-                                  />
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">
-                                      {item.name}
-                                    </span>
-                                    <span className="text-gray-500 dark:text-gray-400">
-                                      {item.brand} • {item.serialNumber}
-                                    </span>
-                                    <span className="text-gray-400 text-[10px]">
-                                      Criado em:{" "}
-                                      {format(
-                                        new Date(item.createdAt),
-                                        "dd/MM/yyyy",
-                                      )}
-                                    </span>
-                                  </div>
-                                </label>
-                              ))}
-                          </div>
-
-                          {/* Botão para próxima etapa */}
-                          <div className="flex justify-end mt-4">
-                            <button
-                              onClick={() => {
-                                if (selectedFromCSDT.length === 0) {
-                                  alert(
-                                    "Selecione pelo menos um item para continuar.",
-                                  );
-                                  return;
-                                }
-                                setCurrentStep("step2");
-                              }}
-                              disabled={selectedFromCSDT.length === 0}
-                              className={`px-4 py-2 rounded ${
-                                selectedFromCSDT.length === 0
-                                  ? "bg-gray-400 cursor-not-allowed"
-                                  : "bg-blue-500 hover:bg-blue-700"
-                              } text-white`}
-                            >
-                              Confirmar e Próximo ({selectedFromCSDT.length}{" "}
-                              itens)
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ETAPA 2: Selecionar equipamentos que vão da escola destino para o CSDT */}
-                      {currentStep === "step2" && (
-                        <div>
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="dark:text-gray-300 font-semibold">
-                              Equipamentos que vão de {exchangeToSchool} para o
-                              CSDT
-                            </span>
-                            <span className="text-sm text-gray-500">
-                              {selectedFromDestino.length} selecionados
-                            </span>
-                          </div>
-
-                          {/* Barra de pesquisa para etapa 2 */}
-                          <div className="my-2">
-                            <input
-                              type="text"
-                              placeholder="Pesquisar equipamento..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="w-full p-2 rounded dark:bg-zinc-800 dark:text-white bg-gray-100 border dark:border-zinc-700"
-                            />
-                          </div>
-
-                          {/* Lista com altura limitada */}
-                          <div className="max-h-32 overflow-y-auto bg-white dark:bg-zinc-800 rounded border divide-y divide-gray-200 dark:divide-zinc-700">
-                            {items
-                              .filter(
-                                (item) =>
-                                  item.School?.name === exchangeToSchool &&
-                                  (item.name
-                                    .toLowerCase()
-                                    .includes(searchTerm.toLowerCase()) ||
-                                    item.brand
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()) ||
-                                    item.serialNumber
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase())),
-                              )
-                              .map((item, idx) => (
-                                <label
-                                  key={item.id}
-                                  className={`
-                                    flex items-center gap-2 text-xs px-2 py-2 cursor-pointer transition
-                                    ${idx % 2 === 0 ? "bg-gray-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-800"}
-                                    hover:bg-blue-100 dark:hover:bg-blue-900
-                                    rounded
-                                  `}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedFromDestino.includes(
-                                      item.id,
-                                    )}
-                                    onChange={() => {
-                                      setSelectedFromDestino((prev) => {
-                                        if (prev.includes(item.id)) {
-                                          // Remover item
-                                          return prev.filter((id) => id !== item.id);
-                                        } else {
-                                          // Adicionar item - verificar limite
-                                          if (prev.length >= 10) {
-                                            setModalMessage(
-                                              `🚫 Limite excedido!\n\nVocê tentou selecionar ${prev.length + 1} itens da escola ${exchangeToSchool}, mas o máximo permitido são 10 itens por categoria.\n\nPor favor, desmarque alguns itens antes de continuar.`
-                                            );
-                                            setModalIsOpen(true);
-                                            return prev; // Não adicionar
-                                          }
-                                          return [...prev, item.id];
-                                        }
-                                      });
-                                    }}
-                                    className="accent-blue-500"
-                                  />
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">
-                                      {item.name}
-                                    </span>
-                                    <span className="text-gray-500 dark:text-gray-400">
-                                      {item.brand} • {item.serialNumber}
-                                    </span>
-                                    <span className="text-gray-400 text-[10px]">
-                                      Criado em:{" "}
-                                      {format(
-                                        new Date(item.createdAt),
-                                        "dd/MM/yyyy",
-                                      )}
-                                    </span>
-                                  </div>
-                                </label>
-                              ))}
-                          </div>
-
-                          {/* Botões para voltar */}
-                          <div className="flex justify-between mt-4">
-                            <button
-                              onClick={() => setCurrentStep("step1")}
-                              className="px-4 py-2 bg-gray-500 hover:bg-gray-700 text-white rounded"
-                            >
-                              ← Voltar
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* NÚMERO AUTOMÁTICO */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800">
-                <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-                  📋 Número do memorando será gerado automaticamente
-                </span>
-                <p className="text-xs text-blue-500 dark:text-blue-300 mt-1">
-                  Formato: [Sequencial]/[Ano] (ex: 1/2025, 2/2025...)
-                </p>
-              </div>
-
-              {/* PREVIEW DOS ITENS SELECIONADOS com altura limitada */}
-              <div className="p-3 bg-gray-50 dark:bg-zinc-800 rounded border">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  📋 Itens Selecionados:{" "}
-                  {memorandumType === "entrega" ? (
-                    <span>{selectedFromCSDT.length}</span>
-                  ) : memorandumType === "devolucao" ? (
-                    <span>{selectedFromDestino.length}</span>
-                  ) : memorandumType === "troca" ? (
-                    selectedFromCSDT.length + selectedFromDestino.length
-                  ) : (
-                    0
-                  )}
-                </p>
-
-                {/* NOVO: Indicador de páginas */}
-                {((memorandumType === "entrega" && selectedFromCSDT.length > 0) ||
-                  (memorandumType === "devolucao" && selectedFromDestino.length > 0)) && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
-                    📄 Serão geradas {Math.ceil(selectedFromCSDT.length / ITEMS_PER_PAGE)} página(s)
-                  </p>
-                )}
-
-                {/* Container com scroll para muitos itens */}
-                <div className="max-h-24 overflow-y-auto">
-                  {memorandumType === "entrega" && (
-                    <>
-                      {items
-                        .filter((item) => selectedFromCSDT.includes(item.id))
-                        .map((item) => (
-                          <p
-                            key={item.id}
-                            className="text-xs text-gray-600 dark:text-gray-400"
-                          >
-                            • {item.name} - {item.brand} ({item.serialNumber})
-                          </p>
-                        ))}
-                    </>
-                  )}
-
-                  {memorandumType === "devolucao" && (
-                    <>
-                      {items
-                        .filter((item) => selectedFromDestino.includes(item.id))
-                        .map((item) => (
-                          <p
-                            key={item.id}
-                            className="text-xs text-gray-600 dark:text-gray-400"
-                          >
-                            ??? {item.name} - {item.brand} ({item.serialNumber})
-                          </p>
-                        ))}
-                    </>
-                  )}
-
-                  {memorandumType === "troca" && (
-                    <>
-                      {/* Itens que saem do CSDT */}
-                      {selectedFromCSDT.length > 0 && (
-                        <div className="mb-2">
-                          <p className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                            🔄 CSDT → {exchangeToSchool}:
-                          </p>
-                          {items
-                            .filter((item) =>
-                              selectedFromCSDT.includes(item.id),
-                            )
-                            .map((item) => (
-                              <p
-                                key={item.id}
-                                className="text-xs text-gray-600 dark:text-gray-400 ml-2"
-                              >
-                                • {item.name} - {item.brand} (
-                                {item.serialNumber})
-                              </p>
-                            ))}
-                        </div>
-                      )}
-
-                      {/* Itens que voltam para o CSDT */}
-                      {selectedFromDestino.length > 0 && (
-                        <div>
-                          <p className="text-xs font-medium text-orange-600 dark:text-orange-400">
-                            🔄 {exchangeToSchool} → CSDT:
-                          </p>
-                          {items
-                            .filter((item) =>
-                              selectedFromDestino.includes(item.id),
-                            )
-                            .map((item) => (
-                              <p
-                                key={item.id}
-                                className="text-xs text-gray-600 dark:text-gray-400 ml-2"
-                              >
-                                • {item.name} - {item.brand} (
-                                {item.serialNumber})
-                              </p>
-                            ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer fixo na parte inferior */}
-            <AlertDialogFooter className="flex-shrink-0 border-t pt-4">
-              <AlertDialogCancel
-                onClick={() => {
-                  setMemorandumType("entrega");
-                  setSchoolName("");
-                  setDistrict("");
-                  setExchangeFromSchool("");
-                  setExchangeToSchool("");
-                  setSelectedFromCSDT([]);
-                  setSelectedFromDestino([]);
-                  setCurrentStep("step1");
-                }}
-                className="hover:bg-red-300 dark:text-white"
-              >
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleGenerateMemorandum}
-                className="bg-blue-500 hover:bg-blue-700 text-white"
-              >
-                {memorandumType === "entrega"
-                  ? "📦 Gerar Entrega"
-                  : "🔄 Gerar Troca"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Drawer para exibir o histórico */}
-        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <DrawerContent
-            className="fixed inset-y-0 right-0 w-full max-w-md bg-zinc-900 text-white shadow-lg transform transition-transform duration-300 ease-in-out flex flex-col"
-            style={{
-              transform: isDrawerOpen ? "translateX(0)" : "translateX(100%)",
-            }}
-          >
-            <DrawerHeader className="p-4 border-b border-zinc-800">
-              <DrawerTitle className="text-xl font-bold">
-                Histórico do Item
-              </DrawerTitle>
-              <DrawerDescription className="text-sm text-gray-400">
-                Histórico de movimentação para o item:{" "}
-                <strong>
-                  {selectedItem?.name}, {selectedItem?.brand},{" "}
-                  {selectedItem?.serialNumber}
-                </strong>
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="p-4 space-y-4 flex-1 overflow-y-auto">
-              {itemHistory.length > 0 ? (
-                itemHistory.map((history, index) => (
-                  <div
-                    key={index}
-                    className="bg-zinc-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-                  >
-                    <p>
-                      <strong>Foi para:</strong> {history.toSchool || "N/A"}
-                    </p>
-                    <p>
-                      <strong>Data:</strong>{" "}
-                      {new Date(history.movedAt).toLocaleString("pt-BR")}
-                    </p>
-                    <p>
-                      <strong>Gerado por:</strong>{" "}
-                      {history.generatedBy || "N/A"}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500">Nenhum histórico encontrado.</p>
-              )}
-            </div>
-            <DrawerFooter className="p-4 border-t border-zinc-800 flex justify-end">
-              <Button
-                onClick={closeHistoryDrawer}
-                className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-300"
-              >
-                Fechar
-              </Button>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
-
-        {/* Modal de Edição de Item */}
-        {editModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-md">
-              <h2 className="text-lg font-bold mb-4 text-zinc-800 dark:text-white">Editar Item</h2>
-
-              <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Nome</label>
-              <input
-                type="text"
-                className="w-full mb-3 p-2 border border-gray-300 rounded dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-
-              <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Marca / Modelo</label>
-              <input
-                type="text"
-                className="w-full mb-3 p-2 border border-gray-300 rounded dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
-                value={editBrand}
-                onChange={(e) => setEditBrand(e.target.value)}
-              />
-
-              <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Serial</label>
-              <input
-                type="text"
-                className="w-full mb-3 p-2 border border-gray-300 rounded dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
-                value={editSerial}
-                onChange={(e) => setEditSerial(e.target.value)}
-              />
-
-              <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">Escola / Setor</label>
-              <Select
-                options={editSchools.map((s: any) => ({ value: s.id, label: s.name }))}
-                onChange={(opt) => setEditSchoolId(opt ? opt.value : null)}
-                placeholder={`Atual: ${itemToEdit?.School?.name} — pesquise para alterar`}
-                isClearable
-                className="mb-4"
-                styles={{
-                  control: (base) => ({ ...base, backgroundColor: "#fff", borderColor: "#d1d5db", color: "#111" }),
-                  input: (base) => ({ ...base, color: "#111" }),
-                  singleValue: (base) => ({ ...base, color: "#111" }),
-                  placeholder: (base) => ({ ...base, color: "#6b7280" }),
-                  menu: (base) => ({ ...base, backgroundColor: "#fff", zIndex: 9999 }),
-                  option: (base, state) => ({
-                    ...base,
-                    backgroundColor: state.isFocused ? "#eff6ff" : "#fff",
-                    color: "#111",
-                    cursor: "pointer",
-                  }),
-                }}
-              />
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setEditModalOpen(false)}
-                  className="px-4 py-2 bg-gray-200 dark:bg-zinc-700 text-gray-800 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleEditSave}
-                  disabled={editLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
-                >
-                  {editLoading ? "Salvando..." : "Salvar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Confirmação de Deleção */}
-        <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-          <AlertDialogContent className="dark:bg-zinc-900 bg-white max-w-2xl max-h-[90vh] flex flex-col">
-            <AlertDialogHeader className="flex-shrink-0">
-              <AlertDialogTitle className="dark:text-white text-xl font-bold flex items-center gap-2">
-                <span className="text-2xl">🗑️</span>
-                Confirmar Deleção
-              </AlertDialogTitle>
-              <AlertDialogDescription className="dark:text-gray-300 text-gray-600">
-                Você está prestes a deletar este item e TODOS os dados relacionados. Esta ação é irreversível.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            <div className="flex-1 overflow-y-auto space-y-4 px-1">
-              {loadingRelatedData ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                  <span className="ml-2 dark:text-white">Carregando dados relacionados...</span>
-                </div>
-              ) : relatedData ? (
-                <>
-                  {/* Informações do Item */}
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">📦 Item a ser deletado:</h3>
-                    <div className="space-y-1 text-sm">
-                      <p><strong>Nome:</strong> {relatedData.item.name}</p>
-                      <p><strong>Marca:</strong> {relatedData.item.brand}</p>
-                      <p><strong>Série:</strong> {relatedData.item.serialNumber}</p>
-                      <p><strong>Escola:</strong> {relatedData.item.school}</p>
-                      <p><strong>Criado por:</strong> {relatedData.item.createdBy}</p>
-                    </div>
-                  </div>
-
-                  {/* Resumo dos Dados Relacionados */}
-                  {relatedData.totalRelatedRecords > 0 ? (
-                    <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-                      <h3 className="font-semibold text-orange-800 dark:text-orange-300 mb-2">
-                        ⚠️ Dados relacionados que serão deletados:
-                      </h3>
-                      <div className="space-y-2 text-sm">
-                        {relatedData.relationships.history.count > 0 && (
-                          <div>
-                            <p><strong>📋 Histórico de movimentações:</strong> {relatedData.relationships.history.count} registros</p>
-                            {relatedData.relationships.history.recent.slice(0, 3).map((h: any, idx: number) => (
-                              <p key={idx} className="ml-4 text-xs text-gray-600 dark:text-gray-400">
-                                • {h.from} → {h.to} em {new Date(h.date).toLocaleDateString('pt-BR')}
-                              </p>
-                            ))}
-                            {relatedData.relationships.history.count > 3 && (
-                              <p className="ml-4 text-xs text-gray-500">... e mais {relatedData.relationships.history.count - 3} registros</p>
-                            )}
-                          </div>
-                        )}
-                        
-                        {relatedData.relationships.memorandums.count > 0 && (
-                          <div>
-                            <p><strong>📄 Memorandos:</strong> {relatedData.relationships.memorandums.count} memorandos</p>
-                            {relatedData.relationships.memorandums.list.slice(0, 3).map((m: any, idx: number) => (
-                              <p key={idx} className="ml-4 text-xs text-gray-600 dark:text-gray-400">
-                                • #{m.number} - {m.school} ({m.type}) em {new Date(m.date).toLocaleDateString('pt-BR')}
-                              </p>
-                            ))}
-                            {relatedData.relationships.memorandums.count > 3 && (
-                              <p className="ml-4 text-xs text-gray-500">... e mais {relatedData.relationships.memorandums.count - 3} memorandos</p>
-                            )}
-                          </div>
-                        )}
-                        
-                        {relatedData.relationships.chada.count > 0 && (
-                          <div>
-                            <p><strong>🔧 Registros CHADA:</strong> {relatedData.relationships.chada.count} registros</p>
-                            {relatedData.relationships.chada.list.slice(0, 3).map((c: any, idx: number) => (
-                              <p key={idx} className="ml-4 text-xs text-gray-600 dark:text-gray-400">
-                                • {c.problem} ({c.status}) - {c.setor}
-                              </p>
-                            ))}
-                            {relatedData.relationships.chada.count > 3 && (
-                              <p className="ml-4 text-xs text-gray-500">... e mais {relatedData.relationships.chada.count - 3} registros</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                      <p className="text-green-800 dark:text-green-300">
-                        ✅ Este item não possui dados relacionados. Apenas o item principal será deletado.
-                      </p>
-                    </div>
-                  )}
-
-                  {!relatedData.canDelete && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                      <p className="text-red-800 dark:text-red-300">
-                        ❌ Você não tem permissão para deletar este item. Apenas quem criou o item pode deletá-lo.
-                      </p>
-                    </div>
-                  )}
-                </>
-              ) : null}
-            </div>
-
-            <AlertDialogFooter className="flex-shrink-0 border-t pt-4">
-              <AlertDialogCancel
-                onClick={() => {
-                  setDeleteModalOpen(false);
-                  setItemToDelete(null);
-                  setRelatedData(null);
-                }}
-                className="hover:bg-gray-300 dark:text-white"
-              >
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDelete}
-                disabled={!relatedData?.canDelete || loadingRelatedData}
-                className={`${
-                  relatedData?.canDelete && !loadingRelatedData
-                    ? "bg-red-500 hover:bg-red-700"
-                    : "bg-gray-400 cursor-not-allowed"
-                } text-white font-semibold`}
-              >
-                {loadingRelatedData ? "Carregando..." : "🗑️ Deletar Tudo"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeviceListMemorandumDialog
+          isDialogOpen={hook.isDialogOpen}
+          setIsDialogOpen={hook.setIsDialogOpen}
+          items={hook.items}
+          schools={hook.schools}
+          searchTerm={hook.searchTerm}
+          setSearchTerm={hook.setSearchTerm}
+          memorandumType={hook.memorandumType}
+          setMemorandumType={hook.setMemorandumType}
+          schoolName={hook.schoolName}
+          setSchoolName={hook.setSchoolName}
+          district={hook.district}
+          setDistrict={hook.setDistrict}
+          exchangeToSchool={hook.exchangeToSchool}
+          setExchangeToSchool={hook.setExchangeToSchool}
+          selectedFromCSDT={hook.selectedFromCSDT}
+          setSelectedFromCSDT={hook.setSelectedFromCSDT}
+          selectedFromDestino={hook.selectedFromDestino}
+          setSelectedFromDestino={hook.setSelectedFromDestino}
+          currentStep={hook.currentStep}
+          setCurrentStep={hook.setCurrentStep}
+          setModalMessage={hook.setModalMessage}
+          setModalIsOpen={hook.setModalIsOpen}
+          handleGenerateMemorandum={hook.handleGenerateMemorandum}
+          resetMemorandum={hook.resetMemorandum}
+        />
       </div>
     </div>
   );

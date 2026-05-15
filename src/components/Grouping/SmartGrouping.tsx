@@ -1,18 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  TreeStructure, 
-  Buildings, 
-  Laptop, 
-  CalendarBlank, 
-  MapPin,
-  Clock,
-  Trash,
-  CaretDown,
-  CaretRight,
-  ChartBar
-} from 'phosphor-react';
+import { Network, Building2, Laptop, CalendarDays, MapPin, Clock, Trash, ChevronDown, ChevronRight, BarChart3, GitBranch } from 'lucide-react';
 
 interface Item {
   id: number;
@@ -168,12 +157,12 @@ const SmartGrouping: React.FC<SmartGroupingProps> = ({
   // Ícones para diferentes tipos de agrupamento
   const getGroupIcon = (groupBy: string) => {
     switch (groupBy) {
-      case 'school': return <Buildings size={20} />;
+      case 'school': return <Building2 size={20} />;
       case 'type': return <Laptop size={20} />;
       case 'status': return <MapPin size={20} />;
-      case 'date': return <CalendarBlank size={20} />;
+      case 'date': return <CalendarDays size={20} />;
       case 'district': return <MapPin size={20} />;
-      default: return <TreeStructure size={20} />;
+      default: return <GitBranch size={20} />;
     }
   };
 
@@ -236,7 +225,7 @@ const SmartGrouping: React.FC<SmartGroupingProps> = ({
               onClick={() => setShowStats(!showStats)}
               className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors flex items-center gap-1"
             >
-              <ChartBar size={16} />
+              <BarChart3 size={16} />
               {showStats ? 'Ocultar' : 'Mostrar'} Stats
             </button>
           </div>
@@ -279,9 +268,9 @@ const SmartGrouping: React.FC<SmartGroupingProps> = ({
             >
               <div className="flex items-center gap-3">
                 {expandedGroups.has(groupName) ? (
-                  <CaretDown size={20} className="text-gray-600 dark:text-gray-400" />
+                  <ChevronDown size={20} className="text-gray-600 dark:text-gray-400" />
                 ) : (
-                  <CaretRight size={20} className="text-gray-600 dark:text-gray-400" />
+                  <ChevronRight size={20} className="text-gray-600 dark:text-gray-400" />
                 )}
                 
                 <div className="text-left">
@@ -363,7 +352,7 @@ const SmartGrouping: React.FC<SmartGroupingProps> = ({
 
       {Object.keys(groupedData).length === 0 && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          <TreeStructure size={48} className="mx-auto mb-4 opacity-50" />
+          <GitBranch size={48} className="mx-auto mb-4 opacity-50" />
           <p>Nenhum equipamento encontrado para agrupar</p>
         </div>
       )}

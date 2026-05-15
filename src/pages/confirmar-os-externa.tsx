@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, X, Calendar, Clock, User, Briefcase, FileText, Image, MapPin } from 'phosphor-react';
+import { CheckCircle, X, Calendar, Clock, User, Briefcase, FileText, Image, MapPin } from 'lucide-react';
 
 const ConfirmarOsExterna: React.FC = () => {
   const router = useRouter();
@@ -128,7 +128,7 @@ const ConfirmarOsExterna: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100">
         <div className="bg-white p-10 rounded-2xl shadow-2xl text-center max-w-md">
           <div className="bg-red-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-            <X size={64} weight="fill" className="text-red-500" />
+            <X size={64} className="text-red-500" />
           </div>
           <h2 className="text-3xl font-bold text-red-700 mb-3">Link Inválido</h2>
           <p className="text-gray-700 text-lg mb-2">
@@ -148,7 +148,7 @@ const ConfirmarOsExterna: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100">
         <div className="bg-white p-10 rounded-2xl shadow-2xl text-center max-w-md">
           <div className="bg-red-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-            <X size={64} weight="fill" className="text-red-500" />
+            <X size={64} className="text-red-500" />
           </div>
           <h2 className="text-3xl font-bold text-red-700 mb-3">Erro</h2>
           <p className="text-gray-700 text-lg mb-4">{message}</p>
@@ -171,7 +171,7 @@ const ConfirmarOsExterna: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
         <div className="bg-white p-10 rounded-2xl shadow-2xl text-center max-w-md">
           <div className="bg-green-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={64} weight="fill" className="text-green-500" />
+            <CheckCircle size={64} className="text-green-500" />
           </div>
           <h2 className="text-3xl font-bold text-green-700 mb-3">Confirmado!</h2>
           <p className="text-gray-700 text-lg mb-2">{message}</p>
@@ -451,7 +451,7 @@ const ConfirmarOsExterna: React.FC = () => {
               {message && !success && (
                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 shadow-md">
                   <div className="flex items-center">
-                    <X size={24} className="mr-3" weight="bold" />
+                    <X size={24} className="mr-3" />
                     <span className="font-medium">{message}</span>
                   </div>
                 </div>
@@ -527,7 +527,7 @@ const ConfirmarOsExterna: React.FC = () => {
                       </span>
                     ) : (
                       <span className="flex items-center justify-center">
-                        <CheckCircle size={24} className="mr-2" weight="bold" />
+                        <CheckCircle size={24} className="mr-2" />
                         Confirmar Atendimento
                       </span>
                     )}
@@ -557,7 +557,7 @@ const ConfirmarOsExterna: React.FC = () => {
               onClick={closeImageModal}
               className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
             >
-              <X size={32} weight="bold" />
+              <X size={32} />
             </button>
             <img
               src={selectedImage}

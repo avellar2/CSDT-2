@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Printer, EnvelopeSimple, CheckCircle, Clock, Eye } from 'phosphor-react';
+import { X, Printer, Mail, CheckCircle, Clock, Eye } from 'lucide-react';
 import Select from 'react-select';
+import { formatDateTime } from '@/utils/date';
 
 interface School {
   value: number;
@@ -115,23 +116,13 @@ const PrinterRequestCard: React.FC<PrinterRequestCardProps> = ({ onClose }) => {
     }
   };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Printer size={32} weight="fill" />
+            <Printer size={32} />
             <div>
               <h2 className="text-2xl font-bold">Solicitação de Dados de Impressoras</h2>
               <p className="text-purple-100 text-sm">Envie emails para escolas solicitando informações sobre impressoras locadas</p>
@@ -141,7 +132,7 @@ const PrinterRequestCard: React.FC<PrinterRequestCardProps> = ({ onClose }) => {
             onClick={onClose}
             className="hover:bg-white/20 p-2 rounded-lg transition-colors"
           >
-            <X size={24} weight="bold" />
+            <X size={24} />
           </button>
         </div>
 
@@ -155,7 +146,7 @@ const PrinterRequestCard: React.FC<PrinterRequestCardProps> = ({ onClose }) => {
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <EnvelopeSimple size={20} className="inline mr-2" weight="bold" />
+            <Mail size={20} className="inline mr-2" />
             Enviar Solicitações
           </button>
           <button
@@ -166,7 +157,7 @@ const PrinterRequestCard: React.FC<PrinterRequestCardProps> = ({ onClose }) => {
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <Eye size={20} className="inline mr-2" weight="bold" />
+            <Eye size={20} className="inline mr-2" />
             Ver Respostas ({printerRequests.filter(r => r.status === 'Concluído').length})
           </button>
         </div>
@@ -226,7 +217,7 @@ const PrinterRequestCard: React.FC<PrinterRequestCardProps> = ({ onClose }) => {
                   </>
                 ) : (
                   <>
-                    <EnvelopeSimple size={24} weight="bold" />
+                    <Mail size={24} />
                     Enviar Solicitações
                   </>
                 )}
@@ -270,18 +261,18 @@ const PrinterRequestCard: React.FC<PrinterRequestCardProps> = ({ onClose }) => {
                           }`}
                         >
                           {request.status === 'Concluído' ? (
-                            <CheckCircle size={16} className="inline mr-1" weight="fill" />
+                            <CheckCircle size={16} className="inline mr-1" />
                           ) : (
-                            <Clock size={16} className="inline mr-1" weight="fill" />
+                            <Clock size={16} className="inline mr-1" />
                           )}
                           {request.status}
                         </span>
                       </div>
 
                       <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        <p>Enviado em: {formatDate(request.sentAt)}</p>
+                        <p>Enviado em: {formatDateTime(request.sentAt)}</p>
                         {request.completedAt && (
-                          <p>Respondido em: {formatDate(request.completedAt)}</p>
+                          <p>Respondido em: {formatDateTime(request.completedAt)}</p>
                         )}
                       </div>
 

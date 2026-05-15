@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Printer, Download, CheckCircle, Wrench, TestTube,
+  Printer, Download, CheckCircle, Wrench, FlaskConical,
   FileText, Globe
-} from 'phosphor-react';
+} from 'lucide-react';
 
 // Lista de impressoras comuns com drivers/URLs de download
 const PRINTER_MODELS = [
@@ -467,9 +467,9 @@ export default function SetupPrinterPage() {
             {loading ? (
               <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Gerando script...</>
             ) : generated ? (
-              <><CheckCircle size={22} weight="bold" /> Script gerado! Clique para gerar novamente</>
+              <><CheckCircle size={22} /> Script gerado! Clique para gerar novamente</>
             ) : (
-              <><Download size={22} weight="bold" /> Gerar e Baixar Script (.ps1)</>
+              <><Download size={22} /> Gerar e Baixar Script (.ps1)</>
             )}
           </button>
 

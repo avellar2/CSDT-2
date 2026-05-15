@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, CheckCircle } from 'phosphor-react';
+import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 
 interface NavigationButtonsProps {
   currentStep: number;
