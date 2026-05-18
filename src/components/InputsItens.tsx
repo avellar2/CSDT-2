@@ -38,7 +38,17 @@ const
     currentStepFields = [],
     isLoadingTecnico = false, // ADICIONAR apenas esta linha
   }) => {
-    const [tecnicoParceiro, setTecnicoParceiro] = useState<MultiValue<{ label: string; value: string }>>([]);
+    const [tecnicoParceiro, setTecnicoParceiro] = useState<MultiValue<{ label: string; value: string }>>(() => {
+      const currentValue = formData.tecnicoResponsavel;
+      if (currentValue && typeof currentValue === 'string' && currentValue.includes(' / ')) {
+        const parts = currentValue.split(' / ').map((p: string) => p.trim()).filter(Boolean);
+        const partnerNames = parts.slice(1);
+        return partnerNames
+          .map(name => tecnicoParceiroOptions.find(opt => opt.value === name))
+          .filter(Boolean) as { label: string; value: string }[];
+      }
+      return [];
+    });
 
     const stableHandleInputChange = useCallback(handleInputChange, []);
 
@@ -54,6 +64,10 @@ const
           }
         } as ChangeEvent<HTMLInputElement>);
       } else {
+        const currentValue = formData.tecnicoResponsavel;
+        if (currentValue && typeof currentValue === 'string' && currentValue.includes(' / ')) {
+          return;
+        }
         // Se não há parceiros, apenas o técnico principal
         stableHandleInputChange({
           target: {
