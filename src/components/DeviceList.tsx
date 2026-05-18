@@ -1,4 +1,5 @@
 import React from "react";
+import dynamic from "next/dynamic";
 import {
   Search,
   FileDown,
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 import { useDeviceList } from "@/hooks/useDeviceList";
 import { SkeletonCard } from "./SkeletonCard";
-import Dashboard from "./Analytics/Dashboard";
+const Dashboard = dynamic(() => import("./Analytics/Dashboard"), { ssr: false });
 import DeviceViews from "./Views/DeviceViews";
 import AdvancedFilters from "./Filters/AdvancedFilters";
 import SmartGrouping from "./Grouping/SmartGrouping";
@@ -55,7 +56,7 @@ const DeviceList: React.FC = () => {
         </h1>
         <div className="flex gap-2 flex-wrap">
           <button
-            onClick={() => hook.setShowDashboard(!hook.showDashboard)}
+            onClick={() => { hook.setShowDashboard(!hook.showDashboard); if (!hook.showDashboard) hook.fetchAllItems(); }}
             className={`p-2 rounded flex items-center gap-1 transition-colors ${
               hook.showDashboard
                 ? 'bg-blue-500 text-white'
@@ -79,7 +80,7 @@ const DeviceList: React.FC = () => {
           </button>
 
           <button
-            onClick={() => hook.setShowReports(!hook.showReports)}
+            onClick={() => { hook.setShowReports(!hook.showReports); if (!hook.showReports) hook.fetchAllItems(); }}
             className={`p-2 rounded flex items-center gap-1 transition-colors ${
               hook.showReports
                 ? 'bg-green-500 text-white'
@@ -91,7 +92,7 @@ const DeviceList: React.FC = () => {
           </button>
 
           <button
-            onClick={() => hook.setShowAlerts(!hook.showAlerts)}
+            onClick={() => { hook.setShowAlerts(!hook.showAlerts); if (!hook.showAlerts) hook.fetchAllItems(); }}
             className={`p-2 rounded flex items-center gap-1 transition-colors ${
               hook.showAlerts
                 ? 'bg-red-500 text-white'
@@ -187,7 +188,7 @@ const DeviceList: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4 mb-4">
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Total.</h3>
-          <p className="text-2xl font-semibold">{hook.items.length}</p>
+          <p className="text-2xl font-semibold">{hook.totalItems || hook.items.length}</p>
         </div>
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Comp.</h3>

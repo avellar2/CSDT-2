@@ -24,6 +24,7 @@ const itemsPerPage = 10; // Número de itens por página na listagem
 export function useDeviceList() {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [schoolItemCount, setSchoolItemCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -97,7 +98,8 @@ export function useDeviceList() {
 
     const fetchItems = async () => {
       try {
-        const response = await fetch("/api/items", {
+        // Busca paginada: carrega a primeira página rapidamente
+        const response = await fetch(`/api/items?page=1&size=10`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -111,11 +113,18 @@ export function useDeviceList() {
         }
 
         const data = await response.json();
-        if (Array.isArray(data)) {
+        if (data.items && Array.isArray(data.items)) {
+          setItems(data.items);
+          setTotalItems(data.total);
+        } else if (Array.isArray(data)) {
           setItems(data);
+          setTotalItems(data.length);
         } else {
           console.error("Expected an array but got:", data);
         }
+
+        // Em seguida, carrega TODOS os itens para funcionalidades que precisam
+        fetchAllItems(token);
       } catch (error) {
         console.error("Error fetching items:", error);
         setModalMessage("Erro ao buscar itens.");
@@ -127,6 +136,25 @@ export function useDeviceList() {
 
     fetchItems();
   }, []);
+
+  // Busca todos os itens (para dashboard, exportar, relatórios, etc.)
+  const fetchAllItems = async (token?: string) => {
+    const authToken = token || localStorage.getItem("token");
+    if (!authToken) return;
+    try {
+      const response = await fetch("/api/items", {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setItems(data);
+        setTotalItems(data.length);
+      }
+    } catch (error) {
+      console.error("Error fetching all items:", error);
+    }
+  };
 
   useEffect(() => {
     const countItemsInSchool = () => {
@@ -543,7 +571,13 @@ export function useDeviceList() {
       link.parentNode?.removeChild(link);
 
       const updatedItemsResponse = await axios.get("/api/items");
-      setItems(updatedItemsResponse.data);
+      if (Array.isArray(updatedItemsResponse.data)) {
+        setItems(updatedItemsResponse.data);
+        setTotalItems(updatedItemsResponse.data.length);
+      } else if (updatedItemsResponse.data?.items) {
+        setItems(updatedItemsResponse.data.items);
+        setTotalItems(updatedItemsResponse.data.total);
+      }
 
       setSelectedFromCSDT([]);
       setSelectedFromDestino([]);
@@ -834,7 +868,7 @@ export function useDeviceList() {
 
   return {
     // State
-    items, setItems, searchTerm, setSearchTerm, schoolItemCount, loading, setLoading,
+    items, setItems, totalItems, searchTerm, setSearchTerm, schoolItemCount, loading, setLoading,
     modalIsOpen, setModalIsOpen, modalMessage, setModalMessage,
     userName, userId, schools, selectedItem, itemHistory,
     isDrawerOpen, setIsDrawerOpen, isDialogOpen, setIsDialogOpen,
@@ -857,7 +891,7 @@ export function useDeviceList() {
     indexOfFirstItem, indexOfLastItem, totals,
     // Handlers
     handlePageChange, fetchRelatedData, openEditModal, handleEditSave,
-    openDeleteModal, confirmDelete, exportToExcel, generateCompleteBackup,
+    openDeleteModal, confirmDelete, exportToExcel, generateCompleteBackup, fetchAllItems,
     handleGenerateMemorandum, handleFiltersChange, handleViewModeChange,
     handleGroupByChange, handleGenerateFilteredReport,
     openHistoryDrawer, closeHistoryDrawer, handleOpenMemorandumDialog, resetMemorandum,
