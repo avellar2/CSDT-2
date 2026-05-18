@@ -34,7 +34,8 @@ export interface SchoolPendingDailyDemandAvailability {
 }
 
 function preservePartnerSuffix(currentValue: string | undefined, primaryTechnician: string) {
-  if (!currentValue || !currentValue.includes(" / ")) return primaryTechnician;
+  if (!currentValue || currentValue.trim() === '') return primaryTechnician;
+  if (!currentValue.includes(" / ")) return primaryTechnician;
   const parts = currentValue.split(" / ").map((part) => part.trim()).filter(Boolean);
   if (parts.length <= 1) return primaryTechnician;
   return `${primaryTechnician} / ${parts.slice(1).join(" / ")}`;
@@ -615,7 +616,7 @@ export function useFillPdfForm() {
       }
     } catch {
       setLocalTecnicoName("Tecnico");
-      setFormData((prev) => ({ ...prev, tecnicoResponsavel: "Tecnico" }));
+      setFormData((prev) => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, "Tecnico") }));
     } finally {
       setIsLoadingTecnico(false);
     }

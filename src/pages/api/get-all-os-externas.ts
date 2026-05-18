@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const osExternas = await prisma.oSExterna.findMany({
       where: {
-        ...(tecnicoResponsavelFilter ? { tecnicoResponsavel: tecnicoResponsavelFilter } : {}),
+        ...(tecnicoResponsavelFilter ? { tecnicoResponsavel: { contains: tecnicoResponsavelFilter } } : {}),
         ...(status && typeof status === 'string' ? { status } : {}),
       },
       orderBy: [

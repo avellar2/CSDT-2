@@ -6,7 +6,11 @@ import { getSchoolPendingDailyDemandAvailability } from "@/utils/schoolPendingDa
 const prisma = new PrismaClient();
 
 function preservePartnerSuffix(currentValue: string | null | undefined, primaryTechnician: string) {
-  if (!currentValue || !currentValue.includes(" / ")) {
+  if (!currentValue || currentValue.trim() === '') {
+    return primaryTechnician;
+  }
+
+  if (!currentValue.includes(" / ")) {
     return primaryTechnician;
   }
 
