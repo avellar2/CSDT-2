@@ -84,6 +84,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       tabletsLocadoOutrosLocais,
     } = formData;
 
+    // Se o formulario ja enviou tecnico + parceiro (ex: "Yuri / Alexandre"),
+    // confia no valor do form e nao aplica preservePartnerSuffix
+    const formAlreadyHasPartner = typeof tecnicoResponsavel === "string" && tecnicoResponsavel.includes(" / ");
+
     if (context?.origin === "daily-demands") {
       if (!context.userId || !context.dailyDemandDate) {
         return res.status(400).json({ error: "Contexto da demanda diaria invalido." });
@@ -101,7 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      if (availability.profile?.displayName) {
+      if (!formAlreadyHasPartner && availability.profile?.displayName) {
         tecnicoResponsavel = preservePartnerSuffix(typeof tecnicoResponsavel === "string" ? tecnicoResponsavel : null, availability.profile.displayName);
       }
     } else if (context?.userId && unidadeEscolar) {
@@ -126,7 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      if (schoolAvailability.availability?.profile?.displayName) {
+      if (!formAlreadyHasPartner && schoolAvailability.availability?.profile?.displayName) {
         tecnicoResponsavel = preservePartnerSuffix(typeof tecnicoResponsavel === "string" ? tecnicoResponsavel : null, schoolAvailability.availability.profile.displayName);
       }
     }
