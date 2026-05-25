@@ -23,7 +23,8 @@ import {
   Download,
   Phone,
   BookOpen,
-  MapPin
+  MapPin,
+  PrinterCheck
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import useSWR from "swr";
@@ -236,7 +237,7 @@ const Dashboard: React.FC = () => {
   const cardCategories = {
     'Ordens de Serviço': ['fill-pdf-form-2', 'pending-os', 'os-list', 'os-externas-list', 'create-internal-os'],
     'Estatísticas': ['statistics', 'advanced-statistics'],
-    'Escolas e Equipamentos': ['schools', 'items', 'device-list', 'printers', 'locados', 'schools-map'],
+    'Escolas e Equipamentos': ['schools', 'items', 'device-list', 'printers', 'controle-impressoras', 'locados', 'schools-map'],
     'Gestão Diária': ['daily-demands', 'scales', 'internal-demands'],
     'Documentos': ['memorandums', 'new-memorandums'],
     'Administração': ['register-users'],
@@ -436,6 +437,16 @@ const Dashboard: React.FC = () => {
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
       category: 'Outros',
       badge: notifications.delayedDiagnostics
+    },
+    {
+      id: 'controle-impressoras',
+      title: 'Controle de Impressoras',
+      icon: PrinterCheck,
+      color: 'bg-indigo-500 hover:bg-indigo-700',
+      path: '/controle-impressoras',
+      roles: ['ADMTOTAL', 'ADMIN'],
+      category: 'Escolas e Equipamentos',
+      badge: null
     },
     {
       id: 'locados',
