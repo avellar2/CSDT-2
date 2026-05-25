@@ -23,7 +23,8 @@ import {
   Settings,
   Clock,
   X,
-  HardDrive
+  HardDrive,
+  PrinterCheck
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
@@ -265,6 +266,14 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
       icon: Printer,
       path: '/printers',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Escolas e Equipamentos'
+    },
+    {
+      id: 'controle-impressoras',
+      title: 'Controle de Impressoras',
+      icon: PrinterCheck,
+      path: '/controle-impressoras',
+      roles: ['ADMTOTAL', 'ADMIN'],
       category: 'Escolas e Equipamentos'
     },
     {
