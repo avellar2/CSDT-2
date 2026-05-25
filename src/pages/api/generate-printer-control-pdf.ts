@@ -8,6 +8,8 @@ interface PrinterData {
   serial: string;
   ip: string;
   setor: string;
+  escola?: string;
+  source?: 'monitoramento' | 'patrimonio';
 }
 
 const PAGE_WIDTH = 841.89;
@@ -16,15 +18,17 @@ const MARGIN = 40;
 const BOTTOM_MARGIN = 50;
 const ROW_HEIGHT = 20;
 const TABLE_HEADER_HEIGHT = 22;
-const MAX_PRINTERS_PER_PAGE = 18;
+const MAX_PRINTERS_PER_PAGE = 16;
 
-const COL_NUM = 30;
-const COL_SIGLA = 70;
-const COL_MODELO = 120;
-const COL_FABRICANTE = 100;
-const COL_SERIAL = 130;
-const COL_IP = 110;
-// setor gets remaining width
+const COL_NUM = 26;
+const COL_SIGLA = 60;
+const COL_MODELO = 100;
+const COL_FABRICANTE = 80;
+const COL_SERIAL = 100;
+const COL_IP = 90;
+const COL_SETOR = 80;
+const COL_ESCOLA = 135;
+const COL_SOURCE = 80;
 
 const COLORS = {
   primary: rgb(0.12, 0.25, 0.69),    // #1e40af dark blue
@@ -61,12 +65,17 @@ function truncateText(text: string, font: any, maxWidth: number, fontSize: numbe
 }
 
 function getColPositions(): number[] {
-  return [0, COL_NUM, COL_NUM + COL_SIGLA, COL_NUM + COL_SIGLA + COL_MODELO, COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE, COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL, COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP];
-}
-
-function getSetorWidth(): number {
-  const usedWidth = COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP;
-  return PAGE_WIDTH - MARGIN * 2 - usedWidth;
+  return [
+    0,
+    COL_NUM,
+    COL_NUM + COL_SIGLA,
+    COL_NUM + COL_SIGLA + COL_MODELO,
+    COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE,
+    COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL,
+    COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP,
+    COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP + COL_SETOR,
+    COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP + COL_SETOR + COL_ESCOLA,
+  ];
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -85,6 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const totalPages = Math.ceil(printers.length / MAX_PRINTERS_PER_PAGE);
     const uniqueFabricantes = new Set(printers.map(p => p.fabricante)).size;
     const uniqueSetores = new Set(printers.map(p => p.setor)).size;
+    const uniqueEscolas = new Set(printers.map(p => p.escola).filter(Boolean)).size;
 
     const pdfDoc = await PDFDocument.create();
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -100,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // --- PAGE 1: Full header ---
     y = drawHeader(page, fontBold, fontRegular, dateStr, responsibleName, y);
     y -= 8;
-    y = drawStats(page, fontBold, fontRegular, printers.length, uniqueFabricantes, uniqueSetores, y);
+    y = drawStats(page, fontBold, fontRegular, printers.length, uniqueFabricantes, uniqueSetores, uniqueEscolas, y);
     y -= 8;
     y = drawTableHeader(page, fontBold, y);
 
@@ -215,16 +225,17 @@ function drawMiniHeader(page: PDFPage, fontBold: any, fontRegular: any, dateStr:
   return lineY - 4;
 }
 
-function drawStats(page: PDFPage, fontBold: any, fontRegular: any, total: number, fabricantes: number, setores: number, y: number): number {
+function drawStats(page: PDFPage, fontBold: any, fontRegular: any, total: number, fabricantes: number, setores: number, escolas: number, y: number): number {
   const contentWidth = PAGE_WIDTH - MARGIN * 2;
   const statGap = 8;
-  const statWidth = (contentWidth - statGap * 2) / 3;
+  const statWidth = (contentWidth - statGap * 3) / 4;
   const statHeight = 36;
 
   const stats = [
     { num: String(total), label: 'TOTAL', bgColor: COLORS.statBgBlue, borderColor: COLORS.statBorderBlue, numColor: COLORS.accent },
     { num: String(fabricantes), label: 'FABRICANTES', bgColor: COLORS.statBgGreen, borderColor: COLORS.statBorderGreen, numColor: rgb(0.16, 0.56, 0.28) },
     { num: String(setores), label: 'SETORES', bgColor: COLORS.statBgYellow, borderColor: COLORS.statBorderYellow, numColor: rgb(0.75, 0.55, 0.05) },
+    { num: String(escolas), label: 'ESCOLAS', bgColor: rgb(0.94, 0.9, 0.98), borderColor: rgb(0.8, 0.72, 0.92), numColor: rgb(0.4, 0.2, 0.6) },
   ];
 
   stats.forEach((stat, i) => {
@@ -257,7 +268,7 @@ function drawTableHeader(page: PDFPage, fontBold: any, y: number): number {
   });
 
   const colPositions = getColPositions();
-  const headers = ['#', 'Sigla', 'Modelo', 'Fabricante', 'Serial', 'IP', 'Setor'];
+  const headers = ['#', 'Sigla', 'Modelo', 'Fabricante', 'Serial', 'IP', 'Setor', 'Escola', 'Fonte'];
 
   headers.forEach((header, i) => {
     page.drawText(header, {
@@ -272,7 +283,7 @@ function drawTableHeader(page: PDFPage, fontBold: any, y: number): number {
 function drawTableRows(page: PDFPage, fontRegular: any, fontBold: any, printers: PrinterData[], startIndex: number, y: number): number {
   const contentWidth = PAGE_WIDTH - MARGIN * 2;
   const colPositions = getColPositions();
-  const colWidths = [COL_NUM, COL_SIGLA, COL_MODELO, COL_FABRICANTE, COL_SERIAL, COL_IP, getSetorWidth()];
+  const colWidths = [COL_NUM, COL_SIGLA, COL_MODELO, COL_FABRICANTE, COL_SERIAL, COL_IP, COL_SETOR, COL_ESCOLA, COL_SOURCE];
   const fontSize = 8;
 
   printers.forEach((printer, idx) => {
@@ -341,6 +352,21 @@ function drawTableRows(page: PDFPage, fontRegular: any, fontBold: any, printers:
     page.drawText(setorText, {
       x: MARGIN + colPositions[6] + 4, y: rowY + 6,
       size: fontSize, font: fontRegular, color: COLORS.gray,
+    });
+
+    // Escola
+    const escolaText = truncateText(printer.escola || '-', fontRegular, colWidths[7] - 8, fontSize);
+    page.drawText(escolaText, {
+      x: MARGIN + colPositions[7] + 4, y: rowY + 6,
+      size: fontSize, font: fontRegular, color: COLORS.gray,
+    });
+
+    // Fonte
+    const sourceText = printer.source === 'patrimonio' ? 'Patrimonio' : 'SNMP';
+    const srcText = truncateText(sourceText, fontRegular, colWidths[8] - 8, fontSize);
+    page.drawText(srcText, {
+      x: MARGIN + colPositions[8] + 4, y: rowY + 6,
+      size: fontSize, font: fontRegular, color: COLORS.accent,
     });
 
     // Row bottom border

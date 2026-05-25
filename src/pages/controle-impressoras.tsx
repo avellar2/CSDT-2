@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 
-interface Printer {
+interface UnifiedPrinter {
   id: number;
   sigla: string;
   setor: string;
@@ -20,9 +20,11 @@ interface Printer {
   fabricante: string;
   serial: string;
   ip: string;
+  escola: string;
+  source: 'monitoramento' | 'patrimonio';
 }
 
-interface EditablePrinter extends Printer {
+interface EditablePrinter extends UnifiedPrinter {
   selected: boolean;
 }
 
@@ -40,6 +42,8 @@ const ControleImpressoras: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSetor, setFilterSetor] = useState('');
   const [filterFabricante, setFilterFabricante] = useState('');
+  const [filterEscola, setFilterEscola] = useState('');
+  const [filterSource, setFilterSource] = useState<'' | 'monitoramento' | 'patrimonio'>('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -81,14 +85,14 @@ const ControleImpressoras: React.FC = () => {
     checkAuth();
   }, [router]);
 
-  // Fetch printers
+  // Fetch printers (both sources)
   useEffect(() => {
     const fetchPrinters = async () => {
       try {
-        const response = await fetch('/api/printers');
+        const response = await fetch('/api/all-printers');
         const data = await response.json();
         if (Array.isArray(data)) {
-          setPrinters(data.map((p: Printer) => ({ ...p, selected: false })));
+          setPrinters(data.map((p: UnifiedPrinter) => ({ ...p, selected: false })));
         }
       } catch (err) {
         console.error('Erro ao buscar impressoras:', err);
@@ -111,6 +115,7 @@ const ControleImpressoras: React.FC = () => {
   // Derived: unique filter values
   const uniqueSetores = Array.from(new Set(printers.map(p => p.setor).filter(Boolean))).sort();
   const uniqueFabricantes = Array.from(new Set(printers.map(p => p.fabricante).filter(Boolean))).sort();
+  const uniqueEscolas = Array.from(new Set(printers.map(p => p.escola).filter(Boolean))).sort();
 
   // Derived: filtered printers
   const filteredPrinters = printers.filter(p => {
@@ -121,12 +126,15 @@ const ControleImpressoras: React.FC = () => {
       p.fabricante.toLowerCase().includes(term) ||
       p.serial.toLowerCase().includes(term) ||
       p.ip.toLowerCase().includes(term) ||
-      p.setor.toLowerCase().includes(term);
+      p.setor.toLowerCase().includes(term) ||
+      p.escola.toLowerCase().includes(term);
 
     const matchesSetor = !filterSetor || p.setor === filterSetor;
     const matchesFabricante = !filterFabricante || p.fabricante === filterFabricante;
+    const matchesEscola = !filterEscola || p.escola === filterEscola;
+    const matchesSource = !filterSource || p.source === filterSource;
 
-    return matchesSearch && matchesSetor && matchesFabricante;
+    return matchesSearch && matchesSetor && matchesFabricante && matchesEscola && matchesSource;
   });
 
   const selectedCount = filteredPrinters.filter(p => p.selected).length;
@@ -186,6 +194,8 @@ const ControleImpressoras: React.FC = () => {
           serial: p.serial,
           ip: p.ip,
           setor: p.setor,
+          escola: p.escola,
+          source: p.source,
         })),
         responsavel: userName || undefined,
       };
@@ -322,6 +332,29 @@ const ControleImpressoras: React.FC = () => {
               ))}
             </select>
 
+            {/* Escola filter */}
+            <select
+              value={filterEscola}
+              onChange={e => setFilterEscola(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            >
+              <option value="">Todas as escolas</option>
+              {uniqueEscolas.map(esc => (
+                <option key={esc} value={esc}>{esc}</option>
+              ))}
+            </select>
+
+            {/* Source filter */}
+            <select
+              value={filterSource}
+              onChange={e => setFilterSource(e.target.value as '' | 'monitoramento' | 'patrimonio')}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            >
+              <option value="">Todas as fontes</option>
+              <option value="monitoramento">Monitoramento (SNMP)</option>
+              <option value="patrimonio">Patrimonio</option>
+            </select>
+
             {/* Toggle all */}
             <button
               onClick={toggleSelectAll}
@@ -374,6 +407,8 @@ const ControleImpressoras: React.FC = () => {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Serial</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">IP</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Setor</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Escola</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fonte</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -447,6 +482,18 @@ const ControleImpressoras: React.FC = () => {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
                           {renderEditableCell('setor', printer.setor)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                          {printer.escola || <span className="text-gray-300 dark:text-gray-500 italic">-</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            printer.source === 'monitoramento'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                          }`}>
+                            {printer.source === 'monitoramento' ? 'SNMP' : 'Patrimônio'}
+                          </span>
                         </td>
                       </tr>
                     );
@@ -522,6 +569,13 @@ const ControleImpressoras: React.FC = () => {
                     <span className="font-semibold text-gray-900 dark:text-white text-sm">{printer.sigla}</span>
                     <span className="text-gray-400 dark:text-gray-500 mx-1.5">/</span>
                     <span className="text-gray-600 dark:text-gray-300 text-sm">{printer.modelo}</span>
+                    <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      printer.source === 'monitoramento'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                    }`}>
+                      {printer.source === 'monitoramento' ? 'SNMP' : 'Patrimônio'}
+                    </span>
                   </div>
 
                   {/* Card fields */}
@@ -530,6 +584,12 @@ const ControleImpressoras: React.FC = () => {
                     {renderEditableField('serial', 'Serial', printer.serial)}
                     {renderEditableField('ip', 'IP', printer.ip)}
                     {renderEditableField('setor', 'Setor', printer.setor)}
+                    {printer.escola && (
+                      <div className="col-span-2">
+                        <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-0.5">Escola</label>
+                        <span className="text-xs text-gray-700 dark:text-gray-200">{printer.escola}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
