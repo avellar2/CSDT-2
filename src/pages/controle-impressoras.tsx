@@ -242,7 +242,7 @@ const ControleImpressoras: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 overflow-x-hidden">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -297,13 +297,13 @@ const ControleImpressoras: React.FC = () => {
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-wrap gap-3">
             {/* Search */}
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por sigla, modelo, fabricante, serial, IP ou setor..."
+                placeholder="Buscar impressora..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
@@ -314,9 +314,9 @@ const ControleImpressoras: React.FC = () => {
             <select
               value={filterSetor}
               onChange={e => setFilterSetor(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-w-[140px]"
             >
-              <option value="">Todos os setores</option>
+              <option value="">Setor</option>
               {uniqueSetores.map(setor => (
                 <option key={setor} value={setor}>{setor}</option>
               ))}
@@ -326,9 +326,9 @@ const ControleImpressoras: React.FC = () => {
             <select
               value={filterFabricante}
               onChange={e => setFilterFabricante(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-w-[140px]"
             >
-              <option value="">Todos os fabricantes</option>
+              <option value="">Fabricante</option>
               {uniqueFabricantes.map(fab => (
                 <option key={fab} value={fab}>{fab}</option>
               ))}
@@ -338,9 +338,9 @@ const ControleImpressoras: React.FC = () => {
             <select
               value={filterEscola}
               onChange={e => setFilterEscola(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-w-[140px]"
             >
-              <option value="">Todas as escolas</option>
+              <option value="">Escola</option>
               {uniqueEscolas.map(esc => (
                 <option key={esc} value={esc}>{esc}</option>
               ))}
@@ -350,10 +350,10 @@ const ControleImpressoras: React.FC = () => {
             <select
               value={filterSource}
               onChange={e => setFilterSource(e.target.value as '' | 'monitoramento' | 'patrimonio')}
-              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-w-[140px]"
             >
-              <option value="">Todas as fontes</option>
-              <option value="monitoramento">Monitoramento (SNMP)</option>
+              <option value="">Fonte</option>
+              <option value="monitoramento">SNMP</option>
               <option value="patrimonio">Patrimonio</option>
             </select>
 
@@ -395,7 +395,7 @@ const ControleImpressoras: React.FC = () => {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700">
-                    <th className="px-4 py-3 text-left w-10">
+                    <th className="px-2 py-2 text-left w-8">
                       <input
                         type="checkbox"
                         checked={filteredPrinters.length > 0 && filteredPrinters.every(p => p.selected)}
@@ -403,15 +403,15 @@ const ControleImpressoras: React.FC = () => {
                         className="w-4 h-4 rounded border-gray-300 text-indigo-500 focus:ring-indigo-500"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Sigla</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Modelo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fabricante</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Serial</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">IP</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Setor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Escola</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fonte</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Observação</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Sigla</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Modelo</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fabricante</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Serial</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">IP</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Setor</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Escola</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fonte</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider min-w-[180px]">Observação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -460,7 +460,7 @@ const ControleImpressoras: React.FC = () => {
                               : 'bg-gray-50 dark:bg-gray-750'
                         } ${!isRowSelected ? 'opacity-60' : ''}`}
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-2">
                           <input
                             type="checkbox"
                             checked={printer.selected}
@@ -468,37 +468,37 @@ const ControleImpressoras: React.FC = () => {
                             className="w-4 h-4 rounded border-gray-300 text-indigo-500 focus:ring-indigo-500"
                           />
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                        <td className="px-2 py-2 text-xs font-semibold text-gray-900 dark:text-white">
                           {printer.sigla}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                        <td className="px-2 py-2 text-xs text-gray-700 dark:text-gray-200">
                           {renderEditableCell('modelo', printer.modelo)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                        <td className="px-2 py-2 text-xs text-gray-700 dark:text-gray-200">
                           {renderEditableCell('fabricante', printer.fabricante)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                        <td className="px-2 py-2 text-xs font-mono text-gray-700 dark:text-gray-200">
                           {renderEditableCell('serial', printer.serial)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                        <td className="px-2 py-2 text-xs text-indigo-600 dark:text-indigo-400">
                           {renderEditableCell('ip', printer.ip)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                        <td className="px-2 py-2 text-xs text-gray-700 dark:text-gray-200">
                           {renderEditableCell('setor', printer.setor)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                        <td className="px-2 py-2 text-xs text-gray-700 dark:text-gray-200 max-w-[120px] truncate">
                           {printer.escola || <span className="text-gray-300 dark:text-gray-500 italic">-</span>}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        <td className="px-2 py-2">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
                             printer.source === 'monitoramento'
                               ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                               : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
                           }`}>
-                            {printer.source === 'monitoramento' ? 'SNMP' : 'Patrimônio'}
+                            {printer.source === 'monitoramento' ? 'SNMP' : 'Patr.'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                        <td className="px-2 py-2 text-xs text-gray-700 dark:text-gray-200">
                           {renderEditableCell('observacao', printer.observacao)}
                         </td>
                       </tr>
