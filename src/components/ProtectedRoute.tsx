@@ -2,16 +2,27 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 
+// Cache simples em memória: evita chamar Supabase a cada navegação
+// { uid, timestamp } — válido por 5 minutos
+let cachedAuth: { uid: string; ts: number } | null = null;
+const CACHE_MS = 5 * 60 * 1000; // 5 minutos
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Primeiro verifica se tem token no localStorage
       const token = localStorage.getItem("token");
       if (!token) {
         router.push("/login");
+        return;
+      }
+
+      // Se cache é válido, autoriza direto sem chamar Supabase
+      const now = Date.now();
+      if (cachedAuth && cachedAuth.uid === token && (now - cachedAuth.ts) < CACHE_MS) {
+        setAuthorized(true);
         return;
       }
 
@@ -19,12 +30,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
       const { data: { user }, error } = await supabase.auth.getUser(token);
 
       if (error || !user) {
-        // Token inválido ou expirado — limpa e redireciona
         localStorage.removeItem("token");
+        cachedAuth = null;
         router.push("/login");
         return;
       }
 
+      // Cacheia resultado
+      cachedAuth = { uid: token, ts: now };
       setAuthorized(true);
     };
 
