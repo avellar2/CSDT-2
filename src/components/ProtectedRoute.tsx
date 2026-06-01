@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 // Cache simples em memória: evita chamar Supabase a cada navegação
 // { uid, timestamp } — válido por 5 minutos
 let cachedAuth: { uid: string; ts: number } | null = null;
-const CACHE_MS = 5 * 60 * 1000; // 5 minutos
+const CACHE_MS = 30 * 60 * 1000; // 30 minutos
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
