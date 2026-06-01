@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 interface OS {
   id: string;
@@ -88,15 +89,15 @@ const History: React.FC = () => {
       const currentDate = new Date().toISOString().split("T")[0];
 
       // Buscar dados de OS
-      const osResponse = await fetch(`/api/history/internal-os?date=${currentDate}`);
+      const osResponse = await fetch(`/api/history/internal-os?date=${currentDate}`, { headers: getAuthHeaders() });
       const osData = await osResponse.json();
 
       // Buscar dados de demandas
-      const demandResponse = await fetch(`/api/history/school-demands?date=${currentDate}`);
+      const demandResponse = await fetch(`/api/history/school-demands?date=${currentDate}`, { headers: getAuthHeaders() });
       const demandData = await demandResponse.json();
 
       // Buscar dados das escolas
-      const schoolResponse = await fetch(`/api/schools`);
+      const schoolResponse = await fetch(`/api/schools`, { headers: getAuthHeaders() });
       const schoolData = await schoolResponse.json();
 
       // Criar um mapa de schoolId para schoolName

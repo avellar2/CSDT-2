@@ -12,6 +12,7 @@ import {
   Legend,
 } from "chart.js";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 ChartJS.register(
   CategoryScale,
@@ -31,7 +32,7 @@ const StatisticsPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/statistics?type=${type}`);
+        const response = await fetch(`/api/statistics?type=${type}`, { headers: getAuthHeaders() });
         const data = await response.json();
         setTechnicianData({
           labels: data.technicianData.map((item: any) => item.label),

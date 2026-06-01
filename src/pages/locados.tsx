@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 const LocadosPage = () => {
   const [items, setItems] = useState<any[]>([]);
@@ -36,7 +37,7 @@ const LocadosPage = () => {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/locados");
+      const res = await fetch("/api/locados", { headers: getAuthHeaders() });
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -48,7 +49,7 @@ const LocadosPage = () => {
 
   const fetchImpressoras = async () => {
     try {
-      const res = await fetch("/api/impressoras");
+      const res = await fetch("/api/impressoras", { headers: getAuthHeaders() });
       const data = await res.json();
       setImpressoras(Array.isArray(data) ? data : []);
     } catch (error) {

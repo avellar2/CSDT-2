@@ -4,6 +4,7 @@ import Select from 'react-select';
 import dynamic from 'next/dynamic';
 import { Clock, MapPin, Route, Users, Calculator, RefreshCw, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { getAuthHeaders } from '@/utils/client-auth';
 
 // Importação dinâmica para evitar SSR issues com Leaflet
 const MapWithRoutes = dynamic(() => import('@/components/MapWithRoutes'), { 
@@ -70,7 +71,7 @@ const RouteOptimizer: React.FC = () => {
 
   const fetchSchools = async () => {
     try {
-      const response = await fetch('/api/get-school');
+      const response = await fetch('/api/get-school', { headers: getAuthHeaders() });
       const data = await response.json();
       setSchools(data);
     } catch (error) {
@@ -80,7 +81,7 @@ const RouteOptimizer: React.FC = () => {
 
   const fetchTechnicians = async () => {
     try {
-      const response = await fetch('/api/get-technicians');
+      const response = await fetch('/api/get-technicians', { headers: getAuthHeaders() });
       const data = await response.json();
       setTechnicians(data);
     } catch (error) {
@@ -96,8 +97,8 @@ const RouteOptimizer: React.FC = () => {
       const selectedSchoolIds = selectedSchools.map(s => s.value);
       const response = await fetch('/api/geocode-schools', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
           schoolIds: selectedSchoolIds,
           useOSM: true // Usa OpenStreetMap (gratuito)
         })
@@ -140,7 +141,7 @@ const RouteOptimizer: React.FC = () => {
     try {
       const response = await fetch('/api/route-optimization', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           technicianId: selectedTechnician.value,
           date: selectedDate,

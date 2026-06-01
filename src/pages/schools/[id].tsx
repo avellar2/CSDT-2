@@ -20,6 +20,7 @@ const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr:
 const Doughnut = dynamic(() => import('react-chartjs-2').then(mod => mod.Doughnut), { ssr: false });
 import { MapPin, Phone, Mail, Users, GraduationCap, BarChart3, ArrowLeft, Camera, FileText } from 'lucide-react';
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 ChartJS.register(
   CategoryScale,
@@ -88,7 +89,7 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
     const fetchItems = async () => {
       try {
         if (school?.id) {
-          const response = await fetch(`/api/schools/${school.id}/items`);
+          const response = await fetch(`/api/schools/${school.id}/items`, { headers: getAuthHeaders() });
           if (!response.ok) {
             throw new Error(`Erro ao buscar itens: ${response.statusText}`);
           }
@@ -105,7 +106,7 @@ const SchoolPage: React.FC<SchoolPageProps> = ({ school }) => {
     const fetchStats = async () => {
       try {
         if (school?.id) {
-          const response = await fetch(`/api/schools/${school.id}/stats`);
+          const response = await fetch(`/api/schools/${school.id}/stats`, { headers: getAuthHeaders() });
           if (!response.ok) {
             throw new Error(`Erro ao buscar estatísticas: ${response.statusText}`);
           }

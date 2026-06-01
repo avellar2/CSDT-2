@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabaseClient';
+import { getAuthHeaders } from '@/utils/client-auth';
 import {
   ArrowLeft,
   Search,
@@ -63,7 +64,7 @@ const ControleImpressoras: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`/api/get-role?userId=${user.id}`);
+        const response = await fetch(`/api/get-role?userId=${user.id}`, { headers: getAuthHeaders() });
         const data = await response.json();
 
         if (response.ok && data.role) {
@@ -92,7 +93,7 @@ const ControleImpressoras: React.FC = () => {
   useEffect(() => {
     const fetchPrinters = async () => {
       try {
-        const response = await fetch('/api/all-printers');
+        const response = await fetch('/api/all-printers', { headers: getAuthHeaders() });
         const data = await response.json();
         if (Array.isArray(data)) {
           setPrinters(data.map((p: UnifiedPrinter) => ({ ...p, selected: false, observacao: '', osNumber: '', osDate: '' })));
@@ -214,7 +215,7 @@ const ControleImpressoras: React.FC = () => {
 
       const response = await fetch('/api/generate-printer-control-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 

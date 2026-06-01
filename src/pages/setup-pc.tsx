@@ -4,6 +4,7 @@ import {
   CheckCircle, Wrench, Wifi
 } from 'lucide-react';
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 const SOFTWARE_OPTIONS = [
   { key: 'winrar',        label: 'WinRAR',                icon: '📦', desc: 'Compactador de arquivos' },
@@ -109,7 +110,7 @@ function SetupPCPage() {
     try {
       const res = await fetch('/api/generate-setup-script', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(form),
       });
 

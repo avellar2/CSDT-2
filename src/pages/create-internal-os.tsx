@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 interface SchoolOption {
   value: string;
@@ -80,7 +81,7 @@ const CreateInternalOS: React.FC = () => {
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        const response = await fetch("/api/get-school");
+        const response = await fetch("/api/get-school", { headers: getAuthHeaders() });
         const data = await response.json();
         const options = data.map((school: { id: string; name: string }) => ({
           value: school.id,
@@ -98,7 +99,7 @@ const CreateInternalOS: React.FC = () => {
   useEffect(() => {
     const fetchTechnicians = async () => {
       try {
-        const response = await fetch("/api/get-technicians");
+        const response = await fetch("/api/get-technicians", { headers: getAuthHeaders() });
         const data = await response.json();
         const options = data.map(
           (technician: { id: number; name: string }) => ({
@@ -117,7 +118,7 @@ const CreateInternalOS: React.FC = () => {
 
   const fetchInternalOSList = async () => {
     try {
-      const response = await fetch("/api/get-internal-os");
+      const response = await fetch("/api/get-internal-os", { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error("Erro ao buscar OS internas");
       }
@@ -160,9 +161,7 @@ const CreateInternalOS: React.FC = () => {
     try {
       const response = await fetch("/api/save-internal-os", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 
@@ -191,9 +190,7 @@ const CreateInternalOS: React.FC = () => {
     try {
       const response = await fetch(`/api/delete-internal-os`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id }),
       });
 
@@ -215,9 +212,7 @@ const CreateInternalOS: React.FC = () => {
     try {
       const response = await fetch(`/api/update-internal-os`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(selectedOS),
       });
 
@@ -236,7 +231,7 @@ const CreateInternalOS: React.FC = () => {
 
   const handleViewProblem = async (id: string) => {
     try {
-      const response = await fetch(`/api/get-internal-os/${id}`);
+      const response = await fetch(`/api/get-internal-os/${id}`, { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error("Erro ao buscar o problema.");
       }

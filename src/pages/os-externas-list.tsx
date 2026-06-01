@@ -8,6 +8,7 @@ import { useOsExternasList, type OsExterna, type PendingDailyDemand } from "@/ho
 import OsExternasDetailModal from "@/components/OsExternas/OsExternasDetailModal";
 import OsExternasModals from "@/components/OsExternas/OsExternasModals";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 const OsExternasList: React.FC = () => {
   const router = useRouter();
@@ -82,7 +83,7 @@ const OsExternasList: React.FC = () => {
             <button
               onClick={() => {
                 hook.setDownloadingPdf(true);
-                fetch("/api/generate-sem-os-pdf")
+                fetch("/api/generate-sem-os-pdf", { headers: getAuthHeaders() })
                   .then((res) => {
                     if (!res.ok) throw new Error("Erro ao gerar PDF");
                     return res.blob();

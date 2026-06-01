@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import { jwtDecode } from "jwt-decode";
 import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
+import { getAuthHeaders } from "@/utils/client-auth";
 import {
   Trash,
   RefreshCw,
@@ -112,7 +113,7 @@ const DailyDemands: React.FC = () => {
     try {
       const response = await fetch("/api/technicians/getTechnicianNames", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ technicianIds }),
       });
 
@@ -139,8 +140,8 @@ const DailyDemands: React.FC = () => {
       
       const response = await fetch("/api/demands/check-os-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
           demandIds,
           targetDate: targetDate ? formatDateForAPI(targetDate) : undefined
         }),
@@ -177,7 +178,7 @@ const DailyDemands: React.FC = () => {
       if (error || !user) return;
       setCurrentUserId(user.id);
 
-      const response = await fetch(`/api/get-role?userId=${user.id}`);
+      const response = await fetch(`/api/get-role?userId=${user.id}`, { headers: getAuthHeaders() });
       const data = await response.json();
 
       if (response.ok && data.role) {
@@ -192,7 +193,7 @@ const DailyDemands: React.FC = () => {
     const targetDate = date || selectedDate;
 
     try {
-      const response = await fetch(`/api/daily-demands/releases?date=${formatDateForAPI(targetDate)}`);
+      const response = await fetch(`/api/daily-demands/releases?date=${formatDateForAPI(targetDate)}`, { headers: getAuthHeaders() });
 
       if (!response.ok) {
         throw new Error("Erro ao buscar liberações");
@@ -215,7 +216,8 @@ const DailyDemands: React.FC = () => {
     try {
       // Fetch demands for date
       const demandsResponse = await fetch(
-        `/api/daily-demands?date=${formatDateForAPI(targetDate)}`
+        `/api/daily-demands?date=${formatDateForAPI(targetDate)}`,
+        { headers: getAuthHeaders() }
       );
 
       const demandsResult = await demandsResponse.json();
@@ -234,7 +236,8 @@ const DailyDemands: React.FC = () => {
 
       // Fetch technicians for any date
       const techniciansResponse = await fetch(
-        `/api/technicians/allocation?date=${formatDateForAPI(targetDate)}`
+        `/api/technicians/allocation?date=${formatDateForAPI(targetDate)}`,
+        { headers: getAuthHeaders() }
       );
       
       if (techniciansResponse.ok) {
@@ -269,7 +272,7 @@ const DailyDemands: React.FC = () => {
   // Fetch schools
   const fetchSchools = useCallback(async () => {
     try {
-      const response = await fetch("/api/schools");
+      const response = await fetch("/api/schools", { headers: getAuthHeaders() });
       if (!response.ok) throw new Error("Erro ao buscar escolas");
       const data = await response.json();
       setSchools(data);
@@ -322,7 +325,7 @@ const DailyDemands: React.FC = () => {
     try {
       const response = await fetch("/api/daily-demands/releases", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUserId,
           technicianId,
@@ -346,7 +349,7 @@ const DailyDemands: React.FC = () => {
     try {
       const response = await fetch("/api/daily-demands/releases", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUserId,
           technicianId,
@@ -370,6 +373,7 @@ const DailyDemands: React.FC = () => {
     try {
       const response = await fetch(`/api/daily-demands/${id}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) throw new Error("Erro ao apagar a demanda");
@@ -410,7 +414,7 @@ const DailyDemands: React.FC = () => {
       setSavingVisitStatus(true);
       const response = await fetch("/api/daily-demands/visit-status", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           demandId: Number(visitStatusModalDemand.id),
           userId: currentUserId,
@@ -440,7 +444,7 @@ const DailyDemands: React.FC = () => {
       setSavingVisitStatus(true);
       const response = await fetch("/api/daily-demands/visit-status", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           demandId: Number(demand.id),
           userId: currentUserId,
@@ -466,6 +470,7 @@ const DailyDemands: React.FC = () => {
     try {
       const response = await fetch("/api/technicians/delete-allocation", {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) throw new Error("Erro ao apagar escala");
@@ -487,7 +492,7 @@ const DailyDemands: React.FC = () => {
     try {
       const response = await fetch("/api/technicians/remove-technician", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id, type }),
       });
 
@@ -517,7 +522,7 @@ const DailyDemands: React.FC = () => {
     try {
       const response = await fetch("/api/technicians/move-technician", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id, fromType, toType }),
       });
 
@@ -580,7 +585,7 @@ const DailyDemands: React.FC = () => {
       if (demand.id) {
         const response = await fetch("/api/school-demands", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders(),
           body: JSON.stringify(demand),
         });
 
@@ -590,7 +595,7 @@ const DailyDemands: React.FC = () => {
       } else {
         const response = await fetch("/api/school-demands", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders(),
           body: JSON.stringify(demand),
         });
 
@@ -700,7 +705,7 @@ const DailyDemands: React.FC = () => {
               {/* Debug button - temporary */}
               <button
                 onClick={() => {
-                  fetch('/api/debug-demands')
+                  fetch('/api/debug-demands', { headers: getAuthHeaders() })
                     .then(r => r.json())
                     .then(data => {
 

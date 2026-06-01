@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, AlertTriangle, CheckCircle, XCircle, Clock, Printer as PrinterIcon, Bell } from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
 import { jwtDecode } from "jwt-decode";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 interface Printer {
   id: number;
@@ -59,7 +60,7 @@ const Printers: React.FC = () => {
 
   const fetchPrinters = async () => {
     try {
-      const response = await fetch('/api/printers');
+      const response = await fetch('/api/printers', { headers: getAuthHeaders() });
       const data = await response.json();
       if (Array.isArray(data)) {
         setPrinters(data);
@@ -78,7 +79,7 @@ const Printers: React.FC = () => {
 
     setStatusLoading(true);
     try {
-      const response = await fetch('/api/printer-status');
+      const response = await fetch('/api/printer-status', { headers: getAuthHeaders() });
       const data = await response.json();
       setPrinterStatus(data);
     } catch (error) {
@@ -98,7 +99,7 @@ const Printers: React.FC = () => {
 
       if (error || !user) return;
 
-      const response = await fetch(`/api/get-role?userId=${user.id}`);
+      const response = await fetch(`/api/get-role?userId=${user.id}`, { headers: getAuthHeaders() });
       const data = await response.json();
 
       if (response.ok && data.role) {
@@ -165,7 +166,7 @@ const Printers: React.FC = () => {
 
   const testPrinterDetail = async (ip: string) => {
     try {
-      const response = await fetch(`/api/test-printer-detail?ip=${ip}`);
+      const response = await fetch(`/api/test-printer-detail?ip=${ip}`, { headers: getAuthHeaders() });
       const data = await response.json();
       
       if (data.success) {
@@ -269,7 +270,7 @@ const Printers: React.FC = () => {
 
   const discoverPrinterOIDs = async (ip: string) => {
     try {
-      const response = await fetch(`/api/discover-printer-oids?ip=${ip}`);
+      const response = await fetch(`/api/discover-printer-oids?ip=${ip}`, { headers: getAuthHeaders() });
       const data = await response.json();
       
       if (data.success) {
@@ -323,7 +324,7 @@ const Printers: React.FC = () => {
 
   const diagnoseSNMP = async (ip: string) => {
     try {
-      const response = await fetch(`/api/diagnose-snmp?ip=${ip}`);
+      const response = await fetch(`/api/diagnose-snmp?ip=${ip}`, { headers: getAuthHeaders() });
       const data = await response.json();
       
       let message = `=== DIAGNÓSTICO SNMP ===\nImpressora: ${ip}\n`;

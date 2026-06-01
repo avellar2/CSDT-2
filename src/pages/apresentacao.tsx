@@ -27,6 +27,7 @@ import {
   ArrowUpRight
 } from 'lucide-react'
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 const ApresentacaoPage = () => {
   const [activeSection, setActiveSection] = useState('hero')
@@ -95,7 +96,7 @@ const ApresentacaoPage = () => {
   useEffect(() => {
     const fetchRealStats = async () => {
       try {
-        const response = await fetch('/api/presentation-stats')
+        const response = await fetch('/api/presentation-stats', { headers: getAuthHeaders() })
         if (response.ok) {
           const data = await response.json()
           setRealStats(data)

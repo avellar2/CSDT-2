@@ -4,6 +4,7 @@ import {
   FileText, Globe
 } from 'lucide-react';
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 // Lista de impressoras comuns com drivers/URLs de download
 const PRINTER_MODELS = [
@@ -200,7 +201,7 @@ function SetupPrinterPage() {
 
   // Buscar setores da API
   useEffect(() => {
-    fetch('/api/chada-diagnostics/sectors')
+    fetch('/api/chada-diagnostics/sectors', { headers: getAuthHeaders() })
       .then(res => res.json())
       .then(data => {
         // A API retorna um array de objetos { value, label, sector: { id, name } }
@@ -267,7 +268,7 @@ function SetupPrinterPage() {
 
       const res = await fetch('/api/generate-printer-script', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           ...form,
           printerName: generatedPrinterName,

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from '@/lib/supabaseClient';
+import { getAuthHeaders } from '@/utils/client-auth';
 import {
   CheckCircle,
   Clock,
@@ -123,7 +124,7 @@ const InternalDemands: React.FC = () => {
       }
 
       // Busca perfil
-      const profileResponse = await fetch(`/api/get-profile?userId=${user.id}`);
+      const profileResponse = await fetch(`/api/get-profile?userId=${user.id}`, { headers: getAuthHeaders() });
       const profileData = await profileResponse.json();
 
       if (!profileResponse.ok) {
@@ -133,7 +134,7 @@ const InternalDemands: React.FC = () => {
       setProfile(profileData);
 
       // Busca OS
-      const osResponse = await fetch(`/api/get-internal-os-by-technician?userId=${user.id}`);
+      const osResponse = await fetch(`/api/get-internal-os-by-technician?userId=${user.id}`, { headers: getAuthHeaders() });
       
       if (!osResponse.ok) {
         throw new Error("Erro ao buscar OS");
@@ -266,7 +267,7 @@ const InternalDemands: React.FC = () => {
       
       const response = await fetch("/api/update-os-status", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ osId, status: "Aceita" }),
       });
 
@@ -313,7 +314,7 @@ const InternalDemands: React.FC = () => {
 
       const response = await fetch("/api/finalize-os", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           osId: selectedOS.id,
           status: "Concluído",

@@ -37,6 +37,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 ChartJS.register(
   CategoryScale,
@@ -151,7 +152,7 @@ const AdvancedStatisticsPage: React.FC = () => {
         });
       }
       
-      const response = await fetch(`/api/advanced-statistics?${params.toString()}`);
+      const response = await fetch(`/api/advanced-statistics?${params.toString()}`, { headers: getAuthHeaders() });
       const result = await response.json();
       setData(result);
     } catch (error) {
