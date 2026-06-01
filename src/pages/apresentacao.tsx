@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Head from 'next/head'
 import { motion } from 'framer-motion'
-import { 
+import {
   BarChart3, 
   Settings, 
   FileText,
@@ -26,6 +26,7 @@ import {
   ExternalLink,
   ArrowUpRight
 } from 'lucide-react'
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const ApresentacaoPage = () => {
   const [activeSection, setActiveSection] = useState('hero')
@@ -1069,5 +1070,9 @@ const ApresentacaoPage = () => {
   )
 }
 
-export default ApresentacaoPage
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedApresentacaoPage() {
+  return <ProtectedRoute><ApresentacaoPage /></ProtectedRoute>;
+}

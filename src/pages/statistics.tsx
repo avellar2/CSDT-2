@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 ChartJS.register(
   CategoryScale,
@@ -136,6 +137,10 @@ setProblemData({
   );
 };
 
-export default StatisticsPage;
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedStatisticsPage() {
+  return <ProtectedRoute><StatisticsPage /></ProtectedRoute>;
+}

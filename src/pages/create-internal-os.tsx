@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface SchoolOption {
   value: string;
@@ -698,6 +699,10 @@ const CreateInternalOS: React.FC = () => {
   );
 };
 
-export default CreateInternalOS;
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedCreateInternalOS() {
+  return <ProtectedRoute><CreateInternalOS /></ProtectedRoute>;
+}

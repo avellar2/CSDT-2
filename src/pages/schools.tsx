@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface School {
   id: number;
@@ -840,5 +841,9 @@ const SchoolsPage: React.FC = () => {
   );
 };
 
-export default SchoolsPage;
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedSchoolsPage() {
+  return <ProtectedRoute><SchoolsPage /></ProtectedRoute>;
+}

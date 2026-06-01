@@ -3,6 +3,7 @@ import { GraduationCap, Users, FileText } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Link from 'next/link';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface OS {
   id: number;
@@ -133,5 +134,9 @@ const OSList: React.FC = () => {
   );
 };
 
-export default OSList;
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedOSList() {
+  return <ProtectedRoute><OSList /></ProtectedRoute>;
+}

@@ -1,4 +1,5 @@
 import ItemList from "@/components/Item/ItemList"
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const ItemsListPage: React.FC = () => {
   return (
@@ -8,6 +9,10 @@ const ItemsListPage: React.FC = () => {
   )
 }
 
-export default ItemsListPage
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedItemsListPage() {
+  return <ProtectedRoute><ItemsListPage /></ProtectedRoute>;
+}

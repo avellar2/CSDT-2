@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/carousel';
 import Image from 'next/image';
 import axios from 'axios';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface OS {
   id: number;
@@ -302,5 +303,9 @@ const OSDetail: React.FC = () => {
   );
 };
 
-export default OSDetail;
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedOSDetail() {
+  return <ProtectedRoute><OSDetail /></ProtectedRoute>;
+}

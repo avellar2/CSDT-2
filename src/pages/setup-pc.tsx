@@ -3,6 +3,7 @@ import {
   HardDrive, Download, User, Lock, Monitor, Package,
   CheckCircle, Wrench, Wifi
 } from 'lucide-react';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const SOFTWARE_OPTIONS = [
   { key: 'winrar',        label: 'WinRAR',                icon: '📦', desc: 'Compactador de arquivos' },
@@ -68,7 +69,7 @@ const Field = ({ label, required, children }: { label: string; required?: boolea
 
 const inputCls = "w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none";
 
-export default function SetupPCPage() {
+function SetupPCPage() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState(false);
@@ -440,3 +441,8 @@ export default function SetupPCPage() {
 }
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedSetupPCPage() {
+  return <ProtectedRoute><SetupPCPage /></ProtectedRoute>;
+}

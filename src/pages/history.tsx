@@ -5,6 +5,7 @@ const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false }
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface OS {
   id: string;
@@ -216,5 +217,9 @@ const History: React.FC = () => {
   );
 };
 
-export default History;
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedHistory() {
+  return <ProtectedRoute><History /></ProtectedRoute>;
+}

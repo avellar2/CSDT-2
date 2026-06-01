@@ -19,6 +19,7 @@ import {
 const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr: false });
 const Doughnut = dynamic(() => import('react-chartjs-2').then(mod => mod.Doughnut), { ssr: false });
 import { MapPin, Phone, Mail, Users, GraduationCap, BarChart3, ArrowLeft, Camera, FileText } from 'lucide-react';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 ChartJS.register(
   CategoryScale,
@@ -589,4 +590,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   };
 };
 
-export default SchoolPage;
+
+export default function ProtectedSchoolPage(props: SchoolPageProps) {
+  return <ProtectedRoute><SchoolPage {...props} /></ProtectedRoute>;
+}

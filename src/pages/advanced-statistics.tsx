@@ -17,8 +17,8 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js';
-import { 
-  TrendingUp, 
+import {
+  TrendingUp,
   Users, 
   FileText, 
   Monitor, 
@@ -36,6 +36,7 @@ import {
   X,
   RefreshCw
 } from 'lucide-react';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 ChartJS.register(
   CategoryScale,
@@ -942,5 +943,9 @@ const AdvancedStatisticsPage: React.FC = () => {
   );
 };
 
-export default AdvancedStatisticsPage;
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedAdvancedStatisticsPage() {
+  return <ProtectedRoute><AdvancedStatisticsPage /></ProtectedRoute>;
+}

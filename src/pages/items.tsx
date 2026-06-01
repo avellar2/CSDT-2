@@ -1,6 +1,7 @@
 import { ItemFormModern } from "@/components/Item/ItemFormModern";
 import { ToastContainer } from "@/components/ui/Toast";
 import React, { useState } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface Toast {
   id: string;
@@ -35,5 +36,9 @@ const ItemsPage: React.FC = () => {
     );
 }
 
-export default ItemsPage;
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedItemsPage() {
+  return <ProtectedRoute><ItemsPage /></ProtectedRoute>;
+}

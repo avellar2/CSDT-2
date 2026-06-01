@@ -7,6 +7,7 @@ import { formatDateShort, formatDateTime } from "@/utils/date";
 import { useOsExternasList, type OsExterna, type PendingDailyDemand } from "@/hooks/useOsExternasList";
 import OsExternasDetailModal from "@/components/OsExternas/OsExternasDetailModal";
 import OsExternasModals from "@/components/OsExternas/OsExternasModals";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const OsExternasList: React.FC = () => {
   const router = useRouter();
@@ -325,5 +326,9 @@ const OsExternasList: React.FC = () => {
   );
 };
 
-export default OsExternasList;
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedOsExternasList() {
+  return <ProtectedRoute><OsExternasList /></ProtectedRoute>;
+}

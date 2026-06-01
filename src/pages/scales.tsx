@@ -32,6 +32,7 @@ import ScaleHistory from '@/components/Scales/ScaleHistory';
 import ScaleAnalytics from '@/components/Scales/ScaleAnalytics';
 import ScaleAgenda from '@/components/Scales/ScaleAgenda';
 import ScaleTickets from '@/components/Scales/ScaleTickets';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 ChartJS.register(
   CategoryScale,
@@ -366,6 +367,10 @@ const Scales: React.FC = () => {
   );
 };
 
-export default Scales;
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedScales() {
+  return <ProtectedRoute><Scales /></ProtectedRoute>;
+}

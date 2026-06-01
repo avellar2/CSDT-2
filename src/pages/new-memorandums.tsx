@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface MemorandumItem {
   id: number;
@@ -1130,5 +1131,9 @@ const NewMemorandumsPage: React.FC = () => {
   );
 };
 
-export default NewMemorandumsPage;
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedNewMemorandumsPage() {
+  return <ProtectedRoute><NewMemorandumsPage /></ProtectedRoute>;
+}

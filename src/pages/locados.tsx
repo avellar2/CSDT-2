@@ -17,6 +17,7 @@ import {
   X
 } from "lucide-react";
 import * as XLSX from 'xlsx';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const LocadosPage = () => {
   const [items, setItems] = useState<any[]>([]);
@@ -686,6 +687,10 @@ const LocadosPage = () => {
   );
 };
 
-export default LocadosPage;
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedLocadosPage() {
+  return <ProtectedRoute><LocadosPage /></ProtectedRoute>;
+}

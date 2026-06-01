@@ -3,6 +3,7 @@ import {
   Printer, Download, CheckCircle, Wrench, FlaskConical,
   FileText, Globe
 } from 'lucide-react';
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Lista de impressoras comuns com drivers/URLs de download
 const PRINTER_MODELS = [
@@ -191,7 +192,7 @@ const Field = ({ label, required, children }: { label: string; required?: boolea
 
 const inputCls = "w-full px-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none";
 
-export default function SetupPrinterPage() {
+function SetupPrinterPage() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState(false);
@@ -489,3 +490,8 @@ export default function SetupPrinterPage() {
 }
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedSetupPrinterPage() {
+  return <ProtectedRoute><SetupPrinterPage /></ProtectedRoute>;
+}

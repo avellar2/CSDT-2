@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Search } from "lucide-react";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const MemorandumsPage: React.FC = () => {
   const [memorandums, setMemorandums] = useState<any[]>([]);
@@ -120,6 +121,10 @@ const MemorandumsPage: React.FC = () => {
   );
 };
 
-export default MemorandumsPage;
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedMemorandumsPage() {
+  return <ProtectedRoute><MemorandumsPage /></ProtectedRoute>;
+}

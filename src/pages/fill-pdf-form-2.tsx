@@ -9,6 +9,7 @@ import InputsItens from "@/components/InputsItens";
 import { StepIndicator } from "@/components/StepIndicator";
 import { NavigationButtons } from "@/components/NavigationButtons";
 import FillPdfModals from "@/components/OsExternas/FillPdfModals";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const FillPdfForm: React.FC = () => {
   const router = useRouter();
@@ -190,6 +191,10 @@ const FillPdfForm: React.FC = () => {
   );
 };
 
-export default FillPdfForm;
 
 export const getServerSideProps = async () => ({ props: {} });
+
+
+export default function ProtectedFillPdfForm() {
+  return <ProtectedRoute><FillPdfForm /></ProtectedRoute>;
+}
