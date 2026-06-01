@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { requireAuth } from "@/utils/api-auth";
 
 interface PrinterConfig {
   brand: string;
@@ -404,8 +405,12 @@ function generateScript(config: PrinterConfig): string {
   return lines.join('\r\n');
 }
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end();
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
 
   const config: PrinterConfig = req.body;
 

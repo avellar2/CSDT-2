@@ -1,11 +1,16 @@
 import prisma from "@/utils/prisma";
 import { NextApiRequest, NextApiResponse } from "next";
+import { requireAuth } from "@/utils/api-auth";
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   const { osId } = req.query;
 
   if (req.method === "POST") {
     const { nameAssigned, cpfOrRegistration } = req.body;
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
 
     try {
       const os = await prisma.os.findUnique({

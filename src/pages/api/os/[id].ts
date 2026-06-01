@@ -1,9 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/utils/prisma';
+import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   const { id, status } = req.query;

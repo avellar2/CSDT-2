@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/utils/prisma";
 import { formatBrazilDateKey, getBrazilDayRange } from "@/utils/dailyDemandOsRules";
+import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -8,6 +9,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: false,
       message: "Method not allowed",
     });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   try {

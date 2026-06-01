@@ -1,9 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getPendingDailyDemandItems } from "@/utils/pendingDailyDemandOs";
+import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Método não permitido" });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   try {

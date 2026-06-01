@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { v2 as cloudinary } from 'cloudinary';
 import formidable from 'formidable';
 import fs from 'fs';
+import { requireAuth } from "@/utils/api-auth";
 
 // Configurar Cloudinary
 cloudinary.config({
@@ -23,6 +24,10 @@ export default async function handler(
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   try {

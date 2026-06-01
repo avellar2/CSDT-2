@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
+import { requireAuth } from "@/utils/api-auth";
 
 const prisma = new PrismaClient();
 
@@ -78,6 +79,10 @@ async function geocodeWithOSM(address: string): Promise<{ lat: number; lng: numb
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   try {

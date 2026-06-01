@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { assessDailyDemandOsAvailability } from "@/utils/dailyDemandOsRules";
 import { getSchoolPendingDailyDemandAvailability } from "@/utils/schoolPendingDailyDemandAvailability";
+import { requireAuth } from "@/utils/api-auth";
 
 const prisma = new PrismaClient();
 
@@ -29,6 +30,10 @@ function preservePartnerSuffix(currentValue: string | null | undefined, primaryT
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Metodo nao permitido" });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   try {

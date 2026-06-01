@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
+import { requireAuth } from "@/utils/api-auth";
 // const snmp = require('net-snmp'); // Comentado temporariamente - instalar com: npm install net-snmp
 
 const prisma = new PrismaClient();
@@ -188,6 +189,10 @@ function attemptAdvancedQuery(session: any, printer: any, statusInfo: PrinterSta
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   try {

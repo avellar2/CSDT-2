@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/utils/prisma";
+import { requireAuth } from "@/utils/api-auth";
 
 function getDemandDateKey(date: Date) {
   return date.toLocaleDateString("en-CA", {
@@ -16,6 +17,10 @@ function getBrazilDayRange(dateKey: string) {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PATCH") {
     return res.status(405).json({ error: "Método não permitido" });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   const { demandId, userId, action, reason } = req.body;

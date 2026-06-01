@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
+import { requireAuth } from "@/utils/api-auth";
 
 const prisma = new PrismaClient();
 
@@ -10,6 +11,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!userId) {
       return res.status(400).json({ error: "O parâmetro 'userId' é obrigatório." });
     }
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
 
     try {
       // 1. Busca o perfil do técnico na tabela Profile usando o userId

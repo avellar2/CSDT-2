@@ -5,10 +5,15 @@ import { PDFDocument } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   try {

@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/utils/prisma";
 import { getBrazilDayRange } from "@/utils/dailyDemandOsRules";
+import { requireAuth } from "@/utils/api-auth";
 
 async function getAdminProfile(userId: string) {
   return prisma.profile.findUnique({
@@ -19,6 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!date || typeof date !== "string") {
       return res.status(400).json({ error: "date é obrigatório." });
     }
+
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
 
     try {
       const { start, end } = getBrazilDayRange(date);

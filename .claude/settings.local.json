@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Read(//c/Users/Vanderson/Documents/CSDT-2-original/src/pages/**)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx tsc *)",
+      "Bash(git add *)"
     ],
     "deny": [],
     "ask": []

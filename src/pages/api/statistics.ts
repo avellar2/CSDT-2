@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/utils/prisma';
+import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { type } = req.query;
@@ -7,6 +8,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!type || (type !== 'internalOs' && type !== 'osAssinadas')) {
     return res.status(400).json({ error: 'Tipo inválido. Use "internalOs" ou "osAssinadas".' });
   }
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
 
   try {
     // Busca os nomes dos técnicos e setores

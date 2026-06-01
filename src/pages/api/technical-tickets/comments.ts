@@ -1,9 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
+import { requireAuth } from "@/utils/api-auth";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   try {
     const { ticketId } = req.query;
 

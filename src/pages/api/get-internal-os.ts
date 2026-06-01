@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
+import { requireAuth } from "@/utils/api-auth";
 
 const prisma = new PrismaClient();
 
@@ -8,6 +9,10 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method === "GET") {
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
     try {
       // 1. Busca todas as OS internas
       const internalOS = await prisma.internalOS.findMany({

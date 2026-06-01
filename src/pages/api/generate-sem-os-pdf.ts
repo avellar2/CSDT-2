@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getPendingDailyDemandItems } from '@/utils/pendingDailyDemandOs';
 import { formatBrazilDateKey } from '@/utils/dailyDemandOsRules';
 import { PDFDocument, PDFPage, StandardFonts, rgb } from 'pdf-lib';
+import { requireAuth } from "@/utils/api-auth";
 
 interface PendingDailyDemandItem {
   demandId: number;
@@ -66,6 +67,10 @@ function getColDesc(): number {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   }
 
   try {

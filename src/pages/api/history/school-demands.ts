@@ -1,7 +1,12 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/utils/prisma";
+import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   try {
     const { date } = req.query;
 
