@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Printer,
 } from "lucide-react";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useChada } from "@/hooks/useChada";
 import type { ChadaItem, ChadaStatus, TabType, SortField, DiagnosticStatus } from "@/hooks/useChada";
 import ChadaItemsList from "@/components/Chada/ChadaItemsList";
@@ -607,5 +608,12 @@ const ChadaPage: React.FC = () => {
   );
 };
 
-export default ChadaPage;
+export default function ProtectedChadaPage() {
+  return (
+    <ProtectedRoute>
+      <ChadaPage />
+    </ProtectedRoute>
+  );
+}
+
 export const getServerSideProps = async () => ({ props: {} });

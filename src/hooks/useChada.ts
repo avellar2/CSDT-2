@@ -3,6 +3,14 @@ import { uploadChadaFiles } from "@/utils/storageProvider";
 import { useEffect, useState, useMemo } from "react";
 import { PDFDocument } from "pdf-lib";
 
+function getAuthHeaders(): Record<string, string> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 export type ChadaStatus = 'PENDENTE' | 'RECEBIDO' | 'EM_ANALISE' | 'CONSERTADO' | 'SEM_CONSERTO' | 'DEVOLVIDO';
 export type TabType = 'na_chada' | 'devolvidos' | 'todos' | 'diagnosticos';
 export type SortField = 'createdAt' | 'updatedAt' | 'sector' | 'problem';
@@ -360,7 +368,7 @@ export function useChada() {
 
     const fetchChadaItems = async () => {
       try {
-        const response = await fetch("/api/chada-items");
+        const response = await fetch("/api/chada-items", { headers: getAuthHeaders() });
         if (!response.ok) throw new Error("Erro ao buscar itens da CHADA");
         const data = await response.json();
         setItems(data);
@@ -417,7 +425,7 @@ export function useChada() {
     try {
       const response = await fetch("/api/add-to-chada", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           itemId: semSerial ? undefined : selectedItem,
           problem,
@@ -454,7 +462,7 @@ export function useChada() {
       setItemBrandSemSerial("");
       setChadaPhoto(null);
 
-      const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
+      const updatedItems = await fetch("/api/chada-items", { headers: getAuthHeaders() }).then((res) => res.json());
       setItems(updatedItems);
     } catch (error) {
       console.error(error);
@@ -473,7 +481,7 @@ export function useChada() {
     try {
       const response = await fetch("/api/chada-cancel", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ itemId: cancelItemId }),
       });
 
@@ -486,7 +494,7 @@ export function useChada() {
       setShowCancelModal(false);
       setCancelItemId(null);
 
-      const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
+      const updatedItems = await fetch("/api/chada-items", { headers: getAuthHeaders() }).then((res) => res.json());
       setItems(updatedItems);
     } catch (error) {
       console.error(error);
@@ -505,7 +513,7 @@ export function useChada() {
     try {
       const response = await fetch("/api/chada-correct", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           itemId: editItemId,
           problem: editProblem,
@@ -534,7 +542,7 @@ export function useChada() {
       setEditItemTypeSemSerial("");
       setEditItemBrandSemSerial("");
 
-      const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
+      const updatedItems = await fetch("/api/chada-items", { headers: getAuthHeaders() }).then((res) => res.json());
       setItems(updatedItems);
     } catch (error) {
       console.error(error);
@@ -581,7 +589,7 @@ export function useChada() {
     try {
       const response = await fetch("/api/chada-send-photo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           itemId: sendPhotoItemId,
           photo: photoBase64,
@@ -667,12 +675,12 @@ export function useChada() {
     try {
       const response = await fetch("/api/update-item-status", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id, status: "RESOLVIDO", updatedBy: userName }),
       });
       if (!response.ok) throw new Error("Erro ao atualizar o status do item");
       alert("Status do item atualizado para RESOLVIDO!");
-      const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
+      const updatedItems = await fetch("/api/chada-items", { headers: getAuthHeaders() }).then((res) => res.json());
       setItems(updatedItems);
     } catch (error) {
       console.error("Erro ao resolver o item:", error);
@@ -821,7 +829,7 @@ export function useChada() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const response = await fetch("/api/chada-items");
+      const response = await fetch("/api/chada-items", { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setItems(data);
@@ -837,7 +845,7 @@ export function useChada() {
   const handleCheckEmails = async () => {
     setCheckingEmails(true);
     try {
-      const response = await fetch("/api/chada/check-emails", { method: "POST" });
+      const response = await fetch("/api/chada/check-emails", { method: "POST", headers: getAuthHeaders() });
       if (response.ok) {
         const result = await response.json();
         alert(`Verificação concluída!\n\nEmails processados: ${result.processed}\nItens atualizados: ${result.updated}\n\nAtualizando lista...`);

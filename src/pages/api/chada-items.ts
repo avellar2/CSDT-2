@@ -1,10 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
-import { s } from "@fullcalendar/core/internal-common";
+import { requireAuth } from "@/utils/api-auth";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   if (req.method === "GET") {
     try {
       // Buscar todos os registros da tabela ItemsChada

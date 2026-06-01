@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import imaps from "imap-simple";
 import { simpleParser } from "mailparser";
+import { requireAuth } from "@/utils/api-auth";
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "POST" && req.method !== "GET") {
     return res.status(405).json({ error: "Método não permitido" });
   }
+
+  // Requer autenticação
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
 
   try {
     // Configuração do IMAP
