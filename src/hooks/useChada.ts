@@ -31,6 +31,7 @@ export interface ChadaItem {
   numeroChadaOS?: string | null;
   emailSentAt?: string | null;
   emailMessageId?: string | null;
+  semSerial?: boolean;
 }
 
 export interface ChadaDiagnostic {
@@ -103,8 +104,33 @@ export function useChada() {
   const [diagnostic, setDiagnostic] = useState("");
   const [requestedPart, setRequestedPart] = useState("");
 
+  // Foto anexada ao email (não salva no banco)
+  const [chadaPhoto, setChadaPhoto] = useState<File | null>(null);
+
   // Estado do modal de aviso CSDT
   const [showCsdtWarningModal, setShowCsdtWarningModal] = useState(false);
+
+  // Estados do modal de edição/correção
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [editProblem, setEditProblem] = useState("");
+  const [editSector, setEditSector] = useState("");
+  const [editSemSerial, setEditSemSerial] = useState(false);
+  const [editSelectedItem, setEditSelectedItem] = useState<string | null>(null);
+  const [editItemNameSemSerial, setEditItemNameSemSerial] = useState("");
+  const [editItemTypeSemSerial, setEditItemTypeSemSerial] = useState("");
+  const [editItemBrandSemSerial, setEditItemBrandSemSerial] = useState("");
+
+  // Estados do modal de envio de foto
+  const [showSendPhotoModal, setShowSendPhotoModal] = useState(false);
+  const [sendPhotoItemId, setSendPhotoItemId] = useState<string | null>(null);
+  const [sendPhotoFile, setSendPhotoFile] = useState<File | null>(null);
+  const [sendingPhoto, setSendingPhoto] = useState(false);
+
+  // Estados do modal de confirmação de cancelamento
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelItemId, setCancelItemId] = useState<string | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   // Estados de UI
   const [activeTab, setActiveTab] = useState<TabType>('na_chada');
@@ -378,6 +404,16 @@ export function useChada() {
       return;
     }
 
+    // Converte a foto pra base64 se tiver (vai só no email, não salva no banco)
+    let photoBase64: string | undefined;
+    if (chadaPhoto) {
+      photoBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(chadaPhoto);
+      });
+    }
+
     try {
       const response = await fetch("/api/add-to-chada", {
         method: "POST",
@@ -392,6 +428,7 @@ export function useChada() {
           itemNameSemSerial: semSerial ? itemNameSemSerial : undefined,
           itemTypeSemSerial: semSerial ? itemTypeSemSerial : undefined,
           itemBrandSemSerial: semSerial ? itemBrandSemSerial : undefined,
+          photo: photoBase64,
         }),
       });
 
@@ -415,12 +452,156 @@ export function useChada() {
       setItemNameSemSerial("");
       setItemTypeSemSerial("");
       setItemBrandSemSerial("");
+      setChadaPhoto(null);
 
       const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
       setItems(updatedItems);
     } catch (error) {
       console.error(error);
       alert("Erro ao adicionar item à CHADA. Tente novamente.");
+    }
+  };
+
+  const handleCancelChada = async () => {
+    if (!cancelItemId) return;
+
+    if (!confirm("Tem certeza que deseja cancelar este chamado? Um email de cancelamento será enviado à CHADA.")) {
+      return;
+    }
+
+    setCancelLoading(true);
+    try {
+      const response = await fetch("/api/chada-cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: cancelItemId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao cancelar item");
+      }
+
+      alert("Chamado cancelado com sucesso! Email de cancelamento enviado.");
+      setShowCancelModal(false);
+      setCancelItemId(null);
+
+      const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
+      setItems(updatedItems);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao cancelar chamado. Tente novamente.");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const handleCorrectChada = async () => {
+    if (!editItemId || !editProblem || !editSector) {
+      alert("Preencha o problema e o setor.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/chada-correct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: editItemId,
+          problem: editProblem,
+          sector: editSector,
+          selectedItem: editSemSerial ? undefined : editSelectedItem,
+          semSerial: editSemSerial,
+          itemNameSemSerial: editSemSerial ? editItemNameSemSerial : undefined,
+          itemTypeSemSerial: editSemSerial ? editItemTypeSemSerial : undefined,
+          itemBrandSemSerial: editSemSerial ? editItemBrandSemSerial : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao corrigir item");
+      }
+
+      alert("Item corrigido com sucesso! Email de retificação enviado à CHADA.");
+      setShowEditModal(false);
+      setEditItemId(null);
+      setEditProblem("");
+      setEditSector("");
+      setEditSelectedItem(null);
+      setEditSemSerial(false);
+      setEditItemNameSemSerial("");
+      setEditItemTypeSemSerial("");
+      setEditItemBrandSemSerial("");
+
+      const updatedItems = await fetch("/api/chada-items").then((res) => res.json());
+      setItems(updatedItems);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao corrigir item. Tente novamente.");
+    }
+  };
+
+  const openEditModal = (item: ChadaItem) => {
+    setEditItemId(item.id);
+    setEditProblem(item.problem);
+    setEditSector(item.sector);
+    setEditSemSerial(item.semSerial || false);
+    setEditSelectedItem(null);
+    setEditItemNameSemSerial(item.name || "");
+    setEditItemTypeSemSerial("");
+    setEditItemBrandSemSerial(item.brand || "");
+    setShowEditModal(true);
+  };
+
+  const openCancelModal = (itemId: string) => {
+    setCancelItemId(itemId);
+    setShowCancelModal(true);
+  };
+
+  const openSendPhotoModal = (itemId: string) => {
+    setSendPhotoItemId(itemId);
+    setSendPhotoFile(null);
+    setShowSendPhotoModal(true);
+  };
+
+  const handleSendPhoto = async () => {
+    if (!sendPhotoItemId || !sendPhotoFile) {
+      alert("Selecione uma foto primeiro.");
+      return;
+    }
+
+    const photoBase64 = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(sendPhotoFile);
+    });
+
+    setSendingPhoto(true);
+    try {
+      const response = await fetch("/api/chada-send-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: sendPhotoItemId,
+          photo: photoBase64,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao enviar foto");
+      }
+
+      alert("Foto enviada com sucesso!");
+      setShowSendPhotoModal(false);
+      setSendPhotoItemId(null);
+      setSendPhotoFile(null);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao enviar foto. Tente novamente.");
+    } finally {
+      setSendingPhoto(false);
     }
   };
 
@@ -1048,6 +1229,8 @@ export function useChada() {
     selectedPrinter, setSelectedPrinter, selectedSector, setSelectedSector,
     technicianChada, setTechnicianChada, diagnostic, setDiagnostic,
     requestedPart, setRequestedPart, showCsdtWarningModal, setShowCsdtWarningModal,
+    // Photo
+    chadaPhoto, setChadaPhoto,
     // UI
     activeTab, setActiveTab, searchTerm, setSearchTerm,
     sectorFilter, setSectorFilter, statusFilter, setStatusFilter,
@@ -1064,6 +1247,21 @@ export function useChada() {
     handleUpdateDiagnosticStatus, handleResolveItem, handlePrintOS,
     handleUploadOS, handleRefresh, handleCheckEmails,
     handleSort, resetFilters, getActiveFiltersCount, getActiveFiltersResume,
+    handleCancelChada, handleCorrectChada, openEditModal, openCancelModal, cancelLoading,
+    // Edit/Cancel state
+    showEditModal, setShowEditModal, editItemId, setEditItemId,
+    editProblem, setEditProblem, editSector, setEditSector,
+    editSemSerial, setEditSemSerial, editSelectedItem, setEditSelectedItem,
+    editItemNameSemSerial, setEditItemNameSemSerial,
+    editItemTypeSemSerial, setEditItemTypeSemSerial,
+    editItemBrandSemSerial, setEditItemBrandSemSerial,
+    showCancelModal, setShowCancelModal, cancelItemId, setCancelItemId,
+    // Send Photo
+    showSendPhotoModal, setShowSendPhotoModal,
+    sendPhotoItemId, setSendPhotoItemId,
+    sendPhotoFile, setSendPhotoFile,
+    sendingPhoto,
+    handleSendPhoto, openSendPhotoModal,
     // Export
     exportToCSV, exportOSImpressoras, exportToExcel, exportToPDF,
   };

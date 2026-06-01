@@ -543,6 +543,9 @@ const ChadaPage: React.FC = () => {
             onUpdateStatus={handleOpenBaixa}
             onPrintOS={ctx.handlePrintOS}
             onUploadOS={ctx.handleUploadOS}
+            onCancel={ctx.openCancelModal}
+            onEdit={ctx.openEditModal}
+            onSendPhoto={ctx.openSendPhotoModal}
           />
         )}
       </div>
@@ -558,6 +561,7 @@ const ChadaPage: React.FC = () => {
         itemNameSemSerial={ctx.itemNameSemSerial} setItemNameSemSerial={ctx.setItemNameSemSerial}
         itemTypeSemSerial={ctx.itemTypeSemSerial} setItemTypeSemSerial={ctx.setItemTypeSemSerial}
         itemBrandSemSerial={ctx.itemBrandSemSerial} setItemBrandSemSerial={ctx.setItemBrandSemSerial}
+        chadaPhoto={ctx.chadaPhoto} setChadaPhoto={ctx.setChadaPhoto}
         handleAddToChada={ctx.handleAddToChada}
         showBaixaModal={ctx.showBaixaModal} setShowBaixaModal={ctx.setShowBaixaModal}
         baixaItemId={ctx.baixaItemId} setBaixaItemId={ctx.setBaixaItemId}
@@ -575,6 +579,29 @@ const ChadaPage: React.FC = () => {
         requestedPart={ctx.requestedPart} setRequestedPart={ctx.setRequestedPart}
         handleAddDiagnostic={ctx.handleAddDiagnostic}
         showCsdtWarningModal={ctx.showCsdtWarningModal} setShowCsdtWarningModal={ctx.setShowCsdtWarningModal}
+        showEditModal={ctx.showEditModal} setShowEditModal={ctx.setShowEditModal}
+        editItemId={ctx.editItemId} setEditItemId={ctx.setEditItemId}
+        editProblem={ctx.editProblem} setEditProblem={ctx.setEditProblem}
+        editSector={ctx.editSector} setEditSector={ctx.setEditSector}
+        editSemSerial={ctx.editSemSerial} setEditSemSerial={ctx.setEditSemSerial}
+        editSelectedItem={ctx.editSelectedItem} setEditSelectedItem={ctx.setEditSelectedItem}
+        editItemNameSemSerial={ctx.editItemNameSemSerial} setEditItemNameSemSerial={ctx.setEditItemNameSemSerial}
+        editItemTypeSemSerial={ctx.editItemTypeSemSerial} setEditItemTypeSemSerial={ctx.setEditItemTypeSemSerial}
+        editItemBrandSemSerial={ctx.editItemBrandSemSerial} setEditItemBrandSemSerial={ctx.setEditItemBrandSemSerial}
+        handleCorrectChada={ctx.handleCorrectChada}
+        showCancelModal={ctx.showCancelModal} setShowCancelModal={ctx.setShowCancelModal}
+        cancelItemId={ctx.cancelItemId} setCancelItemId={ctx.setCancelItemId}
+        cancelLoading={ctx.cancelLoading}
+        handleCancelChada={ctx.handleCancelChada}
+        // Send Photo modal
+        showSendPhotoModal={ctx.showSendPhotoModal}
+        setShowSendPhotoModal={ctx.setShowSendPhotoModal}
+        sendPhotoItemId={ctx.sendPhotoItemId}
+        setSendPhotoItemId={ctx.setSendPhotoItemId}
+        sendPhotoFile={ctx.sendPhotoFile}
+        setSendPhotoFile={ctx.setSendPhotoFile}
+        sendingPhoto={ctx.sendingPhoto}
+        handleSendPhoto={ctx.handleSendPhoto}
       />
     </div>
   );

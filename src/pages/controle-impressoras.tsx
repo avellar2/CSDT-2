@@ -27,9 +27,11 @@ interface UnifiedPrinter {
 interface EditablePrinter extends UnifiedPrinter {
   selected: boolean;
   observacao: string;
+  osNumber: string;
+  osDate: string;
 }
 
-type EditableField = 'modelo' | 'fabricante' | 'serial' | 'ip' | 'setor' | 'observacao';
+type EditableField = 'modelo' | 'fabricante' | 'serial' | 'ip' | 'setor' | 'observacao' | 'osNumber';
 
 const ControleImpressoras: React.FC = () => {
   const router = useRouter();
@@ -93,7 +95,7 @@ const ControleImpressoras: React.FC = () => {
         const response = await fetch('/api/all-printers');
         const data = await response.json();
         if (Array.isArray(data)) {
-          setPrinters(data.map((p: UnifiedPrinter) => ({ ...p, selected: false, observacao: '' })));
+          setPrinters(data.map((p: UnifiedPrinter) => ({ ...p, selected: false, observacao: '', osNumber: '', osDate: '' })));
         }
       } catch (err) {
         console.error('Erro ao buscar impressoras:', err);
@@ -165,8 +167,14 @@ const ControleImpressoras: React.FC = () => {
 
   const confirmEdit = useCallback(() => {
     if (editingId !== null && editingField !== null) {
+      const now = new Date().toLocaleDateString('pt-BR');
       setPrinters(prev => prev.map(p =>
-        p.id === editingId ? { ...p, [editingField]: editValue } : p
+        p.id === editingId ? {
+          ...p,
+          [editingField]: editValue,
+          ...(editingField === 'osNumber' && editValue.trim() ? { osDate: now } : {}),
+          ...(editingField === 'osNumber' && !editValue.trim() ? { osDate: '' } : {}),
+        } : p
       ));
     }
     setEditingId(null);
@@ -198,6 +206,8 @@ const ControleImpressoras: React.FC = () => {
           escola: p.escola,
           source: p.source,
           observacao: p.observacao,
+          osNumber: p.osNumber,
+          osDate: p.osDate,
         })),
         responsavel: userName || undefined,
       };
@@ -411,7 +421,9 @@ const ControleImpressoras: React.FC = () => {
                     <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Setor</th>
                     <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Escola</th>
                     <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fonte</th>
-                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider min-w-[180px]">Observação</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">OS</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Data OS</th>
+                    <th className="px-2 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider min-w-[140px]">Observação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -497,6 +509,12 @@ const ControleImpressoras: React.FC = () => {
                           }`}>
                             {printer.source === 'monitoramento' ? 'SNMP' : 'Patr.'}
                           </span>
+                        </td>
+                        <td className="px-2 py-2 text-xs">
+                          {renderEditableCell('osNumber', printer.osNumber)}
+                        </td>
+                        <td className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">
+                          {printer.osDate || <span className="text-gray-300 dark:text-gray-600 italic">-</span>}
                         </td>
                         <td className="px-2 py-2 text-xs text-gray-700 dark:text-gray-200">
                           {renderEditableCell('observacao', printer.observacao)}
@@ -596,6 +614,13 @@ const ControleImpressoras: React.FC = () => {
                         <span className="text-xs text-gray-700 dark:text-gray-200">{printer.escola}</span>
                       </div>
                     )}
+                    <div className="mt-1">
+                      {renderEditableField('osNumber', 'Nº OS', printer.osNumber)}
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-0.5">Data OS</label>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{printer.osDate || <span className="italic text-gray-300 dark:text-gray-600">-</span>}</span>
+                    </div>
                     <div className="col-span-2 mt-1">
                       {renderEditableField('observacao', 'Observacao', printer.observacao)}
                     </div>

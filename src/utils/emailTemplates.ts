@@ -417,3 +417,260 @@ Enviado em ${new Date().toLocaleString('pt-BR')}
 
   return { subject, html, text };
 };
+
+export interface ChadaCancelEmailData {
+  itemName: string;
+  serialNumber: string;
+  problem: string;
+  userName: string;
+  setor: string;
+  idOriginal: string;
+}
+
+export const generateChadaCancelEmail = (data: ChadaCancelEmailData): { subject: string; html: string; text: string } => {
+  const subject = `❌ CANCELADO - Chamado CHADA - ${data.itemName} - Serial: ${data.serialNumber}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cancelamento de Chamado CHADA</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .cancel-badge { background: #fee2e2; color: #991b1b; padding: 10px 15px; border-radius: 8px; margin: 20px 0; text-align: center; font-weight: 600; font-size: 16px; }
+        .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .info-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+        .info-label { font-weight: 600; color: #374151; }
+        .info-value { color: #6b7280; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; }
+        .footer p { margin: 5px 0; color: #6b7280; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 CSDT - Cancelamento de Chamado</h1>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Solicitação de Reparo Cancelada</p>
+        </div>
+
+        <div class="content">
+            <div class="cancel-badge">
+                ❌ CHAMADO CANCELADO
+            </div>
+
+            <p>Prezados,</p>
+
+            <p>O chamado abaixo foi <strong>cancelado</strong> e <strong>não precisa mais de reparo</strong>. Por favor, desconsiderem a solicitação anterior.</p>
+
+            <div class="info-box">
+                <h3 style="margin-top: 0; color: #374151;">📋 Dados do Chamado Original (Cancelado)</h3>
+                <div class="info-row">
+                    <span class="info-label">Equipamento:</span>
+                    <span class="info-value">${data.itemName}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Número de Série:</span>
+                    <span class="info-value">${data.serialNumber}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Setor/Escola:</span>
+                    <span class="info-value">${data.setor}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Solicitante:</span>
+                    <span class="info-value">${data.userName}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ID do Chamado:</span>
+                    <span class="info-value">#${data.idOriginal}</span>
+                </div>
+            </div>
+
+            <div style="background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; color: #065f46;">
+                    <strong>✅ Observação:</strong> Este chamado foi cancelado e não requer nenhuma ação adicional. Agradecemos pela atenção.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>CSDT - Coordenação de Suporte de Desenvolvimento e Tecnológico</strong></p>
+            <p>Secretaria Municipal de Educação de Duque de Caxias</p>
+            <p style="font-size: 12px; color: #9ca3af;">Enviado em ${new Date().toLocaleString('pt-BR')}</p>
+        </div>
+    </div>
+</body>
+</html>
+  `;
+
+  const text = `
+CSDT - CANCELAMENTO DE CHAMADO CHADA
+
+Prezados,
+
+O chamado abaixo foi CANCELADO e não precisa mais de reparo:
+
+DADOS DO CHAMADO ORIGINAL (CANCELADO):
+Equipamento: ${data.itemName}
+Número de Série: ${data.serialNumber}
+Setor/Escola: ${data.setor}
+Solicitante: ${data.userName}
+ID do Chamado: #${data.idOriginal}
+
+Este chamado foi cancelado e não requer ação adicional.
+
+---
+CSDT - Coordenação de Suporte de Desenvolvimento e Tecnológico
+Secretaria Municipal de Educação de Duque de Caxias
+Enviado em ${new Date().toLocaleString('pt-BR')}
+  `;
+
+  return { subject, html, text };
+};
+
+export interface ChadaCorrectionEmailData {
+  oldItemName: string;
+  oldSerial: string;
+  oldProblem: string;
+  newItemName: string;
+  newSerial: string;
+  newProblem: string;
+  newSetor: string;
+  userName: string;
+  idOriginal: string;
+}
+
+export const generateChadaCorrectionEmail = (data: ChadaCorrectionEmailData): { subject: string; html: string; text: string } => {
+  const subject = `✏️ RETIFICADO - Chamado CHADA - ${data.newItemName} - Serial: ${data.newSerial}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retificação de Chamado CHADA</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .correction-badge { background: #fef3c7; color: #92400e; padding: 10px 15px; border-radius: 8px; margin: 20px 0; text-align: center; font-weight: 600; font-size: 16px; }
+        .old-box { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 15px; margin: 20px 0; }
+        .old-box h3 { color: #991b1b; margin: 0 0 10px 0; }
+        .new-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 15px; margin: 20px 0; }
+        .new-box h3 { color: #166534; margin: 0 0 10px 0; }
+        .info-row { display: flex; justify-content: space-between; margin: 5px 0; padding-bottom: 5px; border-bottom: 1px solid #e5e7eb; }
+        .info-label { font-weight: 600; color: #374151; }
+        .info-value { color: #6b7280; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; }
+        .footer p { margin: 5px 0; color: #6b7280; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 CSDT - Retificação de Chamado</h1>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Dados Corrigidos do Equipamento</p>
+        </div>
+
+        <div class="content">
+            <div class="correction-badge">
+                ✏️ DADOS RETIFICADOS
+            </div>
+
+            <p>Prezados,</p>
+
+            <p>O chamado anterior foi enviado com dados incorretos. Segue abaixo a <strong>retificação</strong> com as informações corrigidas:</p>
+
+            <div class="old-box">
+                <h3>❌ Dados Anteriores (Incorretos)</h3>
+                <div class="info-row">
+                    <span class="info-label">Equipamento:</span>
+                    <span class="info-value">${data.oldItemName}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Número de Série:</span>
+                    <span class="info-value">${data.oldSerial}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Problema:</span>
+                    <span class="info-value">${data.oldProblem}</span>
+                </div>
+            </div>
+
+            <div class="new-box">
+                <h3>✅ Dados Corrigidos</h3>
+                <div class="info-row">
+                    <span class="info-label">Equipamento:</span>
+                    <span class="info-value">${data.newItemName}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Número de Série:</span>
+                    <span class="info-value">${data.newSerial}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Problema:</span>
+                    <span class="info-value">${data.newProblem}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Setor/Escola:</span>
+                    <span class="info-value">${data.newSetor}</span>
+                </div>
+            </div>
+
+            <div style="background: #dbeafe; border: 1px solid #3b82f6; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; color: #1e40af;">
+                    <strong>📋 Observação:</strong> Por favor, considerem os dados corrigidos acima como válidos. Desconsiderem as informações anteriores.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>CSDT - Coordenação de Suporte de Desenvolvimento e Tecnológico</strong></p>
+            <p>Secretaria Municipal de Educação de Duque de Caxias</p>
+            <p style="font-size: 12px; color: #9ca3af;">Solicitante: ${data.userName} | Chamado ID: #${data.idOriginal}</p>
+        </div>
+    </div>
+</body>
+</html>
+  `;
+
+  const text = `
+CSDT - RETIFICAÇÃO DE CHAMADO CHADA
+
+Prezados,
+
+O chamado anterior foi enviado com dados incorretos. Segue a retificação:
+
+DADOS ANTERIORES (INCORRETOS):
+Equipamento: ${data.oldItemName}
+Número de Série: ${data.oldSerial}
+Problema: ${data.oldProblem}
+
+DADOS CORRIGIDOS:
+Equipamento: ${data.newItemName}
+Número de Série: ${data.newSerial}
+Problema: ${data.newProblem}
+Setor/Escola: ${data.newSetor}
+
+Por favor, considerem os dados corrigidos como válidos.
+
+Solicitante: ${data.userName}
+Chamado ID: #${data.idOriginal}
+
+---
+CSDT - Coordenação de Suporte de Desenvolvimento e Tecnológico
+Secretaria Municipal de Educação de Duque de Caxias
+Enviado em ${new Date().toLocaleString('pt-BR')}
+  `;
+
+  return { subject, html, text };
+};

@@ -28,6 +28,9 @@ interface ChadaItemsListProps {
   onUpdateStatus: (item: ChadaItem) => void;
   onPrintOS: (item: ChadaItem) => void;
   onUploadOS: (id: string) => void;
+  onCancel: (id: string) => void;
+  onEdit: (item: ChadaItem) => void;
+  onSendPhoto: (id: string) => void;
 }
 
 const ChadaItemsList: React.FC<ChadaItemsListProps> = ({
@@ -46,6 +49,9 @@ const ChadaItemsList: React.FC<ChadaItemsListProps> = ({
   onUpdateStatus,
   onPrintOS,
   onUploadOS,
+  onCancel,
+  onEdit,
+  onSendPhoto,
 }) => {
   if (filteredAndSortedItems.length === 0) {
     const hasFilters = searchTerm || sectorFilter !== 'all' || statusFilter !== 'all';
@@ -253,6 +259,32 @@ const ChadaItemsList: React.FC<ChadaItemsListProps> = ({
                   </button>
                 )
               )}
+
+              {/* Botões de Enviar Foto, Editar e Cancelar */}
+              <div className="flex gap-1 sm:gap-2 ml-auto">
+                <button
+                  onClick={() => onSendPhoto(item.id)}
+                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs sm:text-sm"
+                  title="Enviar foto para CHADA"
+                >
+                  <span>📷</span>
+                  <span className="hidden sm:inline">Foto</span>
+                </button>
+                <button
+                  onClick={() => onEdit(item)}
+                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-xs sm:text-sm"
+                >
+                  <span>✏️</span>
+                  <span className="hidden sm:inline">Editar</span>
+                </button>
+                <button
+                  onClick={() => onCancel(item.id)}
+                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs sm:text-sm"
+                >
+                  <span>🗑️</span>
+                  <span className="hidden sm:inline">Apagar</span>
+                </button>
+              </div>
             </div>
           </div>
         );

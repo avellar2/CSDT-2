@@ -11,6 +11,8 @@ interface PrinterData {
   escola?: string;
   source?: 'monitoramento' | 'patrimonio';
   observacao?: string;
+  osNumber?: string;
+  osDate?: string;
 }
 
 const PAGE_WIDTH = 841.89;
@@ -21,16 +23,18 @@ const ROW_HEIGHT = 20;
 const TABLE_HEADER_HEIGHT = 22;
 const MAX_PRINTERS_PER_PAGE = 16;
 
-const COL_NUM = 24;
-const COL_SIGLA = 55;
-const COL_MODELO = 85;
-const COL_FABRICANTE = 70;
-const COL_SERIAL = 90;
-const COL_IP = 75;
-const COL_SETOR = 65;
-const COL_ESCOLA = 120;
-const COL_SOURCE = 62;
-const COL_OBS = 161.89;
+const COL_NUM = 22;
+const COL_SIGLA = 48;
+const COL_MODELO = 72;
+const COL_FABRICANTE = 60;
+const COL_SERIAL = 80;
+const COL_IP = 65;
+const COL_SETOR = 55;
+const COL_ESCOLA = 90;
+const COL_SOURCE = 48;
+const COL_OS = 40;
+const COL_OS_DATE = 58;
+const COL_OBS = 151.89;
 
 const COLORS = {
   primary: rgb(0.12, 0.25, 0.69),    // #1e40af dark blue
@@ -78,6 +82,8 @@ function getColPositions(): number[] {
     COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP + COL_SETOR,
     COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP + COL_SETOR + COL_ESCOLA,
     COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP + COL_SETOR + COL_ESCOLA + COL_SOURCE,
+    COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP + COL_SETOR + COL_ESCOLA + COL_SOURCE + COL_OS,
+    COL_NUM + COL_SIGLA + COL_MODELO + COL_FABRICANTE + COL_SERIAL + COL_IP + COL_SETOR + COL_ESCOLA + COL_SOURCE + COL_OS + COL_OS_DATE,
   ];
 }
 
@@ -271,7 +277,7 @@ function drawTableHeader(page: PDFPage, fontBold: any, y: number): number {
   });
 
   const colPositions = getColPositions();
-  const headers = ['#', 'Sigla', 'Modelo', 'Fabricante', 'Serial', 'IP', 'Setor', 'Escola', 'Fonte', 'Obs.'];
+  const headers = ['#', 'Sigla', 'Modelo', 'Fabricante', 'Serial', 'IP', 'Setor', 'Escola', 'Fonte', 'OS', 'Data', 'Obs.'];
 
   headers.forEach((header, i) => {
     page.drawText(header, {
@@ -286,7 +292,7 @@ function drawTableHeader(page: PDFPage, fontBold: any, y: number): number {
 function drawTableRows(page: PDFPage, fontRegular: any, fontBold: any, printers: PrinterData[], startIndex: number, y: number): number {
   const contentWidth = PAGE_WIDTH - MARGIN * 2;
   const colPositions = getColPositions();
-  const colWidths = [COL_NUM, COL_SIGLA, COL_MODELO, COL_FABRICANTE, COL_SERIAL, COL_IP, COL_SETOR, COL_ESCOLA, COL_SOURCE, COL_OBS];
+  const colWidths = [COL_NUM, COL_SIGLA, COL_MODELO, COL_FABRICANTE, COL_SERIAL, COL_IP, COL_SETOR, COL_ESCOLA, COL_SOURCE, COL_OS, COL_OS_DATE, COL_OBS];
   const fontSize = 8;
 
   printers.forEach((printer, idx) => {
@@ -370,6 +376,20 @@ function drawTableRows(page: PDFPage, fontRegular: any, fontBold: any, printers:
     page.drawText(srcText, {
       x: MARGIN + colPositions[8] + 4, y: rowY + 6,
       size: fontSize, font: fontRegular, color: COLORS.accent,
+    });
+
+    // OS Number
+    const osText = truncateText(printer.osNumber || '', fontRegular, colWidths[9] - 8, fontSize);
+    page.drawText(osText, {
+      x: MARGIN + colPositions[9] + 4, y: rowY + 6,
+      size: fontSize, font: fontBold, color: COLORS.darkText,
+    });
+
+    // OS Date
+    const osDateText = truncateText(printer.osDate || '', fontRegular, colWidths[10] - 8, fontSize);
+    page.drawText(osDateText, {
+      x: MARGIN + colPositions[10] + 4, y: rowY + 6,
+      size: fontSize, font: fontRegular, color: COLORS.gray,
     });
 
     // Observacao

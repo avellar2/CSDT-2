@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método não permitido" });
   }
 
-  const { itemId, problem, userName, sector, status, manutencaoSemMovimentacao, semSerial, itemNameSemSerial, itemTypeSemSerial, itemBrandSemSerial } = req.body;
+  const { itemId, problem, userName, sector, status, manutencaoSemMovimentacao, semSerial, itemNameSemSerial, itemTypeSemSerial, itemBrandSemSerial, photo } = req.body;
 
   if (!problem || !userName || !sector) {
     return res.status(400).json({ error: "Todos os campos são obrigatórios" });
@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           process.env.CSDT_EMAIL_USER || 'ordemdeservicocsdt@gmail.com'
         ].filter((email, index, self) => self.indexOf(email) === index);
 
-        const emailInfo = await transporter.sendMail({
+        const mailOptions: any = {
           from: `"CSDT" <${process.env.CSDT_EMAIL_USER}>`,
           to: process.env.CHADA_EMAIL || 'sac@xscan.com.br',
           cc: ccEmails.join(', '),
@@ -58,7 +58,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           subject: emailContent.subject,
           text: emailContent.text,
           html: emailContent.html,
-        });
+        };
+
+        // Anexa foto se foi enviada (vai só no email, não salva no banco)
+        if (photo) {
+          const matches = photo.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/i);
+          if (matches) {
+            mailOptions.attachments = [{
+              filename: `foto_chada_${Date.now()}.${matches[1] === 'jpeg' ? 'jpg' : matches[1]}`,
+              content: matches[2],
+              encoding: 'base64',
+              contentType: `image/${matches[1] === 'jpg' ? 'jpeg' : matches[1]}`,
+            }];
+          }
+        }
+
+        const emailInfo = await transporter.sendMail(mailOptions);
         emailMessageId = emailInfo.messageId;
       } catch (emailError) {
         console.error('Erro ao enviar email para CHADA:', emailError);
@@ -144,7 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         process.env.CSDT_EMAIL_USER || 'ordemdeservicocsdt@gmail.com'
       ].filter((email, index, self) => self.indexOf(email) === index);
 
-      const emailInfo = await transporter.sendMail({
+      const mailOptions: any = {
         from: `"CSDT" <${process.env.CSDT_EMAIL_USER}>`,
         to: process.env.CHADA_EMAIL || 'sac@xscan.com.br',
         cc: ccEmails.join(', '),
@@ -152,7 +167,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         subject: emailContent.subject,
         text: emailContent.text,
         html: emailContent.html,
-      });
+      };
+
+      // Anexa foto se foi enviada (vai só no email, não salva no banco)
+      if (photo) {
+        const matches = photo.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/i);
+        if (matches) {
+          mailOptions.attachments = [{
+            filename: `foto_chada_${Date.now()}.${matches[1] === 'jpeg' ? 'jpg' : matches[1]}`,
+            content: matches[2],
+            encoding: 'base64',
+            contentType: `image/${matches[1] === 'jpg' ? 'jpeg' : matches[1]}`,
+          }];
+        }
+      }
+
+      const emailInfo = await transporter.sendMail(mailOptions);
       emailMessageId = emailInfo.messageId;
 
     } catch (emailError) {
