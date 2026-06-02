@@ -21,6 +21,7 @@ const ConfirmarOsExterna: React.FC = () => {
   const [showRecusarModal, setShowRecusarModal] = useState(false);
   const [motivoRecusa, setMotivoRecusa] = useState('');
   const [recusando, setRecusando] = useState(false);
+  const [showDadosObrigatoriosModal, setShowDadosObrigatoriosModal] = useState(false);
 
   useEffect(() => {
     if (numeroOs && token) {
@@ -601,9 +602,8 @@ const ConfirmarOsExterna: React.FC = () => {
                       type="button"
                       variant="destructive"
                       onClick={() => {
-                        // Valida se os dados do responsável foram preenchidos
                         if (!formData.nomeResponsavel || !formData.cpfMatricula || !formData.cargoResponsavel) {
-                          setMessage('Preencha nome, CPF e cargo do responsável antes de recusar.');
+                          setShowDadosObrigatoriosModal(true);
                           return;
                         }
                         setShowRecusarModal(true);
@@ -628,7 +628,37 @@ const ConfirmarOsExterna: React.FC = () => {
         
       </div>
 
-      {/* Modal de Imagem */}
+      {/* Modal de aviso - dados obrigatórios */}
+      {showDadosObrigatoriosModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Dados obrigatórios</h3>
+              <button
+                onClick={() => setShowDadosObrigatoriosModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg mb-4">
+              <p className="text-yellow-800 font-medium">
+                Preencha nome, CPF e cargo do responsável no formulário acima antes de recusar.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowDadosObrigatoriosModal(false)}
+              >
+                Entendi
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de imagem */}
       {selectedImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
