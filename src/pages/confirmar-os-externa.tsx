@@ -115,6 +115,9 @@ const ConfirmarOsExterna: React.FC = () => {
           numeroOs,
           token,
           motivo: motivoRecusa,
+          nome: formData.nomeResponsavel,
+          cpf: formData.cpfMatricula,
+          cargo: formData.cargoResponsavel,
         }),
       });
 
@@ -243,6 +246,30 @@ const ConfirmarOsExterna: React.FC = () => {
           {/* Informações da OS */}
           {osData && (
             <div className="p-8">
+              {/* Banner de OS Recusada */}
+              {osData.motivoRecusa && (
+                <div className="mb-6 bg-red-100 border-2 border-red-500 rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center mb-3">
+                    <div className="bg-red-500 rounded-full w-12 h-12 flex items-center justify-center mr-4">
+                      <X size={28} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-red-700">RECUSADA PELO DIRETOR</h2>
+                      <p className="text-red-600 font-medium">{osData.assinado} | {osData.cargoResponsavel}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-red-200">
+                    <p className="text-sm font-semibold text-red-800 mb-1">Motivo da recusa:</p>
+                    <p className="text-gray-700">{osData.motivoRecusa}</p>
+                  </div>
+                  {osData.recusadoEm && (
+                    <p className="text-sm text-red-600 mt-2">
+                      Recusado em {new Date(osData.recusadoEm).toLocaleString('pt-BR')}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Card de Informações Principais */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl mb-6 border-l-4 border-blue-600">
                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -573,7 +600,14 @@ const ConfirmarOsExterna: React.FC = () => {
                     <Button
                       type="button"
                       variant="destructive"
-                      onClick={() => setShowRecusarModal(true)}
+                      onClick={() => {
+                        // Valida se os dados do responsável foram preenchidos
+                        if (!formData.nomeResponsavel || !formData.cpfMatricula || !formData.cargoResponsavel) {
+                          setMessage('Preencha nome, CPF e cargo do responsável antes de recusar.');
+                          return;
+                        }
+                        setShowRecusarModal(true);
+                      }}
                       disabled={loading}
                       className="flex-1 font-bold py-4 px-6 rounded-lg text-lg"
                     >

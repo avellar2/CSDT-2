@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { numeroOs, token, motivo } = req.body;
+    const { numeroOs, token, motivo, nome, cpf, cargo } = req.body;
 
     if (!numeroOs || !token) {
       return res.status(400).json({ error: 'Número da OS e token são obrigatórios' });
@@ -17,6 +17,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!motivo || motivo.trim().length === 0) {
       return res.status(400).json({ error: 'O motivo da recusa é obrigatório' });
+    }
+
+    if (!nome || !cpf || !cargo) {
+      return res.status(400).json({ error: 'Nome, CPF e cargo do responsável são obrigatórios' });
     }
 
     const osExterna = await prisma.oSExterna.findFirst({
@@ -38,6 +42,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         motivoRecusa: motivo.trim(),
         recusadoEm: new Date(),
+        assinado: nome.trim(),
+        cpf: cpf.trim(),
+        cargoResponsavel: cargo.trim(),
         updatedAt: new Date(),
       },
     });
