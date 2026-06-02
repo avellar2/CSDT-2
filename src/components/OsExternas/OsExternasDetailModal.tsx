@@ -24,6 +24,11 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
             <div>
               <h3 className="text-2xl font-bold text-gray-800 mb-2">
                 {selectedOs.unidadeEscolar}
+                {selectedOs.motivoRecusa && (
+                  <span className="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-red-100 text-red-800 border-2 border-red-500">
+                    RECUSADA
+                  </span>
+                )}
               </h3>
               <p className="text-gray-600">OS Externa - Detalhes Completos</p>
             </div>
@@ -95,8 +100,8 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
                 <tr className="border-b border-gray-200">
                   <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">Status</td>
                   <td className="px-4 py-3">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedOs.status === "Pendente" ? "bg-orange-100 text-orange-800" : "bg-green-100 text-green-800"}`}>
-                      {selectedOs.status === "Pendente" ? "Pendente" : "Confirmada"}
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedOs.motivoRecusa ? "bg-red-100 text-red-800" : selectedOs.status === "Pendente" ? "bg-orange-100 text-orange-800" : "bg-green-100 text-green-800"}`}>
+                      {selectedOs.motivoRecusa ? "Recusado" : selectedOs.status === "Pendente" ? "Pendente" : "Confirmada"}
                     </span>
                   </td>
                 </tr>
@@ -127,6 +132,32 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
               </tbody>
             </table>
           </div>
+
+          {/* Motivo da Recusa */}
+          {selectedOs.motivoRecusa && (
+            <div className="bg-red-50 border-2 border-red-400 rounded-lg mb-6 p-4">
+              <div className="flex items-start">
+                <div className="bg-red-500 rounded-full w-10 h-10 flex items-center justify-center mr-3 flex-shrink-0">
+                  <span className="text-white font-bold text-lg">!</span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-red-800 text-lg">Recusada pelo Diretor</h4>
+                  <p className="text-red-700 mt-1">
+                    <span className="font-medium">Responsável:</span> {selectedOs.assinado}
+                    {selectedOs.cargoResponsavel && <span> | {selectedOs.cargoResponsavel}</span>}
+                  </p>
+                  <p className="text-red-700 mt-1">
+                    <span className="font-medium">Motivo:</span> {selectedOs.motivoRecusa}
+                  </p>
+                  {selectedOs.recusadoEm && (
+                    <p className="text-red-600 text-sm mt-1">
+                      Recusado em {new Date(selectedOs.recusadoEm).toLocaleString('pt-BR')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Solicitacao da Visita */}
           <div className="bg-white border border-gray-200 rounded-lg mb-6">

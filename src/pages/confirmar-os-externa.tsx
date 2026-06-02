@@ -21,6 +21,7 @@ const ConfirmarOsExterna: React.FC = () => {
   const [showRecusarModal, setShowRecusarModal] = useState(false);
   const [motivoRecusa, setMotivoRecusa] = useState('');
   const [recusando, setRecusando] = useState(false);
+  const [recusado, setRecusado] = useState(false);
   const [showDadosObrigatoriosModal, setShowDadosObrigatoriosModal] = useState(false);
 
   useEffect(() => {
