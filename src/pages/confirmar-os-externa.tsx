@@ -524,10 +524,10 @@ const ConfirmarOsExterna: React.FC = () => {
               {/* Formulário de Confirmação */}
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border-2 border-indigo-200">
                 <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
-                  Confirme o Atendimento
+                  Confirme ou Recuse o Atendimento
                 </h3>
                 <p className="text-gray-600 text-center mb-6">
-                  Preencha os dados do responsável pela escola para confirmar que o serviço foi realizado
+                  Preencha os dados do responsável pela escola e escolha: confirmar ou recusar o atendimento
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
