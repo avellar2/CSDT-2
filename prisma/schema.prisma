@@ -285,6 +285,8 @@ model OSExterna {
   impressoraComProblema              String?
   relatorioImpressora                String?
   temImpressoraComProblema           Boolean?
+  motivoRecusa                       String?
+  recusadoEm                         DateTime?
 }
 
 model OffTechnician {
