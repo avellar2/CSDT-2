@@ -213,6 +213,14 @@ const OsExternasList: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center mb-3">
                           <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm font-medium">{os.numeroOs}</span>
+                          {os.motivoRecusa && (
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 cursor-help ml-2"
+                              title={os.motivoRecusa}
+                            >
+                              Recusada
+                            </span>
+                          )}
                           <span className="ml-2 text-sm text-gray-500">{formatDateShort(os.data)}</span>
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{os.unidadeEscolar}</h3>
@@ -277,7 +285,15 @@ const OsExternasList: React.FC = () => {
                         <div className="flex-1">
                           <div className="flex items-center mb-3">
                             <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">{os.numeroOs}</span>
-                            <span className="ml-2 text-sm text-gray-500">{formatDateShort(os.data)}</span>
+                          {os.motivoRecusa && (
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 cursor-help ml-2"
+                              title={os.motivoRecusa}
+                            >
+                              Recusada
+                            </span>
+                          )}
+                          <span className="ml-2 text-sm text-gray-500">{formatDateShort(os.data)}</span>
                           </div>
                           <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{os.unidadeEscolar}</h3>
                           <p className="text-sm text-gray-600 mb-1">

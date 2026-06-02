@@ -56,6 +56,8 @@ export interface OsExterna {
   solucionado?: string;
   status: string;
   assinado?: string;
+  motivoRecusa?: string | null;
+  recusadoEm?: string | null;
   cpf?: string;
   cargoResponsavel?: string;
   lastEmailSent?: string;
