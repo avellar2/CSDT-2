@@ -84,7 +84,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Datas
         createdAt: true,
         updatedAt: true,
-        lastEmailSent: true
+        lastEmailSent: true,
+        motivoRecusa: true,
+        recusadoEm: true
       }
     });
 
