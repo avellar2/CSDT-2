@@ -18,6 +18,9 @@ const ConfirmarOsExterna: React.FC = () => {
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showRecusarModal, setShowRecusarModal] = useState(false);
+  const [motivoRecusa, setMotivoRecusa] = useState('');
+  const [recusando, setRecusando] = useState(false);
 
   useEffect(() => {
     if (numeroOs && token) {
@@ -94,6 +97,40 @@ const ConfirmarOsExterna: React.FC = () => {
       setMessage('Erro ao confirmar OS.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecusar = async () => {
+    if (!motivoRecusa.trim()) {
+      setMessage('Por favor, informe o motivo da recusa.');
+      return;
+    }
+
+    setRecusando(true);
+    try {
+      const response = await fetch('/api/recusar-os-externa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numeroOs,
+          token,
+          motivo: motivoRecusa,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSuccess(true);
+        setMessage('OS recusada com sucesso!');
+        setShowRecusarModal(false);
+      } else {
+        setMessage(result.error || 'Erro ao recusar OS.');
+      }
+    } catch (error) {
+      setMessage('Erro ao recusar OS.');
+    } finally {
+      setRecusando(false);
     }
   };
 
@@ -512,26 +549,37 @@ const ConfirmarOsExterna: React.FC = () => {
                     />
                   </div>
 
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-lg text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Confirmando...
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center">
-                        <CheckCircle size={24} className="mr-2" />
-                        Confirmar Atendimento
-                      </span>
-                    )}
-                  </Button>
+                  <div className="flex gap-4">
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-lg text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Confirmando...
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center">
+                          <CheckCircle size={24} className="mr-2" />
+                          Confirmar Atendimento
+                        </span>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => setShowRecusarModal(true)}
+                      disabled={loading}
+                      className="flex-1 font-bold py-4 px-6 rounded-lg text-lg"
+                    >
+                      Recusar OS
+                    </Button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -565,6 +613,47 @@ const ConfirmarOsExterna: React.FC = () => {
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Recusa */}
+      {showRecusarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Recusar OS</h3>
+              <button
+                onClick={() => setShowRecusarModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Por que você não aceita esta OS? Descreva o motivo:
+            </p>
+            <textarea
+              value={motivoRecusa}
+              onChange={(e) => setMotivoRecusa(e.target.value)}
+              placeholder="Ex: equipamento não foi entregue, serviço não realizado, fotos não conferem..."
+              className="w-full border border-gray-300 rounded-lg p-3 min-h-[120px] text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            />
+            <div className="flex gap-3 mt-4 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowRecusarModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleRecusar}
+                disabled={recusando}
+              >
+                {recusando ? 'Recusando...' : 'Confirmar Recusa'}
+              </Button>
+            </div>
           </div>
         </div>
       )}
