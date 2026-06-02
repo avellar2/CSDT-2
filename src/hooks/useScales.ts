@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabaseClient';
+import { getAuthHeaders } from "@/utils/client-auth";
 
 // Especialidades disponíveis
 export const SPECIALTIES = [
@@ -340,7 +341,7 @@ export function useScales() {
   const fetchScaleHistory = async () => {
     try {
       setLoadingHistory(true);
-      const response = await fetch('/api/getScaleHistory');
+      const response = await fetch('/api/getScaleHistory', { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error('Erro ao buscar histórico');
       }
@@ -356,7 +357,7 @@ export function useScales() {
   const fetchTechnicalTickets = async () => {
     try {
       setLoadingTickets(true);
-      const response = await fetch(`/api/technical-tickets/list?status=${ticketFilter}`);
+      const response = await fetch(`/api/technical-tickets/list?status=${ticketFilter}`, { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error('Erro ao buscar chamados técnicos');
       }
@@ -375,7 +376,7 @@ export function useScales() {
   const fetchChamadosEscala = async () => {
     try {
       const statusFilter = ticketFilter === 'all' ? '' : `?status=${ticketFilter}`;
-      const response = await fetch(`/api/chamados-escalas${statusFilter}`);
+      const response = await fetch(`/api/chamados-escalas${statusFilter}`, { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error('Erro ao buscar chamados de escala');
       }
@@ -390,7 +391,7 @@ export function useScales() {
 
   const fetchAdminUsers = async () => {
     try {
-      const response = await fetch('/api/users/admins');
+      const response = await fetch('/api/users/admins', { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error('Erro ao buscar administradores');
       }
@@ -406,7 +407,7 @@ export function useScales() {
   const fetchAnalyticsData = async () => {
     try {
       setLoadingAnalytics(true);
-      const response = await fetch('/api/getScaleHistory');
+      const response = await fetch('/api/getScaleHistory', { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error('Erro ao buscar dados de analytics');
       }
@@ -424,7 +425,7 @@ export function useScales() {
   const fetchSchoolVisitsData = async () => {
     try {
       setLoadingSchoolVisits(true);
-      const response = await fetch('/api/getSchoolVisits');
+      const response = await fetch('/api/getSchoolVisits', { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error('Erro ao buscar dados de visitas às escolas');
       }
@@ -441,7 +442,7 @@ export function useScales() {
     try {
       setLoadingEvents(true);
 
-      const eventsResponse = await fetch('/api/schedule/events');
+      const eventsResponse = await fetch('/api/schedule/events', { headers: getAuthHeaders() });
       if (!eventsResponse.ok) {
         throw new Error('Erro ao buscar eventos');
       }
@@ -449,7 +450,7 @@ export function useScales() {
 
       let scaleHistoryData = [];
       try {
-        const historyResponse = await fetch('/api/getScaleHistory');
+        const historyResponse = await fetch('/api/getScaleHistory', { headers: getAuthHeaders() });
         if (historyResponse.ok) {
           scaleHistoryData = await historyResponse.json();
         }
@@ -512,7 +513,7 @@ export function useScales() {
           dates.push(date.toISOString().split('T')[0]);
         }
 
-        const demandsResponse = await fetch('/api/daily-demands?days=30');
+        const demandsResponse = await fetch('/api/daily-demands?days=30', { headers: getAuthHeaders() });
 
         if (demandsResponse.ok) {
           const result = await demandsResponse.json();
@@ -736,9 +737,7 @@ export function useScales() {
     try {
       const response = await fetch('/api/schedule/events', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(eventData),
       });
 
@@ -766,9 +765,7 @@ export function useScales() {
     try {
       const response = await fetch(`/api/schedule/events?id=${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(eventData),
       });
 
@@ -795,6 +792,7 @@ export function useScales() {
     try {
       const response = await fetch(`/api/schedule/events?id=${id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -810,7 +808,7 @@ export function useScales() {
   const fetchCalendars = async () => {
     try {
       setLoadingCalendars(true);
-      const response = await fetch('/api/calendars?ownerId=current-user');
+      const response = await fetch('/api/calendars?ownerId=current-user', { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error('Erro ao buscar calendários');
       }
@@ -835,9 +833,7 @@ export function useScales() {
     try {
       const response = await fetch('/api/calendars', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(calendarData),
       });
 
@@ -856,9 +852,7 @@ export function useScales() {
     try {
       const response = await fetch(`/api/calendars/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(calendarData),
       });
 
@@ -879,9 +873,7 @@ export function useScales() {
     try {
       const response = await fetch(`/api/calendars/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ isVisible }),
       });
 
@@ -909,9 +901,7 @@ export function useScales() {
 
       const response = await fetch('/api/technical-tickets/schedule', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           ticketId: selectedTicket.id,
           priority: schedulePriority,
@@ -957,16 +947,12 @@ export function useScales() {
       if (isChamadoEscala) {
         response = await fetch(`/api/chamados-escalas?id=${ticketToDelete.id}`, {
           method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          }
+          headers: getAuthHeaders(),
         });
       } else {
         response = await fetch(`/api/technical-tickets/delete?ticketId=${ticketToDelete.id}`, {
           method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             deletedBy: currentUser.displayName,
             deletionReason: deletionReason.trim()
@@ -1082,7 +1068,7 @@ export function useScales() {
 
   const checkPendingOs = async (schoolId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/check-pending-os?schoolId=${schoolId}`);
+      const response = await fetch(`/api/check-pending-os?schoolId=${schoolId}`, { headers: getAuthHeaders() });
 
       const data = await response.json();
 
@@ -1237,9 +1223,7 @@ export function useScales() {
     try {
       const response = await fetch("/api/saveScale", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           baseTechnicians: baseTechnicians.map(id => String(id)),
           visitTechnicians: visitTechnicians.map(id => String(id)),
@@ -1303,7 +1287,7 @@ export function useScales() {
     const fetchTechnicians = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/getTechnicians");
+        const response = await fetch("/api/getTechnicians", { headers: getAuthHeaders() });
         if (!response.ok) {
           throw new Error("Erro ao buscar técnicos");
         }
@@ -1325,7 +1309,7 @@ export function useScales() {
 
     const fetchSchools = async () => {
       try {
-        const response = await fetch("/api/schools");
+        const response = await fetch("/api/schools", { headers: getAuthHeaders() });
         if (!response.ok) {
           throw new Error("Erro ao buscar escolas");
         }
@@ -1393,7 +1377,7 @@ export function useScales() {
           return;
         }
 
-        const response = await fetch(`/api/get-role?userId=${user.id}`);
+        const response = await fetch(`/api/get-role?userId=${user.id}`, { headers: getAuthHeaders() });
         const profileData = await response.json();
 
         if (response.ok && (profileData.role === 'ADMIN' || profileData.role === 'ADMTOTAL')) {
