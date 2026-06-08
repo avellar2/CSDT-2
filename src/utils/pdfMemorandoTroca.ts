@@ -176,6 +176,6 @@ export function convertMemorandumDataForTroca(
     toDistrict: toSchool?.district || 'nao informado',
     outgoingEquipment,
     incomingEquipment,
-    date: new Date(),
+    date: new Date(memorandum.createdAt),
   };
 }

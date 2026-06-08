@@ -468,7 +468,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         generatedBy: userProfile.displayName || '',
         operationLabel: type === 'devolucao' ? 'DEVOLUCAO DE EQUIPAMENTOS' : 'ENTREGA DE EQUIPAMENTOS',
         operationType: type === 'devolucao' ? 'devolucao' : 'entrega',
-        date: new Date(),
+        date: new Date(memorandum.createdAt),
         items: oneWayItems,
       });
     }
@@ -477,6 +477,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       pdfBase64,
       type,
       memorandumNumber: memorandum.number,
+      memorandumCreatedAt: memorandum.createdAt.toISOString(),
       fromSchool: type === 'troca' ? cleanFromSchoolName : type === 'devolucao' ? schoolName : null,
       toSchool: type === 'troca' ? cleanToSchoolName : type === 'devolucao' ? 'CSDT' : schoolName
     });

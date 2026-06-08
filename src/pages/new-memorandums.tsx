@@ -219,11 +219,12 @@ const NewMemorandumsPage: React.FC = () => {
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = url;
+      const dateStr = format(new Date(memorandum.createdAt), 'yyyy-MM-dd', { locale: ptBR });
       const fileName = memorandum.type === "entrega"
-        ? `memorando-entrega-${memorandum.number}.pdf`
+        ? `memorando-entrega-${memorandum.number}-${dateStr}.pdf`
         : memorandum.type === "devolucao"
-          ? `memorando-devolucao-${memorandum.number}.pdf`
-          : `memorando-troca-${memorandum.number}.pdf`;
+          ? `memorando-devolucao-${memorandum.number}-${dateStr}.pdf`
+          : `memorando-troca-${memorandum.number}-${dateStr}.pdf`;
       link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();

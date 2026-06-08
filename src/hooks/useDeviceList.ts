@@ -560,11 +560,12 @@ export function useDeviceList() {
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = url;
+      const dateStr = format(new Date(response.data.memorandumCreatedAt), 'yyyy-MM-dd', { locale: ptBR });
       const fileName = memorandumType === "entrega"
-        ? `memorando-entrega-${response.data.memorandumNumber}.pdf`
+        ? `memorando-entrega-${response.data.memorandumNumber}-${dateStr}.pdf`
         : memorandumType === "devolucao"
-          ? `memorando-devolucao-${response.data.memorandumNumber}.pdf`
-          : `memorando-troca-${response.data.memorandumNumber}.pdf`;
+          ? `memorando-devolucao-${response.data.memorandumNumber}-${dateStr}.pdf`
+          : `memorando-troca-${response.data.memorandumNumber}-${dateStr}.pdf`;
       link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
