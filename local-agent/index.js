@@ -171,7 +171,7 @@ class LocalAgent {
 
   async getPrintersFromVercel() {
     try {
-      const response = await axios.get(`${config.vercelAppUrl}/api/printers`, {
+      const response = await axios.get(`${config.vercelAppUrl}/api/printers-for-agent`, {
         headers: {
           'Authorization': `Bearer ${config.apiKey}`,
           'User-Agent': 'CSDT2-LocalAgent/1.0'
@@ -434,6 +434,17 @@ class LocalAgent {
                       statusInfo.hasCriticalErrors = errorDetails.some(
                         detail => detail.severity === 'critical'
                       );
+                    }
+                  } else {
+                    // Sem erros detectados na consulta detalhada (errorCode = 0)
+                    // Se hrPrinterStatus indica que a impressora está funcionando normalmente,
+                    // limpa falsos alertas que podem ter sido setados pelo hrDeviceStatus
+                    const normalStatuses = ['aguardando', 'imprimindo', 'aquecendo', 'funcionando'];
+                    if (normalStatuses.includes(statusInfo.status)) {
+                      logger.info(`Impressora ${printer.ip}: hrDeviceStatus reportou inoperante, mas hrPrinterStatus=${statusInfo.status} e hrPrinterDetectedErrorState=0. Limpando alerta falso.`);
+                      statusInfo.errors = ['Sem Erro'];
+                      statusInfo.errorDetails = [];
+                      statusInfo.hasCriticalErrors = false;
                     }
                   }
                   break;
