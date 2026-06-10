@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
 import { formatDateShort, formatDateTime } from "@/utils/date";
 import type { OsExterna } from "@/hooks/useOsExternasList";
 
@@ -16,8 +17,68 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
 }) => {
   if (!showModal || !selectedOs) return null;
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print-mode">
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-mode, .print-mode * {
+            visibility: visible;
+          }
+          .print-mode {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            background: white !important;
+            display: block !important;
+            padding: 0 !important;
+            overflow: visible !important;
+          }
+          .print-mode > div {
+            max-height: none !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+          }
+          .print-hide {
+            display: none !important;
+          }
+          .print-break-inside {
+            break-inside: avoid;
+          }
+          .print-page-break {
+            break-before: page;
+          }
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          th, td {
+            border: 1px solid #ccc !important;
+            padding: 6px 8px !important;
+          }
+          img {
+            max-width: 100% !important;
+            height: auto !important;
+            page-break-inside: avoid;
+          }
+          .bg-gray-50, .bg-gray-100, .bg-green-100, .bg-orange-100, .bg-red-100, .bg-red-50, .bg-amber-50, .bg-blue-100 {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+      `}</style>
       <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
@@ -32,9 +93,20 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
               </h3>
               <p className="text-gray-600">OS Externa - Detalhes Completos</p>
             </div>
-            <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl">
-              ✕
-            </button>
+            <div className="flex items-center gap-2 print-hide">
+              <Button
+                onClick={handlePrint}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1 text-gray-700 border-gray-300 hover:bg-gray-100"
+              >
+                <Printer size={16} />
+                Imprimir OS
+              </Button>
+              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl">
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* Informacoes Principais */}
@@ -400,7 +472,7 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
 
           {/* Fotos Antes */}
           {selectedOs.fotosAntes && selectedOs.fotosAntes.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg mb-6 print-page-break print-break-inside">
               <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                 <h4 className="font-bold text-gray-700">Fotos Antes</h4>
               </div>
@@ -424,7 +496,7 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
 
           {/* Fotos Depois */}
           {selectedOs.fotosDepois && selectedOs.fotosDepois.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg mb-6 print-page-break print-break-inside">
               <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                 <h4 className="font-bold text-gray-700">Fotos Depois</h4>
               </div>
@@ -460,7 +532,7 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end print-hide">
             <Button onClick={closeModal} className="bg-gray-500 hover:bg-gray-600 text-white">
               Fechar
             </Button>
