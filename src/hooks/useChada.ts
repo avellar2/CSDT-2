@@ -112,8 +112,8 @@ export function useChada() {
   const [diagnostic, setDiagnostic] = useState("");
   const [requestedPart, setRequestedPart] = useState("");
 
-  // Foto anexada ao email (não salva no banco)
-  const [chadaPhoto, setChadaPhoto] = useState<File | null>(null);
+  // Fotos anexadas ao email (não salva no banco)
+  const [chadaPhotos, setChadaPhotos] = useState<File[]>([]);
 
   // Estado do modal de aviso CSDT
   const [showCsdtWarningModal, setShowCsdtWarningModal] = useState(false);
@@ -412,14 +412,17 @@ export function useChada() {
       return;
     }
 
-    // Converte a foto pra base64 se tiver (vai só no email, não salva no banco)
-    let photoBase64: string | undefined;
-    if (chadaPhoto) {
-      photoBase64 = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(chadaPhoto);
-      });
+    // Converte as fotos pra base64 (vai só no email, não salva no banco)
+    const photosBase64: string[] = [];
+    if (chadaPhotos.length > 0) {
+      for (const photo of chadaPhotos) {
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(photo);
+        });
+        photosBase64.push(base64);
+      }
     }
 
     try {
@@ -436,7 +439,8 @@ export function useChada() {
           itemNameSemSerial: semSerial ? itemNameSemSerial : undefined,
           itemTypeSemSerial: semSerial ? itemTypeSemSerial : undefined,
           itemBrandSemSerial: semSerial ? itemBrandSemSerial : undefined,
-          photo: photoBase64,
+          photo: photosBase64.length > 0 ? photosBase64[0] : undefined,
+          photos: photosBase64.length > 0 ? photosBase64 : undefined,
         }),
       });
 
@@ -460,7 +464,7 @@ export function useChada() {
       setItemNameSemSerial("");
       setItemTypeSemSerial("");
       setItemBrandSemSerial("");
-      setChadaPhoto(null);
+      setChadaPhotos([]);
 
       const updatedItems = await fetch("/api/chada-items", { headers: getAuthHeaders() }).then((res) => res.json());
       setItems(updatedItems);
@@ -1237,8 +1241,8 @@ export function useChada() {
     selectedPrinter, setSelectedPrinter, selectedSector, setSelectedSector,
     technicianChada, setTechnicianChada, diagnostic, setDiagnostic,
     requestedPart, setRequestedPart, showCsdtWarningModal, setShowCsdtWarningModal,
-    // Photo
-    chadaPhoto, setChadaPhoto,
+    // Photos
+    chadaPhotos, setChadaPhotos,
     // UI
     activeTab, setActiveTab, searchTerm, setSearchTerm,
     sectorFilter, setSectorFilter, statusFilter, setStatusFilter,

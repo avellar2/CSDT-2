@@ -562,7 +562,7 @@ const ChadaPage: React.FC = () => {
         itemNameSemSerial={ctx.itemNameSemSerial} setItemNameSemSerial={ctx.setItemNameSemSerial}
         itemTypeSemSerial={ctx.itemTypeSemSerial} setItemTypeSemSerial={ctx.setItemTypeSemSerial}
         itemBrandSemSerial={ctx.itemBrandSemSerial} setItemBrandSemSerial={ctx.setItemBrandSemSerial}
-        chadaPhoto={ctx.chadaPhoto} setChadaPhoto={ctx.setChadaPhoto}
+        chadaPhotos={ctx.chadaPhotos} setChadaPhotos={ctx.setChadaPhotos}
         handleAddToChada={ctx.handleAddToChada}
         showBaixaModal={ctx.showBaixaModal} setShowBaixaModal={ctx.setShowBaixaModal}
         baixaItemId={ctx.baixaItemId} setBaixaItemId={ctx.setBaixaItemId}

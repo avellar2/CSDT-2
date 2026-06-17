@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
-  const { itemId, problem, userName, sector, status, manutencaoSemMovimentacao, semSerial, itemNameSemSerial, itemTypeSemSerial, itemBrandSemSerial, photo } = req.body;
+  const { itemId, problem, userName, sector, status, manutencaoSemMovimentacao, semSerial, itemNameSemSerial, itemTypeSemSerial, itemBrandSemSerial, photo, photos } = req.body;
 
   if (!problem || !userName || !sector) {
     return res.status(400).json({ error: "Todos os campos são obrigatórios" });
@@ -65,17 +65,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           html: emailContent.html,
         };
 
-        // Anexa foto se foi enviada (vai só no email, não salva no banco)
-        if (photo) {
-          const matches = photo.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/i);
-          if (matches) {
-            mailOptions.attachments = [{
-              filename: `foto_chada_${Date.now()}.${matches[1] === 'jpeg' ? 'jpg' : matches[1]}`,
+        // Anexa foto(s) se foi enviada (vai só no email, não salva no banco)
+        const allPhotos = photos && photos.length > 0 ? photos : (photo ? [photo] : []);
+        if (allPhotos.length > 0) {
+          mailOptions.attachments = allPhotos.map((p: string, i: number) => {
+            const matches = p.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/i);
+            if (!matches) return null;
+            const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+            return {
+              filename: `foto_chada_${Date.now()}_${i + 1}.${ext}`,
               content: matches[2],
               encoding: 'base64',
               contentType: `image/${matches[1] === 'jpg' ? 'jpeg' : matches[1]}`,
-            }];
-          }
+            };
+          }).filter(Boolean);
         }
 
         const emailInfo = await transporter.sendMail(mailOptions);
@@ -174,17 +177,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         html: emailContent.html,
       };
 
-      // Anexa foto se foi enviada (vai só no email, não salva no banco)
-      if (photo) {
-        const matches = photo.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/i);
-        if (matches) {
-          mailOptions.attachments = [{
-            filename: `foto_chada_${Date.now()}.${matches[1] === 'jpeg' ? 'jpg' : matches[1]}`,
+      // Anexa foto(s) se foi enviada (vai só no email, não salva no banco)
+      const allPhotos = photos && photos.length > 0 ? photos : (photo ? [photo] : []);
+      if (allPhotos.length > 0) {
+        mailOptions.attachments = allPhotos.map((p: string, i: number) => {
+          const matches = p.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,(.+)$/i);
+          if (!matches) return null;
+          const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+          return {
+            filename: `foto_chada_${Date.now()}_${i + 1}.${ext}`,
             content: matches[2],
             encoding: 'base64',
             contentType: `image/${matches[1] === 'jpg' ? 'jpeg' : matches[1]}`,
-          }];
-        }
+          };
+        }).filter(Boolean);
       }
 
       const emailInfo = await transporter.sendMail(mailOptions);

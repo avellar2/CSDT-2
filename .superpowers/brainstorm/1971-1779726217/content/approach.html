@@ -1,0 +1,37 @@
+<h2>Controle de Impressoras - Abordagem</h2>
+<p class="subtitle">Como organizar o card e o formulário no dashboard</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Card no Dashboard + Modal Overlay</h3>
+      <p>Card no dashboard (como "Solicitar Dados de Impressoras") que abre um modal overlay com a listagem, filtros, seleção e formulário. Botão "Gerar PDF" no rodapé do modal. Segue o padrão já existente do PrinterRequestCard e PreventiveMaintenanceCard.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Card no Dashboard + Página Dedicada</h3>
+      <p>Card no dashboard que navega para uma página dedicada (/controle-impressoras). Mais espaço para a tabela de impressoras, filtros avançados e preview do PDF. Experiência mais completa mas exige rota nova.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Card no Dashboard + Drawer Lateral</h3>
+      <p>Card no dashboard que abre um drawer lateral (slide-in da direita) com a listagem e formulário. Ocupa menos tela, permite ver o dashboard ao fundo, mas espaço mais limitado para a tabela.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>Fluxo resumido</h3>
+  <ol style="padding-left: 1.5rem; line-height: 1.8;">
+    <li>Usuário clica no card "Controle de Impressoras"</li>
+    <li>Abre listagem com todas as impressoras do banco</li>
+    <li>Filtros por escola/setor + checkboxes para selecionar</li>
+    <li>Dados pré-preenchidos do banco, mas editáveis</li>
+    <li>Botão "Gerar PDF" produz documento limpo e moderno</li>
+  </ol>
+</div>

@@ -4,7 +4,9 @@
       "Read(//c/Users/Vanderson/Documents/CSDT-2-original/src/pages/**)",
       "Bash(npm run build:*)",
       "Bash(npx tsc *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(npx next *)",
+      "Bash(npx prisma *)"
     ],
     "deny": [],
     "ask": []

@@ -24,8 +24,8 @@ interface ChadaModalsProps {
   setItemTypeSemSerial: (v: string) => void;
   itemBrandSemSerial: string;
   setItemBrandSemSerial: (v: string) => void;
-  chadaPhoto: File | null;
-  setChadaPhoto: (v: File | null) => void;
+  chadaPhotos: File[];
+  setChadaPhotos: (v: File[]) => void;
   handleAddToChada: () => Promise<void>;
 
   // Baixa modal
@@ -111,7 +111,7 @@ const ChadaModals: React.FC<ChadaModalsProps> = ({
   manutencaoSemMovimentacao, setManutencaoSemMovimentacao,
   semSerial, setSemSerial, itemNameSemSerial, setItemNameSemSerial,
   itemTypeSemSerial, setItemTypeSemSerial, itemBrandSemSerial, setItemBrandSemSerial,
-  chadaPhoto, setChadaPhoto,
+  chadaPhotos, setChadaPhotos,
   handleAddToChada,
   showBaixaModal, setShowBaixaModal, baixaItemId, setBaixaItemId,
   novoModelo, setNovoModelo, novoSerial, setNovoSerial,
@@ -259,46 +259,56 @@ const ChadaModals: React.FC<ChadaModalsProps> = ({
               </div>
             )}
 
-            {/* Foto opcional — vai apenas no email, não salva no banco */}
+            {/* Fotos opcionais — vão apenas no email, não salva no banco */}
             <div className="mb-4">
               <label className="block mb-1 font-medium text-zinc-600 text-sm">
-                Foto (opcional) — anexada apenas no email
+                Fotos (opcional) — anexadas apenas no email
               </label>
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors text-sm text-gray-700">
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     className="hidden"
                     onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setChadaPhoto(file);
+                      const files = e.target.files;
+                      if (files) {
+                        setChadaPhotos([...chadaPhotos, ...Array.from(files)]);
+                      }
+                      e.target.value = '';
                     }}
                   />
-                  {chadaPhoto ? "Trocar foto" : "📷 Escolher foto"}
+                  {chadaPhotos.length > 0 ? "📷 Adicionar mais fotos" : "📷 Escolher fotos"}
                 </label>
-                {chadaPhoto && (
-                  <>
-                    <span className="text-sm text-gray-500 truncate max-w-[180px]">{chadaPhoto.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setChadaPhoto(null);
-                      }}
-                      className="text-red-500 hover:text-red-700 text-sm"
-                    >
-                      ✕
-                    </button>
-                  </>
+                {chadaPhotos.length > 0 && (
+                  <span className="text-sm text-gray-500">
+                    {chadaPhotos.length} foto{chadaPhotos.length !== 1 ? 's' : ''} selecionada{chadaPhotos.length !== 1 ? 's' : ''}
+                  </span>
                 )}
               </div>
-              {chadaPhoto && (
-                <div className="mt-2">
-                  <img
-                    src={URL.createObjectURL(chadaPhoto)}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-300"
-                  />
+              {chadaPhotos.length > 0 && (
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {chadaPhotos.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = chadaPhotos.filter((_, i) => i !== index);
+                          setChadaPhotos(updated);
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                      >
+                        ✕
+                      </button>
+                      <p className="text-[10px] text-gray-500 truncate mt-0.5">{file.name}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -308,7 +318,7 @@ const ChadaModals: React.FC<ChadaModalsProps> = ({
                 setModalIsOpen(false); setProblem(""); setSector(""); setSelectedItem(null);
                 setManutencaoSemMovimentacao(false); setSemSerial(false);
                 setItemNameSemSerial(""); setItemTypeSemSerial(""); setItemBrandSemSerial("");
-                setChadaPhoto(null);
+                setChadaPhotos([]);
               }} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors order-2 sm:order-1">
                 Cancelar
               </button>

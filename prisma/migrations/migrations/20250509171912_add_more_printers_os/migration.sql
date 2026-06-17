@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Os" ADD COLUMN     "hp" TEXT NOT NULL DEFAULT '0',
+ADD COLUMN     "ricoh" TEXT NOT NULL DEFAULT '0';
+
+-- AlterTable
+ALTER TABLE "OsAssinada" ADD COLUMN     "hp" TEXT NOT NULL DEFAULT '0',
+ADD COLUMN     "ricoh" TEXT NOT NULL DEFAULT '0';

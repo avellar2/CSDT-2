@@ -1,0 +1,148 @@
+<h2>Layout da Página - Controle de Impressoras</h2>
+<p class="subtitle">Como organizar a página dedicada</p>
+
+<div class="cards">
+  <div class="card" data-choice="layout1" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background: #f8fafc; border-radius: 8px; padding: 16px; font-family: system-ui; min-height: 300px;">
+        <!-- Header -->
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #3b82f6;">
+          <div style="width: 36px; height: 36px; background: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">🖨</div>
+          <div>
+            <div style="font-weight: 700; font-size: 16px;">Controle de Impressoras</div>
+            <div style="font-size: 12px; color: #64748b;">Gerencie e exporte os dados das impressoras</div>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <div style="background: #e2e8f0; border-radius: 6px; padding: 6px 12px; font-size: 11px; color: #334155;">🔍 Buscar...</div>
+          <div style="background: #e2e8f0; border-radius: 6px; padding: 6px 12px; font-size: 11px; color: #334155;">🏫 Escola ▼</div>
+          <div style="background: #e2e8f0; border-radius: 6px; padding: 6px 12px; font-size: 11px; color: #334155;">📍 Setor ▼</div>
+          <div style="background: #e2e8f0; border-radius: 6px; padding: 6px 12px; font-size: 11px; color: #334155;">🏷️ Fabricante ▼</div>
+          <div style="background: #dbeafe; border-radius: 6px; padding: 6px 12px; font-size: 11px; color: #1d4ed8; cursor: pointer;">✅ Selecionar Todos</div>
+        </div>
+
+        <!-- Tabela -->
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <div style="display: grid; grid-template-columns: 32px 1fr 1fr 1fr 1fr 1fr; background: #1e293b; color: white; font-size: 10px; padding: 8px 12px; gap: 8px;">
+            <div><input type="checkbox" checked style="width: 14px; height: 14px;"></div>
+            <div>Sigla</div>
+            <div>Modelo</div>
+            <div>Fabricante</div>
+            <div>Serial</div>
+            <div>IP</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 32px 1fr 1fr 1fr 1fr 1fr; font-size: 10px; padding: 8px 12px; gap: 8px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+            <div><input type="checkbox" checked style="width: 14px; height: 14px;"></div>
+            <div>IMP-01</div>
+            <div>L210</div>
+            <div>Epson</div>
+            <div>SN12345</div>
+            <div>10.0.1.50</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 32px 1fr 1fr 1fr 1fr 1fr; font-size: 10px; padding: 8px 12px; gap: 8px; border-bottom: 1px solid #e2e8f0;">
+            <div><input type="checkbox" checked style="width: 14px; height: 14px;"></div>
+            <div>IMP-02</div>
+            <div>M404dn</div>
+            <div>HP</div>
+            <div>SN67890</div>
+            <div>10.0.1.51</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 32px 1fr 1fr 1fr 1fr 1fr; font-size: 10px; padding: 8px 12px; gap: 8px; background: #f8fafc;">
+            <div><input type="checkbox" style="width: 14px; height: 14px;"></div>
+            <div>IMP-03</div>
+            <div>B230</div>
+            <div>Brother</div>
+            <div>SN11111</div>
+            <div>10.0.1.52</div>
+          </div>
+        </div>
+
+        <!-- Rodapé -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+          <div style="font-size: 11px; color: #64748b;">2 de 3 impressoras selecionadas</div>
+          <div style="display: flex; gap: 8px;">
+            <div style="background: #f1f5f9; border-radius: 6px; padding: 8px 16px; font-size: 12px; color: #475569;">Cancelar</div>
+            <div style="background: #3b82f6; border-radius: 6px; padding: 8px 16px; font-size: 12px; color: white;">📄 Gerar PDF</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Layout 1 — Tabela com Filtros</h3>
+      <p>Tabela compacta com filtros no topo. Seleção por checkboxes. Direto e funcional. Os dados vêm preenchidos do banco e podem ser editados clicando na célula.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="layout2" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background: #f8fafc; border-radius: 8px; padding: 16px; font-family: system-ui; min-height: 300px;">
+        <!-- Header -->
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #3b82f6;">
+          <div style="width: 36px; height: 36px; background: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">🖨</div>
+          <div>
+            <div style="font-weight: 700; font-size: 16px;">Controle de Impressoras</div>
+            <div style="font-size: 12px; color: #64748b;">Selecione e configure as impressoras</div>
+          </div>
+        </div>
+
+        <!-- Cards de impressoras -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <!-- Card 1 selecionado -->
+          <div style="border: 2px solid #3b82f6; border-radius: 10px; padding: 10px; background: #eff6ff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div style="font-weight: 600; font-size: 12px;">IMP-01 — L210</div>
+              <div style="background: #3b82f6; color: white; font-size: 9px; padding: 2px 8px; border-radius: 10px;">✓</div>
+            </div>
+            <div style="font-size: 10px; color: #475569; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div>Fabricante: <span style="color: #1e293b; font-weight: 500;">Epson</span></div>
+              <div>Serial: <span style="color: #1e293b; font-weight: 500;">SN12345</span></div>
+              <div>IP: <span style="color: #1e293b; font-weight: 500;">10.0.1.50</span></div>
+              <div>Setor: <span style="color: #1e293b; font-weight: 500;">Lab Informática</span></div>
+            </div>
+          </div>
+          <!-- Card 2 selecionado -->
+          <div style="border: 2px solid #3b82f6; border-radius: 10px; padding: 10px; background: #eff6ff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div style="font-weight: 600; font-size: 12px;">IMP-02 — M404dn</div>
+              <div style="background: #3b82f6; color: white; font-size: 9px; padding: 2px 8px; border-radius: 10px;">✓</div>
+            </div>
+            <div style="font-size: 10px; color: #475569; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div>Fabricante: <span style="color: #1e293b; font-weight: 500;">HP</span></div>
+              <div>Serial: <span style="color: #1e293b; font-weight: 500;">SN67890</span></div>
+              <div>IP: <span style="color: #1e293b; font-weight: 500;">10.0.1.51</span></div>
+              <div>Setor: <span style="color: #1e293b; font-weight: 500;">Secretaria</span></div>
+            </div>
+          </div>
+          <!-- Card 3 não selecionado -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div style="font-weight: 600; font-size: 12px; color: #94a3b8;">IMP-03 — B230</div>
+              <div style="background: #f1f5f9; color: #94a3b8; font-size: 9px; padding: 2px 8px; border-radius: 10px;">○</div>
+            </div>
+            <div style="font-size: 10px; color: #94a3b8; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div>Fabricante: Brother</div>
+              <div>Serial: SN11111</div>
+              <div>IP: 10.0.1.52</div>
+              <div>Setor: Coordenção</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rodapé -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 11px; color: #64748b;">2 de 3 impressoras selecionadas</div>
+          <div style="display: flex; gap: 8px;">
+            <div style="background: #f1f5f9; border-radius: 6px; padding: 8px 16px; font-size: 12px; color: #475569;">Cancelar</div>
+            <div style="background: #3b82f6; border-radius: 6px; padding: 8px 16px; font-size: 12px; color: white;">📄 Gerar PDF</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Layout 2 — Cards de Impressora</h3>
+      <p>Cada impressora como um card individual com dados preenchidos. Clique para selecionar/deselecionar. Mais visual e escaneável. Bom para poucas impressoras.</p>
+    </div>
+  </div>
+</div>
