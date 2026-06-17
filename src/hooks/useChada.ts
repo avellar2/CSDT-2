@@ -11,6 +11,29 @@ function getAuthHeaders(): Record<string, string> {
   };
 }
 
+/** Comprime uma imagem para no máximo maxWidth de largura, qualidade 0.7, retorna base64 */
+function compressImage(file: File, maxWidth = 800, quality = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(maxWidth / img.width, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (!blob) { reject(new Error('Falha ao comprimir imagem')); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => reject(new Error('Falha ao carregar imagem'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export type ChadaStatus = 'PENDENTE' | 'RECEBIDO' | 'EM_ANALISE' | 'CONSERTADO' | 'SEM_CONSERTO' | 'DEVOLVIDO';
 export type TabType = 'na_chada' | 'devolvidos' | 'todos' | 'diagnosticos';
 export type SortField = 'createdAt' | 'updatedAt' | 'sector' | 'problem';
@@ -412,16 +435,22 @@ export function useChada() {
       return;
     }
 
-    // Converte as fotos pra base64 (vai só no email, não salva no banco)
+    // Converte as fotos pra base64 comprimido (vai só no email, não salva no banco)
     const photosBase64: string[] = [];
     if (chadaPhotos.length > 0) {
       for (const photo of chadaPhotos) {
-        const base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(photo);
-        });
-        photosBase64.push(base64);
+        try {
+          const compressed = await compressImage(photo);
+          photosBase64.push(compressed);
+        } catch (err) {
+          console.error('Erro ao comprimir foto, enviando original:', err);
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(photo);
+          });
+          photosBase64.push(base64);
+        }
       }
     }
 
