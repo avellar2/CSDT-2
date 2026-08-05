@@ -21,6 +21,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Base URL para links em emails: nunca permite localhost (destinatario
+    // nao teria acesso). Cai no dominio de producao se env var for invalida.
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL && !process.env.NEXT_PUBLIC_BASE_URL.includes("localhost")
+        ? process.env.NEXT_PUBLIC_BASE_URL
+        : "https://csdt.vercel.app";
+
     // Atualiza a OS normalmente
     const updatedOS = await prisma.internalOS.update({
       where: { id: osId },
@@ -51,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Gera o PDF preenchido
-    const pdfUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "https://csdt.vercel.app"}/os-interna.pdf`;
+    const pdfUrl = `${baseUrl}/os-interna.pdf`;
     const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const form = pdfDoc.getForm();
@@ -81,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Monta o link de confirmação
-    const confirmUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "https://csdt.vercel.app"}/confirm-os?id=${osId}&token=${confirmToken}`;
+    const confirmUrl = `${baseUrl}/confirm-os?id=${osId}&token=${confirmToken}`;
 
     // Envia o e-mail
     await transporter.sendMail({

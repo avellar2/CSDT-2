@@ -55,8 +55,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         });
 
-        // Criar link para o formulário
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        // Criar link para o formulário. Nunca permite localhost: o
+        // destinatario (escola) nao teria acesso. Cai em producao se a env
+        // var estiver ausente ou apontando para localhost.
+        const baseUrl =
+          process.env.NEXT_PUBLIC_BASE_URL && !process.env.NEXT_PUBLIC_BASE_URL.includes("localhost")
+            ? process.env.NEXT_PUBLIC_BASE_URL
+            : "https://csdt.vercel.app";
         const formLink = `${baseUrl}/preencher-impressoras?id=${printerRequest.id}&token=${token}`;
 
         // Enviar email

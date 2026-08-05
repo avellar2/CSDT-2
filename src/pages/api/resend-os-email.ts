@@ -85,6 +85,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Base URL para links em emails: nunca permite localhost, pois o
+    // destinatario (escola) nao teria acesso. Se NEXT_PUBLIC_BASE_URL estiver
+    // ausente ou apontando para localhost, cai no dominio de producao.
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL && !process.env.NEXT_PUBLIC_BASE_URL.includes("localhost")
+        ? process.env.NEXT_PUBLIC_BASE_URL
+        : "https://csdt.vercel.app";
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -111,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         </div>
 
         <div style="text-align: center; margin: 20px 0;">
-          <a href="${process.env.NEXT_PUBLIC_BASE_URL || "https://csdt.vercel.app"}/confirmar-os-externa?numeroOs=${encodeURIComponent(numeroOs)}&token=${token}"
+          <a href="${baseUrl}/confirmar-os-externa?numeroOs=${encodeURIComponent(numeroOs)}&token=${token}"
              style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
             ASSINAR ONLINE
           </a>

@@ -553,7 +553,12 @@ export function useFillPdfForm() {
 
       const getBaseUrl = () => {
         if (process.env.NODE_ENV === "development") return "http://localhost:3000";
-        return process.env.NEXT_PUBLIC_BASE_URL || "https://csdt.vercel.app";
+        // Em producao, nunca deixa localhost vazar para links enviados por email
+        // (a escola nao teria acesso). Se a env var estiver ausente ou apontando
+        // para localhost, cai no dominio de producao.
+        return process.env.NEXT_PUBLIC_BASE_URL && !process.env.NEXT_PUBLIC_BASE_URL.includes("localhost")
+          ? process.env.NEXT_PUBLIC_BASE_URL
+          : "https://csdt.vercel.app";
       };
       const confirmUrl = `${getBaseUrl()}/confirmar-os-externa?numeroOs=${finalUpdatedData.numeroOs}&token=${confirmToken}`;
       const csdtEmail = process.env.CSDT_EMAIL || "csdt@smeduquedecaxias.rj.gov.br";
