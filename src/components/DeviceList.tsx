@@ -185,7 +185,7 @@ const DeviceList: React.FC = () => {
       )}
 
       {/* Totalizadores */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4 mb-4">
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Total.</h3>
           <p className="text-2xl font-semibold">{hook.totalItems || hook.items.length}</p>
@@ -213,6 +213,10 @@ const DeviceList: React.FC = () => {
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Estab.</h3>
           <p className="text-2xl font-semibold">{totals.ESTABILIZADOR}</p>
+        </div>
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
+          <h3 className="text-lg font-bold">Nobreak</h3>
+          <p className="text-2xl font-semibold">{totals.NOBREAK}</p>
         </div>
         <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md text-center">
           <h3 className="text-lg font-bold">Impr.</h3>

@@ -1,0 +1,42 @@
+{
+  "pdf": "modelo_memorando_devolucao_csdt_editavel.pdf",
+  "fields": [
+    {
+      "name": "memo_numero",
+      "type": "text",
+      "default": "",
+      "description": "Número do memorando"
+    },
+    {
+      "name": "data_documento",
+      "type": "text",
+      "default": "",
+      "description": "Data por extenso sem o prefixo Duque de Caxias,"
+    },
+    {
+      "name": "remetente",
+      "type": "text",
+      "default": "",
+      "description": "Setor/unidade no campo De"
+    },
+    {
+      "name": "destinatario",
+      "type": "text",
+      "default": "Coordenadoria de Suporte e Desenvolvimento Tecnológico. CSDT/SME.",
+      "description": "Campo Para"
+    },
+    {
+      "name": "assunto",
+      "type": "text",
+      "default": "Devolução de equipamentos de informática",
+      "description": "Assunto do memorando"
+    },
+    {
+      "name": "equipamentos",
+      "type": "multiline",
+      "default": "",
+      "description": "Lista numerada dos equipamentos selecionados no sistema"
+    }
+  ],
+  "integration_note": "Após preencher pelo sistema, achate (flatten) o formulário para garantir impressão consistente. Se a lista ultrapassar a área disponível, gere página de continuação no sistema."
+}

@@ -37,7 +37,7 @@ interface RecentItem {
 
 const predefinedItems = [
   "COMPUTADOR", "MONITOR", "MOUSE", "TECLADO", "ESTABILIZADOR",
-  "IMPRESSORA", "NOTEBOOK", "TABLET", "PROJETOR", "SWITCH", "FONTE DE NOTEBOOK", "CABO DE FORÇA", "MOCHILA"
+  "IMPRESSORA", "NOTEBOOK", "TABLET", "PROJETOR", "SWITCH", "FONTE DE NOTEBOOK", "CABO DE FORÇA", "MOCHILA", "CARREGADOR"
 ];
 
 const commonBrands = {
@@ -45,7 +45,8 @@ const commonBrands = {
   MONITOR: ["DELL", "LG", "SAMSUNG", "AOC", "HP"],
   IMPRESSORA: ["HP", "CANON", "EPSON", "BROTHER", "KYOCERA"],
   NOTEBOOK: ["DELL", "HP", "LENOVO", "ACER", "ASUS"],
-  TABLET: ["SAMSUNG", "APPLE", "LENOVO", "MULTILASER"]
+  TABLET: ["SAMSUNG", "APPLE", "LENOVO", "MULTILASER"],
+  CARREGADOR: ["DELL", "HP", "LENOVO", "ACER", "ASUS", "DIVERSOS"]
 };
 
 interface ItemFormModernProps {

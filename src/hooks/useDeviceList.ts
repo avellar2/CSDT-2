@@ -361,7 +361,7 @@ export function useDeviceList() {
 
   const calculateTotals = () => {
     const totals: Record<string, number> = {
-      COMPUTADOR: 0, MONITOR: 0, MOUSE: 0, TECLADO: 0, ESTABILIZADOR: 0, IMPRESSORA: 0, NOTEBOOK: 0,
+      COMPUTADOR: 0, MONITOR: 0, MOUSE: 0, TECLADO: 0, ESTABILIZADOR: 0, NOBREAK: 0, IMPRESSORA: 0, NOTEBOOK: 0,
     };
     items.forEach((item) => {
       const title = item.name.toUpperCase().trim();
@@ -536,8 +536,10 @@ export function useDeviceList() {
         requestData = { ...requestData, itemIds: selectedFromCSDT, schoolName, district, inep: selectedSchool.inep };
       } else if (memorandumType === "devolucao") {
         const selectedSchool = schools.find((school) => school.name === schoolName);
-        if (!selectedSchool) { alert("Por favor, selecione uma escola v??lida."); return; }
-        requestData = { ...requestData, itemIds: selectedFromDestino, schoolName, district, inep: selectedSchool.inep };
+        if (!selectedSchool) { alert("Por favor, selecione uma escola válida."); return; }
+        // Devolução usa API própria e isolada. schoolName é só compatibilidade
+        // visual; o backend resolve a escola por sourceSchoolId (ID canônico).
+        requestData = { ...requestData, itemIds: selectedFromDestino, sourceSchoolId: selectedSchool.id, schoolName, district, inep: selectedSchool.inep };
       } else if (memorandumType === "troca") {
         const allSelectedItemIds = [...selectedFromCSDT, ...selectedFromDestino];
         const toSchoolData = schools.find((school) => school.name === exchangeToSchool);
@@ -546,7 +548,11 @@ export function useDeviceList() {
         requestData = { ...requestData, itemIds: allSelectedItemIds, fromSchool: fromSchoolData, toSchool: toSchoolData, selectedFromCSDT, selectedFromDestino };
       }
 
-      const response = await axios.post("/api/generate-memorandum", requestData, {
+      // Devolução -> API isolada; Entrega/Troca -> API antiga (intacta)
+      const endpoint = memorandumType === "devolucao"
+        ? "/api/generate-memorandum-devolucao"
+        : "/api/generate-memorandum";
+      const response = await axios.post(endpoint, requestData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

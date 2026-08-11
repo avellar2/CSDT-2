@@ -3,6 +3,7 @@ import prisma from '@/utils/prisma';
 import { supabase } from '@/lib/supabaseClient';
 import { generateMemorandoTrocaBase64, convertMemorandumDataForTroca } from '@/utils/pdfMemorandoTroca';
 import { generateOneWayMemorandumBase64 } from '@/utils/pdfMemorandoOneWay';
+import { loadDevolucaoTemplateBytes, fillDevolucaoPdf } from '@/utils/pdfMemorandoDevolucao';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -103,6 +104,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       pdfBase64 = await generateMemorandoTrocaBase64(trocaData);
+    } else if (memorandum.type === 'devolucao') {
+      // BRANCH ISOLADO DE DEVOLUCAO:
+      // Usa o gerador novo (pdfMemorandoDevolucao) com o template
+      // memorando-devolucao-csdt-template.pdf e o NUMERO ORIGINAL do memorando.
+      // NAO consome novo sequencial, NAO cria movimentacao, NAO altera schoolId,
+      // NAO cria historico - apenas reconstrói o PDF com os dados ja registrados.
+      const templateBytes = loadDevolucaoTemplateBytes();
+      const { pdfBase64: devolucaoBase64 } = await fillDevolucaoPdf(templateBytes, {
+        memorandumNumber: memorandum.number,
+        senderName: memorandum.fromSchoolName || memorandum.schoolName || '',
+        date: new Date(memorandum.createdAt),
+        items: memorandum.items.map((item) => ({
+          name: item.Item.name,
+          brand: item.Item.brand,
+          serialNumber: item.Item.serialNumber,
+        })),
+      });
+      pdfBase64 = devolucaoBase64;
     } else {
       pdfBase64 = await generateOneWayMemorandumBase64({
         memorandumNumber: memorandum.number,

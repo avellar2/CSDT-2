@@ -37,6 +37,8 @@
   "exclude": [
     "node_modules",
     "list-schools.ts",
-    "scripts"
+    "scripts",
+    "tests",
+    "vitest.config.ts"
   ]
 }

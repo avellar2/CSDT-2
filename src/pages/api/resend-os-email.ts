@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/utils/prisma";
 import nodemailer from "nodemailer";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFCheckBox, PDFTextField } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -130,9 +130,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       </div>
     `;
 
+    const csdtEmail = process.env.CSDT_EMAIL || "csdt@smeduquedecaxias.rj.gov.br";
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: targetEmail,
+      cc: csdtEmail,
+      replyTo: `${process.env.EMAIL_USER}, ${csdtEmail}`,
       subject: `URGENTE - CSDT/SME - Assinatura Pendente da OS ${numeroOs} - ${unidadeEscolar}`,
       text: `OS ${numeroOs} - ${unidadeEscolar} - Assinatura Pendente`,
       html: emailHtml,
@@ -172,6 +176,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       details: error instanceof Error ? error.message : "Erro desconhecido",
     });
   }
+}
+
+function sanitizeForWinAnsi(text: string): string {
+  return text
+    .replace(/[\uE000-\uF8FF]/g, "")
+    .replace(/[\u2010-\u2015]/g, "-")
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/\u2026/g, "...")
+    .replace(/[\u00A0\u202F\u2009]/g, " ")
+    .replace(/[^\x00-\xFF]/g, "");
 }
 
 async function fillOSExternaPDF(osExterna: any): Promise<Uint8Array> {
@@ -234,12 +249,18 @@ async function fillOSExternaPDF(osExterna: any): Promise<Uint8Array> {
     let fieldsPreenchidos = 0;
     Object.entries(fieldsToFill).forEach(([fieldName, value]) => {
       try {
-        const field = form.getTextField(fieldName);
-        field.setText(String(value));
+        const field = form.getField(fieldName);
+        if (field instanceof PDFCheckBox) {
+          const shouldCheck = fieldName === "NAOHALABORATORIO" ? value === "X" : !!value;
+          if (shouldCheck) {
+            form.getCheckBox(fieldName).check();
+          }
+        } else if (field instanceof PDFTextField) {
+          form.getTextField(fieldName).setText(sanitizeForWinAnsi(String(value)));
+        }
         fieldsPreenchidos++;
-
       } catch {
-
+        // campo nao existe no PDF, ignora
       }
     });
 

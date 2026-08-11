@@ -55,6 +55,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Tipo de memorando deve ser "entrega", "troca" ou "devolucao".' });
   }
 
+  // GUARD ANTI-DUPLICACAO: Devolucao tem API propria e isolada
+  // (src/pages/api/generate-memorandum-devolucao.ts) que usa o template novo
+  // e transacao Serializable. Esta API antiga NAO processa mais Devolucao,
+  // evitando duas APIs capazes de concluir a mesma devolucao.
+  // Entrega e Troca continuam usando esta API exatamente como antes.
+  if (type === 'devolucao') {
+    return res.status(400).json({ error: 'Devolução deve usar /api/generate-memorandum-devolucao.' });
+  }
+
   // Validações específicas por tipo
   if (type === 'entrega') {
     if (!schoolName) {

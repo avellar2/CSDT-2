@@ -607,7 +607,11 @@ const DeviceListMemorandumDialog: React.FC<DeviceListMemorandumDialogProps> = ({
             onClick={handleGenerateMemorandum}
             className="bg-blue-500 hover:bg-blue-700 text-white"
           >
-            {memorandumType === "entrega" ? "📦 Gerar Entrega" : "🔄 Gerar Troca"}
+            {memorandumType === "entrega"
+              ? "📦 Gerar Entrega"
+              : memorandumType === "devolucao"
+                ? "📋 Gerar Devolução"
+                : "🔄 Gerar Troca"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

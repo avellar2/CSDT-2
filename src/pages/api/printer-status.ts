@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from "@/utils/api-auth";
+import { getCachedPrinterStatus } from './printer-status-from-agent';
 // const snmp = require('net-snmp'); // Comentado temporariamente - instalar com: npm install net-snmp
 
 const prisma = new PrismaClient();
