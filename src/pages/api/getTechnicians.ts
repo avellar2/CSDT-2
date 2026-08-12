@@ -11,14 +11,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!auth) return;
 
     try {
-      // Busca técnicos com role = TECH
+      // Busca técnicos ativos com role = TECH
       const technicians = await prisma.profile.findMany({
         where: {
           role: "TECH",
+          isActive: true,
         },
         select: {
           id: true,
           displayName: true,
+          isActive: true,
         },
       });
 

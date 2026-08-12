@@ -111,7 +111,7 @@ export function useScales() {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [activeView, setActiveView] = useState<'create' | 'dashboard' | 'history' | 'analytics' | 'agenda' | 'tickets'>('create');
+  const [activeView, setActiveView] = useState<'create' | 'technicians' | 'dashboard' | 'history' | 'analytics' | 'agenda' | 'tickets'>('create');
   const [draggedTechnician, setDraggedTechnician] = useState<Technician | null>(null);
 
   const [scaleHistory, setScaleHistory] = useState<any[]>([]);
@@ -1343,7 +1343,7 @@ export function useScales() {
   useEffect(() => {
     if (router.isReady && router.query.view) {
       const view = router.query.view as string;
-      const validViews = ['create', 'dashboard', 'history', 'analytics', 'agenda', 'tickets'];
+      const validViews = ['create', 'technicians', 'dashboard', 'history', 'analytics', 'agenda', 'tickets'];
       if (validViews.includes(view)) {
         setActiveView(view as any);
       }

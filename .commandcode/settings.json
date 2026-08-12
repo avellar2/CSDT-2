@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Read(*)",
+      "WebFetch(*)",
+      "WebSearch(*)"
+    ],
+    "deny": [
+      "Shell(git push --force*)",
+      "Shell(git reset --hard*)",
+      "Shell(git clean -*)",
+      "Shell(rm -rf*)",
+      "Shell(rmdir /s*)",
+      "Shell(del /s*)",
+      "Edit(.git/**)",
+      "Write(.git/**)",
+      "Read(.env*)",
+      "Read(secrets/**)",
+      "Read(~/.ssh/**)",
+      "Edit(~/.ssh/**)",
+      "Write(~/.ssh/**)"
+    ],
+    "defaultMode": "auto-accept"
+  }
+}

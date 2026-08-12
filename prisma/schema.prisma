@@ -434,6 +434,7 @@ model Profile {
   displayName String
   photoUrl    String?
   role        Role    @default(TECH)
+  isActive    Boolean @default(true)
   schoolId    Int     @default(225)
   DailyDemandOsReleaseReleasedBy DailyDemandOsRelease[] @relation("DailyDemandOsReleaseReleasedBy")
   DailyDemandOsReleaseTechnician DailyDemandOsRelease[] @relation("DailyDemandOsReleaseTechnician")

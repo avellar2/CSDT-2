@@ -32,6 +32,7 @@ import ScaleHistory from '@/components/Scales/ScaleHistory';
 import ScaleAnalytics from '@/components/Scales/ScaleAnalytics';
 import ScaleAgenda from '@/components/Scales/ScaleAgenda';
 import ScaleTickets from '@/components/Scales/ScaleTickets';
+import ScaleTechnicians from '@/components/Scales/ScaleTechnicians';
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 ChartJS.register(
@@ -68,6 +69,7 @@ const Scales: React.FC = () => {
             <div className="flex items-center gap-2 bg-gray-100 dark:bg-zinc-700 rounded-lg p-1">
               {[
                 { id: 'create', label: 'Criar Escala', icon: <Plus size={16} /> },
+                { id: 'technicians', label: 'Técnicos', icon: <Users size={16} /> },
                 { id: 'routes', label: 'Rotas Rápidas', icon: <Route size={16} />, action: 'modal' },
                 { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 size={16} /> },
                 { id: 'history', label: 'Histórico', icon: <Clock size={16} /> },
@@ -136,6 +138,10 @@ const Scales: React.FC = () => {
             saveTemplate={ctx.saveTemplate}
             loadTemplate={ctx.loadTemplate}
             deleteTemplate={ctx.deleteTemplate}
+          />
+        ) : ctx.activeView === 'technicians' ? (
+          <ScaleTechnicians
+            userRole={ctx.currentUser?.role || null}
           />
         ) : ctx.activeView === 'dashboard' ? (
           <ScaleDashboard
