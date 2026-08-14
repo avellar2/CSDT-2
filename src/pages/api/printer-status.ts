@@ -190,11 +190,11 @@ function attemptAdvancedQuery(session: any, printer: any, statusInfo: PrinterSta
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
-
-  }
 
   try {
 
@@ -218,6 +218,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         printers: [],
         source: 'database'
       });
+    }
+
+    // Se não houver status fresco no banco (agente parado/falha de escrita),
+    // usar o cache do agente como fallback para não perder alertas críticos.
+    const FRESH_WINDOW_MS = 5 * 60 * 1000;
+    const now = Date.now();
+    const hasFreshStatus = allPrinters.some(printer => {
+      const latest = printer.PrinterStatus[0];
+      return latest && now - latest.updatedAt.getTime() < FRESH_WINDOW_MS;
+    });
+
+    if (!hasFreshStatus) {
+      const cached = getCachedPrinterStatus();
+      if (cached.data && !cached.isStale && cached.data.printers?.length > 0) {
+        return res.status(200).json({
+          timestamp: new Date().toISOString(),
+          total: cached.data.printers.length,
+          withIssues: cached.data.withIssues ?? 0,
+          printers: cached.data.printers,
+          source: 'cache'
+        });
+      }
     }
 
     // Mapear os dados para o formato esperado

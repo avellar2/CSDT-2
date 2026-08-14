@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getAuthHeaders } from '@/utils/client-auth';
 
 interface CriticalError {
   printerId: number;
@@ -44,8 +45,13 @@ export const PrinterNotificationProvider: React.FC<PrinterNotificationProviderPr
   const checkForCriticalErrors = async () => {
     setIsCheckingErrors(true);
     try {
-      const response = await fetch('/api/printer-status');
+      const response = await fetch('/api/printer-status', { headers: getAuthHeaders() });
       const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Erro ao buscar status das impressoras:', data);
+        return;
+      }
 
       const newCriticalErrors: CriticalError[] = [];
       const currentTime = Date.now();
