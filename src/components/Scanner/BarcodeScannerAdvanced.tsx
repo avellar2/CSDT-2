@@ -54,10 +54,27 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
     setIsScanning(false);
   }, [stopAllVideoTracks]);
 
-  // Get available cameras
+  // Get available cameras - must request permission first to get device labels
   const getCameras = useCallback(async () => {
     try {
+      // Request camera permission first - this allows enumerateDevices to return labels
+      try {
+        const permissionStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        permissionStream.getTracks().forEach(t => t.stop());
+      } catch (permErr: any) {
+        if (permErr?.name === 'NotAllowedError') {
+          setError('Permissão de câmera negada. Permita o acesso à câmera no navegador.');
+          return;
+        }
+      }
+
       const devices = await Html5Qrcode.getCameras();
+      
+      if (!devices || devices.length === 0) {
+        setError('Nenhuma câmera encontrada no dispositivo.');
+        return;
+      }
+
       setCameras(devices);
       
       const rearCamera = devices.find(device => 
@@ -69,7 +86,7 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
       setSelectedCamera(rearCamera?.id || devices[0]?.id || '');
     } catch (err) {
       console.error('Erro ao obter câmeras:', err);
-      setError('Não foi possível acessar as câmeras do dispositivo');
+      setError('Não foi possível acessar as câmeras do dispositivo. Verifique as permissões do navegador.');
     }
   }, []);
 
