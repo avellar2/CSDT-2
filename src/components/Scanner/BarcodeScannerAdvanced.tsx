@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Html5QrcodeScanner, Html5QrcodeScanType, Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { Camera, CameraOff, RotateCcw, Zap, ZapOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -15,7 +15,8 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
   onClose 
 }) => {
   const scannerRef = useRef<HTMLDivElement>(null);
-  const scannerInstanceRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerInstanceRef = useRef<Html5Qrcode | null>(null);
+  const mountedRef = useRef(true);
   
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,13 +24,42 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
   const [cameras, setCameras] = useState<any[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>('');
 
+  // Stop ALL video tracks on the page (aggressive cleanup)
+  const stopAllVideoTracks = useCallback(() => {
+    try {
+      document.querySelectorAll('video').forEach(video => {
+        if (video.srcObject instanceof MediaStream) {
+          video.srcObject.getTracks().forEach(track => track.stop());
+          video.srcObject = null;
+        }
+      });
+    } catch {}
+  }, []);
+
+  // Cleanup scanner - uses stop() which properly releases the camera
+  const cleanup = useCallback(async () => {
+    if (scannerInstanceRef.current) {
+      try {
+        const state = scannerInstanceRef.current.getState();
+        if (state === 2) { // SCANNING
+          await scannerInstanceRef.current.stop();
+        }
+      } catch {}
+      try {
+        scannerInstanceRef.current.clear();
+      } catch {}
+      scannerInstanceRef.current = null;
+    }
+    stopAllVideoTracks();
+    setIsScanning(false);
+  }, [stopAllVideoTracks]);
+
   // Get available cameras
   const getCameras = useCallback(async () => {
     try {
       const devices = await Html5Qrcode.getCameras();
       setCameras(devices);
       
-      // Try to select rear camera by default
       const rearCamera = devices.find(device => 
         device.label.toLowerCase().includes('back') || 
         device.label.toLowerCase().includes('rear') ||
@@ -43,75 +73,63 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
     }
   }, []);
 
-  // Initialize scanner
-  const initScanner = useCallback(() => {
+  // Initialize scanner using Html5Qrcode directly (more control over camera lifecycle)
+  const initScanner = useCallback(async () => {
     if (!scannerRef.current || !selectedCamera) return;
+    if (!mountedRef.current) return;
 
-    const config = {
-      fps: 10,
-      qrbox: { width: 280, height: 280 },
-      aspectRatio: 1.0,
-      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-      showTorchButtonIfSupported: true,
-      showZoomSliderIfSupported: true,
-      defaultZoomValueIfSupported: 1,
-      useBarCodeDetectorIfSupported: true,
-      rememberLastUsedCamera: true,
-      // Advanced camera selection
-      cameraIdOrConfig: {
-        deviceId: { exact: selectedCamera }
-      }
-    };
+    // Ensure any previous camera is fully released
+    await cleanup();
+    
+    // Wait for camera to be fully released by the OS
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    if (!mountedRef.current) return;
+
+    const containerId = scannerRef.current.id;
 
     try {
-      const scanner = new Html5QrcodeScanner(
-        scannerRef.current.id,
-        config,
-        false
-      );
+      const scanner = new Html5Qrcode(containerId);
+      scannerInstanceRef.current = scanner;
 
-      scanner.render(
-        (decodedText, decodedResult) => {
-
+      await scanner.start(
+        { deviceId: { exact: selectedCamera } },
+        {
+          fps: 10,
+          qrbox: { width: 280, height: 280 },
+          aspectRatio: 1.0,
+        },
+        (decodedText) => {
+          if (!mountedRef.current) return;
           setIsScanning(false);
           onScan(decodedText);
-          cleanup();
         },
         (errorMessage) => {
-          // Don't show continuous scanning errors
-          if (!errorMessage.includes('NotFoundException')) {
-
-            if (onError) {
-              onError(errorMessage);
-            }
+          if (!errorMessage?.includes('NotFoundException')) {
+            if (onError) onError(errorMessage);
           }
         }
       );
 
-      scannerInstanceRef.current = scanner;
-      setIsScanning(true);
-      setError(null);
-    } catch (err) {
+      if (mountedRef.current) {
+        setIsScanning(true);
+        setError(null);
+      }
+    } catch (err: any) {
       console.error('Erro ao inicializar scanner:', err);
-      setError('Erro ao inicializar o scanner');
-      if (onError) {
-        onError(err);
+      if (mountedRef.current) {
+        if (err?.name === 'NotReadableError' || err?.message?.includes('Could not start video source')) {
+          setError('Câmera em uso por outro aplicativo. Feche outros apps que usam a câmera e tente novamente.');
+        } else if (err?.name === 'NotAllowedError') {
+          setError('Permissão de câmera negada. Permita o acesso à câmera nas configurações do navegador.');
+        } else {
+          setError('Erro ao inicializar o scanner');
+        }
       }
+      if (onError) onError(err);
+      await cleanup();
     }
-  }, [selectedCamera, onScan, onError]);
-
-  // Cleanup scanner
-  const cleanup = useCallback(() => {
-    if (scannerInstanceRef.current) {
-      try {
-        scannerInstanceRef.current.clear();
-        scannerInstanceRef.current = null;
-      } catch (err) {
-
-      }
-    }
-    setIsScanning(false);
-  }, []);
+  }, [selectedCamera, onScan, onError, cleanup]);
 
   // Toggle flashlight (if supported)
   const toggleTorch = useCallback(async () => {
@@ -130,8 +148,12 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
         });
         setTorch(!torch);
       }
+      stream.getTracks().forEach(t => t.stop());
     } catch (err) {
-
+      try {
+        const tracks = (err as any)?.target?.srcObject?.getTracks?.();
+        tracks?.forEach((t: MediaStreamTrack) => t.stop());
+      } catch {}
     }
   }, [selectedCamera, torch]);
 
@@ -155,11 +177,15 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
 
   // Start scanning when camera is selected
   useEffect(() => {
+    mountedRef.current = true;
     if (selectedCamera) {
       initScanner();
     }
     
-    return cleanup;
+    return () => {
+      mountedRef.current = false;
+      cleanup();
+    };
   }, [selectedCamera, initScanner, cleanup]);
 
   return (
@@ -180,7 +206,6 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Camera Switch */}
             {cameras.length > 1 && (
               <button
                 onClick={switchCamera}
@@ -191,7 +216,6 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
               </button>
             )}
             
-            {/* Torch Toggle */}
             <button
               onClick={toggleTorch}
               className={`p-2 rounded-lg transition-colors ${
@@ -204,7 +228,6 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
               {torch ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
             </button>
             
-            {/* Close Button */}
             {onClose && (
               <button
                 onClick={onClose}
@@ -237,7 +260,6 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
           </div>
         ) : (
           <>
-            {/* Scanner Container */}
             <div className="relative">
               <div 
                 id="qr-scanner-advanced" 
@@ -245,7 +267,6 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
                 className="rounded-lg overflow-hidden bg-gray-100 min-h-80"
               />
               
-              {/* Scanning Overlay */}
               <AnimatePresence>
                 {isScanning && (
                   <motion.div
@@ -254,13 +275,11 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
                     exit={{ opacity: 0 }}
                     className="absolute inset-0 pointer-events-none"
                   >
-                    {/* Corner brackets */}
                     <div className="absolute top-4 left-4 w-6 h-6 border-l-2 border-t-2 border-blue-500"></div>
                     <div className="absolute top-4 right-4 w-6 h-6 border-r-2 border-t-2 border-blue-500"></div>
                     <div className="absolute bottom-4 left-4 w-6 h-6 border-l-2 border-b-2 border-blue-500"></div>
                     <div className="absolute bottom-4 right-4 w-6 h-6 border-r-2 border-b-2 border-blue-500"></div>
                     
-                    {/* Scanning line */}
                     <motion.div
                       animate={{ y: [0, 280, 0] }}
                       transition={{ 
@@ -275,7 +294,6 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
               </AnimatePresence>
             </div>
             
-            {/* Instructions */}
             <div className="mt-6 text-center">
               <div className="bg-blue-50 rounded-lg p-4">
                 <h4 className="font-medium text-blue-900 mb-2">Como usar:</h4>
