@@ -54,39 +54,64 @@ export const BarcodeScannerAdvanced: React.FC<BarcodeScannerAdvancedProps> = ({
     setIsScanning(false);
   }, [stopAllVideoTracks]);
 
-  // Get available cameras - must request permission first to get device labels
+  // Get available cameras using native browser API
   const getCameras = useCallback(async () => {
     try {
-      // Request camera permission first - this allows enumerateDevices to return labels
+      // Request camera permission first - needed for enumerateDevices to return labels
+      let stream: MediaStream | null = null;
       try {
-        const permissionStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        permissionStream.getTracks().forEach(t => t.stop());
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       } catch (permErr: any) {
-        if (permErr?.name === 'NotAllowedError') {
-          setError('Permissão de câmera negada. Permita o acesso à câmera no navegador.');
+        if (permErr?.name === 'NotAllowedError' || permErr?.name === 'PermissionDeniedError') {
+          setError('Permissão de câmera negada. Clique no ícone de cadeado na barra de endereço e permita a câmera.');
+          return;
+        }
+        // Try without facingMode constraint
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch (err2: any) {
+          setError('Não foi possível acessar a câmera. Erro: ' + (err2?.name || 'desconhecido'));
           return;
         }
       }
-
-      const devices = await Html5Qrcode.getCameras();
       
-      if (!devices || devices.length === 0) {
+      // Release the permission stream immediately
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+      
+      // Small delay to ensure stream is fully released
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // Enumerate devices using native API
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+      
+      if (!videoDevices || videoDevices.length === 0) {
         setError('Nenhuma câmera encontrada no dispositivo.');
         return;
       }
 
-      setCameras(devices);
+      // Map to the format expected by the component
+      const cameraList = videoDevices.map((device, index) => ({
+        id: device.deviceId,
+        label: device.label || `Câmera ${index + 1}`
+      }));
+
+      setCameras(cameraList);
       
-      const rearCamera = devices.find(device => 
-        device.label.toLowerCase().includes('back') || 
-        device.label.toLowerCase().includes('rear') ||
-        device.label.toLowerCase().includes('environment')
+      // Try to select rear camera by default
+      const rearCamera = cameraList.find(cam => 
+        cam.label.toLowerCase().includes('back') || 
+        cam.label.toLowerCase().includes('rear') ||
+        cam.label.toLowerCase().includes('environment') ||
+        cam.label.toLowerCase().includes('traseira')
       );
       
-      setSelectedCamera(rearCamera?.id || devices[0]?.id || '');
-    } catch (err) {
+      setSelectedCamera(rearCamera?.id || cameraList[0]?.id || '');
+    } catch (err: any) {
       console.error('Erro ao obter câmeras:', err);
-      setError('Não foi possível acessar as câmeras do dispositivo. Verifique as permissões do navegador.');
+      setError('Não foi possível acessar as câmeras. Erro: ' + (err?.name || 'desconhecido'));
     }
   }, []);
 
