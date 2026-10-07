@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { supabase } from '@/lib/supabaseClient';
+import { canDeleteItem } from '@/utils/deletePermissions';
 
 const prisma = new PrismaClient();
 
@@ -50,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Item não encontrado' });
     }
 
-    if (!item.Profile || item.Profile.userId !== uid) {
+    if (!canDeleteItem(item, uid)) {
       return res.status(403).json({ error: 'Você não tem permissão para apagar este item' });
     }
 

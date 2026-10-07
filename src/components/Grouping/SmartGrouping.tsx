@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Network, Building2, Laptop, CalendarDays, MapPin, Clock, Trash, ChevronDown, ChevronRight, BarChart3, GitBranch } from 'lucide-react';
+import { canDeleteItem } from '@/utils/deletePermissions';
 
 interface Item {
   id: number;
@@ -331,7 +332,7 @@ const SmartGrouping: React.FC<SmartGroupingProps> = ({
                         >
                           <Clock size={20} />
                         </button>
-                        {item.Profile?.userId === userId && (
+                        {canDeleteItem(item, userId) && (
                           <button
                             onClick={() => onDeleteClick(item)}
                             className="text-red-500 hover:text-red-700 transition-colors"

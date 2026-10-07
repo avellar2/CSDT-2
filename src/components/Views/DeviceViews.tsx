@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, Trash, Eye, LayoutGrid, Table, List, PencilLine } from 'lucide-react';
+import { canDeleteItem } from '@/utils/deletePermissions';
 
 interface Item {
   id: number;
@@ -138,7 +139,7 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
                 <PencilLine size={24} />
               </button>
             )}
-            {item.Profile?.userId === userId && (
+            {canDeleteItem(item, userId) && (
               <button
                 onClick={() => onDeleteClick(item)}
                 className="text-red-500 hover:text-red-700 transition-colors"
@@ -190,7 +191,7 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
                   <PencilLine size={20} />
                 </button>
               )}
-              {item.Profile?.userId === userId && (
+              {canDeleteItem(item, userId) && (
                 <button
                   onClick={() => onDeleteClick(item)}
                   className="text-red-400 hover:text-red-300 transition-colors"
@@ -343,7 +344,7 @@ const DeviceViews: React.FC<DeviceViewsProps> = ({
                         <PencilLine size={20} />
                       </button>
                     )}
-                    {item.Profile?.userId === userId && (
+                    {canDeleteItem(item, userId) && (
                       <button
                         onClick={() => onDeleteClick(item)}
                         className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
