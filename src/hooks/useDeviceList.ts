@@ -361,7 +361,7 @@ export function useDeviceList() {
 
   const calculateTotals = () => {
     const totals: Record<string, number> = {
-      COMPUTADOR: 0, MONITOR: 0, MOUSE: 0, TECLADO: 0, ESTABILIZADOR: 0, NOBREAK: 0, IMPRESSORA: 0, NOTEBOOK: 0,
+      COMPUTADOR: 0, MONITOR: 0, MOUSE: 0, TECLADO: 0, ESTABILIZADOR: 0, NOBREAK: 0, IMPRESSORA: 0, NOTEBOOK: 0, SCANNER: 0,
     };
     items.forEach((item) => {
       const title = item.name.toUpperCase().trim();

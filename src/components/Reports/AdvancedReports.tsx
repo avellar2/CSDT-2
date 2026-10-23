@@ -123,7 +123,7 @@ const AdvancedReports: React.FC<AdvancedReportsProps> = ({ items, schools }) => 
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(schoolDistribution), 'Distribuição por Escola');
 
       // Aba 3: Detalhamento por Categoria
-      const categories = ['COMPUTADOR', 'NOTEBOOK', 'MONITOR', 'MOUSE', 'TECLADO', 'ESTABILIZADOR', 'IMPRESSORA'];
+      const categories = ['COMPUTADOR', 'NOTEBOOK', 'MONITOR', 'MOUSE', 'TECLADO', 'ESTABILIZADOR', 'IMPRESSORA', 'SCANNER'];
       const categoryData = categories.map(category => {
         const categoryItems = items.filter(item => item.name.toUpperCase().includes(category));
         const inOperation = categoryItems.filter(i => i.School?.name !== 'CSDT' && i.School?.name !== 'CHADA').length;
