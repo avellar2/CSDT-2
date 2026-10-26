@@ -82,14 +82,14 @@ export function useDeviceList() {
     }
 
     try {
-      const decoded = jwtDecode<{ userId: string; name: string }>(token);
-      if (!decoded) {
+      const decoded = jwtDecode<{ sub?: string; userId?: string; name?: string }>(token);
+      if (!decoded?.sub && !decoded?.userId) {
         setModalMessage("Usuário não autenticado. Por favor, faça login.");
         setModalIsOpen(true);
         return;
       }
-      setUserName(decoded.name);
-      setUserId(decoded.userId);
+      setUserName(decoded.name ?? null);
+      setUserId(decoded.sub ?? decoded.userId ?? null);
     } catch (error) {
       setModalMessage("Usuário não autenticado. Por favor, faça login.");
       setModalIsOpen(true);

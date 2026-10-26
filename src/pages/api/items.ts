@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           skip,
           take: sizeNum,
           include: {
-            Profile: { select: { displayName: true } },
+            Profile: { select: { displayName: true, userId: true } },
             School: { select: { name: true } },
           },
           orderBy: { id: 'asc' },
@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Sem parâmetros: retorna todos os itens (array direto, compatibilidade)
     const items = await prisma.item.findMany({
       include: {
-        Profile: { select: { displayName: true } },
+        Profile: { select: { displayName: true, userId: true } },
         School: { select: { name: true } },
       },
       orderBy: { id: 'asc' },
