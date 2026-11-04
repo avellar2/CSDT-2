@@ -341,6 +341,7 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
                     <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Kyocera</th>
                     <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">HP</th>
                     <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Ricoh</th>
+                    <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Epson</th>
                     <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Outras</th>
                     <th className="px-4 py-2 text-center text-sm font-medium text-gray-700 border-b">Total</th>
                   </tr>
@@ -352,9 +353,10 @@ const OsExternasDetailModal: React.FC<OsExternasDetailModalProps> = ({
                     <td className="px-4 py-2 text-center text-gray-900">{selectedOs.kyocera || 0}</td>
                     <td className="px-4 py-2 text-center text-gray-900">{selectedOs.hp || 0}</td>
                     <td className="px-4 py-2 text-center text-gray-900">{selectedOs.ricoh || 0}</td>
+                    <td className="px-4 py-2 text-center text-gray-900">{selectedOs.epson || 0}</td>
                     <td className="px-4 py-2 text-center text-gray-900">{selectedOs.outrasImpressoras || 0}</td>
                     <td className="px-4 py-2 text-center font-medium text-gray-900">
-                      {(selectedOs.oki || 0) + (selectedOs.kyocera || 0) + (selectedOs.hp || 0) + (selectedOs.ricoh || 0) + (selectedOs.outrasImpressoras || 0)}
+                      {(selectedOs.oki || 0) + (selectedOs.kyocera || 0) + (selectedOs.hp || 0) + (selectedOs.ricoh || 0) + (selectedOs.epson || 0) + (selectedOs.outrasImpressoras || 0)}
                     </td>
                   </tr>
                 </tbody>

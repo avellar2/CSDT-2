@@ -49,6 +49,7 @@ export interface OsExterna {
   kyocera?: number;
   hp?: number;
   ricoh?: number;
+  epson?: number;
   outrasImpressoras?: number;
   temImpressoraComProblema?: boolean;
   relatorioImpressora?: string;

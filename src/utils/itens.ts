@@ -35,6 +35,7 @@ const initialFormData = {
   kyocera: "",
   hp: "",
   ricoh: "",
+  epson: "",
   outrasImpressoras: "",
   sim: "",
   nao: "",

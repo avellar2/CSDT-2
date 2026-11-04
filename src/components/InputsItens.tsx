@@ -16,14 +16,14 @@ interface InputsItensProps {
 }
 
 const tecnicoParceiroOptions = [
-  { label: 'João', value: 'João' },
-  { label: 'Fernando', value: 'Fernando' },
   { label: 'Hélio', value: 'Hélio' },
   { label: 'Alexandre', value: 'Alexandre' },
   { label: 'Victor', value: 'Victor' },
   { label: 'Vanderson', value: 'Vanderson' },
   { label: 'Yuri', value: 'Yuri' },
-  { label: 'Luís Felipe', value: 'Luís Felipe' }
+  { label: 'Luís Felipe', value: 'Luís Felipe' },
+  { label: 'Davi', value: 'Davi' },
+  { label: 'Pedro', value: 'Pedro' }
 ];
 
 const
@@ -1092,7 +1092,7 @@ const
 
         {/* ===== STEP 4 - IMPRESSORAS ===== */}
         {(shouldRenderField('oki') || shouldRenderField('kyocera') || shouldRenderField('hp') ||
-          shouldRenderField('ricoh') || shouldRenderField('outrasImpressoras')) && (
+          shouldRenderField('ricoh') || shouldRenderField('epson') || shouldRenderField('outrasImpressoras')) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1156,6 +1156,21 @@ const
                       type="number"
                       name="ricoh"
                       value={formData.ricoh || ''}
+                      onChange={handleInputChange}
+                      min="0"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    />
+                  </div>
+                )}
+                {shouldRenderField('epson') && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-200 mb-2">
+                      EPSON
+                    </label>
+                    <input
+                      type="number"
+                      name="epson"
+                      value={formData.epson || ''}
                       onChange={handleInputChange}
                       min="0"
                       className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"

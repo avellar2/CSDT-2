@@ -408,7 +408,7 @@ const ConfirmarOsExterna: React.FC = () => {
                   )}
 
                   {/* Impressoras */}
-                  {(osData.oki > 0 || osData.kyocera > 0 || osData.hp > 0 || osData.ricoh > 0 || osData.outrasImpressoras > 0) && (
+                  {(osData.oki > 0 || osData.kyocera > 0 || osData.hp > 0 || osData.ricoh > 0 || osData.epson > 0 || osData.outrasImpressoras > 0) && (
                     <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                       <h4 className="font-bold text-green-800 mb-2">Impressoras</h4>
                       <ul className="text-sm text-gray-700 space-y-1">
@@ -416,6 +416,7 @@ const ConfirmarOsExterna: React.FC = () => {
                         {osData.kyocera > 0 && <li>• Kyocera: {osData.kyocera}</li>}
                         {osData.hp > 0 && <li>• HP: {osData.hp}</li>}
                         {osData.ricoh > 0 && <li>• Ricoh: {osData.ricoh}</li>}
+                        {osData.epson > 0 && <li>• Epson: {osData.epson}</li>}
                         {osData.outrasImpressoras > 0 && <li>• Outras: {osData.outrasImpressoras}</li>}
                       </ul>
                     </div>

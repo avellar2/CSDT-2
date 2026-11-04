@@ -86,6 +86,7 @@ export interface FormDataType {
   kyocera: NumberConstructor;
   hp: NumberConstructor;
   ricoh: NumberConstructor;
+  epson: NumberConstructor;
   outrasImpressoras: NumberConstructor;
   temImpressoraComProblema: boolean | undefined;
   relatorioImpressora: string;
@@ -138,6 +139,7 @@ export function useFillPdfForm() {
     kyocera: Number,
     hp: Number,
     ricoh: Number,
+    epson: Number,
     outrasImpressoras: Number,
     temImpressoraComProblema: undefined,
     relatorioImpressora: "",
@@ -460,7 +462,7 @@ export function useFillPdfForm() {
       temLaboratorio: undefined, diretoraNaEscola: undefined,
       redeBr: "", educacaoConectada: "", naoHaProvedor: "",
       rack: Number, switch: Number, roteador: Number,
-      oki: Number, kyocera: Number, hp: Number, ricoh: Number, outrasImpressoras: Number,
+      oki: Number, kyocera: Number, hp: Number, ricoh: Number, epson: Number, outrasImpressoras: Number,
       temImpressoraComProblema: undefined, relatorioImpressora: "", impressoraComProblema: "", solucionado: "",
     });
     reset();

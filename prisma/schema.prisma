@@ -272,6 +272,7 @@ model OSExterna {
   kyocera                            Int?
   hp                                 Int?
   ricoh                              Int?
+  epson                              Int?
   outrasImpressoras                  Int?
   solucionado                        String?
   status                             String    @default("Pendente")

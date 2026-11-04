@@ -72,6 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         kyocera: true,
         hp: true,
         ricoh: true,
+        epson: true,
         outrasImpressoras: true,
         // Internet
         redeBr: true,
