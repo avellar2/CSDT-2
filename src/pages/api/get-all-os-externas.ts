@@ -28,17 +28,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    const osExternas = await prisma.oSExterna.findMany({
-      where: {
-        ...(tecnicoResponsavelFilter ? { tecnicoResponsavel: { contains: tecnicoResponsavelFilter } } : {}),
-        ...(status && typeof status === 'string' ? { status } : {}),
-      },
-      orderBy: [
-        { status: 'asc' },
-        { createdAt: 'desc' },
-      ],
-      take: 500,
-    });
+    const baseWhere = tecnicoResponsavelFilter
+      ? { tecnicoResponsavel: { contains: tecnicoResponsavelFilter } }
+      : {};
+
+    // A listagem combina pendentes e assinadas. Buscar em uma unica query com
+    // `take: 500` fazia as assinadas (que sao maioria) ocuparem o limite e as
+    // pendentes nunca chegarem ao front. Buscamos cada grupo separadamente.
+    const osExternas =
+      status && typeof status === 'string'
+        ? await prisma.oSExterna.findMany({
+            where: { ...baseWhere, status },
+            orderBy: { createdAt: 'desc' },
+            take: 500,
+          })
+        : (
+            await Promise.all([
+              prisma.oSExterna.findMany({
+                where: { ...baseWhere, status: { not: 'Assinado' } },
+                orderBy: { createdAt: 'desc' },
+                take: 500,
+              }),
+              prisma.oSExterna.findMany({
+                where: { ...baseWhere, status: 'Assinado' },
+                orderBy: { createdAt: 'desc' },
+                take: 500,
+              }),
+            ])
+          ).flat();
 
     const schoolNames = Array.from(
       new Set(
