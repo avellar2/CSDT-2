@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { Clock, CheckCircle, Eye, User, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { getAuthHeaders } from "@/utils/client-auth";
 const OsExternasList: React.FC = () => {
   const router = useRouter();
   const hook = useOsExternasList();
+  const [assignSelection, setAssignSelection] = useState<Record<number, number | "">>({});
+  const canManageRoutes = Boolean(hook.userRole && ["ADMIN", "ADMTOTAL"].includes(hook.userRole));
 
   const renderPendingDailyDemandCard = (demand: PendingDailyDemand) => (
     <div key={`daily-demand-${demand.demandId}`} className="border border-red-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-red-50/40">
@@ -171,11 +173,23 @@ const OsExternasList: React.FC = () => {
         <div className={`grid grid-cols-1 ${hook.pendingOnly ? "" : "lg:grid-cols-2"} gap-8`}>
           {/* Coluna Esquerda - OS Pendentes */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center mb-6">
-              <Clock size={24} className="text-orange-500 mr-2" />
-              <h2 className="text-xl font-semibold text-gray-800">
-                OS Pendentes ({hook.osExternasPendentes.length + hook.filteredPendingDailyDemands.length})
-              </h2>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center">
+                <Clock size={24} className="text-orange-500 mr-2" />
+                <h2 className="text-xl font-semibold text-gray-800">
+                  OS Pendentes ({hook.osExternasPendentes.length + hook.filteredPendingDailyDemands.length})
+                </h2>
+              </div>
+              {canManageRoutes && (
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={hook.showOnlyUnassigned}
+                    onChange={(event) => hook.setShowOnlyUnassigned(event.target.checked)}
+                  />
+                  Somente sem rota
+                </label>
+              )}
             </div>
 
             {hook.osExternasPendentes.length === 0 && hook.filteredPendingDailyDemands.length === 0 ? (
@@ -222,6 +236,14 @@ const OsExternasList: React.FC = () => {
                             </span>
                           )}
                           <span className="ml-2 text-sm text-gray-500">{formatDateShort(os.data)}</span>
+                          {os.routeId == null && (
+                            <span
+                              className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+                              title="OS sem rota: visível apenas para ADMIN/ADMTOTAL até ser atribuída a uma equipe"
+                            >
+                              Sem rota
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{os.unidadeEscolar}</h3>
                         <p className="text-sm text-gray-600 mb-2">
@@ -233,6 +255,15 @@ const OsExternasList: React.FC = () => {
                         <Button onClick={() => hook.handleViewDetails(os)} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                           <Eye size={16} className="mr-1" />Ver
                         </Button>
+                        {canManageRoutes && os.status === "Pendente" && (
+                          <Button
+                            onClick={() => hook.openAssign(os)}
+                            size="sm"
+                            className="bg-slate-600 hover:bg-slate-700 text-white"
+                          >
+                            {hook.assigningOsId === os.id ? "Fechar" : "Atribuir rota"}
+                          </Button>
+                        )}
                         {(hook.userRole && ["ADMIN", "ADMTOTAL"].includes(hook.userRole)) && (
                           <div className="flex flex-col">
                             <Button
@@ -256,6 +287,52 @@ const OsExternasList: React.FC = () => {
                         )}
                       </div>
                     </div>
+                    {canManageRoutes && hook.assigningOsId === os.id && (
+                      <div className="mt-3 border-t border-orange-200 pt-3">
+                        <p className="text-xs text-gray-600 mb-2">
+                          Selecione a rota de {formatDateShort(os.data)} para atribuir esta OS.
+                          A atribuição fica registrada na auditoria de rotas.
+                        </p>
+                        {hook.assignLoading ? (
+                          <p className="text-sm text-gray-500">Carregando rotas...</p>
+                        ) : hook.assignRoutes.length === 0 ? (
+                          <p className="text-sm text-amber-700">
+                            Nenhuma rota cadastrada nesse dia. Cadastre a rota antes de atribuir.
+                          </p>
+                        ) : (
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <select
+                              value={assignSelection[os.id] ?? ""}
+                              onChange={(event) =>
+                                setAssignSelection((current) => ({
+                                  ...current,
+                                  [os.id]: event.target.value ? Number(event.target.value) : "",
+                                }))
+                              }
+                              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                            >
+                              <option value="">Selecione a rota</option>
+                              {hook.assignRoutes.map((route) => (
+                                <option key={route.id} value={route.id}>
+                                  {route.name}{route.vehicle ? ` - ${route.vehicle}` : ""}
+                                </option>
+                              ))}
+                            </select>
+                            <Button
+                              size="sm"
+                              disabled={!assignSelection[os.id] || hook.assignLoading}
+                              onClick={() => hook.assignOsToRoute(os, Number(assignSelection[os.id]))}
+                              className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                            >
+                              Confirmar atribuição
+                            </Button>
+                          </div>
+                        )}
+                        {hook.assignError && (
+                          <p className="mt-1 text-sm text-red-600">{hook.assignError}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

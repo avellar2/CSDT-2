@@ -8,6 +8,8 @@ import { uploadFiles } from "@/utils/storageProvider";
 import { useMultiStepForm } from "@/hooks/useMultiStepForm";
 import { formSteps } from "@/utils/formSteps";
 import initialFormData from "@/utils/itens";
+import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 export interface Escola {
   name: string;
@@ -200,7 +202,12 @@ export function useFillPdfForm() {
       if (typeof demandDate !== "string") { setDailyDemandAvailability(null); return; }
       try {
         setIsCheckingDailyDemandAvailability(true);
-        const response = await fetch(`/api/daily-demands/os-availability?userId=${encodeURIComponent(localUserId)}&date=${encodeURIComponent(demandDate)}`);
+        const demandId = router.query.demandId;
+        const demandIdParam =
+          typeof demandId === "string" && demandId
+            ? `&demandId=${encodeURIComponent(demandId)}`
+            : "";
+        const response = await fetch(`/api/daily-demands/os-availability?date=${encodeURIComponent(demandDate)}${demandIdParam}`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Erro ao validar disponibilidade da OS");
         setDailyDemandAvailability(data);
@@ -217,7 +224,7 @@ export function useFillPdfForm() {
       }
     };
     fetchDailyDemandAvailability();
-  }, [router.isReady, router.query.origin, router.query.demandDate, localUserId]);
+  }, [router.isReady, router.query.origin, router.query.demandDate, router.query.demandId, localUserId]);
 
   // Calculate form completion progress
   const calculateProgress = () => {
@@ -473,14 +480,26 @@ export function useFillPdfForm() {
 
   const saveDataAndGetNumeroOs = async (data: FormDataType): Promise<FormDataType> => {
     const currentDate = new Date();
+    // OS lançada a partir de uma demanda usa a data operacional dela; o
+    // backend rejeita qualquer divergência entre demanda e OS.
+    const demandDateQuery =
+      router.query.origin === "daily-demands" && typeof router.query.demandDate === "string"
+        ? router.query.demandDate
+        : null;
+    const osDateKey =
+      demandDateQuery && /^\d{4}-\d{2}-\d{2}$/.test(demandDateQuery)
+        ? demandDateQuery
+        : formatBrazilDateKey(currentDate);
     const updatedData = {
       ...data,
-      data: currentDate.toISOString().split("T")[0],
+      // Data operacional em America/Sao_Paulo (o ISO/UTC adiantava o dia
+      // após as 21h de Brasília e quebrava o vínculo com a rota).
+      data: osDateKey,
       hora: new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Sao_Paulo" }).format(currentDate),
     };
     const response = await fetch("/api/save-os-externa", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         formData: updatedData,
         context: router.query.origin === "daily-demands"

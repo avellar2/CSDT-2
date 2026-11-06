@@ -56,6 +56,7 @@ export function getBrazilDayRange(dateKey: string) {
 export async function assessDailyDemandOsAvailability(params: {
   userId: string;
   demandDate: string;
+  demandId?: number | null;
 }): Promise<DailyDemandAvailabilityResult> {
   const { userId, demandDate } = params;
   const nowParts = getBrazilParts();
@@ -96,6 +97,71 @@ export async function assessDailyDemandOsAvailability(params: {
       isWithinBusinessHours: true,
       profile,
     };
+  }
+
+  // Separação por rotas operacionais: quando existem rotas na data, o técnico
+  // só pode lançar OS de demandas da própria rota. Sem rotas cadastradas,
+  // permanece exatamente o comportamento antigo.
+  if (profile.role === "TECH") {
+    const routeDate = new Date(`${demandDate}T00:00:00.000Z`);
+    const routesForDate = await prisma.dailyRoute.count({
+      where: {
+        date: routeDate,
+        status: { notIn: ["CANCELLED"] },
+      },
+    });
+
+    if (routesForDate > 0) {
+      const memberships = await prisma.dailyRouteTechnician.findMany({
+        where: {
+          technicianId: profile.id,
+          routeDate,
+          active: true,
+          route: { status: { notIn: ["CANCELLED"] } },
+        },
+        select: { routeId: true },
+      });
+
+      const technicianRouteIds = memberships.map((membership) => membership.routeId);
+
+      if (params.demandId) {
+        const targetDemand = await prisma.schoolDemand.findUnique({
+          where: { id: Number(params.demandId) },
+          select: { routeId: true },
+        });
+
+        const demandRouteId = targetDemand?.routeId ?? null;
+        const belongsToTechnicianRoute =
+          demandRouteId !== null && technicianRouteIds.includes(demandRouteId);
+
+        if (!belongsToTechnicianRoute) {
+          return {
+            allowed: false,
+            reason:
+              "Esta demanda pertence a outra rota ou ainda não foi atribuída a uma rota.",
+            currentDate: nowParts.dateKey,
+            currentTime: nowParts.timeKey,
+            demandDate,
+            hasRelease: false,
+            isVisitTechnician: false,
+            isWithinBusinessHours: false,
+            profile,
+          };
+        }
+      } else if (technicianRouteIds.length === 0) {
+        return {
+          allowed: false,
+          reason: "Você não participa de nenhuma rota nesta data.",
+          currentDate: nowParts.dateKey,
+          currentTime: nowParts.timeKey,
+          demandDate,
+          hasRelease: false,
+          isVisitTechnician: false,
+          isWithinBusinessHours: false,
+          profile,
+        };
+      }
+    }
   }
 
   const visitAllocation = await prisma.visitTechnician.findFirst({

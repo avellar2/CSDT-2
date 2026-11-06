@@ -1,6 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from "@/utils/api-auth";
+import {
+  loadTicketAccessContext,
+  technicianCanAccessTicket,
+} from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
 
@@ -16,10 +20,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'ID do chamado é obrigatório' });
     }
 
+    const parsedTicketId = Number(ticketId);
+    if (!Number.isInteger(parsedTicketId) || parsedTicketId <= 0) {
+      return res.status(400).json({ error: 'ID do chamado inválido' });
+    }
+
+    const ticket = await prisma.technicalTicket.findUnique({
+      where: { id: parsedTicketId },
+      select: {
+        id: true,
+        schoolId: true,
+        routeId: true,
+        scheduledDate: true
+      }
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Chamado não encontrado' });
+    }
+
+    // Separação por rota aplicada no backend (mesma regra da listagem).
+    if (auth.profile.role === 'TECH') {
+      const access = await loadTicketAccessContext(auth.profile.id);
+
+      if (
+        !technicianCanAccessTicket(access, {
+          routeId: ticket.routeId,
+          scheduledDate: ticket.scheduledDate
+        })
+      ) {
+        return res.status(403).json({ error: 'Este chamado pertence a outra rota.' });
+      }
+    }
+
+    // Usuário de escola só acessa chamados da própria escola. SCHOOL sem
+    // escola vinculada não tem escopo legítimo e é negado.
+    if (auth.profile.role === 'SCHOOL') {
+      if (auth.profile.schoolId === null || ticket.schoolId !== auth.profile.schoolId) {
+        return res.status(403).json({ error: 'Você não tem acesso a este chamado.' });
+      }
+    }
+
     if (req.method === 'GET') {
       // Listar comentários do chamado
       const comments = await prisma.ticketComment.findMany({
-        where: { ticketId: parseInt(ticketId as string) },
+        where: { ticketId: parsedTicketId },
         orderBy: { createdAt: 'asc' }
       });
 
@@ -29,31 +74,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
     } else if (req.method === 'POST') {
-      // Criar novo comentário
-      const { authorId, authorName, authorRole, content, isInternal } = req.body;
-
-      if (!authorId || !authorName || !authorRole || !content) {
-        return res.status(400).json({ 
-          error: 'Campos obrigatórios: authorId, authorName, authorRole, content' 
+      // ONLYREAD é somente leitura: pode listar comentários, não escrever.
+      if (auth.profile.role === 'ONLYREAD') {
+        return res.status(403).json({
+          error: 'Perfil sem permissão para comentar chamados técnicos.'
         });
       }
 
-      // Verificar se o chamado existe
-      const ticket = await prisma.technicalTicket.findUnique({
-        where: { id: parseInt(ticketId as string) }
-      });
+      // Criar novo comentário
+      const { content, isInternal } = req.body || {};
 
-      if (!ticket) {
-        return res.status(404).json({ error: 'Chamado não encontrado' });
+      if (!content || !String(content).trim()) {
+        return res.status(400).json({
+          error: 'Campo obrigatório: content'
+        });
       }
 
+      // Autor vem da sessão autenticada, nunca do corpo da requisição.
       const comment = await prisma.ticketComment.create({
         data: {
-          ticketId: parseInt(ticketId as string),
-          authorId,
-          authorName,
-          authorRole,
-          content: content.trim(),
+          ticketId: parsedTicketId,
+          authorId: auth.id,
+          authorName: auth.profile.displayName,
+          authorRole: auth.profile.role,
+          content: String(content).trim(),
           isInternal: isInternal || false,
           updatedAt: new Date()
         }
@@ -65,12 +109,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
     } else {
+      res.setHeader('Allow', ['GET', 'POST']);
       res.status(405).json({ error: 'Method not allowed' });
     }
 
   } catch (error) {
     console.error('Erro na API de comentários:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro interno do servidor',
       details: process.env.NODE_ENV === 'development' ? error : undefined
     });

@@ -2,44 +2,39 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/utils/prisma';
 import { getPendingDailyDemandItems } from '@/utils/pendingDailyDemandOs';
 import { requireAuth } from "@/utils/api-auth";
+import {
+  buildOperationalOsWhere,
+  loadOsScope,
+} from '@/utils/operationalOsScope';
 
+/**
+ * Indicadores de OS pendentes do dashboard.
+ *
+ * O escopo é decidido no backend a partir do usuário autenticado: técnicos
+ * contam apenas as OS operacionais das próprias rotas; ADMIN/ADMTOTAL contam
+ * tudo. `userId` na query é ignorado.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { userId } = req.query;
-    let tecnicoResponsavelFilter: string | undefined;
-
-    if (userId && typeof userId === 'string') {
-      const profile = await prisma.profile.findUnique({
-        where: { userId },
-        select: { role: true, displayName: true },
-      });
-
-      if (profile?.role === 'TECH') {
-        tecnicoResponsavelFilter = profile.displayName;
-      }
-    }
-
-    const sharedWhere = tecnicoResponsavelFilter
-      ? { tecnicoResponsavel: tecnicoResponsavelFilter }
-      : {};
+    const scope = await loadOsScope(auth);
 
     const pendingOsNew = await prisma.oSExterna.count({
       where: {
         status: 'Pendente',
-        ...sharedWhere,
+        ...buildOperationalOsWhere(scope),
       },
     });
 
     const pendingDailyDemands = await getPendingDailyDemandItems({
-      userId: userId && typeof userId === 'string' ? userId : undefined,
+      profile: auth.profile,
     });
 
     const visiblePendingDailyDemands = pendingDailyDemands.filter(
@@ -54,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         pendingOsNew,
         pendingDailyDemands: visiblePendingDailyDemands.length,
         totalPendingOS,
-        scope: tecnicoResponsavelFilter ? 'mine' : 'all',
+        scope: scope.isTechnician ? 'mine' : 'all',
       },
     });
   } catch (error) {

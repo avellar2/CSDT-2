@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Search,
   Calendar,
@@ -7,7 +7,11 @@ import {
   Wrench,
   Trash,
   Clock,
+  Car,
+  Route as RouteIcon,
 } from 'lucide-react';
+import { getAuthHeaders } from '@/utils/client-auth';
+import type { RouteOption } from '@/hooks/useScales';
 
 interface ScaleTicketsProps {
   technicalTickets: any[];
@@ -20,6 +24,17 @@ interface ScaleTicketsProps {
   setShowTicketModal: (v: boolean) => void;
   ticketFilter: string;
   setTicketFilter: (v: string) => void;
+  routes?: RouteOption[];
+  routeFilter?: string;
+  setRouteFilter?: (v: string) => void;
+  scheduleRouteId?: string;
+  setScheduleRouteId?: (v: string) => void;
+  fetchRoutesForDate?: (dateKey: string) => Promise<RouteOption[]>;
+  handleChangeEntityRoute?: (
+    entityType: 'TECHNICAL_TICKET' | 'CHAMADO',
+    entityId: number,
+    routeId: number | null
+  ) => Promise<boolean>;
   ticketSearchTerm: string;
   setTicketSearchTerm: (v: string) => void;
   showDeleteModal: boolean;
@@ -67,6 +82,13 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
   setShowTicketModal,
   ticketFilter,
   setTicketFilter,
+  routes = [],
+  routeFilter = 'all',
+  setRouteFilter,
+  scheduleRouteId = '',
+  setScheduleRouteId,
+  fetchRoutesForDate,
+  handleChangeEntityRoute,
   ticketSearchTerm,
   setTicketSearchTerm,
   showDeleteModal,
@@ -102,6 +124,48 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
   fetchChamadosEscala,
   fetchTechnicalTickets,
 }) => {
+  const canManageRoutes =
+    currentUser?.role === 'ADMIN' || currentUser?.role === 'ADMTOTAL';
+
+  const [scheduleRoutes, setScheduleRoutes] = useState<RouteOption[]>([]);
+
+  const routeOptionLabel = (route: RouteOption) =>
+    route.vehicle ? `${route.name} — ${route.vehicle}` : route.name;
+
+  const ticketRouteId = (ticket: any): number | null =>
+    ticket?.routeId ?? null;
+
+  const ticketRouteLabel = (ticket: any): string | null => {
+    const routeId = ticketRouteId(ticket);
+    if (routeId === null) return null;
+    const route = routes.find((item) => item.id === routeId);
+    if (route) return routeOptionLabel(route);
+    if (ticket?.DailyRoute?.name) {
+      return ticket.DailyRoute.vehicle
+        ? `${ticket.DailyRoute.name} — ${ticket.DailyRoute.vehicle}`
+        : ticket.DailyRoute.name;
+    }
+    return `Rota #${routeId}`;
+  };
+
+  const ticketRouteTechnicians = (ticket: any): string => {
+    const routeId = ticketRouteId(ticket);
+    if (routeId === null) return '';
+    const route = routes.find((item) => item.id === routeId);
+    return (route?.technicians || [])
+      .map((technician) => technician.displayName)
+      .join(', ');
+  };
+
+  const refreshRoutesForDate = async (dateKey: string) => {
+    if (fetchRoutesForDate && dateKey) {
+      const found = await fetchRoutesForDate(dateKey);
+      setScheduleRoutes(found);
+      if (setScheduleRouteId && found.length === 1) {
+        setScheduleRouteId(String(found[0].id));
+      }
+    }
+  };
   return (
     <div className="space-y-6">
       {/* Header dos Chamados */}
@@ -144,6 +208,21 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
               <option value="SCHEDULED">Agendados</option>
               <option value="IN_PROGRESS">Em Andamento</option>
               <option value="RESOLVED">Resolvidos</option>
+            </select>
+
+            <select
+              value={routeFilter}
+              onChange={(e) => setRouteFilter?.(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              title="Filtrar por rota"
+            >
+              <option value="all">Todas as rotas</option>
+              {routes.map((route) => (
+                <option key={route.id} value={route.id}>
+                  {routeOptionLabel(route)}
+                </option>
+              ))}
+              {canManageRoutes && <option value="unassigned">Sem rota</option>}
             </select>
           </div>
         </div>
@@ -223,6 +302,15 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
           ];
 
           const filteredTickets = allTickets.filter((ticket: any) => {
+            const matchesRoute =
+              routeFilter === 'all'
+                ? true
+                : routeFilter === 'unassigned'
+                  ? ticketRouteId(ticket) === null
+                  : String(ticketRouteId(ticket)) === routeFilter;
+
+            if (!matchesRoute) return false;
+
             const searchLower = ticketSearchTerm.toLowerCase();
             return (
               ticket.title.toLowerCase().includes(searchLower) ||
@@ -252,6 +340,14 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                 onClick={() => {
                   setSelectedTicket(ticket);
                   setShowTicketModal(true);
+                  if (!ticket.isChamadoEscala && ticket.status === 'OPEN') {
+                    const todayKey = new Date().toLocaleDateString('en-CA', {
+                      timeZone: 'America/Sao_Paulo',
+                    });
+                    setScheduleRouteId?.('');
+                    setScheduleRoutes([]);
+                    void refreshRoutesForDate(scheduleDate || todayKey);
+                  }
                 }}
               >
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${
@@ -299,6 +395,16 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                             {ticket.priority === 'URGENT' ? 'Urgente' :
                              ticket.priority === 'HIGH' ? 'Alta' :
                              ticket.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
+                          </span>
+                        )}
+                        {ticketRouteLabel(ticket) ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                            <RouteIcon size={12} />
+                            {ticketRouteLabel(ticket)}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                            Sem rota
                           </span>
                         )}
                       </div>
@@ -364,9 +470,15 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                           setScheduleSchool(ticket.School?.name || '');
                           setScheduleTitle(ticket.title);
                           setScheduleDescription(ticket.description);
-                          setScheduleDate(new Date().toISOString().split('T')[0]);
+                          const todayKey = new Date().toLocaleDateString('en-CA', {
+                            timeZone: 'America/Sao_Paulo',
+                          });
+                          setScheduleDate(todayKey);
                           setScheduleTime('08:00');
                           setScheduleNotes('');
+                          setScheduleRouteId?.('');
+                          setScheduleRoutes([]);
+                          void refreshRoutesForDate(todayKey);
                           setShowScheduleModal(true);
                         }}
                         className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
@@ -457,7 +569,12 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                   <input
                     type="date"
                     value={scheduleDate}
-                    onChange={(e) => setScheduleDate(e.target.value)}
+                    onChange={(e) => {
+                      setScheduleDate(e.target.value);
+                      setScheduleRouteId?.('');
+                      setScheduleRoutes([]);
+                      void refreshRoutesForDate(e.target.value);
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -472,6 +589,27 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                     required
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Rota responsável
+                </label>
+                <select
+                  value={scheduleRouteId}
+                  onChange={(e) => setScheduleRouteId?.(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sem rota (fila administrativa)</option>
+                  {scheduleRoutes.map((route) => (
+                    <option key={route.id} value={route.id}>
+                      {routeOptionLabel(route)}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Apenas técnicos da rota selecionada verão este reagendamento.
+                </p>
               </div>
 
               <div>
@@ -505,7 +643,7 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                   try {
                     const eventResponse = await fetch('/api/schedule/events', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: getAuthHeaders(),
                       body: JSON.stringify({
                         title: `${scheduleTitle} - Reagendamento`,
                         description: scheduleDescription,
@@ -525,10 +663,11 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
 
                     const updateResponse = await fetch(`/api/chamados-escala/${scheduleTicketId}`, {
                       method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: getAuthHeaders(),
                       body: JSON.stringify({
                         status: 'AGENDADO',
-                        dataAgendamento: new Date(`${scheduleDate}T${scheduleTime}:00`)
+                        dataAgendamento: new Date(`${scheduleDate}T${scheduleTime}:00`),
+                        routeId: scheduleRouteId ? Number(scheduleRouteId) : null,
                       })
                     });
 
@@ -651,6 +790,51 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                 <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{selectedTicket.description}</p>
               </div>
 
+              <div className="rounded-lg p-4 border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <RouteIcon size={14} className="text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">ROTA RESPONSÁVEL</span>
+                </div>
+
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {ticketRouteLabel(selectedTicket) || 'Sem rota (fila administrativa)'}
+                </p>
+
+                {ticketRouteTechnicians(selectedTicket) && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
+                    <Car size={12} />
+                    {ticketRouteTechnicians(selectedTicket)}
+                  </p>
+                )}
+
+                {canManageRoutes && handleChangeEntityRoute && (
+                  <select
+                    value={ticketRouteId(selectedTicket) ?? ''}
+                    onChange={async (e) => {
+                      const newRouteId = e.target.value ? Number(e.target.value) : null;
+                      const entityType: 'TECHNICAL_TICKET' | 'CHAMADO' =
+                        selectedTicket.isChamadoEscala ? 'CHAMADO' : 'TECHNICAL_TICKET';
+                      const ok = await handleChangeEntityRoute(
+                        entityType,
+                        Number(selectedTicket.id),
+                        newRouteId
+                      );
+                      if (ok) {
+                        setSelectedTicket({ ...selectedTicket, routeId: newRouteId });
+                      }
+                    }}
+                    className="mt-3 w-full px-3 py-2 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Sem rota (fila administrativa)</option>
+                    {routes.map((route) => (
+                      <option key={route.id} value={route.id}>
+                        {routeOptionLabel(route)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
               {selectedTicket.status === 'OPEN' && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-3">Aceitar e Agendar Chamado</h4>
@@ -693,7 +877,12 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                       <input
                         type="date"
                         value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
+                        onChange={(e) => {
+                          setScheduleDate(e.target.value);
+                          setScheduleRouteId?.('');
+                          setScheduleRoutes([]);
+                          void refreshRoutesForDate(e.target.value);
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                         required
                       />
@@ -708,6 +897,22 @@ const ScaleTickets: React.FC<ScaleTicketsProps> = ({
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                         required
                       />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rota responsável:</label>
+                      <select
+                        value={scheduleRouteId}
+                        onChange={(e) => setScheduleRouteId?.(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Sem rota (fila administrativa)</option>
+                        {scheduleRoutes.map((route) => (
+                          <option key={route.id} value={route.id}>
+                            {routeOptionLabel(route)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 

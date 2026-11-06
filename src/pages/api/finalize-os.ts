@@ -6,12 +6,12 @@ import { v4 as uuidv4 } from "uuid";
 import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "PATCH") {
-    return res.status(405).json({ message: "Método não permitido" });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== "PATCH") {
+    res.setHeader("Allow", ["PATCH"]);
+    return res.status(405).json({ message: "Método não permitido" });
   }
 
   const { osId, status, descricao, peca } = req.body;

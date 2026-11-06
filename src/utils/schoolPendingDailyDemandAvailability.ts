@@ -46,6 +46,7 @@ export async function getSchoolPendingDailyDemandAvailability(params: {
   const availability = await assessDailyDemandOsAvailability({
     userId: params.userId,
     demandDate: matchingItem.demandDate,
+    demandId: matchingItem.demandId,
   });
 
   return {

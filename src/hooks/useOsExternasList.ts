@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import { useHeaderContext } from "@/context/HeaderContext";
 import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
+import { getAuthHeaders, getAuthHeadersNoContentType } from "@/utils/client-auth";
 
 export interface OsExterna {
   id: number;
@@ -57,6 +58,8 @@ export interface OsExterna {
   solucionado?: string;
   status: string;
   assinado?: string;
+  /** Rota operacional da OS. Nula em OS antigas ou criadas antes da rota. */
+  routeId?: number | null;
   motivoRecusa?: string | null;
   recusadoEm?: string | null;
   cpf?: string;
@@ -114,6 +117,14 @@ export function useOsExternasList() {
   const [notVisitedDate, setNotVisitedDate] = useState(formatBrazilDateKey(new Date()));
   const [showNotVisitedModal, setShowNotVisitedModal] = useState(false);
   const [downloadPdf, setDownloadingPdf] = useState(false);
+  // Atribuição de OS sem rota (ADMIN/ADMTOTAL) com auditoria no backend.
+  const [assigningOsId, setAssigningOsId] = useState<number | null>(null);
+  const [assignRoutes, setAssignRoutes] = useState<
+    { id: number; name: string; vehicle?: string | null }[]
+  >([]);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(false);
   const statusFilter = typeof router.query.status === "string" ? router.query.status : "";
   const pendingOnly = statusFilter === "Pendente";
 
@@ -164,7 +175,7 @@ export function useOsExternasList() {
       const params = new URLSearchParams();
       if (effectiveUserId) params.set("userId", effectiveUserId);
       if (statusFilter) params.set("status", statusFilter);
-      const response = await fetch(`/api/get-all-os-externas${params.toString() ? `?${params.toString()}` : ""}`);
+      const response = await fetch(`/api/get-all-os-externas${params.toString() ? `?${params.toString()}` : ""}`, { headers: getAuthHeadersNoContentType() });
       if (response.ok) {
         const data = await response.json();
         setOsExternas(data);
@@ -179,7 +190,7 @@ export function useOsExternasList() {
       const effectiveUserId = userIdParam || currentUserId;
       const params = new URLSearchParams();
       if (effectiveUserId) params.set("userId", effectiveUserId);
-      const response = await fetch(`/api/pending-daily-demands${params.toString() ? `?${params.toString()}` : ""}`);
+      const response = await fetch(`/api/pending-daily-demands${params.toString() ? `?${params.toString()}` : ""}`, { headers: getAuthHeadersNoContentType() });
       if (response.ok) {
         const data = await response.json();
         setPendingDailyDemands(data.data || []);
@@ -197,7 +208,7 @@ export function useOsExternasList() {
       const effectiveDate = dateParam || notVisitedDate;
       if (!effectiveUserId || !effectiveDate) { setNotVisitedDailyDemands([]); return; }
       const params = new URLSearchParams({ userId: effectiveUserId, date: effectiveDate });
-      const response = await fetch(`/api/not-visited-daily-demands?${params.toString()}`);
+      const response = await fetch(`/api/not-visited-daily-demands?${params.toString()}`, { headers: getAuthHeadersNoContentType() });
       if (response.ok) {
         const data = await response.json();
         setNotVisitedDailyDemands(data.data || []);
@@ -206,6 +217,57 @@ export function useOsExternasList() {
       }
     } catch {
       setNotVisitedDailyDemands([]);
+    }
+  };
+
+  const openAssign = async (os: OsExterna) => {
+    if (assigningOsId === os.id) {
+      setAssigningOsId(null);
+      return;
+    }
+
+    setAssigningOsId(os.id);
+    setAssignRoutes([]);
+    setAssignError(null);
+    setAssignLoading(true);
+
+    try {
+      const response = await fetch(`/api/routes?date=${encodeURIComponent(os.data)}`, {
+        headers: getAuthHeadersNoContentType(),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao carregar rotas");
+      setAssignRoutes(data.routes || []);
+    } catch (error) {
+      setAssignError(error instanceof Error ? error.message : "Erro ao carregar rotas");
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const assignOsToRoute = async (os: OsExterna, routeId: number) => {
+    setAssignLoading(true);
+    setAssignError(null);
+
+    try {
+      const response = await fetch("/api/routes/assign", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          entityType: "OS_EXTERNA",
+          entityId: os.id,
+          routeId,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao atribuir rota");
+      setAssigningOsId(null);
+      setAssignRoutes([]);
+      await fetchOsExternas();
+    } catch (error) {
+      setAssignError(error instanceof Error ? error.message : "Erro ao atribuir rota");
+    } finally {
+      setAssignLoading(false);
     }
   };
 
@@ -220,7 +282,11 @@ export function useOsExternasList() {
     );
   };
 
-  const osExternasPendentes = filterOsBySearch(osExternas.filter((os) => os.status === "Pendente"));
+  const osExternasPendentes = filterOsBySearch(
+    osExternas.filter(
+      (os) => os.status === "Pendente" && (!showOnlyUnassigned || os.routeId == null)
+    )
+  );
   const osExternasAssinadas = filterOsBySearch(osExternas.filter((os) => os.status === "Assinado"));
   const filteredPendingDailyDemands = pendingDailyDemands.filter(
     (demand) =>
@@ -329,6 +395,8 @@ export function useOsExternasList() {
     notVisitedDate, setNotVisitedDate,
     showNotVisitedModal, setShowNotVisitedModal,
     downloadPdf, setDownloadingPdf,
+    assigningOsId, assignRoutes, assignLoading, assignError,
+    showOnlyUnassigned, setShowOnlyUnassigned,
     pendingOnly, userName,
     // Computed
     osExternasPendentes, osExternasAssinadas,
@@ -340,5 +408,6 @@ export function useOsExternasList() {
     handleResendEmail, confirmResendEmail,
     canSendEmailToday, getLastEmailText,
     fetchOsExternas, fetchPendingDailyDemands,
+    openAssign, assignOsToRoute,
   };
 }

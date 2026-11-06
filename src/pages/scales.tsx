@@ -192,6 +192,13 @@ const Scales: React.FC = () => {
             setShowTicketModal={ctx.setShowTicketModal}
             ticketFilter={ctx.ticketFilter}
             setTicketFilter={ctx.setTicketFilter}
+            routes={ctx.routes}
+            routeFilter={ctx.routeFilter}
+            setRouteFilter={ctx.setRouteFilter}
+            scheduleRouteId={ctx.scheduleRouteId}
+            setScheduleRouteId={ctx.setScheduleRouteId}
+            fetchRoutesForDate={ctx.fetchRoutesForDate}
+            handleChangeEntityRoute={ctx.handleChangeEntityRoute}
             ticketSearchTerm={ctx.ticketSearchTerm}
             setTicketSearchTerm={ctx.setTicketSearchTerm}
             showDeleteModal={ctx.showDeleteModal}

@@ -29,6 +29,14 @@ export const SPECIALTY_KEYWORDS: Record<string, string[]> = {
   'Manutenção': ['limpeza', 'manutenção', 'preventiva', 'corretiva', 'reparo', 'conserto', 'troca']
 };
 
+export interface RouteOption {
+  id: number;
+  name: string;
+  vehicle: string | null;
+  status: string;
+  technicians?: { technicianId: number; displayName: string }[];
+}
+
 interface Technician {
   id: string;
   displayName: string;
@@ -37,8 +45,7 @@ interface Technician {
   specialties?: string[];
   currentAssignments?: number;
   experienceLevel?: 'junior' | 'pleno' | 'senior';
-  maxCapacity?: number;
-}
+  maxCapacity?: number;}
 
 interface School {
   id: string;
@@ -163,6 +170,11 @@ export function useScales() {
   const [scheduleSchool, setScheduleSchool] = useState<string>('');
   const [scheduleTitle, setScheduleTitle] = useState<string>('');
   const [scheduleDescription, setScheduleDescription] = useState<string>('');
+  const [scheduleRouteId, setScheduleRouteId] = useState<string>('');
+
+  // Rotas operacionais aplicadas aos chamados/reagendamentos
+  const [routes, setRoutes] = useState<RouteOption[]>([]);
+  const [routeFilter, setRouteFilter] = useState<string>('all');
 
   const [showQuickRoutes, setShowQuickRoutes] = useState(false);
 
@@ -386,6 +398,59 @@ export function useScales() {
       }
     } catch (error) {
       console.error('Erro ao buscar chamados de escala:', error);
+    }
+  };
+
+  const fetchRoutesForDate = async (dateKey: string): Promise<RouteOption[]> => {
+    try {
+      const response = await fetch(
+        `/api/routes?date=${encodeURIComponent(dateKey)}&includeClosed=1`,
+        { headers: getAuthHeaders() }
+      );
+      if (!response.ok) return [];
+      const data = await response.json();
+      return (data.routes || []) as RouteOption[];
+    } catch (error) {
+      console.error('Erro ao buscar rotas do dia:', error);
+      return [];
+    }
+  };
+
+  const fetchRoutes = async () => {
+    const todayKey = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+    });
+    const todayRoutes = await fetchRoutesForDate(todayKey);
+    setRoutes(todayRoutes);
+  };
+
+  const handleChangeEntityRoute = async (
+    entityType: 'TECHNICAL_TICKET' | 'CHAMADO',
+    entityId: number,
+    routeId: number | null
+  ) => {
+    try {
+      const response = await fetch('/api/routes/assign', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          entityType,
+          entityId,
+          routeId,
+          note: 'Movimentação manual na tela de escalas',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Erro ao mover chamado entre rotas');
+      }
+
+      await Promise.all([fetchTechnicalTickets(), fetchChamadosEscala()]);
+      return true;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Erro ao mover chamado entre rotas');
+      return false;
     }
   };
 
@@ -909,6 +974,7 @@ export function useScales() {
           scheduledTime: scheduleTime,
           assignedTo: currentUser.displayName,
           notes: scheduleNotes,
+          routeId: scheduleRouteId ? Number(scheduleRouteId) : null,
         }),
       });
 
@@ -923,6 +989,7 @@ export function useScales() {
       setScheduleDate('');
       setScheduleTime('');
       setScheduleNotes('');
+      setScheduleRouteId('');
 
       setShowTicketModal(false);
       setSelectedTicket(null);
@@ -1363,6 +1430,7 @@ export function useScales() {
       fetchTechnicalTickets();
       fetchChamadosEscala();
       fetchAdminUsers();
+      fetchRoutes();
     }
   }, [activeView]);
 
@@ -1522,6 +1590,14 @@ export function useScales() {
     scheduleTitle,
     setScheduleTitle,
     scheduleDescription,
+    scheduleRouteId,
+    setScheduleRouteId,
+    routes,
+    routeFilter,
+    setRouteFilter,
+    fetchRoutesForDate,
+    fetchRoutes,
+    handleChangeEntityRoute,
     setScheduleDescription,
     showQuickRoutes,
     setShowQuickRoutes,

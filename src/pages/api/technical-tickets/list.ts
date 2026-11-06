@@ -1,37 +1,68 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { requireAuth } from "@/utils/api-auth";
+import {
+  buildTechnicianTicketWhere,
+  isRouteManager,
+  loadTicketAccessContext,
+} from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { status, schoolId, assignedTo } = req.query;
+    const routeIdQuery = Array.isArray(req.query.routeId)
+      ? req.query.routeId[0]
+      : req.query.routeId;
 
     // Construir filtros
-    const where: any = {
+    const where: Prisma.TechnicalTicketWhereInput = {
       // Por padrão, não mostrar chamados excluídos
       status: { not: 'DELETED' }
     };
-    
+
     if (status && status !== 'all') {
-      where.status = status;
+      where.status = status as Prisma.TechnicalTicketWhereInput['status'];
     }
-    
+
     if (schoolId) {
       where.schoolId = parseInt(schoolId as string);
     }
-    
+
     if (assignedTo) {
-      where.assignedTo = assignedTo;
+      where.assignedTo = assignedTo as string;
+    }
+
+    // Filtro de rota: aceita "all", "unassigned" ou um ID numérico válido.
+    if (typeof routeIdQuery === 'string' && routeIdQuery.length > 0 && routeIdQuery !== 'all') {
+      if (routeIdQuery === 'unassigned') {
+        where.routeId = null;
+      } else {
+        const parsedRouteId = Number(routeIdQuery);
+        if (!Number.isInteger(parsedRouteId) || parsedRouteId <= 0) {
+          return res.status(400).json({
+            error: 'routeId deve ser "all", "unassigned" ou um ID numérico válido.'
+          });
+        }
+        where.routeId = parsedRouteId;
+      }
+    }
+
+    // Técnicos só enxergam chamados destinados à própria rota. A decisão usa
+    // a data operacional de cada chamado (não a existência global de rotas),
+    // preservando os chamados antigos de dias sem rotas.
+    if (!isRouteManager(auth.profile.role) && auth.profile.role === 'TECH') {
+      const access = await loadTicketAccessContext(auth.profile.id);
+      where.AND = [buildTechnicianTicketWhere(access)];
     }
 
     // Buscar chamados
@@ -40,7 +71,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 200,
       include: {
         School: true,
-        ScheduleEvent: true
+        ScheduleEvent: true,
+        DailyRoute: {
+          select: { id: true, name: true, vehicle: true, status: true, date: true },
+        },
       },
       orderBy: [
         { status: 'asc' }, // OPEN primeiro
@@ -48,9 +82,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ]
     });
 
-    // Estatísticas
+    // Estatísticas respeitando o escopo de acesso.
     const stats = await prisma.technicalTicket.groupBy({
       by: ['status'],
+      where,
       _count: {
         _all: true
       }
@@ -78,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Erro ao listar chamados técnicos:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro interno do servidor',
       details: process.env.NODE_ENV === 'development' ? error : undefined
     });

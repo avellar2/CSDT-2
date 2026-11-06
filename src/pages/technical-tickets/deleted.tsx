@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Header } from '@/components/Header';
 import { supabase } from '@/lib/supabaseClient';
+import { getAuthHeadersNoContentType } from '@/utils/client-auth';
 import { Trash, ArrowLeft, Calendar, User, AlertTriangle } from 'lucide-react';
 
 interface SchoolProfile {
@@ -84,7 +85,9 @@ const DeletedTickets: React.FC = () => {
 
   const fetchDeletedTickets = async (schoolId: number) => {
     try {
-      const response = await fetch(`/api/technical-tickets/deleted?schoolId=${schoolId}`);
+      const response = await fetch(`/api/technical-tickets/deleted?schoolId=${schoolId}`, {
+        headers: getAuthHeadersNoContentType()
+      });
       if (!response.ok) {
         throw new Error('Erro ao buscar chamados excluídos');
       }

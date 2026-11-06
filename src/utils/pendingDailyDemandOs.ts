@@ -16,6 +16,7 @@ export interface PendingDailyDemandItem {
   visitUpdatedBy: string | null;
   responsibleTechnicianIds: number[];
   responsibleTechnicians: string[];
+  routeId: number | null;
 }
 
 function pushTimestamp(map: Map<string, number[]>, key: string, timestamp: number) {
@@ -26,11 +27,16 @@ function pushTimestamp(map: Map<string, number[]>, key: string, timestamp: numbe
 
 export async function getPendingDailyDemandItems(params?: {
   userId?: string;
+  /** Identidade já autenticada (evita nova consulta e não confia na query). */
+  profile?: { id: number; role: string; displayName: string } | null;
 }): Promise<PendingDailyDemandItem[]> {
   let profileId: number | null = null;
   let profileRole: string | null = null;
 
-  if (params?.userId) {
+  if (params?.profile) {
+    profileId = params.profile.id;
+    profileRole = params.profile.role;
+  } else if (params?.userId) {
     const profile = await prisma.profile.findUnique({
       where: { userId: params.userId },
       select: {
@@ -83,7 +89,9 @@ export async function getPendingDailyDemandItems(params?: {
   const oldestRange = getBrazilDayRange(oldestDemandDate);
   const newestRange = getBrazilDayRange(newestDemandDate);
 
-  const [osOld, osExternas, visitTechnicians] = await Promise.all([
+  // Rotas operacionais por data: quando existem, o técnico só enxerga as
+  // demandas vinculadas às rotas das quais participa.
+  const [osOld, osExternas, visitTechnicians, routeRecords] = await Promise.all([
     prisma.os.findMany({
       where: {
         unidadeEscolar: { in: schoolNames },
@@ -114,16 +122,44 @@ export async function getPendingDailyDemandItems(params?: {
         createdAt: true,
       },
     }),
+    prisma.dailyRoute.findMany({
+      where: {
+        date: {
+          in: uniqueDemandDates.map((dateKey) => new Date(`${dateKey}T00:00:00.000Z`)),
+        },
+        status: { notIn: ["CANCELLED"] },
+      },
+      select: {
+        id: true,
+        date: true,
+        technicians: {
+          where: { active: true },
+          select: { technicianId: true },
+        },
+      },
+    }),
   ]);
 
   const visitTechnicianIds = Array.from(
     new Set(visitTechnicians.map((item) => item.technicianId))
   );
 
-  const profiles = visitTechnicianIds.length
+  const routeTechnicianIds = Array.from(
+    new Set(
+      routeRecords.flatMap((route) =>
+        route.technicians.map((membership) => membership.technicianId)
+      )
+    )
+  );
+
+  const profileIdsToLoad = Array.from(
+    new Set([...visitTechnicianIds, ...routeTechnicianIds])
+  );
+
+  const profiles = profileIdsToLoad.length
     ? await prisma.profile.findMany({
         where: {
-          id: { in: visitTechnicianIds },
+          id: { in: profileIdsToLoad },
         },
         select: {
           id: true,
@@ -168,6 +204,19 @@ export async function getPendingDailyDemandItems(params?: {
     visitTechniciansByDate.set(demandDateKey, technicians);
   }
 
+  // Rotas operacionais por data: quando existem, o técnico só enxerga as
+  // demandas vinculadas às rotas das quais participa.
+  const routesByDate = new Map<string, { id: number; technicianIds: number[] }[]>();
+  for (const route of routeRecords) {
+    const dateKey = route.date.toISOString().slice(0, 10);
+    const routes = routesByDate.get(dateKey) || [];
+    routes.push({
+      id: route.id,
+      technicianIds: route.technicians.map((membership) => membership.technicianId),
+    });
+    routesByDate.set(dateKey, routes);
+  }
+
   return demands
     .filter((demand) => {
       const demandDateKey = formatBrazilDateKey(demand.createdAt);
@@ -186,6 +235,18 @@ export async function getPendingDailyDemandItems(params?: {
       }
 
       if (profileRole === "TECH" && profileId !== null) {
+        const routesOnDate = routesByDate.get(demandDateKey) || [];
+
+        if (routesOnDate.length > 0) {
+          const technicianRouteIds = routesOnDate
+            .filter((route) => route.technicianIds.includes(profileId!))
+            .map((route) => route.id);
+
+          return (
+            demand.routeId !== null && technicianRouteIds.includes(demand.routeId)
+          );
+        }
+
         const responsibleTechnicians = visitTechniciansByDate.get(demandDateKey) || [];
 
         return responsibleTechnicians.some(
@@ -197,7 +258,28 @@ export async function getPendingDailyDemandItems(params?: {
     })
     .map((demand) => {
       const demandDateKey = formatBrazilDateKey(demand.createdAt);
-      const responsibleTechnicians = visitTechniciansByDate.get(demandDateKey) || [];
+      const routesOnDate = routesByDate.get(demandDateKey) || [];
+
+      // Quando a data opera por rotas, os responsáveis são os técnicos da
+      // rota da demanda — nunca os técnicos de outras rotas do mesmo dia.
+      let responsibleTechnicians: { technicianId: number; displayName: string }[];
+
+      if (routesOnDate.length > 0) {
+        const route =
+          demand.routeId !== null
+            ? routesOnDate.find((entry) => entry.id === demand.routeId)
+            : undefined;
+
+        responsibleTechnicians = (route?.technicianIds || []).map(
+          (technicianId) => ({
+            technicianId,
+            displayName:
+              profileNameById.get(technicianId) || `Tecnico ${technicianId}`,
+          })
+        );
+      } else {
+        responsibleTechnicians = visitTechniciansByDate.get(demandDateKey) || [];
+      }
 
       return {
         demandId: demand.id,
@@ -216,6 +298,7 @@ export async function getPendingDailyDemandItems(params?: {
         responsibleTechnicians: responsibleTechnicians.map(
           (technician) => technician.displayName
         ),
+        routeId: demand.routeId,
       };
     });
 }

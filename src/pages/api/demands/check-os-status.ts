@@ -1,14 +1,15 @@
 import prisma from "@/utils/prisma";
 import { NextApiRequest, NextApiResponse } from "next";
 import { requireAuth } from "@/utils/api-auth";
+import { canProfileAccessDemand } from "@/utils/operationalRoutes";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método não permitido" });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).json({ error: "Método não permitido" });
   }
 
   const { demandIds, targetDate } = req.body;
@@ -27,6 +28,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         School: true
       }
     });
+
+    // Um técnico só pode consultar o status de demandas da própria rota.
+    const allowedDemands: typeof demands = [];
+    for (const demand of demands) {
+      const canAccess = await canProfileAccessDemand({
+        profileId: auth.profile.id,
+        role: auth.profile.role,
+        demandId: demand.id,
+        demandCreatedAt: demand.createdAt,
+        demandRouteId: demand.routeId,
+      });
+
+      if (canAccess) {
+        allowedDemands.push(demand);
+      }
+    }
 
     // Configurar filtro de data se fornecido
     let dateFilter = {};
@@ -50,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verificar OS criadas para essas escolas
-    const schoolNames = demands.map(d => d.School.name);
+    const schoolNames = allowedDemands.map(d => d.School.name);
 
     const osCreated = await prisma.os.findMany({
       where: {
@@ -107,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Mapear status das demandas
-    const demandStatus = demands.map(demand => {
+    const demandStatus = allowedDemands.map(demand => {
       const schoolName = demand.School.name;
       const demandDate = new Date(demand.createdAt);
 
