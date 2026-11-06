@@ -4,8 +4,11 @@ import { generateTicketAcceptedEmail } from '@/utils/emailTemplates';
 import { requireAuth } from "@/utils/api-auth";
 import {
   dateKeyFromPrismaDate,
+  isRouteManager,
   isValidDateKey,
+  loadTicketAccessContext,
   routeStatusIsOpen,
+  technicianCanAccessTicket,
 } from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
@@ -61,6 +64,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!ticket) {
       return res.status(404).json({ error: 'Chamado não encontrado' });
+    }
+
+    // Autorização aplicada no backend, a partir do usuário autenticado.
+    // Um técnico só agenda chamados da própria equipe e nunca transfere um
+    // chamado de outra rota (nem o devolve para a fila administrativa).
+    if (!isRouteManager(auth.profile.role)) {
+      if (auth.profile.role !== 'TECH') {
+        return res.status(403).json({
+          error: 'Somente técnicos e administradores podem agendar chamados.'
+        });
+      }
+
+      const access = await loadTicketAccessContext(auth.profile.id);
+
+      if (
+        !technicianCanAccessTicket(access, {
+          routeId: ticket.routeId,
+          scheduledDate: ticket.scheduledDate,
+        })
+      ) {
+        return res.status(403).json({ error: 'Este chamado pertence a outra rota.' });
+      }
+
+      if (parsedRouteId !== null) {
+        if (!access.routeIds.includes(parsedRouteId)) {
+          return res.status(403).json({
+            error: 'Você só pode agendar chamados em rotas das quais participa.'
+          });
+        }
+      } else if (ticket.routeId !== null) {
+        return res.status(403).json({
+          error: 'Somente ADMIN ou ADMTOTAL podem remover o chamado da rota.'
+        });
+      } else if (access.daysWithRoutes.includes(scheduledDate)) {
+        return res.status(400).json({
+          error: 'Existem rotas nesta data. Selecione a sua rota para agendar o chamado.'
+        });
+      }
     }
 
     if (parsedRouteId !== null) {

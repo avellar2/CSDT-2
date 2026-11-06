@@ -1,7 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { requireAuth } from "@/utils/api-auth";
-import { getRouteIdsForTechnician, isRouteManager } from "@/utils/operationalRoutes";
+import {
+  buildTechnicianTicketWhere,
+  isRouteManager,
+  loadTicketAccessContext,
+} from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
 
@@ -15,7 +19,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { status, schoolId, assignedTo, routeId } = req.query;
+    const { status, schoolId, assignedTo } = req.query;
+    const routeIdQuery = Array.isArray(req.query.routeId)
+      ? req.query.routeId[0]
+      : req.query.routeId;
 
     // Construir filtros
     const where: Prisma.TechnicalTicketWhereInput = {
@@ -35,28 +42,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where.assignedTo = assignedTo as string;
     }
 
-    if (routeId && routeId !== 'all') {
-      where.routeId = parseInt(routeId as string);
-    } else if (routeId === 'unassigned') {
-      where.routeId = null;
+    // Filtro de rota: aceita "all", "unassigned" ou um ID numérico válido.
+    if (typeof routeIdQuery === 'string' && routeIdQuery.length > 0 && routeIdQuery !== 'all') {
+      if (routeIdQuery === 'unassigned') {
+        where.routeId = null;
+      } else {
+        const parsedRouteId = Number(routeIdQuery);
+        if (!Number.isInteger(parsedRouteId) || parsedRouteId <= 0) {
+          return res.status(400).json({
+            error: 'routeId deve ser "all", "unassigned" ou um ID numérico válido.'
+          });
+        }
+        where.routeId = parsedRouteId;
+      }
     }
 
-    // Técnicos só enxergam tickets destinados às rotas das quais participam.
-    // Sem nenhuma rota cadastrada no sistema, mantém o comportamento antigo.
+    // Técnicos só enxergam chamados destinados à própria rota. A decisão usa
+    // a data operacional de cada chamado (não a existência global de rotas),
+    // preservando os chamados antigos de dias sem rotas.
     if (!isRouteManager(auth.profile.role) && auth.profile.role === 'TECH') {
-      const technicianRouteIds = await getRouteIdsForTechnician(auth.profile.id);
-
-      if (technicianRouteIds.length > 0) {
-        where.routeId = { in: technicianRouteIds };
-      } else {
-        const anyRoutes = await prisma.dailyRoute.count({
-          where: { status: { notIn: ['CANCELLED'] } },
-        });
-
-        if (anyRoutes > 0) {
-          where.routeId = { in: [] };
-        }
-      }
+      const access = await loadTicketAccessContext(auth.profile.id);
+      where.AND = [buildTechnicianTicketWhere(access)];
     }
 
     // Buscar chamados

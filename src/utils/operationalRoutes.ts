@@ -1,5 +1,6 @@
 import prisma from "@/utils/prisma";
-import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
+import type { Prisma } from "@prisma/client";
+import { formatBrazilDateKey, getBrazilDayRange } from "@/utils/dailyDemandOsRules";
 
 export const ROUTE_MANAGER_ROLES = ["ADMIN", "ADMTOTAL"] as const;
 export const ROUTE_OPEN_STATUSES = ["PLANNED", "IN_PROGRESS"] as const;
@@ -225,4 +226,108 @@ export function canTechnicianSeeRouteEntity(params: {
       route.id === params.routeId &&
       route.technicianIds.includes(params.profileId)
   );
+}
+
+/**
+ * Contexto de acesso de um técnico a chamados técnicos (TechnicalTicket).
+ *
+ * A compatibilidade é decidida **por chamado**, pela data operacional dele,
+ * e não pela existência global de rotas: um chamado antigo continua visível
+ * mesmo que hoje existam rotas.
+ */
+export type TicketAccessContext = {
+  /** Rotas (não canceladas) das quais o técnico participa ativamente. */
+  routeIds: number[];
+  /** Datas (YYYY-MM-DD em America/Sao_Paulo) que possuem alguma rota. */
+  daysWithRoutes: string[];
+};
+
+export async function loadTicketAccessContext(
+  profileId: number
+): Promise<TicketAccessContext> {
+  const [memberships, routes] = await Promise.all([
+    prisma.dailyRouteTechnician.findMany({
+      where: {
+        technicianId: profileId,
+        active: true,
+        route: { status: { notIn: [...ROUTE_HIDDEN_STATUSES] } },
+      },
+      select: { routeId: true },
+    }),
+    prisma.dailyRoute.findMany({
+      where: { status: { notIn: [...ROUTE_HIDDEN_STATUSES] } },
+      select: { date: true },
+    }),
+  ]);
+
+  return {
+    routeIds: Array.from(new Set(memberships.map((membership) => membership.routeId))),
+    daysWithRoutes: Array.from(
+      new Set(routes.map((route) => dateKeyFromPrismaDate(route.date)))
+    ),
+  };
+}
+
+/** Data operacional de um chamado técnico (agendamento, quando houver). */
+export function ticketDateKey(scheduledDate: Date | null): string | null {
+  return scheduledDate ? formatBrazilDateKey(scheduledDate) : null;
+}
+
+/**
+ * Regra de visibilidade de um chamado técnico para um técnico:
+ * - chamado em dia sem nenhuma rota → comportamento antigo (visível);
+ * - chamado sem data → fila de atendimento: visível se sem rota ou da
+ *   própria equipe;
+ * - chamado em dia com rotas → só visível se vinculado a uma rota do técnico.
+ *
+ * A decisão usa a data operacional de cada chamado, nunca a existência
+ * global de rotas — por isso um chamado antigo não desaparece quando uma
+ * rota é criada hoje.
+ */
+export function technicianCanAccessTicket(
+  context: TicketAccessContext,
+  ticket: { routeId: number | null; scheduledDate: Date | null }
+): boolean {
+  const dateKey = ticketDateKey(ticket.scheduledDate);
+
+  if (dateKey === null) {
+    return ticket.routeId === null || context.routeIds.includes(ticket.routeId);
+  }
+
+  if (!context.daysWithRoutes.includes(dateKey)) {
+    return true;
+  }
+
+  return ticket.routeId !== null && context.routeIds.includes(ticket.routeId);
+}
+
+/**
+ * Versão em `where` da mesma regra, para a listagem paginada e para as
+ * estatísticas refletirem exatamente o que o técnico pode ver.
+ */
+export function buildTechnicianTicketWhere(
+  context: TicketAccessContext
+): Prisma.TechnicalTicketWhereInput {
+  const conditions: Prisma.TechnicalTicketWhereInput[] = [
+    // 1. Chamados vinculados a uma das rotas do técnico.
+    ...(context.routeIds.length > 0
+      ? [{ routeId: { in: context.routeIds } }]
+      : []),
+    // 2. Chamados ainda não agendados e sem rota: fila técnica.
+    { routeId: null, scheduledDate: null },
+  ];
+
+  // 3. Chamados agendados em dias sem nenhuma rota: compatibilidade com o
+  //    comportamento anterior às rotas operacionais.
+  const notInRouteDays = context.daysWithRoutes.map((dateKey) => {
+    const { start, end } = getBrazilDayRange(dateKey);
+    return { NOT: { scheduledDate: { gte: start, lte: end } } };
+  });
+
+  conditions.push({
+    scheduledDate: { not: null },
+    ...(notInRouteDays.length > 0 ? { AND: notInRouteDays } : {}),
+  });
+
+  return { OR: conditions };
 }

@@ -21,16 +21,21 @@ vi.mock("@/utils/prisma", () => ({
 
 import {
   buildRouteConflictKey,
+  buildTechnicianTicketWhere,
   canProfileAccessDemand,
   canTechnicianSeeRouteEntity,
   dateKeyFromPrismaDate,
   isRouteManager,
   isValidDateKey,
   loadRouteScope,
+  loadTicketAccessContext,
   prismaDateFromKey,
   prismaDateTimeFromDateKey,
   routeStatusIsOpen,
+  technicianCanAccessTicket,
+  ticketDateKey,
   type RouteScopeEntry,
+  type TicketAccessContext,
 } from "@/utils/operationalRoutes";
 
 const readSrc = (rel: string) =>
@@ -249,6 +254,237 @@ describe("loadRouteScope", () => {
     const scope = await loadRouteScope([]);
     expect(scope.size).toBe(0);
     expect(dailyRouteFindMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("Acesso a chamados técnicos por rota (Problems A/B/C)", () => {
+  // Carro X = rota 1 (técnicos 10 e 11); Carro Y = rota 2 (técnicos 12 e 13).
+  const dayWithRoutes = "2026-11-06";
+  const techCarX: TicketAccessContext = {
+    routeIds: [1],
+    daysWithRoutes: [dayWithRoutes],
+  };
+  const techCarY: TicketAccessContext = {
+    routeIds: [2],
+    daysWithRoutes: [dayWithRoutes],
+  };
+  const techWithoutRoute: TicketAccessContext = {
+    routeIds: [],
+    daysWithRoutes: [dayWithRoutes],
+  };
+  const legacyContext: TicketAccessContext = { routeIds: [], daysWithRoutes: [] };
+
+  const at = (dateKey: string) => new Date(`${dateKey}T12:00:00-03:00`);
+
+  it("mantém as equipes de carros diferentes totalmente separadas", () => {
+    const ticketCarX = { routeId: 1, scheduledDate: at(dayWithRoutes) };
+    const ticketCarY = { routeId: 2, scheduledDate: at(dayWithRoutes) };
+
+    expect(technicianCanAccessTicket(techCarX, ticketCarX)).toBe(true);
+    expect(technicianCanAccessTicket(techCarX, ticketCarY)).toBe(false);
+    expect(technicianCanAccessTicket(techCarY, ticketCarY)).toBe(true);
+    expect(technicianCanAccessTicket(techCarY, ticketCarX)).toBe(false);
+  });
+
+  it("com rotas no dia, chamado sem rota é fila administrativa (oculto)", () => {
+    expect(
+      technicianCanAccessTicket(techCarX, {
+        routeId: null,
+        scheduledDate: at(dayWithRoutes),
+      })
+    ).toBe(false);
+  });
+
+  it("chamado sem rota e sem data continua na fila técnica", () => {
+    expect(
+      technicianCanAccessTicket(techWithoutRoute, {
+        routeId: null,
+        scheduledDate: null,
+      })
+    ).toBe(true);
+  });
+
+  it("chamado sem data vinculado a outra rota fica oculto", () => {
+    expect(
+      technicianCanAccessTicket(techCarX, { routeId: 2, scheduledDate: null })
+    ).toBe(false);
+  });
+
+  it("chamado antigo em dia SEM rotas continua visível (Problem B)", () => {
+    // Rota criada hoje não pode esconder chamados de dias anteriores.
+    expect(
+      technicianCanAccessTicket(techCarX, {
+        routeId: null,
+        scheduledDate: at("2026-10-01"),
+      })
+    ).toBe(true);
+  });
+
+  it("chamado antigo sem rota continua visível mesmo havendo rotas hoje (Problem B)", () => {
+    expect(
+      technicianCanAccessTicket(techWithoutRoute, {
+        routeId: null,
+        scheduledDate: at("2026-10-01"),
+      })
+    ).toBe(true);
+  });
+
+  it("sem nenhuma rota no sistema, qualquer chamado segue o comportamento antigo", () => {
+    expect(
+      technicianCanAccessTicket(legacyContext, {
+        routeId: null,
+        scheduledDate: at(dayWithRoutes),
+      })
+    ).toBe(true);
+    expect(
+      technicianCanAccessTicket(legacyContext, {
+        routeId: null,
+        scheduledDate: null,
+      })
+    ).toBe(true);
+  });
+
+  it("ticketDateKey usa a data operacional em America/Sao_Paulo", () => {
+    // 02:00 UTC de 07/11 ainda é 06/11 em São Paulo.
+    expect(ticketDateKey(new Date("2026-11-07T02:00:00.000Z"))).toBe("2026-11-06");
+    expect(ticketDateKey(null)).toBeNull();
+  });
+});
+
+describe("buildTechnicianTicketWhere", () => {
+  const context: TicketAccessContext = {
+    routeIds: [1, 2],
+    daysWithRoutes: ["2026-11-06"],
+  };
+
+  it("inclui as rotas do técnico", () => {
+    const where = buildTechnicianTicketWhere(context);
+    expect(where.OR).toContainEqual({ routeId: { in: [1, 2] } });
+  });
+
+  it("inclui chamados sem rota e sem data", () => {
+    const where = buildTechnicianTicketWhere(context);
+    expect(where.OR).toContainEqual({ routeId: null, scheduledDate: null });
+  });
+
+  it("inclui chamados agendados fora dos dias que possuem rotas", () => {
+    const where = buildTechnicianTicketWhere(context);
+    const legacy = (where.OR as any[]).find(
+      (condition) => condition.scheduledDate && condition.AND
+    );
+
+    expect(legacy).toBeTruthy();
+    expect(legacy.scheduledDate).toEqual({ not: null });
+    expect(legacy.AND).toHaveLength(1);
+    const range = legacy.AND[0].NOT.scheduledDate;
+    expect(range.gte.toISOString()).toBe("2026-11-06T03:00:00.000Z");
+    expect(range.lte.toISOString()).toBe("2026-11-07T02:59:59.999Z");
+  });
+
+  it("sem rotas no sistema, não restringe chamados agendados", () => {
+    const where = buildTechnicianTicketWhere({
+      routeIds: [],
+      daysWithRoutes: [],
+    });
+    expect(where.OR).toHaveLength(2);
+    expect(where.OR).toContainEqual({ scheduledDate: { not: null } });
+  });
+});
+
+describe("loadTicketAccessContext", () => {
+  beforeEach(() => {
+    dailyRouteTechnicianFindMany.mockReset();
+    dailyRouteFindMany.mockReset();
+  });
+
+  it("deduplica rotas e datas e ignora rotas canceladas", async () => {
+    dailyRouteTechnicianFindMany.mockResolvedValue([
+      { routeId: 1 },
+      { routeId: 1 },
+      { routeId: 2 },
+    ]);
+    dailyRouteFindMany.mockResolvedValue([
+      { date: new Date("2026-11-06T00:00:00.000Z") },
+      { date: new Date("2026-11-06T00:00:00.000Z") },
+      { date: new Date("2026-11-07T00:00:00.000Z") },
+    ]);
+
+    const context = await loadTicketAccessContext(10);
+
+    expect(context).toEqual({
+      routeIds: [1, 2],
+      daysWithRoutes: ["2026-11-06", "2026-11-07"],
+    });
+    // rotas canceladas ficam fora do escopo
+    const membershipWhere = dailyRouteTechnicianFindMany.mock.calls[0][0].where;
+    expect(membershipWhere.technicianId).toBe(10);
+    expect(membershipWhere.active).toBe(true);
+    expect(membershipWhere.route.status.notIn).toContain("CANCELLED");
+  });
+});
+
+describe("Regressões dos problemas A, B e C", () => {
+  it("Problem C — listagem trata `unassigned` antes de converter para número", () => {
+    const src = readSrc("src/pages/api/technical-tickets/list.ts");
+    // a conversão numérica não pode receber o literal "unassigned"
+    expect(src).not.toMatch(/parseInt\(\s*routeId/);
+    expect(src).toContain("routeIdQuery === 'unassigned'");
+    expect(src).toContain("Number.isInteger(parsedRouteId)");
+  });
+
+  it("Problem B — listagem decide acesso pela data de cada chamado, não por rota global", () => {
+    const src = readSrc("src/pages/api/technical-tickets/list.ts");
+    expect(src).toContain("loadTicketAccessContext");
+    expect(src).toContain("buildTechnicianTicketWhere");
+    // não pode voltar a usar a checagem global de rotas
+    expect(src).not.toMatch(/dailyRoute\.count/);
+    expect(src).not.toContain("hasRoutesForDate");
+  });
+
+  it("Problem A — agendamento valida rota e chamado do técnico autenticado", () => {
+    const src = readSrc("src/pages/api/technical-tickets/schedule.ts");
+    expect(src).toContain("await requireAuth(req, res)");
+    expect(src).toContain("technicianCanAccessTicket");
+    expect(src).toContain("access.routeIds.includes(parsedRouteId)");
+    expect(src).toContain("Somente ADMIN ou ADMTOTAL podem remover o chamado da rota");
+    expect(src).toContain("Somente técnicos e administradores podem agendar chamados");
+    // transferência de rota só para gestores
+    expect(src).toContain("isRouteManager(auth.profile.role)");
+  });
+
+  it("Problem A — atualização e exclusão usam a mesma regra por chamado", () => {
+    for (const file of [
+      "src/pages/api/technical-tickets/update.ts",
+      "src/pages/api/technical-tickets/delete.ts",
+    ]) {
+      const src = readSrc(file);
+      expect(src).toContain("loadTicketAccessContext");
+      expect(src).toContain("technicianCanAccessTicket");
+    }
+  });
+
+  it("Problem A — remarcar para outra data com rota exige gestor", () => {
+    const src = readSrc("src/pages/api/technical-tickets/update.ts");
+    expect(src).toContain("Somente ADMIN ou ADMTOTAL podem reagendar");
+  });
+
+  it("Problem D — chamados-escalas limpa vínculo de rota ao reagendar para outro dia", () => {
+    const src = readSrc("src/pages/api/chamados-escalas.ts");
+    expect(src).toContain("updateData.routeId = null");
+    expect(src).toContain("dateKeyFromPrismaDate(currentRoute.date) !== newDateKey");
+  });
+
+  it("Problem A — PATCH de chamado de escala bloqueia reagendamento com rota para técnico", () => {
+    const src = readSrc("src/pages/api/chamados-escala/[id].ts");
+    expect(src).toContain("Somente ADMIN ou ADMTOTAL podem reagendar");
+    expect(src).toContain("Apenas a administração pode alterar a rota do chamado");
+  });
+
+  it("Problem D — desvincular chamado da rota exige gestor e é auditado", () => {
+    const src = readSrc("src/pages/api/technical-tickets/update.ts");
+    expect(src).toContain("hasOwnProperty.call");
+    expect(src).toContain("updateData.routeId = null");
+    expect(src).toContain("fromRouteId: currentTicket.routeId");
   });
 });
 

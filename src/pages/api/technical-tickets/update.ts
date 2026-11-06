@@ -4,10 +4,12 @@ import { generateStatusChangeEmail } from '@/utils/emailTemplates';
 import { requireAuth } from "@/utils/api-auth";
 import {
   dateKeyFromPrismaDate,
-  getRouteIdsForTechnician,
   isRouteManager,
   isValidDateKey,
+  loadTicketAccessContext,
   routeStatusIsOpen,
+  technicianCanAccessTicket,
+  ticketDateKey,
 } from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
@@ -48,27 +50,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Chamado não encontrado' });
     }
 
-    // Técnicos só alteram chamados destinados à própria rota.
+    // Técnicos só alteram chamados destinados à própria equipe. A decisão usa
+    // a data operacional do chamado, não a existência global de rotas.
     if (!isRouteManager(auth.profile.role) && auth.profile.role === 'TECH') {
-      const technicianRouteIds = await getRouteIdsForTechnician(auth.profile.id);
-      const anyRoutes = await prisma.dailyRoute.count({
-        where: { status: { notIn: ['CANCELLED'] } },
-      });
+      const access = await loadTicketAccessContext(auth.profile.id);
 
       if (
-        technicianRouteIds.length > 0 &&
-        (currentTicket.routeId === null ||
-          !technicianRouteIds.includes(currentTicket.routeId))
+        !technicianCanAccessTicket(access, {
+          routeId: currentTicket.routeId,
+          scheduledDate: currentTicket.scheduledDate,
+        })
       ) {
         return res.status(403).json({
           error: 'Este chamado pertence a outra rota.',
         });
       }
 
-      if (technicianRouteIds.length === 0 && anyRoutes > 0) {
-        return res.status(403).json({
-          error: 'Você não participa de nenhuma rota ativa.',
-        });
+      // Reagendar para outro dia altera a rota responsável: só a administração.
+      if (currentTicket.routeId !== null && scheduledDate) {
+        const currentDateKey = ticketDateKey(currentTicket.scheduledDate);
+        const nextDateKey = isValidDateKey(scheduledDate)
+          ? scheduledDate
+          : dateKeyFromPrismaDate(new Date(scheduledDate));
+
+        if (currentDateKey !== null && currentDateKey !== nextDateKey) {
+          return res.status(403).json({
+            error:
+              'Somente ADMIN ou ADMTOTAL podem reagendar um chamado com rota para outra data.',
+          });
+        }
       }
     }
 
@@ -88,13 +98,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       updateData.scheduledTime = scheduledTime;
     }
 
-    const parsedRouteId =
-      routeId === null || routeId === undefined || routeId === ''
-        ? undefined
+    // `routeId` ausente significa "não alterar"; `routeId: null` (ou vazio)
+    // remove o chamado da rota e devolve à fila administrativa. As duas
+    // operações são exclusivas de ADMIN/ADMTOTAL.
+    const routeIdProvided = Object.prototype.hasOwnProperty.call(
+      req.body,
+      'routeId'
+    );
+    const parsedRouteId = !routeIdProvided
+      ? undefined
+      : routeId === null || routeId === ''
+        ? null
         : Number(routeId);
 
     if (
       parsedRouteId !== undefined &&
+      parsedRouteId !== null &&
       (!Number.isInteger(parsedRouteId) || parsedRouteId <= 0)
     ) {
       return res.status(400).json({ error: 'routeId inválido' });
@@ -107,32 +126,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const route = await prisma.dailyRoute.findUnique({
-        where: { id: parsedRouteId },
-        select: { id: true, date: true, status: true },
-      });
-
-      if (!route) {
-        return res.status(404).json({ error: 'Rota não encontrada' });
-      }
-
-      if (!routeStatusIsOpen(route.status)) {
-        return res.status(409).json({ error: 'A rota está encerrada.' });
-      }
-
-      const ticketDate = scheduledDate
-        ? (isValidDateKey(scheduledDate) ? scheduledDate : null)
-        : currentTicket.scheduledDate
-          ? dateKeyFromPrismaDate(currentTicket.scheduledDate)
-          : null;
-
-      if (!ticketDate || dateKeyFromPrismaDate(route.date) !== ticketDate) {
-        return res.status(400).json({
-          error: 'A data do chamado deve ser a mesma data da rota.',
+      if (parsedRouteId === null) {
+        updateData.routeId = null;
+      } else {
+        const route = await prisma.dailyRoute.findUnique({
+          where: { id: parsedRouteId },
+          select: { id: true, date: true, status: true },
         });
-      }
 
-      updateData.routeId = parsedRouteId;
+        if (!route) {
+          return res.status(404).json({ error: 'Rota não encontrada' });
+        }
+
+        if (!routeStatusIsOpen(route.status)) {
+          return res.status(409).json({ error: 'A rota está encerrada.' });
+        }
+
+        const ticketDate = scheduledDate
+          ? (isValidDateKey(scheduledDate) ? scheduledDate : null)
+          : currentTicket.scheduledDate
+            ? dateKeyFromPrismaDate(currentTicket.scheduledDate)
+            : null;
+
+        if (!ticketDate || dateKeyFromPrismaDate(route.date) !== ticketDate) {
+          return res.status(400).json({
+            error: 'A data do chamado deve ser a mesma data da rota.',
+          });
+        }
+
+        updateData.routeId = parsedRouteId;
+      }
     }
 
     const updatedTicket = await prisma.$transaction(async (tx) => {

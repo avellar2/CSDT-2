@@ -1,7 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from "@/utils/api-auth";
-import { getRouteIdsForTechnician, isRouteManager } from "@/utils/operationalRoutes";
+import {
+  isRouteManager,
+  loadTicketAccessContext,
+  technicianCanAccessTicket,
+} from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
 
@@ -34,25 +38,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Chamado não encontrado' });
     }
 
-    // Técnicos só excluem chamados das próprias rotas.
+    // Técnicos só excluem chamados das próprias rotas (regra por chamado,
+    // usando a data operacional dele).
     if (!isRouteManager(auth.profile.role) && auth.profile.role === 'TECH') {
-      const technicianRouteIds = await getRouteIdsForTechnician(auth.profile.id);
-      const anyRoutes = await prisma.dailyRoute.count({
-        where: { status: { notIn: ['CANCELLED'] } },
-      });
+      const access = await loadTicketAccessContext(auth.profile.id);
 
       if (
-        technicianRouteIds.length > 0 &&
-        (currentTicket.routeId === null ||
-          !technicianRouteIds.includes(currentTicket.routeId))
+        !technicianCanAccessTicket(access, {
+          routeId: currentTicket.routeId,
+          scheduledDate: currentTicket.scheduledDate,
+        })
       ) {
         return res.status(403).json({ error: 'Este chamado pertence a outra rota.' });
-      }
-
-      if (technicianRouteIds.length === 0 && anyRoutes > 0) {
-        return res.status(403).json({
-          error: 'Você não participa de nenhuma rota ativa.',
-        });
       }
     }
 

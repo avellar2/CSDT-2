@@ -181,6 +181,83 @@ describe.skipIf(!RUN)("Rotas operacionais — integração com banco", () => {
             expect(chamado.routeId).toBe(route1.id);
             evidence.push("Cenário F: reagendamento aceita a rota responsável");
 
+            // Problem B: a regra de visibilidade é por chamado e pela data
+            // operacional dele, não pela existência global de rotas.
+            const ticketOwnRoute = await tx.technicalTicket.create({
+              data: {
+                schoolId: school.id,
+                title: "TESTE — chamado da Rota 1",
+                description: "Teste",
+                createdBy: "vitest",
+                routeId: route1.id,
+                scheduledDate: new Date(`${dateKey}T09:00:00-03:00`),
+                updatedAt: new Date(),
+              },
+            });
+            const ticketOtherRoute = await tx.technicalTicket.create({
+              data: {
+                schoolId: school.id,
+                title: "TESTE — chamado da Rota 2",
+                description: "Teste",
+                createdBy: "vitest",
+                routeId: route2.id,
+                scheduledDate: new Date(`${dateKey}T10:00:00-03:00`),
+                updatedAt: new Date(),
+              },
+            });
+            const ticketUnassignedToday = await tx.technicalTicket.create({
+              data: {
+                schoolId: school.id,
+                title: "TESTE — chamado sem rota no dia com rotas",
+                description: "Teste",
+                createdBy: "vitest",
+                scheduledDate: new Date(`${dateKey}T11:00:00-03:00`),
+                updatedAt: new Date(),
+              },
+            });
+            const ticketOldDay = await tx.technicalTicket.create({
+              data: {
+                schoolId: school.id,
+                title: "TESTE — chamado antigo em dia sem rotas",
+                description: "Teste",
+                createdBy: "vitest",
+                scheduledDate: new Date("2026-10-01T12:00:00-03:00"),
+                updatedAt: new Date(),
+              },
+            });
+
+            const { buildTechnicianTicketWhere } = await import(
+              "@/utils/operationalRoutes"
+            );
+            const techAVisible = await tx.technicalTicket.findMany({
+              where: {
+                AND: [
+                  {
+                    id: {
+                      in: [
+                        ticketOwnRoute.id,
+                        ticketOtherRoute.id,
+                        ticketUnassignedToday.id,
+                        ticketOldDay.id,
+                      ],
+                    },
+                  },
+                  buildTechnicianTicketWhere({
+                    routeIds: [route1.id],
+                    daysWithRoutes: [dateKey],
+                  }),
+                ],
+              },
+              select: { id: true },
+            });
+
+            expect(techAVisible.map((ticket) => ticket.id).sort()).toEqual(
+              [ticketOwnRoute.id, ticketOldDay.id].sort()
+            );
+            evidence.push(
+              "Problem B/C: chamado antigo de dia sem rota continua visível; outra rota e fila administrativa ficam ocultas"
+            );
+
             // Ao excluir a rota, nada é apagado: apenas o vínculo fica nulo.
             await tx.dailyRouteTechnician.deleteMany({
               where: { routeId: route2.id },

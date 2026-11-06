@@ -170,7 +170,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       if (typeof routeId === 'string' && routeId && routeId !== 'all') {
-        whereClause.routeId = routeId === 'unassigned' ? null : parseInt(routeId);
+        if (routeId === 'unassigned') {
+          whereClause.routeId = null;
+        } else {
+          const parsedRouteFilter = Number(routeId);
+          if (!Number.isInteger(parsedRouteFilter) || parsedRouteFilter <= 0) {
+            return res.status(400).json({
+              success: false,
+              error: 'routeId deve ser "all", "unassigned" ou um ID numérico válido.',
+            });
+          }
+          whereClause.routeId = parsedRouteFilter;
+        }
       }
 
       const chamados = await prisma.chamados_escalas.findMany({
@@ -233,6 +244,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ success: false, error: 'Chamado não encontrado' });
       }
 
+      if (
+        dataAgendamento !== undefined &&
+        dataAgendamento !== null &&
+        Number.isNaN(new Date(dataAgendamento).getTime())
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: 'dataAgendamento inválida.',
+        });
+      }
+
       if (!isRouteManager(auth.profile.role) && auth.profile.role === 'TECH') {
         const scope = await loadRouteScope([chamadoDateKey(existing)]);
 
@@ -247,6 +269,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(403).json({
             success: false,
             error: 'Este chamado pertence a outra rota.',
+          });
+        }
+
+        // Reagendar um chamado com rota muda a equipe responsável: só gestor.
+        if (
+          existing.routeId !== null &&
+          dataAgendamento &&
+          formatBrazilDateKey(new Date(dataAgendamento)) !== chamadoDateKey(existing)
+        ) {
+          return res.status(403).json({
+            success: false,
+            error:
+              'Somente ADMIN ou ADMTOTAL podem reagendar um chamado com rota para outra data.',
           });
         }
       }
@@ -298,6 +333,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
 
           updateData.routeId = parsedRouteId;
+        }
+      }
+
+      // Reagendar para outro dia sem informar a rota invalida o vínculo atual:
+      // o chamado sai da rota (fila administrativa) e a movimentação é auditada.
+      if (
+        dataAgendamento &&
+        updateData.routeId === undefined &&
+        existing.routeId !== null
+      ) {
+        const newDateKey = formatBrazilDateKey(new Date(dataAgendamento));
+        const currentRoute = await prisma.dailyRoute.findUnique({
+          where: { id: existing.routeId },
+          select: { date: true },
+        });
+
+        if (
+          !currentRoute ||
+          dateKeyFromPrismaDate(currentRoute.date) !== newDateKey
+        ) {
+          updateData.routeId = null;
         }
       }
 

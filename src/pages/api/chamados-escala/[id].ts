@@ -59,6 +59,14 @@ async function handlePatch(
     return res.status(404).json({ error: 'Chamado não encontrado' });
   }
 
+  if (
+    dataAgendamento !== undefined &&
+    dataAgendamento !== null &&
+    Number.isNaN(new Date(dataAgendamento).getTime())
+  ) {
+    return res.status(400).json({ error: 'dataAgendamento inválida.' });
+  }
+
   if (!isRouteManager(auth.profile.role) && auth.profile.role === 'TECH') {
     const existingDateKey = formatBrazilDateKey(
       existing.dataAgendamento || existing.dataCriacao
@@ -74,6 +82,19 @@ async function handlePatch(
       })
     ) {
       return res.status(403).json({ error: 'Este chamado pertence a outra rota.' });
+    }
+
+    // Reagendar um chamado com rota para outro dia equivale a transferi-lo:
+    // somente a administração pode fazer isso.
+    if (
+      existing.routeId !== null &&
+      dataAgendamento &&
+      formatBrazilDateKey(new Date(dataAgendamento)) !== existingDateKey
+    ) {
+      return res.status(403).json({
+        error:
+          'Somente ADMIN ou ADMTOTAL podem reagendar um chamado com rota para outra data.',
+      });
     }
   }
 
@@ -96,7 +117,7 @@ async function handlePatch(
       targetRouteId = null;
     } else {
       const numericRouteId = Number(routeId);
-      if (!Number.isInteger(numericRouteId)) {
+      if (!Number.isInteger(numericRouteId) || numericRouteId <= 0) {
         return res.status(400).json({ error: 'Rota inválida.' });
       }
 
