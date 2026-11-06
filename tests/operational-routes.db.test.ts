@@ -18,7 +18,7 @@ describe.skipIf(!RUN)("Rotas operacionais — integração com banco", () => {
       const { default: prisma } = await import("@/utils/prisma");
 
       const [profiles, school, beforeCounts] = await Promise.all([
-        prisma.profile.findMany({ take: 3, select: { id: true } }),
+        prisma.profile.findMany({ take: 4, select: { id: true } }),
         prisma.school.findFirst({ select: { id: true } }),
         Promise.all([
           prisma.dailyRoute.count(),
@@ -27,7 +27,7 @@ describe.skipIf(!RUN)("Rotas operacionais — integração com banco", () => {
         ]),
       ]);
 
-      if (!school || profiles.length < 2) {
+      if (!school || profiles.length < 3) {
         console.warn("Dados insuficientes para o teste de integração; ignorando.");
         return;
       }
@@ -48,7 +48,7 @@ describe.skipIf(!RUN)("Rotas operacionais — integração com banco", () => {
             });
             evidence.push("Cenário B: duas rotas na mesma data criadas");
 
-            const [techA, techB] = profiles;
+            const [techA, techB, techC] = profiles;
 
             await tx.dailyRouteTechnician.create({
               data: {
@@ -56,6 +56,15 @@ describe.skipIf(!RUN)("Rotas operacionais — integração com banco", () => {
                 technicianId: techA.id,
                 routeDate: date,
                 conflictKey: `${techA.id}:${dateKey}`,
+              },
+            });
+            // Cenário A: uma rota (um carro) com dois técnicos.
+            await tx.dailyRouteTechnician.create({
+              data: {
+                routeId: route1.id,
+                technicianId: techC.id,
+                routeDate: date,
+                conflictKey: `${techC.id}:${dateKey}`,
               },
             });
             await tx.dailyRouteTechnician.create({
@@ -66,7 +75,9 @@ describe.skipIf(!RUN)("Rotas operacionais — integração com banco", () => {
                 conflictKey: `${techB.id}:${dateKey}`,
               },
             });
-            evidence.push("Cenário A/B: técnicos distribuídos em rotas distintas");
+            evidence.push(
+              "Cenário A/B: uma rota com dois técnicos e outra rota com um técnico"
+            );
 
             // Mesmo técnico em duas rotas ativas no mesmo dia deve falhar.
             // ON CONFLICT DO NOTHING evita abortar a transação de teste.
@@ -98,6 +109,33 @@ describe.skipIf(!RUN)("Rotas operacionais — integração com banco", () => {
 
             expect(demand.routeId).toBe(route1.id);
             expect(legacyDemand.routeId).toBeNull();
+
+            // Cenário A: três demandas na mesma rota (mesmo carro).
+            await tx.schoolDemand.create({
+              data: {
+                schoolId: school.id,
+                demand: "TESTE — demanda 2 da Rota 1",
+                routeId: route1.id,
+                createdAt: new Date(`${dateKey}T12:00:00-03:00`),
+              },
+            });
+            await tx.schoolDemand.create({
+              data: {
+                schoolId: school.id,
+                demand: "TESTE — demanda 3 da Rota 1",
+                routeId: route1.id,
+                createdAt: new Date(`${dateKey}T12:00:00-03:00`),
+              },
+            });
+
+            const demandsOnRoute1 = await tx.schoolDemand.count({
+              where: { routeId: route1.id },
+            });
+            expect(demandsOnRoute1).toBe(3);
+            evidence.push(
+              "Cenário A: três demandas associadas à rota do carro X (sem duplicação de contagem)"
+            );
+
             evidence.push("Cenário E: demanda antiga sem rota continua válida no banco");
 
             // Cenário C: transferência entre rotas preserva histórico e demanda.
