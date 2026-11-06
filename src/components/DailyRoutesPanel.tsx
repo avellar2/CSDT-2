@@ -11,22 +11,14 @@ import {
   X,
 } from "lucide-react";
 import { getAuthHeaders } from "@/utils/client-auth";
+import {
+  routeIsEmpty,
+  type DailyRouteDTO,
+  type RouteCounts,
+  type RouteTechnicianDTO,
+} from "@/utils/dailyRouteDto";
 
-export interface RouteTechnicianDTO {
-  membershipId: number;
-  technicianId: number;
-  displayName: string;
-}
-
-export interface DailyRouteDTO {
-  id: number;
-  date: string;
-  name: string;
-  vehicle: string | null;
-  status: string;
-  technicians: RouteTechnicianDTO[];
-  counts: { demands: number; tickets: number; chamados: number };
-}
+export type { DailyRouteDTO, RouteCounts, RouteTechnicianDTO };
 
 export type RouteFilterValue = "all" | "unassigned" | number;
 
@@ -44,6 +36,8 @@ interface DailyRoutesPanelProps {
   onSelectFilter: (value: RouteFilterValue) => void;
   onChanged: () => void | Promise<void>;
   unassignedCount?: number;
+  /** Falha ao carregar as rotas: não confundir com "nenhuma rota cadastrada". */
+  routesUnavailable?: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -69,6 +63,23 @@ async function readError(response: Response, fallback: string) {
   }
 }
 
+/** Contador desconhecido aparece como "—", nunca como zero. */
+const RouteCountCell: React.FC<{ label: string; value: number | undefined }> = ({
+  label,
+  value,
+}) => (
+  <div className="bg-white rounded-lg p-2 border border-gray-100">
+    <div className="text-base font-bold text-gray-800">
+      {typeof value === "number" ? value : "—"}
+    </div>
+    <div className="text-[11px] text-gray-500">{label}</div>
+  </div>
+);
+
+function routeTechniciansOf(route: DailyRouteDTO): RouteTechnicianDTO[] {
+  return Array.isArray(route.technicians) ? route.technicians : [];
+}
+
 const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
   dateKey,
   routes,
@@ -77,6 +88,7 @@ const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
   onSelectFilter,
   onChanged,
   unassignedCount = 0,
+  routesUnavailable = false,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<DailyRouteDTO | null>(null);
@@ -126,7 +138,9 @@ const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
     setEditingRoute(route);
     setFormName(route.name);
     setFormVehicle(route.vehicle || "");
-    setFormTechnicianIds(route.technicians.map((tech) => tech.technicianId));
+    setFormTechnicianIds(
+      routeTechniciansOf(route).map((tech) => tech.technicianId)
+    );
     setError(null);
     setIsModalOpen(true);
     void loadProfiles();
@@ -180,12 +194,12 @@ const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
         }
 
         const currentIds = new Set(
-          editingRoute.technicians.map((tech) => tech.technicianId)
+          routeTechniciansOf(editingRoute).map((tech) => tech.technicianId)
         );
         const nextIds = new Set(formTechnicianIds);
 
         const toAdd = formTechnicianIds.filter((id) => !currentIds.has(id));
-        const toRemove = editingRoute.technicians
+        const toRemove = routeTechniciansOf(editingRoute)
           .map((tech) => tech.technicianId)
           .filter((id) => !nextIds.has(id));
 
@@ -256,9 +270,16 @@ const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
   };
 
   const handleDelete = async (route: DailyRouteDTO) => {
+    if (!routeIsEmpty(route)) {
+      alert(
+        "Esta rota possui demandas, chamados ou OS externas associados. Encerre a rota em vez de excluí-la."
+      );
+      return;
+    }
+
     if (
       !confirm(
-        `Excluir a rota ${route.name}? Só é possível excluir rotas sem demandas ou chamados.`
+        `Excluir a rota ${route.name}? Só é possível excluir rotas sem demandas, chamados ou OS externas.`
       )
     ) {
       return;
@@ -345,8 +366,9 @@ const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
 
       {routes.length === 0 ? (
         <p className="text-sm text-gray-500">
-          Nenhuma rota cadastrada para este dia. O funcionamento tradicional
-          continua valendo enquanto não houver rotas.
+          {routesUnavailable
+            ? "Não foi possível carregar as rotas deste dia. Tente novamente; as demandas continuam disponíveis."
+            : "Nenhuma rota cadastrada para este dia. O funcionamento tradicional continua valendo enquanto não houver rotas."}
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -399,14 +421,13 @@ const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
                     </button>
                     <button
                       onClick={() => handleDelete(route)}
-                      className="p-1.5 text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
-                      title="Excluir rota vazia"
-                      disabled={
-                        route.counts.demands +
-                          route.counts.tickets +
-                          route.counts.chamados >
-                        0
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                      title={
+                        routeIsEmpty(route)
+                          ? "Excluir rota vazia"
+                          : "Rota com demandas, chamados ou OS externas não pode ser excluída"
                       }
+                      disabled={!routeIsEmpty(route)}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -419,10 +440,13 @@ const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
                   Técnicos
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {route.technicians.length > 0 ? (
-                    route.technicians.map((tech) => (
+                  {routeTechniciansOf(route).length > 0 ? (
+                    routeTechniciansOf(route).map((tech, index) => (
                       <span
-                        key={tech.membershipId}
+                        key={
+                          tech.membershipId ??
+                          `${route.id}-${tech.technicianId}-${index}`
+                        }
                         className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-indigo-100 text-indigo-700 text-xs rounded-full"
                       >
                         <Users size={12} />
@@ -435,25 +459,23 @@ const DailyRoutesPanel: React.FC<DailyRoutesPanelProps> = ({
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                <div className="bg-white rounded-lg p-2 border border-gray-100">
-                  <div className="text-base font-bold text-gray-800">
-                    {route.counts.demands}
-                  </div>
-                  <div className="text-[11px] text-gray-500">Demandas</div>
-                </div>
-                <div className="bg-white rounded-lg p-2 border border-gray-100">
-                  <div className="text-base font-bold text-gray-800">
-                    {route.counts.tickets}
-                  </div>
-                  <div className="text-[11px] text-gray-500">Chamados</div>
-                </div>
-                <div className="bg-white rounded-lg p-2 border border-gray-100">
-                  <div className="text-base font-bold text-gray-800">
-                    {route.counts.chamados}
-                  </div>
-                  <div className="text-[11px] text-gray-500">Reagend.</div>
-                </div>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                <RouteCountCell
+                  label="Demandas"
+                  value={route.counts?.demands}
+                />
+                <RouteCountCell
+                  label="Chamados"
+                  value={route.counts?.tickets}
+                />
+                <RouteCountCell
+                  label="Reagend."
+                  value={route.counts?.chamados}
+                />
+                <RouteCountCell
+                  label="OS externas"
+                  value={route.counts?.osExternas}
+                />
               </div>
             </div>
           ))}

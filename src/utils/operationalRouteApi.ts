@@ -18,6 +18,8 @@ export const routeListInclude = {
       demands: true,
       technicalTickets: true,
       chamados: true,
+      // OS externas vinculadas à rota também impedem a exclusão.
+      osExternas: true,
     },
   },
 } satisfies Prisma.DailyRouteInclude;
@@ -48,6 +50,7 @@ export function serializeRoute(route: RouteListRecord) {
       demands: route._count.demands,
       tickets: route._count.technicalTickets,
       chamados: route._count.chamados,
+      osExternas: route._count.osExternas,
     },
   };
 }

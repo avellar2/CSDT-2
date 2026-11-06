@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import { jwtDecode } from "jwt-decode";
 import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
 import { getAuthHeaders } from "@/utils/client-auth";
+import { normalizeDailyRoutes } from "@/utils/dailyRouteDto";
 import {
   Trash,
   RefreshCw,
@@ -99,6 +100,9 @@ const DailyDemands: React.FC = () => {
   // Rotas operacionais
   const [routes, setRoutes] = useState<DailyRouteDTO[]>([]);
   const [routeFilter, setRouteFilter] = useState<RouteFilterValue>("all");
+  // Falha ao carregar rotas é aviso local: nunca derruba a página de demandas.
+  const [routesError, setRoutesError] = useState<string | null>(null);
+  const latestRoutesRequest = useRef(0);
 
   // Format date for API
   const formatDateForAPI = (date: Date) => formatBrazilDateKey(date);
@@ -230,6 +234,45 @@ const DailyDemands: React.FC = () => {
     }
   }, [selectedDate]);
 
+  // Rotas do dia: DTO completo de /api/routes (counts + membershipId), o mesmo
+  // consumido por /scales. O escopo de acesso dos técnicos é aplicado lá.
+  const fetchRoutes = useCallback(async (dateKey: string) => {
+    const requestId = latestRoutesRequest.current + 1;
+    latestRoutesRequest.current = requestId;
+
+    try {
+      const response = await fetch(
+        `/api/routes?date=${encodeURIComponent(dateKey)}&includeClosed=1`,
+        { headers: getAuthHeaders() }
+      );
+
+      const payload = await response.json().catch(() => null);
+      if (latestRoutesRequest.current !== requestId) return false;
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error || payload?.message || "Erro ao carregar as rotas do dia"
+        );
+      }
+
+      setRoutes(normalizeDailyRoutes(payload?.routes));
+      setRoutesError(null);
+      return true;
+    } catch (routesLoadError) {
+      if (latestRoutesRequest.current !== requestId) return false;
+
+      console.error("Erro ao carregar rotas do dia:", routesLoadError);
+      setRoutes([]);
+      setRouteFilter("all");
+      setRoutesError(
+        routesLoadError instanceof Error
+          ? routesLoadError.message
+          : "Erro ao carregar as rotas do dia"
+      );
+      return false;
+    }
+  }, []);
+
   // Fetch data for selected date
   const fetchData = useCallback(async (date?: Date) => {
     const targetDate = date || selectedDate;
@@ -251,12 +294,17 @@ const DailyDemands: React.FC = () => {
 
       const fetchedDemands = demandsResult.data || [];
       setDemands(fetchedDemands);
-      setRoutes(demandsResult.routes || []);
+
+      // Rotas vêm de /api/routes (DTO completo do painel), em paralelo com a
+      // checagem de OS. Uma falha aqui não interrompe o restante da página.
+      const routesPromise = fetchRoutes(formatDateForAPI(targetDate));
 
       // Check OS status
       if (fetchedDemands.length > 0) {
         await checkOSStatus(fetchedDemands, targetDate);
       }
+
+      await routesPromise;
 
       // Fetch technicians for any date
       const techniciansResponse = await fetch(
@@ -291,7 +339,7 @@ const DailyDemands: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, fetchTechnicianNames, checkOSStatus, fetchReleases]);
+  }, [selectedDate, fetchTechnicianNames, checkOSStatus, fetchReleases, fetchRoutes]);
 
   // Fetch schools
   const fetchSchools = useCallback(async () => {
@@ -859,6 +907,22 @@ Veja o console para mais detalhes!`);
         </div>
 
         {/* Rotas operacionais */}
+        {routesError && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-amber-800">
+              Não foi possível carregar as rotas deste dia: {routesError}. As demandas continuam disponíveis.
+            </p>
+            <button
+              onClick={() => {
+                void fetchRoutes(formatDateForAPI(selectedDate));
+              }}
+              className="px-3 py-1.5 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
         <DailyRoutesPanel
           dateKey={formatDateForAPI(selectedDate)}
           routes={routes}
@@ -869,6 +933,7 @@ Veja o console para mais detalhes!`);
             await fetchData(selectedDate);
           }}
           unassignedCount={unassignedCount}
+          routesUnavailable={Boolean(routesError)}
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">

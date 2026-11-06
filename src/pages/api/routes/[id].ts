@@ -43,6 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           demands: true,
           technicalTickets: true,
           chamados: true,
+          // OS externas vinculadas também contam como vínculo operacional.
+          osExternas: true,
         },
       },
     },
@@ -253,10 +255,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === "DELETE") {
     const counts = existing._count;
 
-    if (counts.demands > 0 || counts.technicalTickets > 0 || counts.chamados > 0) {
+    if (
+      counts.demands > 0 ||
+      counts.technicalTickets > 0 ||
+      counts.chamados > 0 ||
+      counts.osExternas > 0
+    ) {
       return res.status(409).json({
         error:
-          "Esta rota possui demandas ou chamados associados. Encerre a rota em vez de excluí-la; as demandas e OS são preservadas.",
+          "Esta rota possui demandas, chamados ou OS externas associados. Encerre a rota em vez de excluí-la; as demandas e OS são preservadas.",
       });
     }
 
