@@ -173,11 +173,23 @@ const OsExternasList: React.FC = () => {
         <div className={`grid grid-cols-1 ${hook.pendingOnly ? "" : "lg:grid-cols-2"} gap-8`}>
           {/* Coluna Esquerda - OS Pendentes */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center mb-6">
-              <Clock size={24} className="text-orange-500 mr-2" />
-              <h2 className="text-xl font-semibold text-gray-800">
-                OS Pendentes ({hook.osExternasPendentes.length + hook.filteredPendingDailyDemands.length})
-              </h2>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center">
+                <Clock size={24} className="text-orange-500 mr-2" />
+                <h2 className="text-xl font-semibold text-gray-800">
+                  OS Pendentes ({hook.osExternasPendentes.length + hook.filteredPendingDailyDemands.length})
+                </h2>
+              </div>
+              {canManageRoutes && (
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={hook.showOnlyUnassigned}
+                    onChange={(event) => hook.setShowOnlyUnassigned(event.target.checked)}
+                  />
+                  Somente sem rota
+                </label>
+              )}
             </div>
 
             {hook.osExternasPendentes.length === 0 && hook.filteredPendingDailyDemands.length === 0 ? (

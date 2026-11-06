@@ -124,6 +124,7 @@ export function useOsExternasList() {
   >([]);
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(false);
   const statusFilter = typeof router.query.status === "string" ? router.query.status : "";
   const pendingOnly = statusFilter === "Pendente";
 
@@ -281,7 +282,11 @@ export function useOsExternasList() {
     );
   };
 
-  const osExternasPendentes = filterOsBySearch(osExternas.filter((os) => os.status === "Pendente"));
+  const osExternasPendentes = filterOsBySearch(
+    osExternas.filter(
+      (os) => os.status === "Pendente" && (!showOnlyUnassigned || os.routeId == null)
+    )
+  );
   const osExternasAssinadas = filterOsBySearch(osExternas.filter((os) => os.status === "Assinado"));
   const filteredPendingDailyDemands = pendingDailyDemands.filter(
     (demand) =>
@@ -391,6 +396,7 @@ export function useOsExternasList() {
     showNotVisitedModal, setShowNotVisitedModal,
     downloadPdf, setDownloadingPdf,
     assigningOsId, assignRoutes, assignLoading, assignError,
+    showOnlyUnassigned, setShowOnlyUnassigned,
     pendingOnly, userName,
     // Computed
     osExternasPendentes, osExternasAssinadas,
