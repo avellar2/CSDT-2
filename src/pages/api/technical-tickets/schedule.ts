@@ -125,8 +125,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Criar evento na agenda
-    const startDate = new Date(`${scheduledDate}T${scheduledTime}:00`);
+    // Criar evento na agenda (horário interpretado em America/Sao_Paulo)
+    const startDate = new Date(`${scheduledDate}T${scheduledTime}:00-03:00`);
     const endDate = new Date(startDate);
     endDate.setHours(endDate.getHours() + 2); // 2 horas de duração padrão
 

@@ -5,12 +5,13 @@ import { requireAuth } from "@/utils/api-auth";
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
+  // Requer autenticação (validada antes de qualquer consulta)
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
@@ -20,10 +21,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'schoolId é obrigatório' });
     }
 
+    const parsedSchoolId = Number(schoolId);
+    if (!Number.isInteger(parsedSchoolId) || parsedSchoolId <= 0) {
+      return res.status(400).json({ error: 'schoolId inválido' });
+    }
+
+    // Usuário de escola só enxerga os chamados excluídos da própria escola.
+    if (
+      auth.profile.role === 'SCHOOL' &&
+      auth.profile.schoolId !== null &&
+      parsedSchoolId !== auth.profile.schoolId
+    ) {
+      return res.status(403).json({ error: 'Você não tem acesso a estes chamados.' });
+    }
+
     // Buscar chamados excluídos da escola
     const deletedTickets = await prisma.technicalTicket.findMany({
       where: {
-        schoolId: parseInt(schoolId as string),
+        schoolId: parsedSchoolId,
         status: 'DELETED'
       },
       include: {

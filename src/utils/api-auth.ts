@@ -9,6 +9,7 @@ export type AuthUser = {
     id: number;
     role: string;
     displayName: string;
+    schoolId: number | null;
   };
 };
 
@@ -37,7 +38,7 @@ export async function requireAuth(
 
   const profile = await prisma.profile.findUnique({
     where: { userId: user.id },
-    select: { id: true, role: true, displayName: true },
+    select: { id: true, role: true, displayName: true, schoolId: true },
   });
 
   if (!profile) {
@@ -79,3 +80,18 @@ export const AUTH_ROLES = {
   ONLYREAD: 'ONLYREAD',
   SCHOOL: 'SCHOOL',
 } as const;
+
+/**
+ * Perfis que podem operar chamados técnicos (criar, agendar, atualizar ou
+ * excluir). ONLYREAD é somente leitura e SCHOOL só abre/acompanha os próprios
+ * chamados, sem operá-los.
+ */
+export const TICKET_OPERATOR_ROLES = [
+  AUTH_ROLES.ADMIN,
+  AUTH_ROLES.ADMTOTAL,
+  AUTH_ROLES.TECH,
+] as const;
+
+export function canOperateTickets(role: string): boolean {
+  return (TICKET_OPERATOR_ROLES as readonly string[]).includes(role);
+}

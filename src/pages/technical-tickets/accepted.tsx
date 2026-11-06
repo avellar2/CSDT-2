@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Header } from '@/components/Header';
 import { supabase } from '@/lib/supabaseClient';
+import { getAuthHeaders } from '@/utils/client-auth';
 import { CheckCircle, ArrowLeft, Calendar, User, MapPin, Clock, Eye, Search, Wrench } from 'lucide-react';
 import { getPriorityClasses } from '@/utils/colors';
 
@@ -57,9 +58,7 @@ const AcceptedTickets: React.FC = () => {
       
       const response = await fetch(`/api/technical-tickets/update?ticketId=${ticketId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           status: newStatus,
           notes,
@@ -100,9 +99,7 @@ const AcceptedTickets: React.FC = () => {
       
       const response = await fetch(`/api/technical-tickets/update?ticketId=${selectedTicket.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           scheduledDate: rescheduleDate,
           scheduledTime: rescheduleTime,
@@ -140,7 +137,9 @@ const AcceptedTickets: React.FC = () => {
   const fetchComments = async (ticketId: number) => {
     try {
       setLoadingComments(true);
-      const response = await fetch(`/api/technical-tickets/comments?ticketId=${ticketId}`);
+      const response = await fetch(`/api/technical-tickets/comments?ticketId=${ticketId}`, {
+        headers: getAuthHeaders()
+      });
       if (response.ok) {
         const data = await response.json();
         setComments(data.comments);
@@ -163,13 +162,8 @@ const AcceptedTickets: React.FC = () => {
       
       const response = await fetch(`/api/technical-tickets/comments?ticketId=${selectedTicket.id}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          authorId: currentUser.userId,
-          authorName: currentUser.displayName,
-          authorRole: currentUser.role,
           content: newComment.trim(),
           isInternal: commentInternal
         }),
@@ -244,7 +238,9 @@ const AcceptedTickets: React.FC = () => {
 
   const fetchAcceptedTickets = async () => {
     try {
-      const response = await fetch('/api/technical-tickets/list?status=SCHEDULED');
+      const response = await fetch('/api/technical-tickets/list?status=SCHEDULED', {
+        headers: getAuthHeaders()
+      });
       if (!response.ok) {
         throw new Error('Erro ao buscar chamados aceitos');
       }

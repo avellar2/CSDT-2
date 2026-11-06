@@ -1,12 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { generateStatusChangeEmail } from '@/utils/emailTemplates';
-import { requireAuth } from "@/utils/api-auth";
+import { requireAuth, canOperateTickets } from "@/utils/api-auth";
 import {
   dateKeyFromPrismaDate,
   isRouteManager,
   isValidDateKey,
   loadTicketAccessContext,
+  prismaDateTimeFromDateKey,
   routeStatusIsOpen,
   technicianCanAccessTicket,
   ticketDateKey,
@@ -40,6 +41,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'ID do chamado é obrigatório' });
     }
 
+    // ONLYREAD é somente leitura e SCHOOL apenas abre/acompanha os próprios
+    // chamados: nenhum dos dois opera chamados técnicos.
+    if (!canOperateTickets(auth.profile.role)) {
+      return res.status(403).json({
+        error: 'Perfil sem permissão para atualizar chamados técnicos.',
+      });
+    }
+
     // Buscar chamado atual
     const currentTicket = await prisma.technicalTicket.findUnique({
       where: { id: parseInt(ticketId as string) },
@@ -71,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const currentDateKey = ticketDateKey(currentTicket.scheduledDate);
         const nextDateKey = isValidDateKey(scheduledDate)
           ? scheduledDate
-          : dateKeyFromPrismaDate(new Date(scheduledDate));
+          : ticketDateKey(new Date(scheduledDate));
 
         if (currentDateKey !== null && currentDateKey !== nextDateKey) {
           return res.status(403).json({
@@ -92,11 +101,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (eventId !== undefined) updateData.eventId = eventId;
 
     if (scheduledDate) {
-      updateData.scheduledDate = new Date(scheduledDate);
+      // "YYYY-MM-DD" precisa virar meio-dia em America/Sao_Paulo; um ISO
+      // completo é respeitado como veio.
+      updateData.scheduledDate = isValidDateKey(scheduledDate)
+        ? prismaDateTimeFromDateKey(scheduledDate)
+        : new Date(scheduledDate);
     }
     if (scheduledTime) {
       updateData.scheduledTime = scheduledTime;
     }
+
+    // Data operacional (America/Sao_Paulo) que o chamado terá após o update.
+    const requestedDateKey: string | null = scheduledDate
+      ? isValidDateKey(scheduledDate)
+        ? scheduledDate
+        : ticketDateKey(new Date(scheduledDate))
+      : ticketDateKey(currentTicket.scheduledDate);
 
     // `routeId` ausente significa "não alterar"; `routeId: null` (ou vazio)
     // remove o chamado da rota e devolve à fila administrativa. As duas
@@ -142,19 +162,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(409).json({ error: 'A rota está encerrada.' });
         }
 
-        const ticketDate = scheduledDate
-          ? (isValidDateKey(scheduledDate) ? scheduledDate : null)
-          : currentTicket.scheduledDate
-            ? dateKeyFromPrismaDate(currentTicket.scheduledDate)
-            : null;
-
-        if (!ticketDate || dateKeyFromPrismaDate(route.date) !== ticketDate) {
+        if (!requestedDateKey || dateKeyFromPrismaDate(route.date) !== requestedDateKey) {
           return res.status(400).json({
             error: 'A data do chamado deve ser a mesma data da rota.',
           });
         }
 
         updateData.routeId = parsedRouteId;
+      }
+    }
+
+    // Reagendar sem informar rota: um chamado não pode continuar vinculado a
+    // uma rota de outra data. Nesse caso ele volta para a fila administrativa
+    // e a movimentação é auditada (a administração pode vinculá-lo a uma rota
+    // válida depois).
+    let autoUnassigned = false;
+    if (
+      !routeIdProvided &&
+      currentTicket.routeId !== null &&
+      scheduledDate &&
+      requestedDateKey !== null
+    ) {
+      const currentRoute = await prisma.dailyRoute.findUnique({
+        where: { id: currentTicket.routeId },
+        select: { date: true },
+      });
+
+      const routeDateKey = currentRoute
+        ? dateKeyFromPrismaDate(currentRoute.date)
+        : null;
+
+      if (routeDateKey !== requestedDateKey) {
+        updateData.routeId = null;
+        autoUnassigned = true;
       }
     }
 
@@ -168,15 +208,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      if (parsedRouteId !== undefined && parsedRouteId !== currentTicket.routeId) {
+      const finalRouteId =
+        updateData.routeId !== undefined
+          ? (updateData.routeId as number | null)
+          : currentTicket.routeId;
+
+      if (finalRouteId !== currentTicket.routeId) {
         await tx.routeTransfer.create({
           data: {
             entityType: 'TECHNICAL_TICKET',
             entityId: currentTicket.id,
             fromRouteId: currentTicket.routeId,
-            toRouteId: parsedRouteId,
+            toRouteId: finalRouteId,
             movedBy: auth.id,
-            note: 'Alteração via atualização do chamado',
+            note: autoUnassigned
+              ? 'Reagendamento para data diferente da rota'
+              : 'Alteração via atualização do chamado',
           },
         });
       }

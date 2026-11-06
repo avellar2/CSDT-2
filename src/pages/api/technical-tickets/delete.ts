@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
-import { requireAuth } from "@/utils/api-auth";
+import { requireAuth, canOperateTickets } from "@/utils/api-auth";
 import {
   isRouteManager,
   loadTicketAccessContext,
@@ -25,6 +25,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!ticketId || !deletionReason) {
       return res.status(400).json({
         error: 'Campos obrigatórios: ticketId, deletionReason'
+      });
+    }
+
+    // ONLYREAD (somente leitura) e SCHOOL (abre/acompanha os próprios
+    // chamados) não excluem chamados técnicos.
+    if (!canOperateTickets(auth.profile.role)) {
+      return res.status(403).json({
+        error: 'Perfil sem permissão para excluir chamados técnicos.'
       });
     }
 

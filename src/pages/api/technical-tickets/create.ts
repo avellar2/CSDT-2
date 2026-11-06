@@ -30,10 +30,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    const parsedSchoolId = Number(schoolId);
+    if (!Number.isInteger(parsedSchoolId) || parsedSchoolId <= 0) {
+      return res.status(400).json({ error: 'schoolId inválido' });
+    }
+
+    // Usuário de escola só abre chamados para a própria escola.
+    if (
+      auth.profile.role === 'SCHOOL' &&
+      auth.profile.schoolId !== null &&
+      parsedSchoolId !== auth.profile.schoolId
+    ) {
+      return res.status(403).json({
+        error: 'Você só pode abrir chamados para a sua escola.'
+      });
+    }
+
     // Criar o chamado técnico
     const ticket = await prisma.technicalTicket.create({
       data: {
-        schoolId: parseInt(schoolId),
+        schoolId: parsedSchoolId,
         title: title.trim(),
         description: description.trim(),
         category: category || 'OTHER',

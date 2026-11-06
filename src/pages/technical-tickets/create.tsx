@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Header } from '@/components/Header';
 import { supabase } from '@/lib/supabaseClient';
+import { getAuthHeaders } from '@/utils/client-auth';
 import { Wrench, ArrowLeft, Check, X, Monitor, Smartphone, Laptop, Printer, Wifi, Code, Settings2, HelpCircle } from 'lucide-react';
 
 interface SchoolProfile {
@@ -94,9 +95,7 @@ const CreateTechnicalTicket: React.FC = () => {
 
       const response = await fetch('/api/technical-tickets/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           schoolId: userProfile.schoolId,
           title: formData.title.trim(),

@@ -254,6 +254,11 @@ describe("POST /api/technical-tickets/schedule — autorização (Problem A)", (
 
     expect(res.statusCode).toBe(200);
     expect(ticketUpdate.mock.calls[0][0].data.routeId).toBe(1);
+    // 09:00 em America/Sao_Paulo = 12:00Z — a data operacional precisa ser
+    // a mesma do dia da rota, independente do fuso do servidor.
+    expect(
+      (ticketUpdate.mock.calls[0][0].data.scheduledDate as Date).toISOString()
+    ).toBe("2026-11-06T12:00:00.000Z");
     expect(transferCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         entityType: "TECHNICAL_TICKET",
