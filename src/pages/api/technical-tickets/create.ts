@@ -5,12 +5,12 @@ import { requireAuth } from "@/utils/api-auth";
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
@@ -20,14 +20,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       description,
       category,
       equipmentAffected,
-      createdBy,
       attachments
     } = req.body;
 
     // Validações
-    if (!schoolId || !title || !description || !createdBy) {
-      return res.status(400).json({ 
-        error: 'Campos obrigatórios: schoolId, title, description, createdBy' 
+    if (!schoolId || !title || !description) {
+      return res.status(400).json({
+        error: 'Campos obrigatórios: schoolId, title, description'
       });
     }
 
@@ -39,7 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         description: description.trim(),
         category: category || 'OTHER',
         equipmentAffected: equipmentAffected?.trim() || null,
-        createdBy,
+        // Autor da criação vem da sessão autenticada, nunca do corpo.
+        createdBy: auth.id,
         attachments: attachments || [],
         status: 'OPEN',
         updatedAt: new Date()
@@ -56,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Erro ao criar chamado técnico:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro interno do servidor',
       details: process.env.NODE_ENV === 'development' ? error : undefined
     });

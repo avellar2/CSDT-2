@@ -1,16 +1,22 @@
 import { PrismaClient } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next";
 import { requireAuth } from "@/utils/api-auth";
+import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
+import {
+  canTechnicianSeeRouteEntity,
+  isRouteManager,
+  loadRouteScope,
+} from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== "GET") {
+    res.setHeader("Allow", ["GET"]);
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
@@ -98,7 +104,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Processar demandas das escolas
-    schoolDemands.forEach(demand => {
+    let visibleDemands = schoolDemands;
+
+    // Consultas históricas respeitam a composição da rota na data consultada.
+    if (!isRouteManager(auth.profile.role) && auth.profile.role === "TECH") {
+      const scope = await loadRouteScope(
+        schoolDemands.map((demand) => formatBrazilDateKey(demand.createdAt))
+      );
+
+      visibleDemands = schoolDemands.filter((demand) =>
+        canTechnicianSeeRouteEntity({
+          scope,
+          dateKey: formatBrazilDateKey(demand.createdAt),
+          routeId: demand.routeId,
+          profileId: auth.profile.id,
+        })
+      );
+    }
+
+    visibleDemands.forEach(demand => {
       const dateKey = demand.createdAt.toISOString().split('T')[0];
       if (!scalesByDate.has(dateKey)) {
         scalesByDate.set(dateKey, {

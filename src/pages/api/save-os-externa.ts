@@ -28,12 +28,12 @@ function preservePartnerSuffix(currentValue: string | null | undefined, primaryT
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Metodo nao permitido" });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).json({ error: "Metodo nao permitido" });
   }
 
   try {
@@ -95,13 +95,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const formAlreadyHasPartner = typeof tecnicoResponsavel === "string" && tecnicoResponsavel.includes(" / ");
 
     if (context?.origin === "daily-demands") {
-      if (!context.userId || !context.dailyDemandDate) {
+      if (!context.dailyDemandDate) {
         return res.status(400).json({ error: "Contexto da demanda diaria invalido." });
       }
 
+      const demandId =
+        context.dailyDemandId && Number.isInteger(Number(context.dailyDemandId))
+          ? Number(context.dailyDemandId)
+          : null;
+
+      // Identidade autenticada; ignora context.userId enviado pelo cliente.
       const availability = await assessDailyDemandOsAvailability({
-        userId: context.userId,
+        userId: auth.id,
         demandDate: context.dailyDemandDate,
+        demandId,
       });
 
       if (!availability.allowed) {
@@ -114,9 +121,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!formAlreadyHasPartner && availability.profile?.displayName) {
         tecnicoResponsavel = preservePartnerSuffix(typeof tecnicoResponsavel === "string" ? tecnicoResponsavel : null, availability.profile.displayName);
       }
-    } else if (context?.userId && unidadeEscolar) {
+    } else if (unidadeEscolar) {
       const schoolAvailability = await getSchoolPendingDailyDemandAvailability({
-        userId: context.userId,
+        userId: auth.id,
         schoolName: String(unidadeEscolar),
       });
 

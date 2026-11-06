@@ -2,16 +2,23 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { generateStatusChangeEmail } from '@/utils/emailTemplates';
 import { requireAuth } from "@/utils/api-auth";
+import {
+  dateKeyFromPrismaDate,
+  getRouteIdsForTechnician,
+  isRouteManager,
+  isValidDateKey,
+  routeStatusIsOpen,
+} from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'PUT') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'PUT') {
+    res.setHeader('Allow', ['PUT']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
@@ -24,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       scheduledTime,
       notes,
       eventId,
-      updatedBy // Quem está fazendo a atualização
+      routeId,
     } = req.body;
 
     if (!ticketId) {
@@ -41,15 +48,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Chamado não encontrado' });
     }
 
+    // Técnicos só alteram chamados destinados à própria rota.
+    if (!isRouteManager(auth.profile.role) && auth.profile.role === 'TECH') {
+      const technicianRouteIds = await getRouteIdsForTechnician(auth.profile.id);
+      const anyRoutes = await prisma.dailyRoute.count({
+        where: { status: { notIn: ['CANCELLED'] } },
+      });
+
+      if (
+        technicianRouteIds.length > 0 &&
+        (currentTicket.routeId === null ||
+          !technicianRouteIds.includes(currentTicket.routeId))
+      ) {
+        return res.status(403).json({
+          error: 'Este chamado pertence a outra rota.',
+        });
+      }
+
+      if (technicianRouteIds.length === 0 && anyRoutes > 0) {
+        return res.status(403).json({
+          error: 'Você não participa de nenhuma rota ativa.',
+        });
+      }
+    }
+
     // Preparar dados para atualização
-    const updateData: any = {};
-    
+    const updateData: Record<string, unknown> = {};
+
     if (status !== undefined) updateData.status = status;
     if (priority !== undefined) updateData.priority = priority;
     if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
     if (notes !== undefined) updateData.notes = notes;
     if (eventId !== undefined) updateData.eventId = eventId;
-    
+
     if (scheduledDate) {
       updateData.scheduledDate = new Date(scheduledDate);
     }
@@ -57,14 +88,77 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       updateData.scheduledTime = scheduledTime;
     }
 
-    // Atualizar chamado
-    const updatedTicket = await prisma.technicalTicket.update({
-      where: { id: parseInt(ticketId as string) },
-      data: updateData,
-      include: {
-        School: true,
-        ScheduleEvent: true
+    const parsedRouteId =
+      routeId === null || routeId === undefined || routeId === ''
+        ? undefined
+        : Number(routeId);
+
+    if (
+      parsedRouteId !== undefined &&
+      (!Number.isInteger(parsedRouteId) || parsedRouteId <= 0)
+    ) {
+      return res.status(400).json({ error: 'routeId inválido' });
+    }
+
+    if (parsedRouteId !== undefined) {
+      if (!isRouteManager(auth.profile.role)) {
+        return res.status(403).json({
+          error: 'Somente ADMIN ou ADMTOTAL podem transferir chamados entre rotas.',
+        });
       }
+
+      const route = await prisma.dailyRoute.findUnique({
+        where: { id: parsedRouteId },
+        select: { id: true, date: true, status: true },
+      });
+
+      if (!route) {
+        return res.status(404).json({ error: 'Rota não encontrada' });
+      }
+
+      if (!routeStatusIsOpen(route.status)) {
+        return res.status(409).json({ error: 'A rota está encerrada.' });
+      }
+
+      const ticketDate = scheduledDate
+        ? (isValidDateKey(scheduledDate) ? scheduledDate : null)
+        : currentTicket.scheduledDate
+          ? dateKeyFromPrismaDate(currentTicket.scheduledDate)
+          : null;
+
+      if (!ticketDate || dateKeyFromPrismaDate(route.date) !== ticketDate) {
+        return res.status(400).json({
+          error: 'A data do chamado deve ser a mesma data da rota.',
+        });
+      }
+
+      updateData.routeId = parsedRouteId;
+    }
+
+    const updatedTicket = await prisma.$transaction(async (tx) => {
+      const updated = await tx.technicalTicket.update({
+        where: { id: parseInt(ticketId as string) },
+        data: updateData,
+        include: {
+          School: true,
+          ScheduleEvent: true
+        }
+      });
+
+      if (parsedRouteId !== undefined && parsedRouteId !== currentTicket.routeId) {
+        await tx.routeTransfer.create({
+          data: {
+            entityType: 'TECHNICAL_TICKET',
+            entityId: currentTicket.id,
+            fromRouteId: currentTicket.routeId,
+            toRouteId: parsedRouteId,
+            movedBy: auth.id,
+            note: 'Alteração via atualização do chamado',
+          },
+        });
+      }
+
+      return updated;
     });
 
     // Enviar notificação por email se o status mudou
@@ -90,7 +184,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
 
         const emailTemplate = generateStatusChangeEmail(emailData);
-        
+
         const emailResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/send-email`, {
           method: 'POST',
           headers: {
@@ -104,9 +198,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           })
         });
 
-        if (emailResponse.ok) {
-
-        } else {
+        if (!emailResponse.ok) {
           console.error('Erro ao enviar email de atualização:', await emailResponse.text());
         }
       } catch (emailError) {
@@ -123,7 +215,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Erro ao atualizar chamado técnico:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro interno do servidor',
       details: process.env.NODE_ENV === 'development' ? error : undefined
     });

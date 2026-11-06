@@ -16,6 +16,7 @@ export interface PendingDailyDemandItem {
   visitUpdatedBy: string | null;
   responsibleTechnicianIds: number[];
   responsibleTechnicians: string[];
+  routeId: number | null;
 }
 
 function pushTimestamp(map: Map<string, number[]>, key: string, timestamp: number) {
@@ -168,6 +169,36 @@ export async function getPendingDailyDemandItems(params?: {
     visitTechniciansByDate.set(demandDateKey, technicians);
   }
 
+  // Rotas operacionais por data: quando existem, o técnico só enxerga as
+  // demandas vinculadas às rotas das quais participa.
+  const routeRecords = await prisma.dailyRoute.findMany({
+    where: {
+      date: {
+        in: uniqueDemandDates.map((dateKey) => new Date(`${dateKey}T00:00:00.000Z`)),
+      },
+      status: { notIn: ["CANCELLED"] },
+    },
+    select: {
+      id: true,
+      date: true,
+      technicians: {
+        where: { active: true },
+        select: { technicianId: true },
+      },
+    },
+  });
+
+  const routesByDate = new Map<string, { id: number; technicianIds: number[] }[]>();
+  for (const route of routeRecords) {
+    const dateKey = route.date.toISOString().slice(0, 10);
+    const routes = routesByDate.get(dateKey) || [];
+    routes.push({
+      id: route.id,
+      technicianIds: route.technicians.map((membership) => membership.technicianId),
+    });
+    routesByDate.set(dateKey, routes);
+  }
+
   return demands
     .filter((demand) => {
       const demandDateKey = formatBrazilDateKey(demand.createdAt);
@@ -186,6 +217,18 @@ export async function getPendingDailyDemandItems(params?: {
       }
 
       if (profileRole === "TECH" && profileId !== null) {
+        const routesOnDate = routesByDate.get(demandDateKey) || [];
+
+        if (routesOnDate.length > 0) {
+          const technicianRouteIds = routesOnDate
+            .filter((route) => route.technicianIds.includes(profileId!))
+            .map((route) => route.id);
+
+          return (
+            demand.routeId !== null && technicianRouteIds.includes(demand.routeId)
+          );
+        }
+
         const responsibleTechnicians = visitTechniciansByDate.get(demandDateKey) || [];
 
         return responsibleTechnicians.some(
@@ -216,6 +259,7 @@ export async function getPendingDailyDemandItems(params?: {
         responsibleTechnicians: responsibleTechnicians.map(
           (technician) => technician.displayName
         ),
+        routeId: demand.routeId,
       };
     });
 }

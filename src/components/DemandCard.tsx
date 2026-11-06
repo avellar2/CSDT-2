@@ -1,5 +1,12 @@
 import React from 'react';
-import { Trash, Pencil, ClipboardList, CheckCircle } from 'lucide-react';
+import { Trash, Pencil, ClipboardList, CheckCircle, Car, Route as RouteIcon } from 'lucide-react';
+
+interface DemandRoute {
+  id: number;
+  name: string;
+  vehicle: string | null;
+  technicians?: { technicianId: number; displayName: string }[];
+}
 
 interface Demand {
   id: string;
@@ -15,6 +22,8 @@ interface Demand {
   visitStatus?: 'NOT_VISITED' | null;
   visitReason?: string | null;
   visitUpdatedBy?: string | null;
+  routeId?: number | null;
+  route?: DemandRoute | null;
 }
 
 interface School {
@@ -28,6 +37,8 @@ interface DemandCardProps {
   demand: Demand;
   school?: School;
   userRole: string | null;
+  routes?: { id: number; name: string }[];
+  onChangeRoute?: (demand: Demand, routeId: number | null) => void;
   onEdit: (demand: Demand) => void;
   onDelete: (id: string) => void;
   onCreateOS: (demand: Demand) => void;
@@ -39,6 +50,8 @@ const DemandCard: React.FC<DemandCardProps> = ({
   demand,
   school,
   userRole,
+  routes = [],
+  onChangeRoute,
   onEdit,
   onDelete,
   onCreateOS,
@@ -132,6 +145,30 @@ const DemandCard: React.FC<DemandCardProps> = ({
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Route identification */}
+          <div className="flex flex-wrap items-center gap-2">
+            {demand.route ? (
+              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full">
+                <RouteIcon size={12} />
+                {demand.route.name}
+                {demand.route.vehicle ? ` • ${demand.route.vehicle}` : ""}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-800 bg-amber-100 rounded-full">
+                Sem rota
+              </span>
+            )}
+
+            {demand.route?.technicians && demand.route.technicians.length > 0 && (
+              <span className="text-xs text-gray-600 flex items-center gap-1">
+                <Car size={12} />
+                {demand.route.technicians
+                  .map((technician) => technician.displayName)
+                  .join(", ")}
+              </span>
+            )}
           </div>
 
           {/* School address */}
@@ -261,6 +298,29 @@ const DemandCard: React.FC<DemandCardProps> = ({
               </button>
             </div>
           )}
+
+          {(userRole === 'ADMTOTAL' || userRole === 'ADMIN') &&
+            routes.length > 0 &&
+            onChangeRoute && (
+              <select
+                value={demand.routeId ?? ""}
+                onChange={(event) =>
+                  onChangeRoute(
+                    demand,
+                    event.target.value ? Number(event.target.value) : null
+                  )
+                }
+                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg bg-white"
+                title="Mover demanda para outra rota"
+              >
+                <option value="">Sem rota (fila)</option>
+                {routes.map((route) => (
+                  <option key={route.id} value={route.id}>
+                    {route.name}
+                  </option>
+                ))}
+              </select>
+            )}
         </div>
       </div>
     </div>

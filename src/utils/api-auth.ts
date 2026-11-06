@@ -6,6 +6,7 @@ export type AuthUser = {
   id: string;
   email?: string;
   profile: {
+    id: number;
     role: string;
     displayName: string;
   };
@@ -36,7 +37,7 @@ export async function requireAuth(
 
   const profile = await prisma.profile.findUnique({
     where: { userId: user.id },
-    select: { role: true, displayName: true },
+    select: { id: true, role: true, displayName: true },
   });
 
   if (!profile) {

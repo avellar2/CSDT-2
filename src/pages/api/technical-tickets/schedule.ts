@@ -2,16 +2,21 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { generateTicketAcceptedEmail } from '@/utils/emailTemplates';
 import { requireAuth } from "@/utils/api-auth";
+import {
+  dateKeyFromPrismaDate,
+  isValidDateKey,
+  routeStatusIsOpen,
+} from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
@@ -22,13 +27,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       assignedTo,
       priority,
       notes,
-      calendarId
+      calendarId,
+      routeId,
     } = req.body;
 
     if (!ticketId || !scheduledDate || !scheduledTime || !assignedTo) {
-      return res.status(400).json({ 
-        error: 'Campos obrigatórios: ticketId, scheduledDate, scheduledTime, assignedTo' 
+      return res.status(400).json({
+        error: 'Campos obrigatórios: ticketId, scheduledDate, scheduledTime, assignedTo'
       });
+    }
+
+    if (!isValidDateKey(scheduledDate)) {
+      return res.status(400).json({ error: 'scheduledDate deve estar no formato YYYY-MM-DD' });
+    }
+
+    const parsedRouteId =
+      routeId === null || routeId === undefined || routeId === ''
+        ? null
+        : Number(routeId);
+
+    if (
+      parsedRouteId !== null &&
+      (!Number.isInteger(parsedRouteId) || parsedRouteId <= 0)
+    ) {
+      return res.status(400).json({ error: 'routeId inválido' });
     }
 
     // Buscar o chamado
@@ -41,47 +63,85 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Chamado não encontrado' });
     }
 
+    if (parsedRouteId !== null) {
+      const route = await prisma.dailyRoute.findUnique({
+        where: { id: parsedRouteId },
+        select: { id: true, date: true, status: true },
+      });
+
+      if (!route) {
+        return res.status(404).json({ error: 'Rota não encontrada' });
+      }
+
+      if (!routeStatusIsOpen(route.status)) {
+        return res.status(409).json({ error: 'A rota está encerrada.' });
+      }
+
+      if (dateKeyFromPrismaDate(route.date) !== scheduledDate) {
+        return res.status(400).json({
+          error: 'A data de agendamento deve ser a mesma data da rota.',
+        });
+      }
+    }
+
     // Criar evento na agenda
     const startDate = new Date(`${scheduledDate}T${scheduledTime}:00`);
     const endDate = new Date(startDate);
     endDate.setHours(endDate.getHours() + 2); // 2 horas de duração padrão
 
-    const event = await prisma.scheduleEvent.create({
-      data: {
-        title: `Chamado Técnico: ${ticket.title}`,
-        description: `Chamado #${ticket.id}\n\nEscola: ${ticket.School.name}\n\nDescrição: ${ticket.description}\n\n${notes ? `Observações: ${notes}` : ''}`,
-        startDate,
-        endDate,
-        allDay: false,
-        type: 'APPOINTMENT',
-        priority: priority || 'MEDIUM',
-        status: 'PENDING',
-        createdBy: assignedTo,
-        assignedTo,
-        location: ticket.School.name,
-        schoolId: ticket.schoolId,
-        calendarId: calendarId || 1, // Usar calendário padrão se não especificado
-        tags: ['chamado-tecnico', ticket.category.toLowerCase()],
-        updatedAt: new Date()
-      }
-    });
+    const { event, updatedTicket } = await prisma.$transaction(async (tx) => {
+      const createdEvent = await tx.scheduleEvent.create({
+        data: {
+          title: `Chamado Técnico: ${ticket.title}`,
+          description: `Chamado #${ticket.id}\n\nEscola: ${ticket.School.name}\n\nDescrição: ${ticket.description}\n\n${notes ? `Observações: ${notes}` : ''}`,
+          startDate,
+          endDate,
+          allDay: false,
+          type: 'APPOINTMENT',
+          priority: priority || 'MEDIUM',
+          status: 'PENDING',
+          createdBy: assignedTo,
+          assignedTo,
+          location: ticket.School.name,
+          schoolId: ticket.schoolId,
+          calendarId: calendarId || 1, // Usar calendário padrão se não especificado
+          tags: ['chamado-tecnico', ticket.category.toLowerCase()],
+          updatedAt: new Date()
+        }
+      });
 
-    // Atualizar o chamado
-    const updatedTicket = await prisma.technicalTicket.update({
-      where: { id: parseInt(ticketId) },
-      data: {
-        status: 'SCHEDULED',
-        assignedTo,
-        priority: priority || ticket.priority,
-        scheduledDate: startDate,
-        scheduledTime,
-        eventId: event.id,
-        notes: notes || ticket.notes
-      },
-      include: {
-        School: true,
-        ScheduleEvent: true
+      const updated = await tx.technicalTicket.update({
+        where: { id: parseInt(ticketId) },
+        data: {
+          status: 'SCHEDULED',
+          assignedTo,
+          priority: priority || ticket.priority,
+          scheduledDate: startDate,
+          scheduledTime,
+          eventId: createdEvent.id,
+          notes: notes || ticket.notes,
+          routeId: parsedRouteId,
+        },
+        include: {
+          School: true,
+          ScheduleEvent: true
+        }
+      });
+
+      if (ticket.routeId !== parsedRouteId) {
+        await tx.routeTransfer.create({
+          data: {
+            entityType: 'TECHNICAL_TICKET',
+            entityId: ticket.id,
+            fromRouteId: ticket.routeId,
+            toRouteId: parsedRouteId,
+            movedBy: auth.id,
+            note: 'Definido no agendamento do chamado',
+          },
+        });
       }
+
+      return { event: createdEvent, updatedTicket: updated };
     });
 
     // Enviar email de notificação para a escola

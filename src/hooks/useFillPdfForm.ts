@@ -200,7 +200,12 @@ export function useFillPdfForm() {
       if (typeof demandDate !== "string") { setDailyDemandAvailability(null); return; }
       try {
         setIsCheckingDailyDemandAvailability(true);
-        const response = await fetch(`/api/daily-demands/os-availability?userId=${encodeURIComponent(localUserId)}&date=${encodeURIComponent(demandDate)}`);
+        const demandId = router.query.demandId;
+        const demandIdParam =
+          typeof demandId === "string" && demandId
+            ? `&demandId=${encodeURIComponent(demandId)}`
+            : "";
+        const response = await fetch(`/api/daily-demands/os-availability?date=${encodeURIComponent(demandDate)}${demandIdParam}`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Erro ao validar disponibilidade da OS");
         setDailyDemandAvailability(data);
@@ -217,7 +222,7 @@ export function useFillPdfForm() {
       }
     };
     fetchDailyDemandAvailability();
-  }, [router.isReady, router.query.origin, router.query.demandDate, localUserId]);
+  }, [router.isReady, router.query.origin, router.query.demandDate, router.query.demandId, localUserId]);
 
   // Calculate form completion progress
   const calculateProgress = () => {

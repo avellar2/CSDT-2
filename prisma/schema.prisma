@@ -439,6 +439,7 @@ model Profile {
   schoolId    Int     @default(225)
   DailyDemandOsReleaseReleasedBy DailyDemandOsRelease[] @relation("DailyDemandOsReleaseReleasedBy")
   DailyDemandOsReleaseTechnician DailyDemandOsRelease[] @relation("DailyDemandOsReleaseTechnician")
+  DailyRouteTechnician           DailyRouteTechnician[]
   Item        Item[]
   School      School  @relation(fields: [schoolId], references: [id])
 }
@@ -556,15 +557,19 @@ model School {
 }
 
 model SchoolDemand {
-  id             Int       @id @default(autoincrement())
+  id             Int         @id @default(autoincrement())
   schoolId       Int
   demand         String
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime    @default(now())
   visitStatus    String?
   visitReason    String?
   visitUpdatedBy String?
   visitUpdatedAt DateTime?
-  School         School    @relation(fields: [schoolId], references: [id])
+  routeId        Int?
+  DailyRoute     DailyRoute? @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  School         School      @relation(fields: [schoolId], references: [id])
+
+  @@index([routeId])
 }
 
 model DailyDemandOsRelease {
@@ -636,14 +641,17 @@ model TechnicalTicket {
   deletedAt         DateTime?
   deletedBy         String?
   deletionReason    String?
+  routeId           Int?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime
+  DailyRoute        DailyRoute?     @relation(fields: [routeId], references: [id], onDelete: SetNull)
   ScheduleEvent     ScheduleEvent?  @relation(fields: [eventId], references: [id])
   School            School          @relation(fields: [schoolId], references: [id])
   TicketComment     TicketComment[]
 
   @@index([assignedTo])
   @@index([createdAt])
+  @@index([routeId])
   @@index([schoolId])
   @@index([status])
 }
@@ -678,20 +686,24 @@ model VisitTechnician {
 }
 
 model chamados_escalas {
-  id              Int       @id @default(autoincrement())
+  id              Int         @id @default(autoincrement())
   escola          String
   titulo          String
   descricao       String
   categoria       String
   tecnico         String
   osOriginal      String?
-  automatico      Boolean   @default(false)
-  status          String    @default("PENDENTE")
-  dataCriacao     DateTime  @default(now())
+  automatico      Boolean     @default(false)
+  status          String      @default("PENDENTE")
+  dataCriacao     DateTime    @default(now())
   dataAgendamento DateTime?
   observacoes     String?
-  createdAt       DateTime  @default(now())
+  routeId         Int?
+  createdAt       DateTime    @default(now())
   updatedAt       DateTime
+  DailyRoute      DailyRoute? @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@index([routeId])
 }
 
 model chamados_escola {
@@ -824,6 +836,73 @@ model PreventiveMaintenanceEmailLog {
   @@index([status])
   @@index([sentAt])
   @@index([printerSerial])
+}
+
+/// Rota operacional diária de visita técnica (separada da otimização
+/// geográfica de trajetos representada por RouteOptimization).
+model DailyRoute {
+  id              Int                    @id @default(autoincrement())
+  date            DateTime               @db.Date
+  name            String
+  vehicle         String?
+  status          RouteStatus            @default(PLANNED)
+  createdBy       String
+  updatedBy       String?
+  closedBy        String?
+  closedAt        DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  technicians     DailyRouteTechnician[]
+  demands         SchoolDemand[]
+  technicalTickets TechnicalTicket[]
+  chamados        chamados_escalas[]
+  transfersTo     RouteTransfer[]        @relation("RouteTransferTo")
+  transfersFrom   RouteTransfer[]        @relation("RouteTransferFrom")
+
+  @@unique([date, name])
+  @@index([date, status])
+}
+
+model DailyRouteTechnician {
+  id           Int        @id @default(autoincrement())
+  routeId      Int
+  technicianId Int
+  routeDate    DateTime   @db.Date
+  active       Boolean    @default(true)
+  /// Chave de exclusão para impedir o mesmo técnico em duas rotas ativas
+  /// na mesma data. Fica nula quando a alocação é encerrada ou a rota fecha.
+  conflictKey  String?    @unique
+  createdAt    DateTime   @default(now())
+  removedAt    DateTime?
+  removedBy    String?
+  route        DailyRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  technician   Profile    @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+
+  @@unique([routeId, technicianId])
+  @@index([technicianId, routeDate])
+  @@index([routeDate])
+}
+
+enum RouteEntityType {
+  DEMAND
+  TECHNICAL_TICKET
+  CHAMADO
+}
+
+model RouteTransfer {
+  id          Int             @id @default(autoincrement())
+  entityType  RouteEntityType
+  entityId    Int
+  fromRouteId Int?
+  toRouteId   Int?
+  movedBy     String
+  note        String?
+  createdAt   DateTime        @default(now())
+  fromRoute   DailyRoute?     @relation("RouteTransferFrom", fields: [fromRouteId], references: [id], onDelete: SetNull)
+  toRoute     DailyRoute?     @relation("RouteTransferTo", fields: [toRouteId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }
 
 enum ChadaDiagnosticStatus {

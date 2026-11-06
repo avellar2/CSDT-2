@@ -22,8 +22,21 @@ import DemandModal from "../components/DemandModal";
 import DemandCalendar from "../components/DemandCalendar";
 import DemandCard from "../components/DemandCard";
 import DemandSkeleton from "../components/DemandSkeleton";
+import DailyRoutesPanel, {
+  DailyRouteDTO,
+  RouteFilterValue,
+} from "../components/DailyRoutesPanel";
 
 // Types
+interface DemandRouteInfo {
+  id: number;
+  name: string;
+  vehicle: string | null;
+  status?: string;
+  date?: string;
+  technicians?: { technicianId: number; displayName: string }[];
+}
+
 interface Demand {
   id: string;
   title: string;
@@ -35,6 +48,12 @@ interface Demand {
   visitReason?: string | null;
   visitUpdatedBy?: string | null;
   visitUpdatedAt?: string | null;
+  isReagendamento?: boolean;
+  categoria?: string;
+  tecnico?: string;
+  osOriginal?: string;
+  routeId?: number | null;
+  route?: DemandRouteInfo | null;
 }
 
 interface Technician {
@@ -76,6 +95,10 @@ const DailyDemands: React.FC = () => {
   const [visitReason, setVisitReason] = useState("");
   const [visitReasonOption, setVisitReasonOption] = useState("Sem tempo hábil");
   const [savingVisitStatus, setSavingVisitStatus] = useState(false);
+
+  // Rotas operacionais
+  const [routes, setRoutes] = useState<DailyRouteDTO[]>([]);
+  const [routeFilter, setRouteFilter] = useState<RouteFilterValue>("all");
 
   // Format date for API
   const formatDateForAPI = (date: Date) => formatBrazilDateKey(date);
@@ -228,6 +251,7 @@ const DailyDemands: React.FC = () => {
 
       const fetchedDemands = demandsResult.data || [];
       setDemands(fetchedDemands);
+      setRoutes(demandsResult.routes || []);
 
       // Check OS status
       if (fetchedDemands.length > 0) {
@@ -580,34 +604,104 @@ const DailyDemands: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveDemand = async (demand: { id?: number; schoolId: number; demand: string }) => {
+  const handleSaveDemand = async (demand: {
+    id?: number;
+    schoolId: number;
+    demand: string;
+    routeId?: number | null;
+    date?: string;
+  }) => {
     try {
       if (demand.id) {
         const response = await fetch("/api/school-demands", {
           method: "PUT",
           headers: getAuthHeaders(),
-          body: JSON.stringify(demand),
+          body: JSON.stringify({
+            id: demand.id,
+            schoolId: demand.schoolId,
+            demand: demand.demand,
+          }),
         });
 
         if (!response.ok) throw new Error("Erro ao editar a demanda");
+
+        // A rota é alterada via endpoint de transferência (com auditoria).
+        const editing = editingDemand;
+        const currentRouteId = editing?.routeId ?? null;
+        const nextRouteId = demand.routeId ?? null;
+
+        if (currentRouteId !== nextRouteId) {
+          const assignResponse = await fetch("/api/routes/assign", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              entityType: "DEMAND",
+              entityId: demand.id,
+              routeId: nextRouteId,
+              note: "Alteração via edição da demanda",
+            }),
+          });
+
+          if (!assignResponse.ok) {
+            const data = await assignResponse.json().catch(() => ({}));
+            throw new Error(data.error || "Erro ao alterar a rota da demanda");
+          }
+        }
 
         await fetchData(); // Refresh data
       } else {
         const response = await fetch("/api/school-demands", {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify(demand),
+          body: JSON.stringify({
+            schoolId: demand.schoolId,
+            demand: demand.demand,
+            date: demand.date || formatDateForAPI(selectedDate),
+            routeId: demand.routeId ?? null,
+          }),
         });
 
-        if (!response.ok) throw new Error("Erro ao adicionar a demanda");
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Erro ao adicionar a demanda");
+        }
 
         await fetchData(); // Refresh data
       }
-      
+
       setIsModalOpen(false);
     } catch (error) {
       console.error("Erro ao salvar demanda:", error);
-      alert("Erro ao salvar a demanda. Tente novamente.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Erro ao salvar a demanda. Tente novamente."
+      );
+    }
+  };
+
+  const handleChangeRoute = async (demand: Demand, routeId: number | null) => {
+    try {
+      const response = await fetch("/api/routes/assign", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          entityType: "DEMAND",
+          entityId: Number(demand.id),
+          routeId,
+          note: "Movimentação manual pela listagem de demandas",
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Erro ao mover demanda entre rotas");
+      }
+
+      await fetchData();
+    } catch (error) {
+      console.error("Erro ao mover demanda:", error);
+      alert(error instanceof Error ? error.message : "Erro ao mover demanda.");
     }
   };
 
@@ -615,14 +709,27 @@ const DailyDemands: React.FC = () => {
   const isToday = selectedDate.toDateString() === new Date().toDateString();
   const hasTechnicians = baseTechnicians.length > 0 || visitTechnicians.length > 0 || offTechnicians.length > 0;
 
+  const visibleDemands = useMemo(() => {
+    if (routeFilter === "all") return demands;
+    if (routeFilter === "unassigned") {
+      return demands.filter((demand) => demand.routeId === null || demand.routeId === undefined);
+    }
+    return demands.filter((demand) => demand.routeId === routeFilter);
+  }, [demands, routeFilter]);
+
+  const unassignedCount = useMemo(
+    () => demands.filter((demand) => demand.routeId === null || demand.routeId === undefined).length,
+    [demands]
+  );
+
   const demandStats = useMemo(() => {
-    const total = demands.length;
-    const pending = demands.filter(d => d.osStatus === 'pending').length;
-    const created = demands.filter(d => d.osStatus === 'created').length;
-    const signed = demands.filter(d => d.osStatus === 'signed').length;
-    
+    const total = visibleDemands.length;
+    const pending = visibleDemands.filter(d => d.osStatus === 'pending').length;
+    const created = visibleDemands.filter(d => d.osStatus === 'created').length;
+    const signed = visibleDemands.filter(d => d.osStatus === 'signed').length;
+
     return { total, pending, created, signed };
-  }, [demands]);
+  }, [visibleDemands]);
 
   // Render
   if (loading && !refreshing) {
@@ -751,6 +858,19 @@ Veja o console para mais detalhes!`);
           </div>
         </div>
 
+        {/* Rotas operacionais */}
+        <DailyRoutesPanel
+          dateKey={formatDateForAPI(selectedDate)}
+          routes={routes}
+          canManage={userRole === "ADMTOTAL" || userRole === "ADMIN"}
+          selectedFilter={routeFilter}
+          onSelectFilter={setRouteFilter}
+          onChanged={async () => {
+            await fetchData(selectedDate);
+          }}
+          unassignedCount={unassignedCount}
+        />
+
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           {/* Calendar */}
           <div className="xl:col-span-1">
@@ -830,9 +950,9 @@ Veja o console para mais detalhes!`);
                 </div>
               </div>
 
-              {demands.length > 0 ? (
+              {visibleDemands.length > 0 ? (
                 <div className="space-y-4">
-                  {demands.map((demand) => {
+                  {visibleDemands.map((demand) => {
                     const schoolName = demand.title.replace("Demanda - ", "");
                     const school = schools.find(s => s.name === schoolName);
 
@@ -842,6 +962,8 @@ Veja o console para mais detalhes!`);
                         demand={demand}
                         school={school}
                         userRole={userRole}
+                        routes={routes}
+                        onChangeRoute={handleChangeRoute}
                         onEdit={handleEditDemand}
                         onDelete={handleDelete}
                         onCreateOS={handleCreateOS}
@@ -883,10 +1005,14 @@ Veja o console para mais detalhes!`);
                   editingDemand.title.includes(school.name)
                 )?.id || 0,
                 demand: editingDemand.description,
+                routeId: editingDemand.routeId ?? null,
               }
             : undefined
         }
         schools={schools}
+        routes={routes}
+        dateKey={formatDateForAPI(selectedDate)}
+        allowRouteSelection={userRole === "ADMTOTAL" || userRole === "ADMIN"}
       />
 
       {visitStatusModalDemand && (

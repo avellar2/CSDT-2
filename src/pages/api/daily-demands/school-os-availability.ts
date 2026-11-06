@@ -3,24 +3,25 @@ import { getSchoolPendingDailyDemandAvailability } from "@/utils/schoolPendingDa
 import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método não permitido" });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== "GET") {
+    res.setHeader("Allow", ["GET"]);
+    return res.status(405).json({ error: "Método não permitido" });
   }
 
-  const userId = typeof req.query.userId === "string" ? req.query.userId : "";
-  const schoolName = typeof req.query.schoolName === "string" ? req.query.schoolName : "";
+  const schoolName =
+    typeof req.query.schoolName === "string" ? req.query.schoolName : "";
 
-  if (!userId || !schoolName) {
-    return res.status(400).json({ error: "userId e schoolName são obrigatórios." });
+  if (!schoolName) {
+    return res.status(400).json({ error: "schoolName é obrigatório." });
   }
 
   try {
     const result = await getSchoolPendingDailyDemandAvailability({
-      userId,
+      // Identidade autenticada; userId da query não é confiável.
+      userId: auth.id,
       schoolName,
     });
 
