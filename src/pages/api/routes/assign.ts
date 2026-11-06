@@ -81,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           label: "Demanda",
         };
 
-        if (parsedRouteId !== null && demand.routeId === parsedRouteId) {
+        if (demand.routeId === parsedRouteId) {
           return { changed: false, entityType, entityId: parsedEntityId, routeId: parsedRouteId };
         }
 
@@ -114,7 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           label: "Chamado técnico",
         };
 
-        if (parsedRouteId !== null && ticket.routeId === parsedRouteId) {
+        if (ticket.routeId === parsedRouteId) {
           return { changed: false, entityType, entityId: parsedEntityId, routeId: parsedRouteId };
         }
 
@@ -145,7 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           label: "Chamado de escala",
         };
 
-        if (parsedRouteId !== null && chamado.routeId === parsedRouteId) {
+        if (chamado.routeId === parsedRouteId) {
           return { changed: false, entityType, entityId: parsedEntityId, routeId: parsedRouteId };
         }
 
