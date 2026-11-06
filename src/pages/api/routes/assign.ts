@@ -8,11 +8,13 @@ import {
   isRouteManager,
   routeStatusIsOpen,
 } from "@/utils/operationalRoutes";
+import { osExternaDateKey } from "@/utils/operationalOsScope";
 
 const ENTITY_TYPES: RouteEntityType[] = [
   "DEMAND",
   "TECHNICAL_TICKET",
   "CHAMADO",
+  "OS_EXTERNA",
 ];
 
 type EntityContext = {
@@ -40,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!ENTITY_TYPES.includes(entityType)) {
     return res.status(400).json({
-      error: "entityType deve ser DEMAND, TECHNICAL_TICKET ou CHAMADO.",
+      error: "entityType deve ser DEMAND, TECHNICAL_TICKET, CHAMADO ou OS_EXTERNA.",
     });
   }
 
@@ -122,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           where: { id: parsedEntityId },
           data: { routeId: parsedRouteId },
         });
-      } else {
+      } else if (entityType === "CHAMADO") {
         const chamado = await tx.chamados_escalas.findUnique({
           where: { id: parsedEntityId },
           select: {
@@ -150,6 +152,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         await tx.chamados_escalas.update({
+          where: { id: parsedEntityId },
+          data: { routeId: parsedRouteId },
+        });
+      } else {
+        const osExterna = await tx.oSExterna.findUnique({
+          where: { id: parsedEntityId },
+          select: {
+            id: true,
+            status: true,
+            data: true,
+            routeId: true,
+            createdAt: true,
+          },
+        });
+
+        if (!osExterna) {
+          throw new AssignError("OS externa não encontrada.", 404);
+        }
+
+        // O histórico assinado não é redistribuído entre equipes.
+        if (osExterna.status === "Assinado") {
+          throw new AssignError(
+            "OS assinada não pode ser atribuída a uma rota (histórico preservado).",
+            409
+          );
+        }
+
+        context = {
+          fromRouteId: osExterna.routeId,
+          dateKey: osExternaDateKey(osExterna),
+          label: "OS externa",
+        };
+
+        if (osExterna.routeId === parsedRouteId) {
+          return { changed: false, entityType, entityId: parsedEntityId, routeId: parsedRouteId };
+        }
+
+        await tx.oSExterna.update({
           where: { id: parsedEntityId },
           data: { routeId: parsedRouteId },
         });

@@ -480,11 +480,21 @@ export function useFillPdfForm() {
 
   const saveDataAndGetNumeroOs = async (data: FormDataType): Promise<FormDataType> => {
     const currentDate = new Date();
+    // OS lançada a partir de uma demanda usa a data operacional dela; o
+    // backend rejeita qualquer divergência entre demanda e OS.
+    const demandDateQuery =
+      router.query.origin === "daily-demands" && typeof router.query.demandDate === "string"
+        ? router.query.demandDate
+        : null;
+    const osDateKey =
+      demandDateQuery && /^\d{4}-\d{2}-\d{2}$/.test(demandDateQuery)
+        ? demandDateQuery
+        : formatBrazilDateKey(currentDate);
     const updatedData = {
       ...data,
       // Data operacional em America/Sao_Paulo (o ISO/UTC adiantava o dia
       // após as 21h de Brasília e quebrava o vínculo com a rota).
-      data: formatBrazilDateKey(currentDate),
+      data: osDateKey,
       hora: new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Sao_Paulo" }).format(currentDate),
     };
     const response = await fetch("/api/save-os-externa", {

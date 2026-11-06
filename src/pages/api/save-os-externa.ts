@@ -9,6 +9,7 @@ import {
   isValidDateKey,
 } from "@/utils/operationalRoutes";
 import { resolveRouteIdForResponsible } from "@/utils/operationalOsScope";
+import { validateDemandOsLink } from "@/utils/osDemandIntegrity";
 
 const prisma = new PrismaClient();
 
@@ -100,21 +101,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // confia no valor do form e nao aplica preservePartnerSuffix
     const formAlreadyHasPartner = typeof tecnicoResponsavel === "string" && tecnicoResponsavel.includes(" / ");
 
+    // Data operacional da OS: só aceita YYYY-MM-DD; qualquer outro valor cai
+    // para a data atual em America/Sao_Paulo.
+    const osDateKey =
+      typeof data === "string" && isValidDateKey(data)
+        ? data
+        : formatBrazilDateKey(new Date());
+
+    const dailyDemandId =
+      context?.origin === "daily-demands" &&
+      context?.dailyDemandId &&
+      Number.isInteger(Number(context.dailyDemandId))
+        ? Number(context.dailyDemandId)
+        : null;
+
+    let routeId: number | null = null;
+    let demandRouteId: number | null = null;
+    let demandDateKey: string | null = null;
+
     if (context?.origin === "daily-demands") {
-      if (!context.dailyDemandDate) {
-        return res.status(400).json({ error: "Contexto da demanda diaria invalido." });
+      if (!isValidDateKey(context.dailyDemandDate)) {
+        return res.status(400).json({ error: "Data da demanda diaria invalida." });
       }
 
-      const demandId =
-        context.dailyDemandId && Number.isInteger(Number(context.dailyDemandId))
-          ? Number(context.dailyDemandId)
-          : null;
+      // Integridade demanda -> OS -> rota: a demanda é recarregada do banco e
+      // precisa pertencer à data informada, à data da OS e à rota do técnico.
+      if (dailyDemandId) {
+        const link = await validateDemandOsLink({
+          profile: auth.profile,
+          demandId: dailyDemandId,
+          demandDate: context.dailyDemandDate,
+          osDateKey,
+        });
+
+        if (!link.ok) {
+          return res.status(link.status).json({ error: link.error });
+        }
+
+        demandRouteId = link.demand.routeId;
+        demandDateKey = link.demand.dateKey;
+      } else if (context.dailyDemandDate !== osDateKey) {
+        return res.status(400).json({
+          error: `A OS deve usar a data operacional da demanda (${context.dailyDemandDate}).`,
+        });
+      }
 
       // Identidade autenticada; ignora context.userId enviado pelo cliente.
       const availability = await assessDailyDemandOsAvailability({
         userId: auth.id,
         demandDate: context.dailyDemandDate,
-        demandId,
+        demandId: dailyDemandId,
       });
 
       if (!availability.allowed) {
@@ -155,43 +191,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Associação explícita da OS com a rota operacional responsável:
-    // 1. OS lançada a partir de uma demanda diária herda a rota da demanda;
+    // 1. OS lançada a partir de uma demanda diária herda a rota validada dela;
     // 2. técnico que participa de exatamente uma rota na data usa essa rota;
     // 3. gestor: resolve a rota pelo técnico responsável informado.
     // Sem correspondência (dia sem rotas ou responsável sem rota), fica nula
-    // e a OS continua visível aos gestores.
-    const osDateKey =
-      typeof data === "string" && isValidDateKey(data)
-        ? data
-        : formatBrazilDateKey(new Date());
-
-    const dailyDemandId =
-      context?.origin === "daily-demands" &&
-      context?.dailyDemandId &&
-      Number.isInteger(Number(context.dailyDemandId))
-        ? Number(context.dailyDemandId)
-        : null;
-
-    let routeId: number | null = null;
-
-    if (dailyDemandId) {
-      const demand = await prisma.schoolDemand.findUnique({
-        where: { id: dailyDemandId },
-        select: { routeId: true },
-      });
-      routeId = demand?.routeId ?? null;
-    }
-
-    if (routeId === null) {
-      if (auth.profile.role === "TECH") {
-        const routeIds = await getTechnicianRouteIdsByDate(auth.profile.id, osDateKey);
-        routeId = routeIds.length === 1 ? routeIds[0] : null;
-      } else if (isRouteManager(auth.profile.role)) {
-        routeId = await resolveRouteIdForResponsible(
-          typeof tecnicoResponsavel === "string" ? tecnicoResponsavel : null,
-          osDateKey
-        );
-      }
+    // e a OS continua visível aos gestores, que podem atribuí-la depois.
+    if (demandDateKey) {
+      routeId = demandRouteId;
+    } else if (auth.profile.role === "TECH") {
+      const routeIds = await getTechnicianRouteIdsByDate(auth.profile.id, osDateKey);
+      routeId = routeIds.length === 1 ? routeIds[0] : null;
+    } else if (isRouteManager(auth.profile.role)) {
+      routeId = await resolveRouteIdForResponsible(
+        typeof tecnicoResponsavel === "string" ? tecnicoResponsavel : null,
+        osDateKey
+      );
     }
 
     const fotosAntesUrls = Array.isArray(fotosAntes)
@@ -206,7 +220,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         unidadeEscolar,
         tecnicoResponsavel,
         routeId,
-        data,
+        data: osDateKey,
         hora,
         solicitacaoDaVisita,
         relatorio,

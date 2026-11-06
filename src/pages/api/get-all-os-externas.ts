@@ -6,6 +6,7 @@ import {
   buildOperationalOsWhere,
   loadOsScope,
 } from "@/utils/operationalOsScope";
+import { isValidDateKey } from "@/utils/operationalRoutes";
 
 const prisma = new PrismaClient();
 
@@ -30,9 +31,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { status } = req.query;
+    const { status, unassigned, date } = req.query;
+    const wantsUnassigned = unassigned === '1' || unassigned === 'true';
+
+    if (date !== undefined && !isValidDateKey(date)) {
+      return res.status(400).json({ error: 'date deve estar no formato YYYY-MM-DD.' });
+    }
 
     const scope = await loadOsScope(auth);
+
+    // "Sem rota" é uma visão administrativa para localizar OS operacionais
+    // criadas antes da rota existir e atribuí-las à equipe correta. Técnicos
+    // nunca recebem essa lista, para não expor OS de outras equipes.
+    if (wantsUnassigned && !scope.isManager) {
+      return res.status(403).json({
+        error: 'Somente ADMIN ou ADMTOTAL podem listar OS sem rota.',
+      });
+    }
+
     const operationalWhere = buildOperationalOsWhere(scope);
     const assignedWhere = buildAssignedOsWhere(scope);
 
@@ -40,8 +56,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // `take: 500` fazia as assinadas (que sao maioria) ocuparem o limite e as
     // pendentes nunca chegarem ao front. Buscamos cada grupo separadamente,
     // cada um com o seu próprio escopo de visibilidade.
-    const osExternas =
-      status && typeof status === 'string'
+    const osExternas = wantsUnassigned
+      ? await prisma.oSExterna.findMany({
+          where: {
+            routeId: null,
+            ...(typeof status === 'string'
+              ? { status }
+              : { status: { not: 'Assinado' } }),
+            ...(isValidDateKey(date) ? { data: date } : {}),
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 500,
+        })
+      : status && typeof status === 'string'
         ? await prisma.oSExterna.findMany({
             where: {
               status,

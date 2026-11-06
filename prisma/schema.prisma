@@ -894,6 +894,8 @@ enum RouteEntityType {
   DEMAND
   TECHNICAL_TICKET
   CHAMADO
+  /// OS externa atribuída/redistribuída manualmente para uma rota.
+  OS_EXTERNA
 }
 
 model RouteTransfer {

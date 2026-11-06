@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import { useHeaderContext } from "@/context/HeaderContext";
 import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
-import { getAuthHeadersNoContentType } from "@/utils/client-auth";
+import { getAuthHeaders, getAuthHeadersNoContentType } from "@/utils/client-auth";
 
 export interface OsExterna {
   id: number;
@@ -58,6 +58,8 @@ export interface OsExterna {
   solucionado?: string;
   status: string;
   assinado?: string;
+  /** Rota operacional da OS. Nula em OS antigas ou criadas antes da rota. */
+  routeId?: number | null;
   motivoRecusa?: string | null;
   recusadoEm?: string | null;
   cpf?: string;
@@ -115,6 +117,13 @@ export function useOsExternasList() {
   const [notVisitedDate, setNotVisitedDate] = useState(formatBrazilDateKey(new Date()));
   const [showNotVisitedModal, setShowNotVisitedModal] = useState(false);
   const [downloadPdf, setDownloadingPdf] = useState(false);
+  // Atribuição de OS sem rota (ADMIN/ADMTOTAL) com auditoria no backend.
+  const [assigningOsId, setAssigningOsId] = useState<number | null>(null);
+  const [assignRoutes, setAssignRoutes] = useState<
+    { id: number; name: string; vehicle?: string | null }[]
+  >([]);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
   const statusFilter = typeof router.query.status === "string" ? router.query.status : "";
   const pendingOnly = statusFilter === "Pendente";
 
@@ -207,6 +216,57 @@ export function useOsExternasList() {
       }
     } catch {
       setNotVisitedDailyDemands([]);
+    }
+  };
+
+  const openAssign = async (os: OsExterna) => {
+    if (assigningOsId === os.id) {
+      setAssigningOsId(null);
+      return;
+    }
+
+    setAssigningOsId(os.id);
+    setAssignRoutes([]);
+    setAssignError(null);
+    setAssignLoading(true);
+
+    try {
+      const response = await fetch(`/api/routes?date=${encodeURIComponent(os.data)}`, {
+        headers: getAuthHeadersNoContentType(),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao carregar rotas");
+      setAssignRoutes(data.routes || []);
+    } catch (error) {
+      setAssignError(error instanceof Error ? error.message : "Erro ao carregar rotas");
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const assignOsToRoute = async (os: OsExterna, routeId: number) => {
+    setAssignLoading(true);
+    setAssignError(null);
+
+    try {
+      const response = await fetch("/api/routes/assign", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          entityType: "OS_EXTERNA",
+          entityId: os.id,
+          routeId,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao atribuir rota");
+      setAssigningOsId(null);
+      setAssignRoutes([]);
+      await fetchOsExternas();
+    } catch (error) {
+      setAssignError(error instanceof Error ? error.message : "Erro ao atribuir rota");
+    } finally {
+      setAssignLoading(false);
     }
   };
 
@@ -330,6 +390,7 @@ export function useOsExternasList() {
     notVisitedDate, setNotVisitedDate,
     showNotVisitedModal, setShowNotVisitedModal,
     downloadPdf, setDownloadingPdf,
+    assigningOsId, assignRoutes, assignLoading, assignError,
     pendingOnly, userName,
     // Computed
     osExternasPendentes, osExternasAssinadas,
@@ -341,5 +402,6 @@ export function useOsExternasList() {
     handleResendEmail, confirmResendEmail,
     canSendEmailToday, getLastEmailText,
     fetchOsExternas, fetchPendingDailyDemands,
+    openAssign, assignOsToRoute,
   };
 }
