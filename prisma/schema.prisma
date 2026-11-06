@@ -235,6 +235,10 @@ model OSExterna {
   hora                               String
   unidadeEscolar                     String?
   tecnicoResponsavel                 String?
+  /// Rota operacional responsável pela visita. Nula em OS antigas ou criadas
+  /// em dias sem rotas cadastradas (compatibilidade).
+  routeId                            Int?
+  DailyRoute                         DailyRoute? @relation(fields: [routeId], references: [id], onDelete: SetNull)
   emailResponsavel                   String?
   fotosAntes                         String[]
   fotosDepois                        String[]
@@ -288,6 +292,8 @@ model OSExterna {
   temImpressoraComProblema           Boolean?
   motivoRecusa                       String?
   recusadoEm                         DateTime?
+
+  @@index([routeId])
 }
 
 model OffTechnician {
@@ -854,6 +860,7 @@ model DailyRoute {
   updatedAt       DateTime               @updatedAt
   technicians     DailyRouteTechnician[]
   demands         SchoolDemand[]
+  osExternas      OSExterna[]
   technicalTickets TechnicalTicket[]
   chamados        chamados_escalas[]
   transfersTo     RouteTransfer[]        @relation("RouteTransferTo")

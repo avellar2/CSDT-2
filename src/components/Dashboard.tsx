@@ -36,10 +36,12 @@ import DashboardRegisterForm from "./DashboardRegisterForm";
 import PrinterRequestCard from "./PrinterRequestCard";
 import PreventiveMaintenanceCard from "./PreventiveMaintenanceCard";
 import dynamic from "next/dynamic";
+import { getAuthHeadersNoContentType } from "@/utils/client-auth";
 
 const SchoolsMapModal = dynamic(() => import("./SchoolsMapModal"), { ssr: false });
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const fetcher = (url: string) =>
+  fetch(url, { headers: getAuthHeadersNoContentType() }).then(r => r.json());
 
 interface DecodedToken {
   userId: string;

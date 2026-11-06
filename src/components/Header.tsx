@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { useHeaderContext } from "../context/HeaderContext";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useRouter } from "next/router";
+import { getAuthHeadersNoContentType } from "@/utils/client-auth";
 import {
   BarChart3,
   ClipboardList,
@@ -153,8 +154,8 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
 
       try {
         const requests = [
-          fetch(`/api/dashboard/pending-os?userId=${encodeURIComponent(supabaseUserId)}`),
-          fetch('/api/dashboard/daily-demands-count')
+          fetch(`/api/dashboard/pending-os?userId=${encodeURIComponent(supabaseUserId)}`, { headers: getAuthHeadersNoContentType() }),
+          fetch('/api/dashboard/daily-demands-count', { headers: getAuthHeadersNoContentType() })
         ];
 
         // Adicionar chamados internos para técnicos

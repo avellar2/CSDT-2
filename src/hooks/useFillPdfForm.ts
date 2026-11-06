@@ -8,6 +8,8 @@ import { uploadFiles } from "@/utils/storageProvider";
 import { useMultiStepForm } from "@/hooks/useMultiStepForm";
 import { formSteps } from "@/utils/formSteps";
 import initialFormData from "@/utils/itens";
+import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 export interface Escola {
   name: string;
@@ -480,12 +482,14 @@ export function useFillPdfForm() {
     const currentDate = new Date();
     const updatedData = {
       ...data,
-      data: currentDate.toISOString().split("T")[0],
+      // Data operacional em America/Sao_Paulo (o ISO/UTC adiantava o dia
+      // após as 21h de Brasília e quebrava o vínculo com a rota).
+      data: formatBrazilDateKey(currentDate),
       hora: new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Sao_Paulo" }).format(currentDate),
     };
     const response = await fetch("/api/save-os-externa", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         formData: updatedData,
         context: router.query.origin === "daily-demands"

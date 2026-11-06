@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import { useHeaderContext } from "@/context/HeaderContext";
 import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
+import { getAuthHeadersNoContentType } from "@/utils/client-auth";
 
 export interface OsExterna {
   id: number;
@@ -164,7 +165,7 @@ export function useOsExternasList() {
       const params = new URLSearchParams();
       if (effectiveUserId) params.set("userId", effectiveUserId);
       if (statusFilter) params.set("status", statusFilter);
-      const response = await fetch(`/api/get-all-os-externas${params.toString() ? `?${params.toString()}` : ""}`);
+      const response = await fetch(`/api/get-all-os-externas${params.toString() ? `?${params.toString()}` : ""}`, { headers: getAuthHeadersNoContentType() });
       if (response.ok) {
         const data = await response.json();
         setOsExternas(data);
@@ -179,7 +180,7 @@ export function useOsExternasList() {
       const effectiveUserId = userIdParam || currentUserId;
       const params = new URLSearchParams();
       if (effectiveUserId) params.set("userId", effectiveUserId);
-      const response = await fetch(`/api/pending-daily-demands${params.toString() ? `?${params.toString()}` : ""}`);
+      const response = await fetch(`/api/pending-daily-demands${params.toString() ? `?${params.toString()}` : ""}`, { headers: getAuthHeadersNoContentType() });
       if (response.ok) {
         const data = await response.json();
         setPendingDailyDemands(data.data || []);
@@ -197,7 +198,7 @@ export function useOsExternasList() {
       const effectiveDate = dateParam || notVisitedDate;
       if (!effectiveUserId || !effectiveDate) { setNotVisitedDailyDemands([]); return; }
       const params = new URLSearchParams({ userId: effectiveUserId, date: effectiveDate });
-      const response = await fetch(`/api/not-visited-daily-demands?${params.toString()}`);
+      const response = await fetch(`/api/not-visited-daily-demands?${params.toString()}`, { headers: getAuthHeadersNoContentType() });
       if (response.ok) {
         const data = await response.json();
         setNotVisitedDailyDemands(data.data || []);

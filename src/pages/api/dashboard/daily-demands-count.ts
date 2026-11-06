@@ -1,43 +1,50 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/utils/prisma';
 import { requireAuth } from "@/utils/api-auth";
+import { formatBrazilDateKey, getBrazilDayRange } from '@/utils/dailyDemandOsRules';
+import {
+  buildOperationalDemandWhere,
+  loadOsScope,
+} from '@/utils/operationalOsScope';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // Configuração do filtro de data para hoje (fuso horário brasileiro UTC-3)
-    const now = new Date();
-    const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-    const today = new Date(brazilTime.toISOString().split('T')[0] + 'T00:00:00-03:00');
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    // Contadores seguem o mesmo escopo operacional das listagens: técnico
+    // conta apenas demandas da própria rota; gestores contam tudo.
+    const scope = await loadOsScope(auth);
+    const demandWhere = buildOperationalDemandWhere(scope);
 
-    // Contar demandas criadas hoje
+    const todayKey = formatBrazilDateKey(new Date());
+    const { start, end } = getBrazilDayRange(todayKey);
+
     const dailyDemandsCount = await prisma.schoolDemand.count({
       where: {
         createdAt: {
-          gte: startOfDay,
-          lte: endOfDay,
+          gte: start,
+          lte: end,
         },
+        ...demandWhere,
       },
     });
 
-    // Contar demandas total (para comparação)
-    const totalDemandsCount = await prisma.schoolDemand.count();
+    const totalDemandsCount = await prisma.schoolDemand.count({
+      where: demandWhere,
+    });
 
     return res.status(200).json({
       success: true,
       data: {
         dailyDemandsCount,
         totalDemandsCount,
-        date: now.toLocaleDateString('pt-BR')
+        date: new Date(`${todayKey}T12:00:00-03:00`).toLocaleDateString('pt-BR'),
       }
     });
 

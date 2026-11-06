@@ -1,16 +1,26 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from "@/utils/api-auth";
+import {
+  buildOperationalOsWhere,
+  loadOsScope,
+} from "@/utils/operationalOsScope";
 
 const prisma = new PrismaClient();
 
+/**
+ * Verifica se uma escola possui OS pendentes.
+ *
+ * A identidade vem do token. Técnicos só enxergam as OS das próprias rotas
+ * (e as OS antigas em que são responsáveis); gestores enxergam tudo.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Método não permitido' });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).json({ message: 'Método não permitido' });
   }
 
   const { schoolId } = req.query;
@@ -20,11 +30,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const parsedSchoolId = Number(schoolId);
+    if (!Number.isInteger(parsedSchoolId) || parsedSchoolId <= 0) {
+      return res.status(400).json({ message: 'ID da escola inválido' });
+    }
 
-    // MELHOR: Buscar o nome da escola diretamente no banco
+    // Buscar o nome da escola diretamente no banco
     const school = await prisma.school.findUnique({
       where: {
-        id: parseInt(schoolId as string) // ou schoolId as string, dependendo do tipo
+        id: parsedSchoolId
       },
       select: {
         id: true,
@@ -33,7 +47,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!school) {
-
       return res.status(200).json({
         hasPendingOs: false,
         totalPending: 0,
@@ -44,12 +57,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const schoolName = school.name;
+    const scope = await loadOsScope(auth);
 
-    // Resto do código permanece igual...
+    // OS antigas (tabela Os) não têm rota: para técnicos mantemos o filtro
+    // histórico pelo nome do responsável; gestores continuam vendo tudo.
+    const legacyWhere = {
+      unidadeEscolar: schoolName,
+      ...(scope.isTechnician
+        ? { tecnicoResponsavel: { contains: scope.displayName } }
+        : {}),
+    };
+
     const allOsOld = await prisma.os.findMany({
-      where: {
-        unidadeEscolar: schoolName
-      },
+      where: legacyWhere,
       select: {
         id: true,
         numeroOs: true,
@@ -61,7 +81,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const allOsNew = await prisma.oSExterna.findMany({
       where: {
-        unidadeEscolar: schoolName
+        unidadeEscolar: schoolName,
+        ...buildOperationalOsWhere(scope),
       },
       select: {
         id: true,
@@ -72,21 +93,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-
-
-    if (allOsOld.length > 0) {
-
-    }
-
-    if (allOsNew.length > 0) {
-
-    }
-
     // Filtrar OS não assinadas:
     // - Tabela 'Os': TODAS as OS (independente do status) = não assinadas
     // - Tabela 'OSExterna': Apenas status 'Pendente' = não assinadas
-    const pendingOsOld = allOsOld; // TODAS as OS da tabela antiga são não-assinadas
-    const pendingOsNew = allOsNew.filter(os => os.status === 'Pendente'); // Apenas Pendentes da nova tabela
+    const pendingOsOld = allOsOld;
+    const pendingOsNew = allOsNew.filter(os => os.status === 'Pendente');
 
     const hasPendingOs = pendingOsOld.length > 0 || pendingOsNew.length > 0;
     const totalPending = pendingOsOld.length + pendingOsNew.length;

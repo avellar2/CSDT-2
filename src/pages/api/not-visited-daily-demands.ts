@@ -1,36 +1,29 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/utils/prisma";
 import { getNotVisitedDailyDemandItems } from "@/utils/notVisitedDailyDemands";
 import { requireAuth } from "@/utils/api-auth";
+import { isRouteManager, isValidDateKey } from "@/utils/operationalRoutes";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Metodo nao permitido" });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== "GET") {
+    res.setHeader("Allow", ["GET"]);
+    return res.status(405).json({ error: "Metodo nao permitido" });
   }
 
-  const userId = typeof req.query.userId === "string" ? req.query.userId : "";
+  // O perfil vem do token; `userId` na query não é usado para autorizar.
+  if (!isRouteManager(auth.profile.role)) {
+    return res.status(403).json({ error: "Acesso negado." });
+  }
+
   const date = typeof req.query.date === "string" ? req.query.date : "";
 
-  if (!userId || !date) {
-    return res.status(400).json({ error: "userId e date sao obrigatorios." });
+  if (!isValidDateKey(date)) {
+    return res.status(400).json({ error: "date deve estar no formato YYYY-MM-DD." });
   }
 
   try {
-    const profile = await prisma.profile.findUnique({
-      where: { userId },
-      select: {
-        role: true,
-      },
-    });
-
-    if (!profile || !["ADMIN", "ADMTOTAL"].includes(profile.role)) {
-      return res.status(403).json({ error: "Acesso negado." });
-    }
-
     const items = await getNotVisitedDailyDemandItems({ date });
 
     return res.status(200).json({

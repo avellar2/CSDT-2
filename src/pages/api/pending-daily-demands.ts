@@ -3,19 +3,18 @@ import { getPendingDailyDemandItems } from "@/utils/pendingDailyDemandOs";
 import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método não permitido" });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== "GET") {
+    res.setHeader("Allow", ["GET"]);
+    return res.status(405).json({ error: "Método não permitido" });
   }
 
   try {
-    const { userId } = req.query;
-
+    // O escopo vem do usuário autenticado; `userId` na query é ignorado.
     const items = await getPendingDailyDemandItems({
-      userId: typeof userId === "string" ? userId : undefined,
+      profile: auth.profile,
     });
 
     return res.status(200).json({

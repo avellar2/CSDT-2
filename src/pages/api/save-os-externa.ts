@@ -1,8 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
-import { assessDailyDemandOsAvailability } from "@/utils/dailyDemandOsRules";
+import { assessDailyDemandOsAvailability, formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
 import { getSchoolPendingDailyDemandAvailability } from "@/utils/schoolPendingDailyDemandAvailability";
 import { requireAuth } from "@/utils/api-auth";
+import {
+  getTechnicianRouteIdsByDate,
+  isRouteManager,
+  isValidDateKey,
+} from "@/utils/operationalRoutes";
+import { resolveRouteIdForResponsible } from "@/utils/operationalOsScope";
 
 const prisma = new PrismaClient();
 
@@ -148,6 +154,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Associação explícita da OS com a rota operacional responsável:
+    // 1. OS lançada a partir de uma demanda diária herda a rota da demanda;
+    // 2. técnico que participa de exatamente uma rota na data usa essa rota;
+    // 3. gestor: resolve a rota pelo técnico responsável informado.
+    // Sem correspondência (dia sem rotas ou responsável sem rota), fica nula
+    // e a OS continua visível aos gestores.
+    const osDateKey =
+      typeof data === "string" && isValidDateKey(data)
+        ? data
+        : formatBrazilDateKey(new Date());
+
+    const dailyDemandId =
+      context?.origin === "daily-demands" &&
+      context?.dailyDemandId &&
+      Number.isInteger(Number(context.dailyDemandId))
+        ? Number(context.dailyDemandId)
+        : null;
+
+    let routeId: number | null = null;
+
+    if (dailyDemandId) {
+      const demand = await prisma.schoolDemand.findUnique({
+        where: { id: dailyDemandId },
+        select: { routeId: true },
+      });
+      routeId = demand?.routeId ?? null;
+    }
+
+    if (routeId === null) {
+      if (auth.profile.role === "TECH") {
+        const routeIds = await getTechnicianRouteIdsByDate(auth.profile.id, osDateKey);
+        routeId = routeIds.length === 1 ? routeIds[0] : null;
+      } else if (isRouteManager(auth.profile.role)) {
+        routeId = await resolveRouteIdForResponsible(
+          typeof tecnicoResponsavel === "string" ? tecnicoResponsavel : null,
+          osDateKey
+        );
+      }
+    }
+
     const fotosAntesUrls = Array.isArray(fotosAntes)
       ? fotosAntes.map((file) => (typeof file === "string" ? file : file.url || ""))
       : [];
@@ -159,6 +205,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         unidadeEscolar,
         tecnicoResponsavel,
+        routeId,
         data,
         hora,
         solicitacaoDaVisita,

@@ -1,56 +1,64 @@
 import { PrismaClient } from '@prisma/client';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth } from "@/utils/api-auth";
+import {
+  buildAssignedOsWhere,
+  buildOperationalOsWhere,
+  loadOsScope,
+} from "@/utils/operationalOsScope";
 
 const prisma = new PrismaClient();
 
+/**
+ * Lista as OS externas visíveis para o usuário autenticado.
+ *
+ * - ADMIN/ADMTOTAL: enxergam tudo.
+ * - TECH: OS operacionais (pendentes) somente das rotas das quais participa;
+ *   OS assinadas continuam seguindo a regra anterior (responsável pela OS),
+ *   sem redistribuir o histórico entre equipes.
+ * - Demais perfis: comportamento anterior preservado.
+ *
+ * A identidade vem exclusivamente do token — `userId` na query é ignorado.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Método não permitido' });
-  // Requer autenticação
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).json({ error: 'Método não permitido' });
   }
 
   try {
-    const { userId, status } = req.query;
-    let tecnicoResponsavelFilter: string | undefined;
+    const { status } = req.query;
 
-    if (userId && typeof userId === 'string') {
-      const profile = await prisma.profile.findUnique({
-        where: { userId },
-        select: { role: true, displayName: true },
-      });
-
-      if (profile?.role === 'TECH') {
-        tecnicoResponsavelFilter = profile.displayName;
-      }
-    }
-
-    const baseWhere = tecnicoResponsavelFilter
-      ? { tecnicoResponsavel: { contains: tecnicoResponsavelFilter } }
-      : {};
+    const scope = await loadOsScope(auth);
+    const operationalWhere = buildOperationalOsWhere(scope);
+    const assignedWhere = buildAssignedOsWhere(scope);
 
     // A listagem combina pendentes e assinadas. Buscar em uma unica query com
     // `take: 500` fazia as assinadas (que sao maioria) ocuparem o limite e as
-    // pendentes nunca chegarem ao front. Buscamos cada grupo separadamente.
+    // pendentes nunca chegarem ao front. Buscamos cada grupo separadamente,
+    // cada um com o seu próprio escopo de visibilidade.
     const osExternas =
       status && typeof status === 'string'
         ? await prisma.oSExterna.findMany({
-            where: { ...baseWhere, status },
+            where: {
+              status,
+              ...(status === 'Assinado' ? assignedWhere : operationalWhere),
+            },
             orderBy: { createdAt: 'desc' },
             take: 500,
           })
         : (
             await Promise.all([
               prisma.oSExterna.findMany({
-                where: { ...baseWhere, status: { not: 'Assinado' } },
+                where: { status: { not: 'Assinado' }, ...operationalWhere },
                 orderBy: { createdAt: 'desc' },
                 take: 500,
               }),
               prisma.oSExterna.findMany({
-                where: { ...baseWhere, status: 'Assinado' },
+                where: { status: 'Assinado', ...assignedWhere },
                 orderBy: { createdAt: 'desc' },
                 take: 500,
               }),
