@@ -190,6 +190,17 @@ describe("DELETE /api/technical-tickets/delete", () => {
     expect(ticketFindMany).not.toHaveBeenCalled();
   });
 
+  it("usuário de escola sem escola vinculada não vê chamados excluídos", async () => {
+    authenticateAs("SCHOOL", 31, null);
+    const res = createResponse();
+    await deletedHandler(
+      { method: "GET", query: { schoolId: "25" }, headers: {} } as any,
+      res
+    );
+    expect(res.statusCode).toBe(403);
+    expect(ticketFindMany).not.toHaveBeenCalled();
+  });
+
   it("chamados excluídos exigem autenticação", async () => {
     authenticateNone();
     const res = createResponse();
@@ -274,6 +285,39 @@ describe("POST /api/technical-tickets/comments", () => {
     expect(commentCreate).not.toHaveBeenCalled();
   });
 
+  it("ONLYREAD não escreve comentários (somente leitura)", async () => {
+    authenticateAs("ONLYREAD", 30);
+    const res = createResponse();
+    await commentsHandler(
+      {
+        method: "POST",
+        query: { ticketId: "5" },
+        body: { content: "Comentário" },
+        headers: {},
+      } as any,
+      res
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(commentCreate).not.toHaveBeenCalled();
+  });
+
+  it("escola sem escola vinculada não comenta chamados", async () => {
+    authenticateAs("SCHOOL", 31, null);
+    const res = createResponse();
+    await commentsHandler(
+      {
+        method: "GET",
+        query: { ticketId: "5" },
+        headers: {},
+      } as any,
+      res
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(commentFindMany).not.toHaveBeenCalled();
+  });
+
   it("escola não comenta em chamado de outra escola", async () => {
     authenticateAs("SCHOOL", 31, 25);
     ticketFindUnique.mockResolvedValue(makeTicket({ schoolId: 99 }));
@@ -313,6 +357,28 @@ describe("POST /api/technical-tickets/create", () => {
     const res = createResponse();
     await createHandler(
       { method: "POST", body: { ...body, schoolId: 99 }, query: {}, headers: {} } as any,
+      res
+    );
+    expect(res.statusCode).toBe(403);
+    expect(ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("ONLYREAD não abre chamados", async () => {
+    authenticateAs("ONLYREAD", 30);
+    const res = createResponse();
+    await createHandler(
+      { method: "POST", body, query: {}, headers: {} } as any,
+      res
+    );
+    expect(res.statusCode).toBe(403);
+    expect(ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("escola sem escola vinculada não abre chamados", async () => {
+    authenticateAs("SCHOOL", 31, null);
+    const res = createResponse();
+    await createHandler(
+      { method: "POST", body, query: {}, headers: {} } as any,
       res
     );
     expect(res.statusCode).toBe(403);

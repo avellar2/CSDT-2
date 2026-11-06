@@ -35,15 +35,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'schoolId inválido' });
     }
 
-    // Usuário de escola só abre chamados para a própria escola.
-    if (
-      auth.profile.role === 'SCHOOL' &&
-      auth.profile.schoolId !== null &&
-      parsedSchoolId !== auth.profile.schoolId
-    ) {
+    // ONLYREAD é somente leitura: não abre chamados.
+    if (auth.profile.role === 'ONLYREAD') {
       return res.status(403).json({
-        error: 'Você só pode abrir chamados para a sua escola.'
+        error: 'Perfil sem permissão para abrir chamados técnicos.'
       });
+    }
+
+    // Usuário de escola só abre chamados para a própria escola. SCHOOL sem
+    // escola vinculada não tem escopo legítimo e é negado.
+    if (auth.profile.role === 'SCHOOL') {
+      if (auth.profile.schoolId === null || parsedSchoolId !== auth.profile.schoolId) {
+        return res.status(403).json({
+          error: 'Você só pode abrir chamados para a sua escola.'
+        });
+      }
     }
 
     // Criar o chamado técnico

@@ -53,13 +53,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Usuário de escola só acessa chamados da própria escola.
-    if (
-      auth.profile.role === 'SCHOOL' &&
-      auth.profile.schoolId !== null &&
-      ticket.schoolId !== auth.profile.schoolId
-    ) {
-      return res.status(403).json({ error: 'Você não tem acesso a este chamado.' });
+    // Usuário de escola só acessa chamados da própria escola. SCHOOL sem
+    // escola vinculada não tem escopo legítimo e é negado.
+    if (auth.profile.role === 'SCHOOL') {
+      if (auth.profile.schoolId === null || ticket.schoolId !== auth.profile.schoolId) {
+        return res.status(403).json({ error: 'Você não tem acesso a este chamado.' });
+      }
     }
 
     if (req.method === 'GET') {
@@ -75,6 +74,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
     } else if (req.method === 'POST') {
+      // ONLYREAD é somente leitura: pode listar comentários, não escrever.
+      if (auth.profile.role === 'ONLYREAD') {
+        return res.status(403).json({
+          error: 'Perfil sem permissão para comentar chamados técnicos.'
+        });
+      }
+
       // Criar novo comentário
       const { content, isInternal } = req.body || {};
 

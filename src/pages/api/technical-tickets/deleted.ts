@@ -27,12 +27,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Usuário de escola só enxerga os chamados excluídos da própria escola.
-    if (
-      auth.profile.role === 'SCHOOL' &&
-      auth.profile.schoolId !== null &&
-      parsedSchoolId !== auth.profile.schoolId
-    ) {
-      return res.status(403).json({ error: 'Você não tem acesso a estes chamados.' });
+    // Perfil SCHOOL sem escola vinculada não tem escopo legítimo: nega em vez
+    // de liberar a consulta para qualquer escola.
+    if (auth.profile.role === 'SCHOOL') {
+      if (auth.profile.schoolId === null || parsedSchoolId !== auth.profile.schoolId) {
+        return res.status(403).json({ error: 'Você não tem acesso a estes chamados.' });
+      }
     }
 
     // Buscar chamados excluídos da escola
