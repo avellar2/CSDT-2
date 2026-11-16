@@ -1,8 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/utils/prisma';
 import { requireAuth } from "@/utils/api-auth";
-
-const prisma = new PrismaClient();
+import { isRouteManager } from "@/utils/operationalRoutes";
 
 interface GeocodingResponse {
   results: Array<{
@@ -76,21 +75,42 @@ async function geocodeWithOSM(address: string): Promise<{ lat: number; lng: numb
   }
 }
 
+/** Limite por chamada: evita varreduras longas e abuso do provedor. */
+const MAX_BATCH = 25;
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Método não permitido' });
-  // Requer autenticação
+  }
+
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (!isRouteManager(auth.profile.role)) {
+    return res.status(403).json({
+      error: 'Somente ADMIN ou ADMTOTAL podem geocodificar escolas.',
+    });
   }
 
   try {
-    const { schoolIds, useOSM = true } = req.body;
+    const { schoolIds, useOSM = true } = req.body || {};
+
+    if (schoolIds !== undefined) {
+      if (!Array.isArray(schoolIds)) {
+        return res.status(400).json({ error: 'schoolIds deve ser uma lista.' });
+      }
+      if (schoolIds.length > MAX_BATCH) {
+        return res.status(400).json({
+          error: `Geocodifique no máximo ${MAX_BATCH} escolas por chamada.`,
+        });
+      }
+    }
 
     // Busca escolas que precisam de geocoding
     const schools = await prisma.school.findMany({
       where: schoolIds ? { id: { in: schoolIds } } : { geocoded: false },
+      take: schoolIds ? undefined : MAX_BATCH,
       select: {
         id: true,
         name: true,

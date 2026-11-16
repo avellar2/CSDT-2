@@ -1,34 +1,63 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/utils/prisma';
 import { requireAuth } from "@/utils/api-auth";
+import { isRouteManager } from "@/utils/operationalRoutes";
 
-const prisma = new PrismaClient();
+const MIN_LAT = -90;
+const MAX_LAT = 90;
+const MIN_LNG = -180;
+const MAX_LNG = 180;
 
+/**
+ * POST /api/update-school-address
+ *
+ * Corrige o endereço ou as coordenadas de uma escola. Restrito a ADMIN e
+ * ADMTOTAL — coordenadas afetam diretamente o cálculo das rotas.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
+  }
+
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (!isRouteManager(auth.profile.role)) {
+    return res.status(403).json({
+      error: 'Somente ADMIN ou ADMTOTAL podem alterar a localização das escolas.',
+    });
   }
 
   try {
-    const { schoolId, newAddress, latitude, longitude } = req.body;
+    const { schoolId, newAddress, latitude, longitude } = req.body || {};
 
-    if (!schoolId) {
-      return res.status(400).json({ error: 'schoolId is required' });
+    const parsedSchoolId = Number(schoolId);
+    if (!Number.isInteger(parsedSchoolId) || parsedSchoolId <= 0) {
+      return res.status(400).json({ error: 'schoolId é obrigatório' });
     }
 
     // Se lat/lng fornecidos diretamente, salva como geocodificada
     if (latitude !== undefined && longitude !== undefined) {
-      const lat = parseFloat(latitude);
-      const lng = parseFloat(longitude);
-      if (isNaN(lat) || isNaN(lng)) {
+      const lat = Number(latitude);
+      const lng = Number(longitude);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return res.status(400).json({ error: 'Latitude e longitude inválidas' });
       }
+
+      if (lat < MIN_LAT || lat > MAX_LAT || lng < MIN_LNG || lng > MAX_LNG) {
+        return res.status(400).json({
+          error: 'Latitude/longitude fora do intervalo válido',
+        });
+      }
+
+      if (Math.abs(lat) < 1e-6 && Math.abs(lng) < 1e-6) {
+        return res.status(400).json({ error: 'Coordenada (0,0) não é válida' });
+      }
+
       const updated = await prisma.school.update({
-        where: { id: parseInt(schoolId) },
+        where: { id: parsedSchoolId },
         data: {
           latitude: lat,
           longitude: lng,
@@ -38,15 +67,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ success: true, school: updated });
     }
 
-    if (!newAddress) {
-      return res.status(400).json({ error: 'newAddress or latitude/longitude are required' });
+    if (typeof newAddress !== 'string' || !newAddress.trim()) {
+      return res.status(400).json({
+        error: 'newAddress ou latitude/longitude são obrigatórios',
+      });
     }
 
     // Atualiza o endereço e marca para geocodificar novamente
     const updated = await prisma.school.update({
-      where: { id: parseInt(schoolId) },
+      where: { id: parsedSchoolId },
       data: {
-        address: newAddress,
+        address: newAddress.trim(),
         geocoded: false,
         latitude: null,
         longitude: null,

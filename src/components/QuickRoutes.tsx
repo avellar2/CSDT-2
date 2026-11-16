@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getAuthHeaders } from '@/utils/client-auth';
 import {
   MapPin,
   Clock,
@@ -19,7 +20,28 @@ interface School {
   name: string;
   address: string;
   district: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
+
+const CSDT_START = {
+  lat: -22.78986385281102,
+  lng: -43.30904663652884,
+  name: 'CSDT',
+};
+
+const todayKey = () =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
+const formatMinutes = (minutes: number) => {
+  const rounded = Math.max(0, Math.round(minutes));
+  return `${Math.floor(rounded / 60)}h ${rounded % 60}min`;
+};
 
 interface Technician {
   id: string;
@@ -71,7 +93,7 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
 
   const fetchSchools = async () => {
     try {
-      const response = await fetch('/api/all-schools');
+      const response = await fetch('/api/all-schools', { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         // Filter schools with addresses
@@ -145,33 +167,62 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
 
   const generateOptimalRoute = async (technicianId: string) => {
     const route = routes.find(r => r.technician.id === technicianId);
-    if (!route || route.points.length < 2) return;
+    if (!route || route.points.length < 1) return;
 
     setLoading(true);
     try {
-      // Simple optimization: sort by district first, then by name
-      const optimizedPoints = [...route.points].sort((a, b) => {
-        if (a.school.district !== b.school.district) {
-          return a.school.district.localeCompare(b.school.district);
-        }
-        return a.school.name.localeCompare(b.school.name);
-      }).map((point, index) => ({ ...point, order: index + 1 }));
+      // Otimização pelas vias reais no backend (OSRM Table + solver).
+      // Nunca ordena por distrito: isso não é otimização de trajeto.
+      const response = await fetch('/api/routes/optimize', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          dateKey: todayKey(),
+          schools: route.points.map(point => point.school.id),
+          prioritySchools: [],
+          start: CSDT_START,
+          returnToStart: false,
+          serviceMinutes: 60,
+          startTime: '08:00',
+          allowApproximate: false,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        alert(data.error || 'Não foi possível otimizar esta rota.');
+        return;
+      }
+
+      const stops = data.plan.stops as Array<{ schoolId: number; order: number }>;
+      const orderIndex = new Map(stops.map(stop => [stop.schoolId, stop.order]));
+
+      const optimizedPoints = [...route.points]
+        .sort(
+          (a, b) =>
+            (orderIndex.get(a.school.id) ?? Number.MAX_SAFE_INTEGER) -
+            (orderIndex.get(b.school.id) ?? Number.MAX_SAFE_INTEGER)
+        )
+        .map((point, index) => ({ ...point, order: index + 1 }));
 
       const googleMapsUrl = generateGoogleMapsUrl(optimizedPoints);
-      const totalTime = optimizedPoints.reduce((sum, point) => sum + (point.estimatedTime || 60), 0);
+      const drivingMinutes = data.plan.totals.drivingSeconds / 60;
+      const serviceMinutes = data.plan.totals.serviceMinutes;
 
-      setRoutes(prev => prev.map(r => 
-        r.technician.id === technicianId 
-          ? { 
-              ...r, 
+      setRoutes(prev => prev.map(r =>
+        r.technician.id === technicianId
+          ? {
+              ...r,
               points: optimizedPoints,
               googleMapsUrl,
-              totalTime: `${Math.floor(totalTime / 60)}h ${totalTime % 60}min`
+              totalTime: formatMinutes(drivingMinutes + serviceMinutes),
             }
           : r
       ));
     } catch (error) {
       console.error('Erro ao otimizar rota:', error);
+      alert('Erro ao otimizar rota');
     } finally {
       setLoading(false);
     }
@@ -287,7 +338,7 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      {route.points.length > 1 && (
+                      {route.points.length >= 1 && (
                         <button
                           onClick={() => generateOptimalRoute(route.technician.id)}
                           disabled={loading}
@@ -379,10 +430,10 @@ const QuickRoutes: React.FC<QuickRoutesProps> = ({ technicians, onClose }) => {
                           </span>
                         </div>
                         
-                        {route.points.length > 1 && (
+                        {route.points.length > 1 && route.googleMapsUrl && (
                           <div className="text-xs text-gray-500">
                             <ArrowRight size={12} className="inline mr-1" />
-                            Rota otimizada por distrito
+                            Rota otimizada pelas vias (viagem + atendimento)
                           </div>
                         )}
                       </div>

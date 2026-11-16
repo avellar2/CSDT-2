@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { X, MapPin, Loader2, AlertTriangle, Search, PencilLine, List, Check, Star } from 'lucide-react';
+import { getAuthHeaders } from '@/utils/client-auth';
+import { formatDuration } from '@/utils/routePlanner/schedule';
+import type { PlanResult } from '@/utils/routePlanner/types';
 
 interface School {
   id: number;
@@ -15,25 +18,8 @@ interface School {
   longitude: number | null;
 }
 
-// Cores por distrito
-const districtColors: Record<string, string> = {
-  '1': '#ef4444',
-  '2': '#f97316',
-  '3': '#eab308',
-  '4': '#22c55e',
-  '5': '#3b82f6',
-  '6': '#8b5cf6',
-  '7': '#ec4899',
-  '8': '#14b8a6',
-};
-
-export function getDistrictColor(district: string): string {
-  const match = district?.match(/\d+/);
-  if (match) return districtColors[match[0]] || '#6b7280';
-  const hash = district?.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) || 0;
-  const colors = Object.values(districtColors);
-  return colors[hash % colors.length] || '#6b7280';
-}
+export { getDistrictColor } from '@/utils/districtColors';
+import { getDistrictColor } from '@/utils/districtColors';
 
 const SchoolsMapInner = dynamic(() => import('./SchoolsMapInner'), {
   ssr: false,
@@ -104,7 +90,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
   const [prioritySchoolIds, setPrioritySchoolIds] = useState<number[]>([]); // Escolas prioritárias
   const [optimizedRoute, setOptimizedRoute] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [realRouteData, setRealRouteData] = useState<{ distance: number; duration: number } | null>(null);
+  const [plan, setPlan] = useState<PlanResult | null>(null);
 
   // CSDT (ponto de partida) - Coordenadas do Centro de Suporte ao Desenvolvimento Tecnológico
   const CSDT_LOCATION = {
@@ -117,7 +103,9 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/schools-with-coordinates');
+      const response = await fetch('/api/schools-with-coordinates', {
+        headers: getAuthHeaders(),
+      });
       if (!response.ok) throw new Error('Erro ao buscar escolas');
       const data = await response.json();
       setSchools(data);
@@ -130,7 +118,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
 
   const fetchAllSchools = async () => {
     try {
-      const response = await fetch('/api/all-schools');
+      const response = await fetch('/api/all-schools', { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Erro ao buscar todas as escolas');
       const data = await response.json();
       setAllSchools(data);
@@ -163,7 +151,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
 
       const response = await fetch('/api/update-school-address', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(body),
       });
 
@@ -204,13 +192,24 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
     setIsGeocoding(true);
     stopGeocodingRef.current = false;
     let done = 0;
+    // Escolas que falharam nesta sessão não são reprocessadas — evita laço
+    // infinito sem marcá-las como geocodificadas sem coordenadas.
+    const skipIds: number[] = [];
 
     while (!stopGeocodingRef.current) {
       try {
-        const res = await fetch('/api/geocode-next-school', { method: 'POST' });
+        const res = await fetch('/api/geocode-next-school', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ skipIds }),
+        });
         const data = await res.json();
 
         if (data.done) break;
+
+        if (data.success === false && data.schoolId) {
+          skipIds.push(data.schoolId);
+        }
 
         done++;
         setGeocodingProgress({
@@ -233,49 +232,65 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
 
   const stopGeocoding = () => { stopGeocodingRef.current = true; };
 
-  const handleRealRouteCalculated = (data: { distance: number; duration: number }) => {
-    setRealRouteData(data);
-  };
-
-  const handleOptimizeRoute = async () => {
-    if (selectedSchoolIds.length < 2) {
-      alert('Selecione pelo menos 2 escolas');
+  const handleOptimizeRoute = async (allowApproximate = false) => {
+    if (selectedSchoolIds.length < 1) {
+      alert('Selecione pelo menos 1 escola');
       return;
     }
 
     setIsOptimizing(true);
-    setRealRouteData(null); // Reset para mostrar "Calculando rota real..."
+    setPlan(null);
     try {
-      const response = await fetch('/api/route-optimization', {
+      const response = await fetch('/api/routes/optimize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          technicianId: 1, // Pode ser ajustado conforme necessário
-          date: new Date().toISOString(),
+          dateKey: new Date().toISOString().slice(0, 10),
           schools: selectedSchoolIds,
-          prioritySchools: prioritySchoolIds, // Escolas prioritárias
-          startLocation: CSDT_LOCATION // Ponto de partida: CSDT
-        })
+          prioritySchools: prioritySchoolIds,
+          start: CSDT_LOCATION,
+          returnToStart: false,
+          serviceMinutes: 30,
+          startTime: '08:00',
+          allowApproximate,
+        }),
       });
 
       const result = await response.json();
 
-      if (result.success && result.optimization) {
-        // Normaliza a estrutura de dados para o formato esperado
-        const normalizedRoute = {
-          totalDistance: result.optimization.totalDistance,
-          totalTime: result.optimization.totalTime,
-          algorithm: result.metrics?.algorithm || 'nearest_neighbor',
-          visits: (result.optimization.RouteVisit || []).map((visit: any) => ({
-            id: visit.id,
-            visitOrder: visit.visitOrder,
-            school: visit.School
-          }))
-        };
-        setOptimizedRoute(normalizedRoute);
-      } else {
-        alert('Erro ao otimizar rota: ' + (result.error || 'Erro desconhecido'));
+      if (result.success && result.plan) {
+        setPlan(result.plan);
+        setOptimizedRoute({
+          algorithm: result.plan.algorithm,
+          visits: result.plan.stops.map((stop: any) => ({
+            id: String(stop.schoolId),
+            visitOrder: stop.order,
+            school: {
+              id: stop.schoolId,
+              name: stop.name,
+              address: stop.address,
+              district: stop.district,
+              latitude: stop.latitude,
+              longitude: stop.longitude,
+            },
+          })),
+        });
+        return;
       }
+
+      if (result.code === 'ROUTING_UNAVAILABLE' && !allowApproximate) {
+        const confirmed = window.confirm(
+          `${result.error}\n\nDeseja calcular uma ESTIMATIVA por linha reta? ` +
+            'Ela não representa a distância real percorrida.'
+        );
+        if (confirmed) {
+          setIsOptimizing(false);
+          await handleOptimizeRoute(true);
+          return;
+        }
+      }
+
+      alert('Erro ao otimizar rota: ' + (result.error || 'Erro desconhecido'));
     } catch (error) {
       console.error('Erro ao otimizar rota:', error);
       alert('Erro ao otimizar rota');
@@ -283,6 +298,25 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
       setIsOptimizing(false);
     }
   };
+
+  const stopDetails = plan
+    ? Object.fromEntries(
+        plan.stops.map((stop) => [
+          stop.schoolId,
+          {
+            order: stop.order,
+            arrivalLabel: new Date(stop.arrivalTime).toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: 'America/Sao_Paulo',
+            }),
+            travelLabel: formatDuration(stop.legDurationSeconds / 60),
+            distanceLabel: `${(stop.legDistanceMeters / 1000).toFixed(1)} km`,
+            priority: stop.priority,
+          },
+        ])
+      )
+    : undefined;
 
   const isAdmin = ADMIN_ROLES.includes(userRole || '');
   const noSchools = !isLoading && !error && schools.length === 0;
@@ -374,7 +408,7 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                           setSelectedSchoolIds([]);
                           setPrioritySchoolIds([]);
                           setOptimizedRoute(null);
-                          setRealRouteData(null);
+                          setPlan(null);
                         }}
                         className="text-xs text-red-600 hover:underline"
                       >
@@ -392,9 +426,9 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                   )}
                 </div>
 
-                {selectedSchoolIds.length >= 2 && (
+                {selectedSchoolIds.length >= 1 && (
                   <button
-                    onClick={handleOptimizeRoute}
+                    onClick={() => handleOptimizeRoute()}
                     disabled={isOptimizing}
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm font-medium"
                   >
@@ -407,47 +441,57 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                   <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
                     <h4 className="font-semibold mb-2 text-gray-900 dark:text-white text-sm">Rota Otimizada</h4>
                     <div className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-                      {realRouteData && realRouteData.distance > 0 ? (
+                      {plan ? (
                         <>
                           <div className="flex items-center gap-2">
-                            <span>📏 Distância real:</span>
+                            <span>📏 Distância:</span>
                             <span className="font-semibold text-blue-600 dark:text-blue-400">
-                              {realRouteData.distance.toFixed(1)} km
+                              {(plan.totals.distanceMeters / 1000).toFixed(1)} km
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span>🚗 Tempo de viagem:</span>
                             <span className="font-semibold text-blue-600 dark:text-blue-400">
-                              {Math.floor(realRouteData.duration / 60)}h {realRouteData.duration % 60}min
+                              {formatDuration(plan.totals.drivingSeconds / 60)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span>⏱ Tempo total:</span>
+                            <span>⏱ Jornada completa:</span>
                             <span className="font-semibold text-green-600 dark:text-green-400">
-                              {Math.floor((realRouteData.duration + (optimizedRoute.visits.length * 30)) / 60)}h {(realRouteData.duration + (optimizedRoute.visits.length * 30)) % 60}min
+                              {formatDuration(plan.totals.totalMinutes)}
                             </span>
                           </div>
-                          <div className="text-xs text-green-600 dark:text-green-400 italic mt-1 flex items-center gap-1">
-                            <span>✓</span>
-                            <span>Rota real via OSRM (viagem + 30min/escola)</span>
+                          <div
+                            className={`text-xs italic mt-1 flex items-center gap-1 ${
+                              plan.approximate
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-green-600 dark:text-green-400'
+                            }`}
+                          >
+                            <span>{plan.approximate ? '⚠' : '✓'}</span>
+                            <span>
+                              {plan.approximate
+                                ? 'ESTIMATIVA por linha reta — não é distância real'
+                                : `Rotas viárias via ${plan.provider.toUpperCase()} (viagem + ${plan.serviceMinutes}min/escola)`}
+                            </span>
                           </div>
                         </>
                       ) : (
-                        <>
-                          <div className="flex items-center gap-2">
-                            <Loader2 size={14} className="animate-spin text-blue-500" />
-                            <span className="text-xs text-gray-500 dark:text-gray-400 italic">
-                              Calculando rota real via OSRM...
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            📏 Estimativa: {optimizedRoute.totalDistance?.toFixed(1) || 0} km (linha reta)
-                          </div>
-                        </>
+                        <div className="flex items-center gap-2">
+                          <Loader2 size={14} className="animate-spin text-blue-500" />
+                          <span className="text-xs text-gray-500 dark:text-gray-400 italic">
+                            Calculando rota viária...
+                          </span>
+                        </div>
                       )}
                       <div className="text-xs text-gray-600 dark:text-gray-400 pt-1 border-t border-blue-200 dark:border-blue-800">
-                        Algoritmo: {optimizedRoute.algorithm === 'genetic' ? 'Genético' : 'Vizinho Mais Próximo'}
+                        Algoritmo: {plan?.algorithm === 'exact' ? 'Exato' : 'Vizinho mais próximo + 2-opt'}
                       </div>
+                      {plan && plan.excluded.length > 0 && (
+                        <div className="text-xs text-red-600 dark:text-red-400 pt-1">
+                          Fora da rota: {plan.excluded.map((item) => item.name).join(', ')}
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-2">
@@ -472,6 +516,11 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
                               <span className="text-gray-700 dark:text-gray-300 flex items-center gap-1">
                                 {visit.school?.name || 'Escola'}
                                 {isPriority && <Star size={12} className="text-yellow-500" />}
+                                {stopDetails?.[visit.school?.id]?.arrivalLabel && (
+                                  <span className="text-gray-400">
+                                    · {stopDetails[visit.school.id].arrivalLabel}
+                                  </span>
+                                )}
                               </span>
                             </li>
                           );
@@ -804,8 +853,9 @@ const SchoolsMapModal: React.FC<SchoolsMapModalProps> = ({ onClose, userRole }) 
             selectedSchool={selectedSchool}
             optimizedRoute={optimizedRoute}
             startLocation={CSDT_LOCATION}
-            onRealRouteCalculated={handleRealRouteCalculated}
             prioritySchoolIds={prioritySchoolIds}
+            routeGeometry={plan?.geometry ?? null}
+            stopDetails={stopDetails}
           />
         )}
         </div>

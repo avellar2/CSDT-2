@@ -6,6 +6,7 @@ import Modal from 'react-modal';
 import { jwtDecode } from "jwt-decode";
 import { CheckCircle, AlertCircle, Smartphone, Tag, Barcode, GraduationCap, Monitor, Cpu } from "lucide-react";
 import { ButtonLoading } from "@/components/ui/ButtonLoading"; // Importando o componente ButtonLoading
+import { getAuthHeaders } from "@/utils/client-auth";
 
 interface SchoolOption {
   value: string;
@@ -39,7 +40,7 @@ const ItemForm: React.FC = () => {
     // Função para buscar as escolas do endpoint de API
     const fetchSchools = async () => {
       try {
-        const response = await fetch('/api/all-schools');
+        const response = await fetch('/api/all-schools', { headers: getAuthHeaders() });
         const data = await response.json();
         if (Array.isArray(data)) {
           const schoolOptions = data.map((school: { id: number, name: string }) => ({

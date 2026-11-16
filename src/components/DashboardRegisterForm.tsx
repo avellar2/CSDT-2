@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabaseClient';
+import { getAuthHeaders } from '@/utils/client-auth';
 import Select, { SingleValue } from "react-select";
 import {
   X,
@@ -49,7 +50,7 @@ const DashboardRegisterForm: React.FC<DashboardRegisterFormProps> = ({ onClose }
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        const response = await fetch("/api/all-schools");
+        const response = await fetch("/api/all-schools", { headers: getAuthHeaders() });
         if (response.ok) {
           const schoolData = await response.json();
           setSchools(schoolData);

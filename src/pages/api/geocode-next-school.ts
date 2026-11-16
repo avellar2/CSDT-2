@@ -1,8 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/utils/prisma';
 import { requireAuth } from "@/utils/api-auth";
+import { isRouteManager } from "@/utils/operationalRoutes";
 
-const prisma = new PrismaClient();
+/**
+ * POST /api/geocode-next-school
+ *
+ * Geocodifica UMA escola pendente por chamada. O cliente é responsável pelo
+ * intervalo entre chamadas (a política do Nominatim exige ~1 requisição por
+ * segundo). Restrito a ADMIN/ADMTOTAL.
+ */
 
 const INVALID_ADDRESSES = ['não informado', 'sem endereço', 's/endereço', ''];
 
@@ -11,7 +18,7 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
   let cleaned = address
     // Remove quebras de linha e substitui por espaço
     .replace(/[\r\n]+/g, ' ')
-    // Remove informações de telefone (Tel:, TP:, etc.)
+    // Remove informações de telefone (Tel:, TP:, etc)
     .replace(/Tel:?\s*[\d-\s]+/gi, '')
     .replace(/TP:?\s*[\d-\s]+/gi, '')
     .replace(/Telefone:?\s*[\d-\s]+/gi, '')
@@ -85,23 +92,41 @@ async function tryGeocode(query: string): Promise<{ lat: number; lng: number } |
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method not allowed' });
-  // Requer autenticação
+  }
+
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (!isRouteManager(auth.profile.role)) {
+    return res.status(403).json({
+      error: 'Somente ADMIN ou ADMTOTAL podem geocodificar escolas.',
+    });
   }
 
   try {
-    // Conta total de escolas a geocodificar
-    const totalPending = await prisma.school.count({
-      where: {
-        geocoded: false,
-        address: {
-          notIn: INVALID_ADDRESSES,
-        },
+    // Escolas que o cliente já tentou e falharam nesta sessão. Sem isso o
+    // mesmo endereço problemático seria retornado para sempre (e marcá-lo
+    // como geocodificado sem coordenadas foi o que gerou os registros
+    // inconsistentes no banco).
+    const rawSkip = Array.isArray(req.body?.skipIds) ? req.body.skipIds : [];
+    const skipIds = rawSkip
+      .map((item: unknown) => Number(item))
+      .filter((item: number) => Number.isInteger(item) && item > 0)
+      .slice(0, 500);
+
+    const baseWhere = {
+      geocoded: false,
+      address: {
+        notIn: INVALID_ADDRESSES,
+        not: null,
       },
-    });
+      ...(skipIds.length > 0 ? { id: { notIn: skipIds } } : {}),
+    };
+
+    // Conta total de escolas a geocodificar
+    const totalPending = await prisma.school.count({ where: baseWhere });
 
     if (totalPending === 0) {
       return res.status(200).json({ done: true, message: 'Todas as escolas já foram geocodificadas.' });
@@ -109,13 +134,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Pega a próxima escola sem geocoding
     const school = await prisma.school.findFirst({
-      where: {
-        geocoded: false,
-        address: {
-          notIn: INVALID_ADDRESSES,
-          not: null,
-        },
-      },
+      where: baseWhere,
       select: { id: true, name: true, address: true },
     });
 
@@ -139,25 +158,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({
         done: false,
         success: true,
+        schoolId: school.id,
         school: school.name,
         remaining: totalPending - 1,
         coords,
       });
-    } else {
-      // Marca como geocoded=true mesmo sem coords para não tentar de novo
-      await prisma.school.update({
-        where: { id: school.id },
-        data: { geocoded: true },
-      });
-
-      return res.status(200).json({
-        done: false,
-        success: false,
-        school: school.name,
-        remaining: totalPending - 1,
-        reason: 'Endereço não encontrado no Nominatim',
-      });
     }
+
+    // Não encontrou: mantém pendente para revisão manual em vez de marcar
+    // como geocodificada sem coordenadas (foi o que gerou os 44 registros
+    // inconsistentes).
+    return res.status(200).json({
+      done: false,
+      success: false,
+      schoolId: school.id,
+      school: school.name,
+      remaining: totalPending - 1,
+      reason: 'Endereço não encontrado no Nominatim — precisa de revisão manual',
+    });
   } catch (error) {
     console.error('Geocoding error:', error);
     return res.status(500).json({ error: 'Erro ao geocodificar escola' });

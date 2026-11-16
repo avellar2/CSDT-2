@@ -35,6 +35,14 @@ interface StartLocation {
   name: string;
 }
 
+export interface StopDetail {
+  order: number;
+  arrivalLabel?: string;
+  travelLabel?: string;
+  distanceLabel?: string;
+  priority?: boolean;
+}
+
 interface SchoolsMapInnerProps {
   schools: School[];
   getDistrictColor: (district: string) => string;
@@ -43,6 +51,16 @@ interface SchoolsMapInnerProps {
   startLocation?: StartLocation;
   onRealRouteCalculated?: (data: { distance: number; duration: number }) => void;
   prioritySchoolIds?: number[];
+  /**
+   * Traçado viário já calculado no backend. Quando presente, o mapa não
+   * consulta o OSRM por conta própria.
+   */
+  routeGeometry?: [number, number][] | null;
+  /** Informações por escola exibidas no popup (horário, trecho etc). */
+  stopDetails?: Record<number, StopDetail>;
+  /** Permite selecionar escolas direto no mapa (planejador de rotas). */
+  selectedSchoolIds?: number[];
+  onToggleSelect?: (schoolId: number) => void;
 }
 
 // Componente interno para controlar o mapa
@@ -60,7 +78,7 @@ function MapController({ selectedSchool }: { selectedSchool: School | null }) {
   return null;
 }
 
-const SchoolsMapInner: React.FC<SchoolsMapInnerProps> = ({ schools, getDistrictColor, selectedSchool, optimizedRoute, startLocation, onRealRouteCalculated, prioritySchoolIds = [] }) => {
+const SchoolsMapInner: React.FC<SchoolsMapInnerProps> = ({ schools, getDistrictColor, selectedSchool, optimizedRoute, startLocation, onRealRouteCalculated, prioritySchoolIds = [], routeGeometry = null, stopDetails, selectedSchoolIds = [], onToggleSelect }) => {
   const markerRefs = useRef<{ [key: number]: L.Marker | null }>({});
   const [routePolyline, setRoutePolyline] = useState<[number, number][]>([]);
 
@@ -127,8 +145,19 @@ const SchoolsMapInner: React.FC<SchoolsMapInnerProps> = ({ schools, getDistrictC
     }
   };
 
-  // Busca rota real quando optimizedRoute muda
+  // Traçado viário vindo do backend tem prioridade sobre a consulta local.
   useEffect(() => {
+    if (routeGeometry && routeGeometry.length > 0) {
+      setRoutePolyline(routeGeometry);
+      return;
+    }
+    setRoutePolyline([]);
+  }, [routeGeometry]);
+
+  // Busca rota real quando optimizedRoute muda (modo legado)
+  useEffect(() => {
+    if (routeGeometry && routeGeometry.length > 0) return;
+
     if (optimizedRoute && optimizedRoute.visits.length >= 1) {
       const schoolPoints = optimizedRoute.visits
         .sort((a, b) => a.visitOrder - b.visitOrder)
@@ -159,7 +188,7 @@ const SchoolsMapInner: React.FC<SchoolsMapInnerProps> = ({ schools, getDistrictC
         onRealRouteCalculated({ distance: 0, duration: 0 });
       }
     }
-  }, [optimizedRoute, startLocation, onRealRouteCalculated]);
+  }, [optimizedRoute, startLocation, onRealRouteCalculated, routeGeometry]);
 
   // Abrir popup da escola selecionada
   useEffect(() => {
@@ -227,6 +256,28 @@ const SchoolsMapInner: React.FC<SchoolsMapInnerProps> = ({ schools, getDistrictC
                     #{visitInRoute.visitOrder} na rota {isPriority && '⭐ PRIORITÁRIA'}
                   </div>
                 )}
+                {visitInRoute && stopDetails?.[school.id] && (
+                  <div className="text-xs text-gray-700 mb-1 space-y-0.5">
+                    {stopDetails[school.id].arrivalLabel && (
+                      <div>
+                        <span className="font-medium">Chegada:</span>{' '}
+                        {stopDetails[school.id].arrivalLabel}
+                      </div>
+                    )}
+                    {stopDetails[school.id].travelLabel && (
+                      <div>
+                        <span className="font-medium">Do anterior:</span>{' '}
+                        {stopDetails[school.id].travelLabel}
+                      </div>
+                    )}
+                    {stopDetails[school.id].distanceLabel && (
+                      <div>
+                        <span className="font-medium">Distância:</span>{' '}
+                        {stopDetails[school.id].distanceLabel}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <p className="font-semibold text-gray-900 mb-1">{school.name}</p>
                 {school.address && (
                   <p className="text-gray-600 text-xs mb-1">{school.address}</p>
@@ -245,6 +296,23 @@ const SchoolsMapInner: React.FC<SchoolsMapInnerProps> = ({ schools, getDistrictC
                   <p className="text-gray-500 text-xs">
                     <span className="font-medium">Alunos:</span> {school.students}
                   </p>
+                )}
+                {onToggleSelect && (
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onToggleSelect(school.id);
+                    }}
+                    className={`mt-2 w-full rounded px-2 py-1 text-xs font-medium text-white ${
+                      selectedSchoolIds.includes(school.id)
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {selectedSchoolIds.includes(school.id)
+                      ? 'Remover da rota'
+                      : 'Adicionar à rota'}
+                  </button>
                 )}
               </div>
             </Popup>

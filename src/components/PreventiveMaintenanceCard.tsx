@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Wrench, Mail, CheckCircle, Eye, Download, History, XCircle } from 'lucide-react';
 import Select from 'react-select';
+import { getAuthHeaders } from '@/utils/client-auth';
 
 interface School {
   value: number;
@@ -67,7 +68,7 @@ const PreventiveMaintenanceCard: React.FC<PreventiveMaintenanceCardProps> = ({ o
 
   const fetchSchools = async () => {
     try {
-      const response = await fetch('/api/get-school');
+      const response = await fetch('/api/get-school', { headers: getAuthHeaders() });
       const data = await response.json();
 
       // Filtrar apenas escolas (que têm email) e não setores

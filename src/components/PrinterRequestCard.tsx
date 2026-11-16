@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Printer, Mail, CheckCircle, Clock, Eye } from 'lucide-react';
 import Select from 'react-select';
 import { formatDateTime } from '@/utils/date';
+import { getAuthHeaders } from '@/utils/client-auth';
 
 interface School {
   value: number;
@@ -50,7 +51,7 @@ const PrinterRequestCard: React.FC<PrinterRequestCardProps> = ({ onClose }) => {
 
   const fetchSchools = async () => {
     try {
-      const response = await fetch('/api/get-school');
+      const response = await fetch('/api/get-school', { headers: getAuthHeaders() });
       const data = await response.json();
       const options = data
         .filter((school: any) => school.email) // Apenas escolas com email

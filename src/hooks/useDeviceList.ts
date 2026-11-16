@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import axios from "axios";
 import { supabase } from "@/lib/supabaseClient";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 export interface Item {
   id: number;
@@ -175,7 +176,9 @@ export function useDeviceList() {
   useEffect(() => {
     async function fetchItems() {
       try {
-        const response = await axios.get("/api/all-schools");
+        const response = await axios.get("/api/all-schools", {
+          headers: getAuthHeaders(),
+        });
         setSchools(response.data);
       } catch (error) {}
     }

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import BarcodeScanner from "@/components/Scanner/BarcodeScanner";
 import { BarcodeScannerAdvanced } from "@/components/Scanner/BarcodeScannerAdvanced";
 import { dataCache, persistentCache } from '@/utils/cache';
+import { getAuthHeaders } from '@/utils/client-auth';
 import Select from 'react-select';
 import { 
   Computer, 
@@ -109,7 +110,7 @@ export const ItemFormModern: React.FC<ItemFormModernProps> = ({ onToast }) => {
       
       if (!schoolOptions) {
         // If not in cache, fetch from API
-        const response = await fetch('/api/all-schools');
+        const response = await fetch('/api/all-schools', { headers: getAuthHeaders() });
         const data = await response.json();
         
         if (Array.isArray(data)) {
