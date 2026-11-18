@@ -594,7 +594,7 @@ export function useFillPdfForm() {
         attachments: [{ content: pdfBase64, filename: `OS-Externa-${finalUpdatedData.numeroOs}.pdf`, contentType: "application/pdf", encoding: "base64" }],
       };
 
-      const emailResponse = await fetch("/api/send-email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(msg) });
+      const emailResponse = await fetch("/api/send-email", { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(msg) });
       if (!emailResponse.ok) throw new Error("Erro ao enviar e-mail");
 
       setOsNumero(updatedDataFromDb.numeroOs);

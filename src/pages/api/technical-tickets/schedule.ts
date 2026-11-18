@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { generateTicketAcceptedEmail } from '@/utils/emailTemplates';
+import { sendMail } from '@/utils/mailer';
 import { requireAuth } from "@/utils/api-auth";
 import {
   dateKeyFromPrismaDate,
@@ -210,23 +211,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       }
       
-      const emailResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/send-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: schoolEmail,
-          subject: emailTemplate.subject,
-          html: emailTemplate.html,
-          text: emailTemplate.text
-        })
+      const emailResponse = await sendMail({
+        to: schoolEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text,
       });
 
-      if (emailResponse.ok) {
-
-      } else {
-        console.error('Erro ao enviar email de notificação:', await emailResponse.text());
+      if (emailResponse.accepted.length === 0) {
+        console.error(
+          'Servidor SMTP não aceitou o e-mail de notificação:',
+          emailResponse.rejected,
+        );
       }
     } catch (emailError) {
       console.error('Erro ao enviar email de notificação:', emailError);

@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { generateStatusChangeEmail } from '@/utils/emailTemplates';
+import { sendMail } from '@/utils/mailer';
 import { requireAuth, canOperateTickets } from "@/utils/api-auth";
 import {
   dateKeyFromPrismaDate,
@@ -255,21 +256,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const emailTemplate = generateStatusChangeEmail(emailData);
 
-        const emailResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/send-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            to: currentTicket.School.email,
-            subject: emailTemplate.subject,
-            html: emailTemplate.html,
-            text: emailTemplate.text
-          })
+        const emailResponse = await sendMail({
+          to: currentTicket.School.email,
+          subject: emailTemplate.subject,
+          html: emailTemplate.html,
+          text: emailTemplate.text,
         });
 
-        if (!emailResponse.ok) {
-          console.error('Erro ao enviar email de atualização:', await emailResponse.text());
+        if (emailResponse.accepted.length === 0) {
+          console.error(
+            'Servidor SMTP não aceitou o e-mail de atualização:',
+            emailResponse.rejected,
+          );
         }
       } catch (emailError) {
         console.error('Erro ao enviar email de atualização:', emailError);
