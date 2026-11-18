@@ -317,7 +317,12 @@ export async function excludeIneligibleInvites(
   actor: AuditActor,
 ): Promise<{ excluded: number; names: string[] }> {
   const invites = await prisma.feedbackInvite.findMany({
-    where: { campaignId, status: { notIn: ["EXCLUDED", "EXPIRED"] } },
+    // Respostas já recebidas são preservadas; o bloqueio vale para envios
+    // futuros e para convites ainda pendentes.
+    where: {
+      campaignId,
+      status: { notIn: ["EXCLUDED", "EXPIRED", "ANSWERED"] },
+    },
     include: {
       School: {
         select: {
