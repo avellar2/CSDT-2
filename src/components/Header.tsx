@@ -25,7 +25,8 @@ import {
   Clock,
   X,
   HardDrive,
-  PrinterCheck
+  PrinterCheck,
+  MessageSquareText
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
@@ -347,6 +348,14 @@ export const Header: React.FC<HeaderProps> = ({ hideHamburger = false }) => {
       icon: HardDrive,
       path: '/setup-pc',
       roles: ['ADMTOTAL', 'ADMIN', 'TECH'],
+      category: 'Outros'
+    },
+    {
+      id: 'admin-feedback',
+      title: 'Pesquisa de Feedback',
+      icon: MessageSquareText,
+      path: '/admin/feedback',
+      roles: ['ADMTOTAL'],
       category: 'Outros'
     }
   ];

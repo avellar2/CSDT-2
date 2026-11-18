@@ -14,14 +14,23 @@
     },
     "src/pages/api/chada/check-emails.ts": {
       "maxDuration": 60
+    },
+    "src/pages/api/feedback/admin/queue.ts": {
+      "maxDuration": 60
     }
   },
   "regions": ["gru1"],
   "env": {
     "NODE_ENV": "production"
   },
-  "crons": [{
-    "path": "/api/chada/check-emails",
-    "schedule": "0 14 * * *"
-  }]
+  "crons": [
+    {
+      "path": "/api/chada/check-emails",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/feedback/admin/queue",
+      "schedule": "*/30 * * * *"
+    }
+  ]
 }

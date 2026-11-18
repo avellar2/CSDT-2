@@ -15,17 +15,19 @@ function MyApp({ Component, pageProps }: AppProps) {
   const pathname = router?.pathname ?? '';
   const isLoginPage = pathname === '/login';
   const isConfirmarOsPage = pathname === '/confirmar-os-externa';
+  // A pesquisa pública é acessada por link, sem login e sem o chrome do sistema.
+  const isPublicSurveyPage = pathname.startsWith('/pesquisa');
 
   return (
     <ThemeProvider attribute={'class'} defaultTheme='system' enableSystem disableTransitionOnChange>
       <PrinterNotificationProvider>
-        <div className={isLoginPage ? 'w-full h-full' : 'container mx-auto'}>
+        <div className={isLoginPage || isPublicSurveyPage ? 'w-full h-full' : 'container mx-auto'}>
           <HeaderProvider>
-            {!isLoginPage && <Header hideHamburger={isConfirmarOsPage} />}
+            {!isLoginPage && !isPublicSurveyPage && <Header hideHamburger={isConfirmarOsPage} />}
             <ErrorBoundary>
               <Component {...pageProps} />
             </ErrorBoundary>
-            {!isLoginPage && <PrinterCriticalAlert />}
+            {!isLoginPage && !isPublicSurveyPage && <PrinterCriticalAlert />}
           </HeaderProvider>
         </div>
       </PrinterNotificationProvider>

@@ -229,8 +229,8 @@ model NewMemorandumItem {
 }
 
 model OSExterna {
-  id                                 Int       @id @default(autoincrement())
-  numeroOs                           String?   @unique
+  id                                 Int         @id @default(autoincrement())
+  numeroOs                           String?     @unique
   data                               String
   hora                               String
   unidadeEscolar                     String?
@@ -279,13 +279,13 @@ model OSExterna {
   epson                              Int?
   outrasImpressoras                  Int?
   solucionado                        String?
-  status                             String    @default("Pendente")
+  status                             String      @default("Pendente")
   assinado                           String?
   cpf                                String?
   cargoResponsavel                   String?
   lastEmailSent                      DateTime?
   updatedAt                          DateTime
-  createdAt                          DateTime  @default(now())
+  createdAt                          DateTime    @default(now())
   diretoraNaEscola                   Boolean?
   impressoraComProblema              String?
   relatorioImpressora                String?
@@ -436,18 +436,18 @@ model PrinterStatus {
 }
 
 model Profile {
-  id          Int     @id @default(autoincrement())
-  userId      String  @unique
-  displayName String
-  photoUrl    String?
-  role        Role    @default(TECH)
-  isActive    Boolean @default(true)
-  schoolId    Int     @default(225)
+  id                             Int                    @id @default(autoincrement())
+  userId                         String                 @unique
+  displayName                    String
+  photoUrl                       String?
+  role                           Role                   @default(TECH)
+  isActive                       Boolean                @default(true)
+  schoolId                       Int                    @default(225)
   DailyDemandOsReleaseReleasedBy DailyDemandOsRelease[] @relation("DailyDemandOsReleaseReleasedBy")
   DailyDemandOsReleaseTechnician DailyDemandOsRelease[] @relation("DailyDemandOsReleaseTechnician")
   DailyRouteTechnician           DailyRouteTechnician[]
-  Item        Item[]
-  School      School  @relation(fields: [schoolId], references: [id])
+  Item                           Item[]
+  School                         School                 @relation(fields: [schoolId], references: [id])
 }
 
 model RouteOptimization {
@@ -558,6 +558,8 @@ model School {
   TechnicalTicket               TechnicalTicket[]
   chamados_escola               chamados_escola[]
   internal_tickets              internal_tickets[]
+  FeedbackInvite                FeedbackInvite[]
+  FeedbackResponse              FeedbackResponse[]
 
   @@index([geocoded])
 }
@@ -590,8 +592,8 @@ model DailyDemandOsRelease {
   ReleasedBy   Profile  @relation("DailyDemandOsReleaseReleasedBy", fields: [releasedById], references: [id])
   Technician   Profile  @relation("DailyDemandOsReleaseTechnician", fields: [technicianId], references: [id])
 
-  @@index([demandDate])
   @@unique([technicianId, demandDate])
+  @@index([demandDate])
 }
 
 model ServiceOrder {
@@ -847,24 +849,24 @@ model PreventiveMaintenanceEmailLog {
 /// Rota operacional diária de visita técnica (separada da otimização
 /// geográfica de trajetos representada por RouteOptimization).
 model DailyRoute {
-  id              Int                    @id @default(autoincrement())
-  date            DateTime               @db.Date
-  name            String
-  vehicle         String?
-  status          RouteStatus            @default(PLANNED)
-  createdBy       String
-  updatedBy       String?
-  closedBy        String?
-  closedAt        DateTime?
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  technicians     DailyRouteTechnician[]
-  demands         SchoolDemand[]
-  osExternas      OSExterna[]
+  id               Int                    @id @default(autoincrement())
+  date             DateTime               @db.Date
+  name             String
+  vehicle          String?
+  status           RouteStatus            @default(PLANNED)
+  createdBy        String
+  updatedBy        String?
+  closedBy         String?
+  closedAt         DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  technicians      DailyRouteTechnician[]
+  demands          SchoolDemand[]
+  osExternas       OSExterna[]
   technicalTickets TechnicalTicket[]
-  chamados        chamados_escalas[]
-  transfersTo     RouteTransfer[]        @relation("RouteTransferTo")
-  transfersFrom   RouteTransfer[]        @relation("RouteTransferFrom")
+  chamados         chamados_escalas[]
+  transfersTo      RouteTransfer[]        @relation("RouteTransferTo")
+  transfersFrom    RouteTransfer[]        @relation("RouteTransferFrom")
 
   @@unique([date, name])
   @@index([date, status])
@@ -1087,4 +1089,207 @@ enum VisitStatus {
   WORKING
   COMPLETED
   SKIPPED
+}
+
+// ---------------------------------------------------------------------------
+// Pesquisa de Feedback — CSDT
+// Estrutura de campanhas, convites por escola (token público por escola),
+// respostas, fila de envio com retry/backoff e auditoria administrativa.
+// Todas as tabelas são novas: nada aqui altera OS, demandas, escolas ou itens.
+// ---------------------------------------------------------------------------
+
+enum FeedbackCampaignStatus {
+  DRAFT
+  READY
+  SENDING
+  PAUSED
+  SENT
+  CLOSED
+}
+
+enum FeedbackChannelKind {
+  OFFICIAL
+  TEST
+}
+
+enum FeedbackInviteStatus {
+  PENDING
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  ANSWERED
+  EXCLUDED
+  EXPIRED
+}
+
+enum FeedbackSendJobStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED_TEMPORARY
+  FAILED_PERMANENT
+  CANCELLED
+}
+
+enum FeedbackAnswerKind {
+  SINGLE
+  MULTI
+  OPEN
+}
+
+/// Versão imutável do questionário aplicado em uma campanha. Preserva o texto
+/// exato das perguntas/alternativas de cada campanha histórica.
+model FeedbackQuestionnaireVersion {
+  id            String   @id @default(cuid())
+  version       String   @unique
+  title         String
+  questionCount Int
+  definition    Json
+  isActive      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  FeedbackCampaign FeedbackCampaign[]
+}
+
+model FeedbackCampaign {
+  id                     Int                    @id @default(autoincrement())
+  name                   String
+  status                 FeedbackCampaignStatus @default(DRAFT)
+  channel                FeedbackChannelKind    @default(OFFICIAL)
+  questionnaireVersionId String
+  subject                String
+  introText              String?
+  deadline               DateTime?
+  createdBy              String
+  createdByName          String?
+  preparedAt             DateTime?
+  authorizedAt           DateTime?
+  authorizedBy           String?
+  sentAt                 DateTime?
+  pausedAt               DateTime?
+  closedAt               DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  QuestionnaireVersion FeedbackQuestionnaireVersion @relation(fields: [questionnaireVersionId], references: [id])
+  FeedbackInvite       FeedbackInvite[]
+  FeedbackResponse     FeedbackResponse[]
+  FeedbackSendJob      FeedbackSendJob[]
+  FeedbackAuditLog     FeedbackAuditLog[]
+
+  @@index([status])
+  @@index([channel, createdAt])
+}
+
+model FeedbackInvite {
+  id                       Int                  @id @default(autoincrement())
+  campaignId               Int
+  schoolId                 Int
+  tokenHash                String               @unique
+  tokenCipher              String?
+  tokenHint                String?
+  recipientEmail           String
+  recipientEmailNormalized String
+  groupKey                 String?
+  isPrimaryForEmail        Boolean              @default(true)
+  status                   FeedbackInviteStatus @default(PENDING)
+  attempts                 Int                  @default(0)
+  sendCount                Int                  @default(0)
+  lastError                String?
+  sentAt                   DateTime?
+  answeredAt               DateTime?
+  expiresAt                DateTime
+  reopenedAt               DateTime?
+  reopenedBy               String?
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+
+  Campaign         FeedbackCampaign  @relation(fields: [campaignId], references: [id])
+  School           School            @relation(fields: [schoolId], references: [id])
+  FeedbackResponse FeedbackResponse?
+  FeedbackSendJob  FeedbackSendJob[]
+
+  @@unique([campaignId, schoolId])
+  @@index([campaignId, status])
+  @@index([recipientEmailNormalized])
+}
+
+model FeedbackResponse {
+  id                     Int                 @id @default(autoincrement())
+  campaignId             Int
+  inviteId               Int                 @unique
+  schoolId               Int
+  channel                FeedbackChannelKind @default(OFFICIAL)
+  respondentName         String
+  respondentRegistration String
+  respondentRole         String
+  submittedAt            DateTime            @default(now())
+  ipHash                 String?
+  userAgentHash          String?
+
+  Campaign FeedbackCampaign @relation(fields: [campaignId], references: [id])
+  Invite   FeedbackInvite   @relation(fields: [inviteId], references: [id])
+  School   School           @relation(fields: [schoolId], references: [id])
+  Answer   FeedbackAnswer[]
+
+  @@index([campaignId, submittedAt])
+  @@index([schoolId])
+}
+
+model FeedbackAnswer {
+  id           Int                @id @default(autoincrement())
+  responseId   Int
+  questionKey  String
+  kind         FeedbackAnswerKind
+  optionKeys   String[]           @default([])
+  optionLabels String[]           @default([])
+  textValue    String?
+  otherText    String?
+
+  Response FeedbackResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, questionKey])
+  @@index([questionKey])
+}
+
+model FeedbackSendJob {
+  id            Int                   @id @default(autoincrement())
+  campaignId    Int
+  inviteId      Int
+  status        FeedbackSendJobStatus @default(PENDING)
+  attempts      Int                   @default(0)
+  maxAttempts   Int                   @default(4)
+  nextAttemptAt DateTime              @default(now())
+  claimedAt     DateTime?
+  sentAt        DateTime?
+  messageId     String?
+  smtpResponse  String?
+  lastError     String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  Campaign FeedbackCampaign @relation(fields: [campaignId], references: [id])
+  Invite   FeedbackInvite   @relation(fields: [inviteId], references: [id])
+
+  @@unique([inviteId])
+  @@index([status, nextAttemptAt])
+  @@index([campaignId, status])
+}
+
+model FeedbackAuditLog {
+  id          Int      @id @default(autoincrement())
+  campaignId  Int?
+  actorUserId String
+  actorName   String?
+  actorRole   String
+  action      String
+  inviteId    Int?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  Campaign FeedbackCampaign? @relation(fields: [campaignId], references: [id])
+
+  @@index([campaignId, createdAt])
+  @@index([action, createdAt])
 }
