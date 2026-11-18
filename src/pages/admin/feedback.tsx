@@ -12,10 +12,12 @@ import {
   Send,
   ShieldAlert,
   History,
+  UserCheck,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { AdminOverview } from "@/components/Feedback/AdminOverview";
 import { AdminCampaigns } from "@/components/Feedback/AdminCampaigns";
+import { AdminRecipients } from "@/components/Feedback/AdminRecipients";
 import { AdminResponses } from "@/components/Feedback/AdminResponses";
 import { AdminComments } from "@/components/Feedback/AdminComments";
 import { AdminAudit } from "@/components/Feedback/AdminAudit";
@@ -25,11 +27,12 @@ const AdminStats = dynamic(
   { ssr: false, loading: () => <div className="py-10 text-sm text-slate-500">Carregando gráficos...</div> },
 );
 
-type Tab = "overview" | "campaigns" | "responses" | "stats" | "comments" | "audit";
+type Tab = "overview" | "campaigns" | "recipients" | "responses" | "stats" | "comments" | "audit";
 
 const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
   { id: "overview", label: "Visão Geral", icon: <LayoutDashboard className="h-4 w-4" /> },
   { id: "campaigns", label: "Campanhas", icon: <Send className="h-4 w-4" /> },
+  { id: "recipients", label: "Destinatários", icon: <UserCheck className="h-4 w-4" /> },
   { id: "responses", label: "Respostas", icon: <ClipboardList className="h-4 w-4" /> },
   { id: "stats", label: "Estatísticas", icon: <BarChart3 className="h-4 w-4" /> },
   { id: "comments", label: "Comentários", icon: <MessageSquareText className="h-4 w-4" /> },
@@ -144,6 +147,7 @@ export default function AdminFeedbackPage() {
         <div className="mt-5">
           {tab === "overview" && <AdminOverview />}
           {tab === "campaigns" && <AdminCampaigns />}
+          {tab === "recipients" && <AdminRecipients />}
           {tab === "responses" && <AdminResponses />}
           {tab === "stats" && <AdminStats />}
           {tab === "comments" && <AdminComments />}

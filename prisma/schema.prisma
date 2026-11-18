@@ -561,6 +561,15 @@ model School {
   FeedbackInvite                FeedbackInvite[]
   FeedbackResponse              FeedbackResponse[]
 
+  // Classificação persistente de elegibilidade para a Pesquisa de Feedback.
+  // SCHOOL = unidade escolar; ADMIN_SECTOR = setor administrativo da SME;
+  // REVIEW = cadastro ambíguo que NÃO deve receber convite até revisão.
+  surveyUnitType    String?
+  surveyEligible    Boolean?
+  surveyAuditReason String?
+  surveyAuditedAt   DateTime?
+  surveyAuditedBy   String?
+
   @@index([geocoded])
 }
 

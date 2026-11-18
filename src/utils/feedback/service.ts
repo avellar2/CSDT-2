@@ -20,6 +20,10 @@ import {
 } from "./questionnaire";
 import { planRecipients, type SchoolRecipientRow } from "./recipients";
 import {
+  classifySchoolUnit,
+  type SchoolUnitType,
+} from "./schoolEligibility";
+import {
   buildFeedbackInviteEmail,
   formatDeadlineLabel,
   isAuthorizedTestRecipient,
@@ -128,7 +132,18 @@ export async function createCampaign(input: {
 
 async function loadSchoolRows(): Promise<SchoolRecipientRow[]> {
   const schools = await prisma.school.findMany({
-    select: { id: true, name: true, email: true, district: true, parentSchoolId: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      district: true,
+      parentSchoolId: true,
+      inep: true,
+      students: true,
+      surveyUnitType: true,
+      surveyEligible: true,
+      surveyAuditReason: true,
+    },
     orderBy: { name: "asc" },
   });
   return schools;
@@ -136,6 +151,232 @@ async function loadSchoolRows(): Promise<SchoolRecipientRow[]> {
 
 export async function getRecipientPlan() {
   return planRecipients(await loadSchoolRows());
+}
+
+export interface SchoolAuditItem {
+  id: number;
+  name: string;
+  district: string | null;
+  email: string | null;
+  inep: number;
+  students: number;
+  type: SchoolUnitType;
+  eligible: boolean;
+  reason: string;
+  source: string;
+}
+
+/**
+ * Auditoria dos cadastros de School. Pode apenas relatar (dry-run) ou persistir
+ * a classificação em surveyUnitType/surveyEligible/surveyAuditReason.
+ *
+ * A persistência é aditiva: não altera nome, e-mail, vínculos nem qualquer
+ * outro campo da escola. Serve para congelar a decisão auditada e evitar que
+ * mudanças de heurística afetem campanhas futuras sem revisão.
+ */
+export async function auditSchoolEligibility(
+  actor: AuditActor,
+  persist: boolean,
+): Promise<{
+  summary: {
+    total: number;
+    schools: number;
+    adminSectors: number;
+    review: number;
+    persisted: number;
+  };
+  items: SchoolAuditItem[];
+}> {
+  const schools = await prisma.school.findMany({
+    select: {
+      id: true,
+      name: true,
+      district: true,
+      email: true,
+      inep: true,
+      students: true,
+      parentSchoolId: true,
+      surveyUnitType: true,
+      surveyEligible: true,
+      surveyAuditReason: true,
+    },
+    orderBy: [{ district: "asc" }, { name: "asc" }],
+  });
+
+  const items: SchoolAuditItem[] = schools.map((school) => {
+    const decision = classifySchoolUnit(school);
+    return {
+      id: school.id,
+      name: school.name,
+      district: school.district ?? null,
+      email: school.email ?? null,
+      inep: school.inep ?? 0,
+      students: school.students ?? 0,
+      type: decision.type,
+      eligible: decision.eligible,
+      reason: decision.reason,
+      source: decision.source,
+    };
+  });
+
+  const summary = {
+    total: schools.length,
+    schools: items.filter((item) => item.type === "SCHOOL").length,
+    adminSectors: items.filter((item) => item.type === "ADMIN_SECTOR").length,
+    review: items.filter((item) => item.type === "REVIEW").length,
+    persisted: 0,
+  };
+
+  if (persist) {
+    const auditedAt = new Date();
+    const CHUNK = 50;
+    for (let index = 0; index < items.length; index += CHUNK) {
+      const chunk = items.slice(index, index + CHUNK);
+      await prisma.$transaction(
+        chunk.map((item) =>
+          prisma.school.update({
+            where: { id: item.id },
+            data: {
+              surveyUnitType: item.type,
+              surveyEligible: item.eligible,
+              surveyAuditReason: item.reason,
+              surveyAuditedAt: auditedAt,
+              surveyAuditedBy: actor.userId,
+            },
+          }),
+        ),
+      );
+    }
+    summary.persisted = items.length;
+
+    await logFeedbackAudit({
+      actor,
+      action: "SCHOOL_ELIGIBILITY_AUDITED",
+      metadata: {
+        total: summary.total,
+        schools: summary.schools,
+        adminSectors: summary.adminSectors,
+        review: summary.review,
+      },
+    });
+  }
+
+  return { summary, items };
+}
+
+/** Override manual e auditado para uma unidade específica. */
+export async function setSchoolEligibilityOverride(input: {
+  schoolId: number;
+  eligible: boolean;
+  type?: SchoolUnitType;
+  reason: string;
+  actor: AuditActor;
+}) {
+  const school = await prisma.school.findUnique({
+    where: { id: input.schoolId },
+    select: { id: true, name: true },
+  });
+  if (!school) throw new FeedbackServiceError("Escola não encontrada.", 404);
+
+  const type: SchoolUnitType =
+    input.type ?? (input.eligible ? "SCHOOL" : "ADMIN_SECTOR");
+
+  await prisma.school.update({
+    where: { id: input.schoolId },
+    data: {
+      surveyUnitType: type,
+      surveyEligible: input.eligible,
+      surveyAuditReason: input.reason.slice(0, 500),
+      surveyAuditedAt: new Date(),
+      surveyAuditedBy: input.actor.userId,
+    },
+  });
+
+  await logFeedbackAudit({
+    actor: input.actor,
+    action: "SCHOOL_ELIGIBILITY_OVERRIDDEN",
+    metadata: {
+      schoolId: school.id,
+      schoolName: school.name,
+      eligible: input.eligible,
+      type,
+      reason: input.reason.slice(0, 500),
+    },
+  });
+
+  return { schoolId: school.id, name: school.name, eligible: input.eligible, type };
+}
+
+/**
+ * Remove de uma campanha oficial quaisquer convites cujo cadastro não seja
+ * unidade escolar. Defesa em profundidade para campanhas preparadas antes da
+ * regra ou manipuladas diretamente no banco.
+ */
+export async function excludeIneligibleInvites(
+  campaignId: number,
+  actor: AuditActor,
+): Promise<{ excluded: number; names: string[] }> {
+  const invites = await prisma.feedbackInvite.findMany({
+    where: { campaignId, status: { notIn: ["EXCLUDED", "EXPIRED"] } },
+    include: {
+      School: {
+        select: {
+          id: true,
+          name: true,
+          district: true,
+          inep: true,
+          students: true,
+          parentSchoolId: true,
+          surveyUnitType: true,
+          surveyEligible: true,
+          surveyAuditReason: true,
+        },
+      },
+    },
+  });
+
+  const targets = invites.filter(
+    (invite) => classifySchoolUnit(invite.School).type !== "SCHOOL",
+  );
+
+  if (targets.length === 0) return { excluded: 0, names: [] };
+
+  const ids = targets.map((invite) => invite.id);
+
+  await prisma.$transaction([
+    prisma.feedbackSendJob.updateMany({
+      where: { inviteId: { in: ids } },
+      data: {
+        status: "CANCELLED",
+        lastError: "Convite inelegível: cadastro não é unidade escolar.",
+      },
+    }),
+    prisma.feedbackInvite.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        status: "EXCLUDED",
+        lastError: "Cadastro não é unidade escolar; excluído do envio oficial.",
+      },
+    }),
+  ]);
+
+  await logFeedbackAudit({
+    campaignId,
+    actor,
+    action: "INELIGIBLE_INVITES_EXCLUDED",
+    metadata: {
+      excluded: targets.length,
+      schools: targets.map((invite) => ({
+        id: invite.schoolId,
+        name: invite.School.name,
+      })),
+    },
+  });
+
+  return {
+    excluded: targets.length,
+    names: targets.map((invite) => invite.School.name),
+  };
 }
 
 function expiryFor(campaign: FeedbackCampaign): Date {
@@ -267,7 +508,7 @@ export async function prepareCampaign(campaignId: number, actor: AuditActor) {
 export async function authorizeCampaignSend(
   campaignId: number,
   actor: AuditActor,
-): Promise<{ queued: number; total: number }> {
+): Promise<{ queued: number; total: number; excluded: number; excludedNames: string[] }> {
   const campaign = await prisma.feedbackCampaign.findUnique({
     where: { id: campaignId },
   });
@@ -285,9 +526,20 @@ export async function authorizeCampaignSend(
     );
   }
 
-  const total = await prisma.feedbackSendJob.count({ where: { campaignId } });
+  // Revalida TODOS os convites antes de liberar o disparo: nenhum setor
+  // administrativo pode receber e-mail de campanha oficial, mesmo que o
+  // convite tenha sido criado por versão anterior ou manipulado no banco.
+  const exclusion = await excludeIneligibleInvites(campaignId, actor);
+
+  const total = await prisma.feedbackSendJob.count({
+    where: { campaignId, status: { not: "CANCELLED" } },
+  });
   if (total === 0) {
-    throw new FeedbackServiceError("Não há convites enfileirados.");
+    throw new FeedbackServiceError(
+      exclusion.excluded > 0
+        ? "Todos os convites desta campanha foram excluídos por não serem unidades escolares."
+        : "Não há convites enfileirados.",
+    );
   }
 
   const queued = await prisma.feedbackSendJob.count({
@@ -320,10 +572,19 @@ export async function authorizeCampaignSend(
     campaignId,
     actor,
     action: "CAMPAIGN_SEND_AUTHORIZED",
-    metadata: { totalJobs: total, queuedJobs: queued },
+    metadata: {
+      totalJobs: total,
+      queuedJobs: queued,
+      excludedInvites: exclusion.excluded,
+    },
   });
 
-  return { queued, total };
+  return {
+    queued,
+    total,
+    excluded: exclusion.excluded,
+    excludedNames: exclusion.names,
+  };
 }
 
 export async function setCampaignStatus(
@@ -533,13 +794,64 @@ export async function processFeedbackQueue(options?: {
     try {
       const invite = await prisma.feedbackInvite.findUnique({
         where: { id: job.inviteId },
-        include: { School: { select: { name: true } } },
+        include: {
+          School: {
+            select: {
+              id: true,
+              name: true,
+              district: true,
+              inep: true,
+              students: true,
+              parentSchoolId: true,
+              surveyUnitType: true,
+              surveyEligible: true,
+              surveyAuditReason: true,
+            },
+          },
+        },
       });
       if (!invite) {
         await prisma.feedbackSendJob.update({
           where: { id: job.id },
           data: { status: "FAILED_PERMANENT", lastError: "Convite não encontrado." },
         });
+        result.failedPermanent += 1;
+        continue;
+      }
+
+      // Campanha OFICIAL nunca envia para setor interno, mesmo que o convite
+      // tenha sido criado antes da regra ou manipulado diretamente no banco.
+      if (
+        job.Campaign.channel === "OFFICIAL" &&
+        classifySchoolUnit(invite.School).type !== "SCHOOL"
+      ) {
+        await prisma.$transaction([
+          prisma.feedbackSendJob.update({
+            where: { id: job.id },
+            data: {
+              status: "FAILED_PERMANENT",
+              lastError:
+                "Destinatário não é unidade escolar; envio oficial bloqueado.",
+            },
+          }),
+          prisma.feedbackInvite.update({
+            where: { id: invite.id },
+            data: {
+              status: "EXCLUDED",
+              lastError:
+                "Destinatário não é unidade escolar; envio oficial bloqueado.",
+            },
+          }),
+        ]);
+
+        await logFeedbackAudit({
+          campaignId: invite.campaignId,
+          inviteId: invite.id,
+          actor: { userId: "system:queue", name: "Worker de envio", role: "SYSTEM" },
+          action: "OFFICIAL_SEND_BLOCKED_INELIGIBLE",
+          metadata: { schoolId: invite.schoolId, schoolName: invite.School.name },
+        });
+
         result.failedPermanent += 1;
         continue;
       }
@@ -751,6 +1063,15 @@ export async function sendTestEmail(input: {
     actor: input.actor,
     channel: "TEST",
   });
+
+  // Exceção autorizada: testes podem usar o registro interno CSDT (id 225),
+  // mas SOMENTE em campanha TEST. Campanhas oficiais nunca passam por aqui.
+  if (testCampaign.channel !== "TEST") {
+    throw new FeedbackServiceError(
+      "Envio de teste exige uma campanha do canal TEST.",
+      500,
+    );
+  }
 
   const rawToken = generateFeedbackToken();
   const expiresAt = new Date(Date.now() + FEEDBACK_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);

@@ -14,10 +14,13 @@ import { EmailPreviewModal, type EmailPreviewContent } from "./EmailPreviewModal
 interface OverviewResponse {
   eligibility: {
     totalSchools: number;
+    schoolUnits: number;
     eligibleSchools: number;
     missingEmail: number;
     invalidEmail: number;
-    excludedSchools: number;
+    adminSectors: number;
+    reviewUnits: number;
+    excludedRecords: number;
     duplicateEmails: number;
     totalInvites: number;
     totalMessages: number;
@@ -174,10 +177,16 @@ export function AdminOverview() {
           </h3>
           <dl className="mt-4 space-y-2 text-sm">
             <Row label="Unidades cadastradas" value={eligibility.totalSchools} />
+            <Row label="Classificadas como escola" value={eligibility.schoolUnits} />
             <Row label="Com e-mail válido" value={eligibility.eligibleSchools} />
             <Row label="Sem e-mail" value={eligibility.missingEmail} tone="warning" />
             <Row label="E-mail inválido" value={eligibility.invalidEmail} tone="warning" />
-            <Row label="Unidades excluídas" value={eligibility.excludedSchools} />
+            <Row
+              label="Setores administrativos (SEDE/SME)"
+              value={eligibility.adminSectors}
+              tone="warning"
+            />
+            <Row label="Em revisão (não enviam)" value={eligibility.reviewUnits} />
             <Row label="E-mails compartilhados" value={eligibility.duplicateEmails} />
           </dl>
           <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">

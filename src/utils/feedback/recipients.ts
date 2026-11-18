@@ -1,49 +1,60 @@
 /**
  * Auditoria dos destinatários da pesquisa.
  *
- * A tabela School é a fonte de verdade. Nenhum endereço é inventado: escolas
- * sem e-mail ficam de fora, endereços inválidos não são enviados e um mesmo
- * e-mail compartilhado por mais de uma unidade gera convites distintos, mas
- * apenas uma mensagem, com um link identificado por escola.
+ * A tabela School mistura unidades escolares e setores administrativos da SME.
+ * A elegibilidade vem de `classifySchoolUnit` (estrutural + classificação
+ * persistida), nunca da suposição de que todo registro é uma escola.
+ *
+ * Nenhum endereço é inventado: unidades sem e-mail ficam de fora, endereços
+ * inválidos não são enviados e um mesmo e-mail compartilhado por mais de uma
+ * unidade gera convites distintos, mas apenas uma mensagem.
  */
 
-export interface SchoolRecipientRow {
-  id: number;
-  name: string;
-  email: string | null;
-  district?: string | null;
-  parentSchoolId?: number | null;
-}
+import {
+  classifySchoolUnit,
+  type EligibilitySource,
+  type SchoolEligibilityRow,
+  type SchoolUnitType,
+} from "./schoolEligibility";
+
+export type SchoolRecipientRow = SchoolEligibilityRow;
 
 export interface RecipientGroup {
-  /** E-mail normalizado usado como chave do grupamento. */
   email: string;
   schools: SchoolRecipientRow[];
 }
 
+export type EmailIssue = "MISSING" | "INVALID" | null;
+
+export interface ExcludedSchoolRecord {
+  id: number;
+  name: string;
+  email: string | null;
+  district: string | null;
+  type: SchoolUnitType;
+  reason: string;
+  source: EligibilitySource;
+  emailIssue: EmailIssue;
+}
+
 export interface RecipientPlan {
   totalSchools: number;
+  /** Registros classificados como unidade escolar (antes do e-mail). */
+  schoolUnits: number;
+  /** Unidades escolares com e-mail válido. */
   eligibleSchools: SchoolRecipientRow[];
   missingEmail: SchoolRecipientRow[];
   invalidEmail: SchoolRecipientRow[];
-  excludedSchools: SchoolRecipientRow[];
+  /** Todos os registros que não receberão convite, com o motivo. */
+  excludedSchools: ExcludedSchoolRecord[];
   duplicateGroups: RecipientGroup[];
   groups: RecipientGroup[];
-  /** Quantidade de escolas que receberão convite. */
   totalInvites: number;
-  /** Quantidade de mensagens de e-mail efetivamente enviadas. */
   totalMessages: number;
-  /** Economia de mensagens obtida pelo agrupamento. */
   savedMessages: number;
+  adminSectors: number;
+  reviewUnits: number;
 }
-
-/**
- * Unidades que não devem responder à pesquisa: a própria unidade
- * administrativa do CSDT. Mantida como lista explícita e auditável.
- */
-export const NON_SCHOOL_UNIT_IDS = new Set<number>([225]);
-
-const NON_SCHOOL_NAMES = new Set<string>(["CSDT"]);
 
 const EMAIL_PATTERN = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
 
@@ -64,38 +75,63 @@ export function isValidSchoolEmail(email: string | null | undefined): boolean {
   return EMAIL_PATTERN.test(normalized);
 }
 
+/** Elegível apenas se a classificação estrutural/persistida for SCHOOL. */
 export function isEligibleSchool(school: SchoolRecipientRow): boolean {
-  if (NON_SCHOOL_UNIT_IDS.has(school.id)) return false;
-  if (NON_SCHOOL_NAMES.has((school.name ?? "").trim().toUpperCase())) return false;
-  return true;
+  return classifySchoolUnit(school).type === "SCHOOL";
 }
 
 /**
- * Classifica as escolas em elegíveis, sem e-mail, inválidas e excluídas,
- * agrupando as elegíveis por e-mail normalizado.
+ * Classifica as escolas em unidades elegíveis, unidades sem/ com e-mail
+ * inválido e registros excluídos (setores administrativos, revisão e e-mail).
  */
-export function planRecipients(
-  schools: SchoolRecipientRow[],
-): RecipientPlan {
+export function planRecipients(schools: SchoolRecipientRow[]): RecipientPlan {
   const eligibleSchools: SchoolRecipientRow[] = [];
   const missingEmail: SchoolRecipientRow[] = [];
   const invalidEmail: SchoolRecipientRow[] = [];
-  const excludedSchools: SchoolRecipientRow[] = [];
+  const excludedSchools: ExcludedSchoolRecord[] = [];
+  let schoolUnits = 0;
+  let adminSectors = 0;
+  let reviewUnits = 0;
 
   for (const school of schools) {
-    if (!isEligibleSchool(school)) {
-      excludedSchools.push(school);
+    const decision = classifySchoolUnit(school);
+    const base = {
+      id: school.id,
+      name: school.name,
+      email: school.email ?? null,
+      district: school.district ?? null,
+      type: decision.type,
+      reason: decision.reason,
+      source: decision.source,
+    };
+
+    if (decision.type !== "SCHOOL") {
+      if (decision.type === "ADMIN_SECTOR") adminSectors += 1;
+      else reviewUnits += 1;
+      excludedSchools.push({ ...base, emailIssue: null });
       continue;
     }
 
+    schoolUnits += 1;
     const rawEmail = (school.email ?? "").trim();
+
     if (!rawEmail) {
       missingEmail.push(school);
+      excludedSchools.push({
+        ...base,
+        reason: "Unidade escolar sem e-mail cadastrado.",
+        emailIssue: "MISSING",
+      });
       continue;
     }
 
     if (!isValidSchoolEmail(rawEmail)) {
       invalidEmail.push(school);
+      excludedSchools.push({
+        ...base,
+        reason: `E-mail inválido no cadastro: ${rawEmail}`,
+        emailIssue: "INVALID",
+      });
       continue;
     }
 
@@ -121,6 +157,7 @@ export function planRecipients(
 
   return {
     totalSchools: schools.length,
+    schoolUnits,
     eligibleSchools,
     missingEmail,
     invalidEmail,
@@ -130,17 +167,22 @@ export function planRecipients(
     totalInvites: eligibleSchools.length,
     totalMessages: groups.length,
     savedMessages: eligibleSchools.length - groups.length,
+    adminSectors,
+    reviewUnits,
   };
 }
 
-/** Resume o plano para envio no painel sem expor listas completas. */
+/** Resumo numérico usado no painel e na autorização de envio. */
 export function summarizeRecipientPlan(plan: RecipientPlan) {
   return {
     totalSchools: plan.totalSchools,
+    schoolUnits: plan.schoolUnits,
     eligibleSchools: plan.eligibleSchools.length,
     missingEmail: plan.missingEmail.length,
     invalidEmail: plan.invalidEmail.length,
-    excludedSchools: plan.excludedSchools.length,
+    adminSectors: plan.adminSectors,
+    reviewUnits: plan.reviewUnits,
+    excludedRecords: plan.excludedSchools.length,
     duplicateEmails: plan.duplicateGroups.length,
     totalInvites: plan.totalInvites,
     totalMessages: plan.totalMessages,

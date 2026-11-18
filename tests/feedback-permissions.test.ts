@@ -38,6 +38,8 @@ const ADMIN_ENDPOINTS = [
   "src/pages/api/feedback/admin/export.ts",
   "src/pages/api/feedback/admin/audit.ts",
   "src/pages/api/feedback/admin/invites/[id]/reopen.ts",
+  "src/pages/api/feedback/admin/schools-audit.ts",
+  "src/pages/api/feedback/admin/schools/[id]/eligibility.ts",
 ];
 
 describe("Controle de acesso da Pesquisa de Feedback", () => {

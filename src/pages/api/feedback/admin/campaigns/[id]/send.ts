@@ -3,6 +3,7 @@ import prisma from "@/utils/prisma";
 import { requireFeedbackAdmin } from "@/utils/feedback/adminAuth";
 import {
   authorizeCampaignSend,
+  excludeIneligibleInvites,
   FeedbackServiceError,
 } from "@/utils/feedback/service";
 import { feedbackQueueWorkerEnabled } from "@/utils/feedback/config";
@@ -43,15 +44,21 @@ export default async function handler(
   }
 
   try {
+    // Revalida os destinatários antes de qualquer confirmação: setores
+    // administrativos nunca entram em campanha oficial.
+    const exclusion = await excludeIneligibleInvites(campaignId, actor);
+
     const totalJobs = await prisma.feedbackSendJob.count({
-      where: { campaignId },
+      where: { campaignId, status: { not: "CANCELLED" } },
     });
     const expected = Number(body.expectedMessages);
     if (!Number.isFinite(expected) || expected !== totalJobs) {
       return res.status(409).json({
         error:
-          "O número de mensagens mudou desde a pré-visualização. Revise os destinatários antes de confirmar.",
+          "O número de destinatários elegíveis mudou desde a pré-visualização. Abra a pré-visualização novamente e confirme.",
         expectedMessages: totalJobs,
+        excludedInvites: exclusion.excluded,
+        excludedNames: exclusion.names,
       });
     }
 

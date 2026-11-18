@@ -140,13 +140,58 @@ describe("Segurança do envio da pesquisa", () => {
       "prisma/migrations/20261118120000_add_feedback_survey/migration.sql",
       "prisma/migrations/20261118121000_add_feedback_token_cipher/migration.sql",
       "prisma/migrations/20261118122000_feedback_invite_reopen_history/migration.sql",
+      "prisma/migrations/20261118130000_add_school_survey_eligibility/migration.sql",
     ];
     for (const file of migrations) {
       const sql = readSrc(file);
       expect(sql, file).not.toMatch(/DROP TABLE/i);
       expect(sql, file).not.toMatch(/DELETE FROM/i);
       expect(sql, file).not.toMatch(/TRUNCATE/i);
-      expect(sql, file).not.toMatch(/ALTER TABLE "public"\."(OS|School|Item|Profile)"/i);
+      expect(sql, file).not.toMatch(/ALTER TABLE "public"\."(OS|Item|Profile)"/i);
     }
+
+    // A única alteração em School é a inclusão de colunas anuláveis.
+    const schoolMigration = readSrc(
+      "prisma/migrations/20261118130000_add_school_survey_eligibility/migration.sql",
+    );
+    expect(schoolMigration).toContain('ALTER TABLE "public"."School" ADD COLUMN');
+    expect(schoolMigration).not.toMatch(/DROP COLUMN/i);
+    expect(schoolMigration).not.toMatch(/NOT NULL/i);
+  });
+
+  it("autorização de envio revalida e remove convites inelegíveis", () => {
+    const source = readSrc("src/utils/feedback/service.ts");
+    const authorizeBlock = source.slice(
+      source.indexOf("export async function authorizeCampaignSend"),
+      source.indexOf("export async function setCampaignStatus"),
+    );
+    expect(authorizeBlock).toContain("excludeIneligibleInvites");
+
+    const exclusionBlock = source.slice(
+      source.indexOf("export async function excludeIneligibleInvites"),
+      source.indexOf("function expiryFor"),
+    );
+    expect(exclusionBlock).toContain("classifySchoolUnit");
+    expect(exclusionBlock).toContain('status: "EXCLUDED"');
+    expect(exclusionBlock).toContain('status: "CANCELLED"');
+    expect(exclusionBlock).toContain("INELIGIBLE_INVITES_EXCLUDED");
+  });
+
+  it("worker bloqueia envio oficial para cadastro que não é escola", () => {
+    const source = readSrc("src/utils/feedback/service.ts");
+    const queueBlock = source.slice(
+      source.indexOf("export async function processFeedbackQueue"),
+      source.indexOf("export async function finalizeCampaignIfDone"),
+    );
+    expect(queueBlock).toContain('job.Campaign.channel === "OFFICIAL"');
+    expect(queueBlock).toContain("classifySchoolUnit(invite.School)");
+    expect(queueBlock).toContain("OFFICIAL_SEND_BLOCKED_INELIGIBLE");
+  });
+
+  it("envio de teste continua permitido no CSDT apenas em campanha TEST", () => {
+    const source = readSrc("src/utils/feedback/service.ts");
+    const testBlock = source.slice(source.indexOf("export async function sendTestEmail"));
+    expect(testBlock).toContain('channel: "TEST"');
+    expect(testBlock).toContain('testCampaign.channel !== "TEST"');
   });
 });

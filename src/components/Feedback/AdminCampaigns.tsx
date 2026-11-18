@@ -79,20 +79,37 @@ interface CampaignDetail {
 interface PreviewResponse {
   summary: {
     totalSchools: number;
+    schoolUnits: number;
     eligibleSchools: number;
     missingEmail: number;
     invalidEmail: number;
-    excludedSchools: number;
+    adminSectors: number;
+    reviewUnits: number;
+    excludedRecords: number;
     duplicateEmails: number;
     totalInvites: number;
     totalMessages: number;
     savedMessages: number;
   };
   plan: {
-    missingEmail: Array<{ id: number; name: string }>;
-    invalidEmail: Array<{ id: number; name: string; email: string | null }>;
-    excludedSchools: Array<{ id: number; name: string }>;
+    includedSchools: Array<{
+      id: number;
+      name: string;
+      district: string | null;
+      email: string | null;
+      sharedEmail: boolean;
+    }>;
+    excludedSchools: Array<{
+      id: number;
+      name: string;
+      email: string | null;
+      district: string | null;
+      type: "SCHOOL" | "ADMIN_SECTOR" | "REVIEW";
+      reason: string;
+      emailIssue: "MISSING" | "INVALID" | null;
+    }>;
     duplicateGroups: Array<{ email: string; schools: string[] }>;
+    totalMessages: number;
   };
   preview: EmailPreviewContent;
   alreadyPrepared: boolean;
@@ -636,13 +653,48 @@ export function AdminCampaigns() {
                 ) : (
                   <>
                     <ul className="mt-2 grid gap-1 text-xs text-amber-900 sm:grid-cols-2">
-                      <li>Escolas elegíveis: {previewData.summary.eligibleSchools}</li>
+                      <li>Unidades escolares: {previewData.summary.schoolUnits}</li>
+                      <li>Com e-mail válido: {previewData.summary.eligibleSchools}</li>
                       <li>Mensagens previstas: {previewData.summary.totalMessages}</li>
+                      <li>Setores administrativos excluídos: {previewData.summary.adminSectors}</li>
+                      <li>Cadastros em revisão: {previewData.summary.reviewUnits}</li>
                       <li>E-mails inválidos: {previewData.summary.invalidEmail}</li>
                       <li>Sem e-mail: {previewData.summary.missingEmail}</li>
-                      <li>Excluídas: {previewData.summary.excludedSchools}</li>
                       <li>Endereços compartilhados: {previewData.summary.duplicateEmails}</li>
                     </ul>
+
+                    <details className="mt-3 rounded-md border border-amber-200 bg-white/60 p-2">
+                      <summary className="cursor-pointer text-xs font-semibold text-amber-900">
+                        Ver escolas incluídas ({previewData.plan.includedSchools.length})
+                      </summary>
+                      <ul className="mt-2 grid max-h-40 gap-0.5 overflow-auto text-[11px] text-slate-700 sm:grid-cols-2">
+                        {previewData.plan.includedSchools.map((school) => (
+                          <li key={school.id}>
+                            {school.name}
+                            {school.sharedEmail && (
+                              <span className="ml-1 rounded bg-slate-100 px-1 text-[9px] text-slate-500">
+                                e-mail compartilhado
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+
+                    <details className="mt-2 rounded-md border border-amber-200 bg-white/60 p-2">
+                      <summary className="cursor-pointer text-xs font-semibold text-amber-900">
+                        Ver registros excluídos e motivos ({previewData.plan.excludedSchools.length})
+                      </summary>
+                      <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-[11px] text-slate-700">
+                        {previewData.plan.excludedSchools.map((school) => (
+                          <li key={`${school.id}-${school.type}`}>
+                            <span className="font-medium">{school.name}</span>
+                            <span className="text-slate-500"> — {school.reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+
                     <label className="mt-3 flex items-start gap-2 text-xs text-amber-900">
                       <input
                         type="checkbox"

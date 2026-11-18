@@ -68,23 +68,31 @@ export default async function handler(
     return res.status(200).json({
       summary: summarizeRecipientPlan(plan),
       plan: {
-        missingEmail: plan.missingEmail.map((school) => ({
-          id: school.id,
-          name: school.name,
-        })),
-        invalidEmail: plan.invalidEmail.map((school) => ({
-          id: school.id,
-          name: school.name,
-          email: school.email,
-        })),
+        /** Unidades escolares que receberão convite (com e-mail válido). */
+        includedSchools: plan.groups.flatMap((group) =>
+          group.schools.map((school) => ({
+            id: school.id,
+            name: school.name,
+            district: school.district ?? null,
+            email: school.email,
+            sharedEmail: group.schools.length > 1,
+          })),
+        ),
+        /** Todos os registros que NÃO receberão convite, com motivo. */
         excludedSchools: plan.excludedSchools.map((school) => ({
           id: school.id,
           name: school.name,
+          email: school.email,
+          district: school.district,
+          type: school.type,
+          reason: school.reason,
+          emailIssue: school.emailIssue,
         })),
         duplicateGroups: plan.duplicateGroups.map((group) => ({
           email: group.email,
           schools: group.schools.map((school) => school.name),
         })),
+        totalMessages: plan.totalMessages,
       },
       preview,
       alreadyPrepared: Boolean(firstInvite),
