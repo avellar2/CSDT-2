@@ -374,15 +374,21 @@ export async function setCampaignStatus(
   });
 }
 
-/** Reabre um convite respondido, permitindo uma nova resposta da escola. */
+/**
+ * Reabertura administrativa explícita de um convite já respondido.
+ *
+ * Preserva o histórico: a resposta anterior continua no banco e um NOVO
+ * convite (novo token) é criado para a mesma unidade. Assim a escola pode
+ * responder novamente sem que se perca a resposta anterior.
+ */
 export async function reopenInvite(
   inviteId: number,
   actor: AuditActor,
   baseUrl: string,
-): Promise<{ url: string }> {
+): Promise<{ url: string; inviteId: number; previousInviteId: number }> {
   const invite = await prisma.feedbackInvite.findUnique({
     where: { id: inviteId },
-    include: { Campaign: true, FeedbackResponse: true },
+    include: { FeedbackResponse: { select: { id: true } } },
   });
   if (!invite) throw new FeedbackServiceError("Convite não encontrado.", 404);
   if (!invite.FeedbackResponse) {
@@ -390,34 +396,47 @@ export async function reopenInvite(
   }
 
   const rawToken = generateFeedbackToken();
-  await prisma.$transaction([
-    prisma.feedbackResponse.delete({ where: { id: invite.FeedbackResponse.id } }),
-    prisma.feedbackInvite.update({
-      where: { id: inviteId },
-      data: {
-        tokenHash: hashFeedbackToken(rawToken),
-        tokenCipher: encryptFeedbackToken(rawToken),
-        tokenHint: feedbackTokenHint(rawToken),
-        status: "SENT",
-        answeredAt: null,
-        reopenedAt: new Date(),
-        reopenedBy: actor.userId,
-        expiresAt: invite.expiresAt < new Date()
-          ? new Date(Date.now() + FEEDBACK_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000)
-          : invite.expiresAt,
-      },
-    }),
-  ]);
+  const baseExpiry = new Date(
+    Date.now() + FEEDBACK_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
+  );
+  const expiresAt = invite.expiresAt > baseExpiry ? invite.expiresAt : baseExpiry;
+
+  const newInvite = await prisma.feedbackInvite.create({
+    data: {
+      campaignId: invite.campaignId,
+      schoolId: invite.schoolId,
+      tokenHash: hashFeedbackToken(rawToken),
+      tokenCipher: encryptFeedbackToken(rawToken),
+      tokenHint: feedbackTokenHint(rawToken),
+      recipientEmail: invite.recipientEmail,
+      recipientEmailNormalized: invite.recipientEmailNormalized,
+      groupKey: invite.groupKey,
+      isPrimaryForEmail: invite.isPrimaryForEmail,
+      status: "SENT",
+      expiresAt,
+      reopenedAt: new Date(),
+      reopenedBy: actor.userId,
+    },
+    select: { id: true },
+  });
 
   await logFeedbackAudit({
     campaignId: invite.campaignId,
-    inviteId,
+    inviteId: newInvite.id,
     actor,
     action: "INVITE_REOPENED",
-    metadata: { schoolId: invite.schoolId },
+    metadata: {
+      schoolId: invite.schoolId,
+      previousInviteId: invite.id,
+      preservedResponseId: invite.FeedbackResponse.id,
+    },
   });
 
-  return { url: `${baseUrl}${feedbackSurveyPath(rawToken)}` };
+  return {
+    url: `${baseUrl}${feedbackSurveyPath(rawToken)}`,
+    inviteId: newInvite.id,
+    previousInviteId: invite.id,
+  };
 }
 
 interface GroupInvite {
@@ -529,6 +548,8 @@ export async function processFeedbackQueue(options?: {
         where: {
           campaignId: invite.campaignId,
           recipientEmailNormalized: invite.recipientEmailNormalized,
+          // Reaberturas administrativas não entram em um novo disparo em massa.
+          reopenedAt: null,
         },
         include: { School: { select: { name: true } } },
         orderBy: { schoolId: "asc" },

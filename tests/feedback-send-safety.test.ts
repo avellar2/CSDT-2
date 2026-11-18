@@ -125,4 +125,28 @@ describe("Segurança do envio da pesquisa", () => {
     expect(source).toContain("recipientEmail: FEEDBACK_TEST_RECIPIENT");
     expect(source).not.toContain("contato@");
   });
+
+  it("reabrir convite preserva o histórico de respostas", () => {
+    const source = readSrc("src/utils/feedback/service.ts");
+    expect(source).not.toContain("feedbackResponse.delete");
+    expect(source).not.toContain("Answer: { deleteMany");
+    const reopenBlock = source.slice(source.indexOf("export async function reopenInvite"));
+    expect(reopenBlock).toContain("feedbackInvite.create");
+    expect(reopenBlock).toContain("preservedResponseId");
+  });
+
+  it("migrações são aditivas e não apagam dados existentes", () => {
+    const migrations = [
+      "prisma/migrations/20261118120000_add_feedback_survey/migration.sql",
+      "prisma/migrations/20261118121000_add_feedback_token_cipher/migration.sql",
+      "prisma/migrations/20261118122000_feedback_invite_reopen_history/migration.sql",
+    ];
+    for (const file of migrations) {
+      const sql = readSrc(file);
+      expect(sql, file).not.toMatch(/DROP TABLE/i);
+      expect(sql, file).not.toMatch(/DELETE FROM/i);
+      expect(sql, file).not.toMatch(/TRUNCATE/i);
+      expect(sql, file).not.toMatch(/ALTER TABLE "public"\."(OS|School|Item|Profile)"/i);
+    }
+  });
 });

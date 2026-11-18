@@ -1210,7 +1210,7 @@ model FeedbackInvite {
   FeedbackResponse FeedbackResponse?
   FeedbackSendJob  FeedbackSendJob[]
 
-  @@unique([campaignId, schoolId])
+  @@index([campaignId, schoolId])
   @@index([campaignId, status])
   @@index([recipientEmailNormalized])
 }
