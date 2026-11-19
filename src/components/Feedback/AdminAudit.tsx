@@ -62,7 +62,7 @@ export function AdminAudit() {
                 <td className="px-4 py-2.5 font-medium text-slate-800">{entry.action}</td>
                 <td className="px-4 py-2.5 text-slate-600">
                   {entry.actorName || entry.actorUserId}
-                  <span className="ml-1 text-[11px] text-slate-400">({entry.actorRole})</span>
+                  <span className="ml-1 text-[11px] text-slate-600">({entry.actorRole})</span>
                 </td>
                 <td className="px-4 py-2.5 text-slate-600">
                   {entry.campaignId ?? "—"}

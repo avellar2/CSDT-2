@@ -25,8 +25,14 @@ export default async function handler(
 
   try {
     const plan = await getRecipientPlan();
-    const [participation, campaigns, recentFailures, recentAudit, dashboard] =
-      await Promise.all([
+    const [
+      participation,
+      campaigns,
+      recentFailures,
+      recentAudit,
+      dashboard,
+      responseGroups,
+    ] = await Promise.all([
         computeParticipation(),
         listCampaignSummaries(),
         prisma.feedbackInvite.findMany({
@@ -56,7 +62,19 @@ export default async function handler(
           },
         }),
         getFeedbackDashboardSnapshot(actor.userId),
+        prisma.feedbackResponse.groupBy({
+          by: ["channel"],
+          _count: { _all: true },
+        }),
       ]);
+
+    const responseCounts = {
+      official:
+        responseGroups.find((group) => group.channel === "OFFICIAL")?._count
+          ._all ?? 0,
+      test:
+        responseGroups.find((group) => group.channel === "TEST")?._count._all ?? 0,
+    };
 
     const officialCampaigns = campaigns.filter(
       (campaign) => campaign.channel === "OFFICIAL",
@@ -72,6 +90,7 @@ export default async function handler(
         ),
       },
       dashboard,
+      responseCounts,
       campaigns: officialCampaigns.slice(0, 20),
       recentFailures,
       recentAudit,

@@ -29,6 +29,7 @@ const AdminStats = dynamic(
 );
 
 type Tab = "overview" | "campaigns" | "recipients" | "responses" | "stats" | "comments" | "audit";
+type ResponsesChannel = "ALL" | "OFFICIAL" | "TEST";
 
 const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
   { id: "overview", label: "Visão Geral", icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -45,6 +46,7 @@ export default function AdminFeedbackPage() {
   const [status, setStatus] = useState<"checking" | "allowed" | "denied">("checking");
   const [displayName, setDisplayName] = useState<string>("");
   const [tab, setTab] = useState<Tab>("overview");
+  const [responsesChannel, setResponsesChannel] = useState<ResponsesChannel>("ALL");
 
   useEffect(() => {
     let cancelled = false;
@@ -93,28 +95,38 @@ export default function AdminFeedbackPage() {
 
   if (status === "checking") {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center gap-2 text-sm text-slate-500">
-        <Loader2 className="h-4 w-4 animate-spin" /> Verificando permissões...
-      </div>
+      <>
+        <div aria-hidden className="fixed inset-0 -z-10 bg-slate-50" />
+        <div className="feedback-admin-surface flex min-h-[60vh] items-center justify-center gap-2 text-sm text-slate-600">
+          <Loader2 className="h-4 w-4 animate-spin" /> Verificando permissões...
+        </div>
+      </>
     );
   }
 
   if (status === "denied") {
     return (
-      <div className="mx-auto max-w-lg py-16 text-center">
-        <ShieldAlert className="mx-auto h-10 w-10 text-amber-500" />
-        <h1 className="mt-4 text-lg font-semibold text-slate-800">Acesso restrito</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          A Pesquisa de Feedback é exclusiva do perfil ADMTOTAL. Se você acredita que
-          deveria ter acesso, procure a administração do sistema.
-        </p>
-        <Link
-          href="/dashboard"
-          className="mt-6 inline-block rounded-md bg-[#1d4ed8] px-4 py-2 text-sm font-medium text-white"
-        >
-          Voltar ao painel
-        </Link>
-      </div>
+      <>
+        <div aria-hidden className="fixed inset-0 -z-10 bg-slate-50" />
+        <div className="feedback-admin-surface flex min-h-[70vh] items-center justify-center px-4 py-16">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <h1 className="mt-4 text-lg font-semibold text-[#0b2a5b]">Acesso restrito</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              A Pesquisa de Feedback é exclusiva do perfil ADMTOTAL. Se você acredita que
+              deveria ter acesso, procure a administração do sistema.
+            </p>
+            <Link
+              href="/dashboard"
+              className="mt-6 inline-block rounded-lg bg-[#1d4ed8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1a45c0]"
+            >
+              Voltar ao painel
+            </Link>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -124,46 +136,86 @@ export default function AdminFeedbackPage() {
         <title>Pesquisa de Feedback — Administração | CSDT</title>
       </Head>
 
-      <div className="py-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-[#0b2a5b]">Pesquisa de Feedback — CSDT</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Área exclusiva do perfil ADMTOTAL. Todas as ações são auditadas.
-            </p>
-          </div>
-          {displayName && (
-            <p className="text-xs text-slate-500">Operador: {displayName}</p>
-          )}
-        </div>
+      {/* Fundo claro do módulo, inclusive quando o tema global está escuro. */}
+      <div aria-hidden className="fixed inset-0 -z-10 bg-slate-50" />
 
-        <nav className="mt-5 flex flex-wrap gap-1 border-b border-slate-200">
-          {TABS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTab(item.id)}
-              className={`inline-flex items-center gap-1.5 rounded-t-md px-3 py-2.5 text-sm font-medium transition ${
-                tab === item.id
-                  ? "border-b-2 border-[#1d4ed8] text-[#1d4ed8]"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
+      <div className="feedback-admin-surface min-h-screen px-0 py-5 sm:py-6">
+        <header className="rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-[#0b2a5b] text-white">
+                <ClipboardList className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#1d4ed8]">
+                  CSDT · Secretaria Municipal de Educação
+                </p>
+                <h1 className="mt-0.5 text-xl font-bold text-[#0b2a5b] sm:text-2xl">
+                  Pesquisa de Feedback
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Painel administrativo exclusivo do perfil ADMTOTAL. Todas as ações são
+                  auditadas.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-start gap-2 sm:items-end">
+              {displayName && (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                  Operador: {displayName}
+                </span>
+              )}
+              <Link
+                href="/dashboard"
+                className="text-xs font-semibold text-[#1d4ed8] hover:underline"
+              >
+                ← Voltar ao Dashboard
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <nav
+          aria-label="Seções da Pesquisa de Feedback"
+          className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm"
+        >
+          <div className="flex min-w-max gap-1">
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-current={tab === item.id ? "page" : undefined}
+                onClick={() => setTab(item.id)}
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#1d4ed8] focus:ring-offset-1 ${
+                  tab === item.id
+                    ? "bg-[#0b2a5b] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </div>
         </nav>
 
-        <div className="mt-5">
-          {tab === "overview" && <AdminOverview />}
+        <main className="mt-5">
+          {tab === "overview" && (
+            <AdminOverview
+              onOpenTestResponses={() => {
+                setResponsesChannel("TEST");
+                setTab("responses");
+              }}
+            />
+          )}
           {tab === "campaigns" && <AdminCampaigns />}
           {tab === "recipients" && <AdminRecipients />}
-          {tab === "responses" && <AdminResponses />}
+          {tab === "responses" && <AdminResponses initialChannel={responsesChannel} />}
           {tab === "stats" && <AdminStats />}
           {tab === "comments" && <AdminComments />}
           {tab === "audit" && <AdminAudit />}
-        </div>
+        </main>
       </div>
     </>
   );

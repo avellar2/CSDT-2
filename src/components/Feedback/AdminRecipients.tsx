@@ -254,7 +254,7 @@ export function AdminRecipients() {
         <label className="flex-1 text-xs font-medium text-slate-600">
           Buscar
           <div className="relative mt-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-slate-600" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -283,7 +283,7 @@ export function AdminRecipients() {
               <tr key={item.id} className="hover:bg-slate-50">
                 <td className="px-3 py-2.5">
                   <p className="font-medium text-slate-800">{item.name}</p>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-slate-600">
                     id {item.id} · INEP {item.inep} · matrículas {item.students}
                   </p>
                 </td>

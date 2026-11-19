@@ -187,3 +187,32 @@ input[type="radio"]:checked {
     @apply bg-gray-900 text-white;
   }
 }
+/* ------------------------------------------------------------------ */
+/* Pesquisa de Feedback — superfície clara isolada do tema global      */
+/* Escopo restrito ao módulo; não altera outras páginas do CSDT.       */
+/* ------------------------------------------------------------------ */
+.feedback-admin-surface {
+  color-scheme: light;
+  color: #0f172a; /* slate-900 */
+  background-color: #f8fafc; /* slate-50 */
+}
+
+/* Controles nativos mantêm fundo branco e texto escuro mesmo no tema  */
+/* escuro global (o bloco `.dark input` do tema usa a mesma especif.)  */
+.feedback-admin-surface input,
+.feedback-admin-surface select,
+.feedback-admin-surface textarea {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.feedback-admin-surface input::placeholder,
+.feedback-admin-surface textarea::placeholder {
+  color: #64748b; /* slate-500 */
+}
+
+.feedback-admin-surface select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
+  BarChart3,
   CheckCircle2,
+  Clock,
   FlaskConical,
   Mail,
   RefreshCw,
@@ -36,6 +38,10 @@ interface OverviewResponse {
     pendingResponses: number;
     unansweredSchools: number;
     participationPercent: number;
+  };
+  responseCounts: {
+    official: number;
+    test: number;
   };
   campaigns: unknown[];
   recentFailures: Array<{
@@ -75,7 +81,11 @@ interface TestEmailResult {
   note: string;
 }
 
-export function AdminOverview() {
+export function AdminOverview({
+  onOpenTestResponses,
+}: {
+  onOpenTestResponses?: () => void;
+} = {}) {
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,32 +153,70 @@ export function AdminOverview() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard
+        <MetricCard
+          icon={<Users className="h-4 w-4" />}
           label="Escolas elegíveis"
           value={eligibility.eligibleSchools}
-          hint={`${eligibility.totalSchools} cadastradas`}
+          hint={`${eligibility.schoolUnits} unidades escolares`}
         />
-        <StatCard
+        <MetricCard
+          icon={<Send className="h-4 w-4" />}
           label="Convites enviados"
           value={participation.invitationsSent}
-          hint={`${participation.invitationsTotal} gerados`}
+          hint="aceitos pelo SMTP"
         />
-        <StatCard
+        <MetricCard
+          icon={<AlertCircle className="h-4 w-4" />}
           label="Envios com falha"
           value={participation.invitationsFailed}
           tone={participation.invitationsFailed > 0 ? "danger" : "default"}
+          hint="falhas definitivas"
         />
-        <StatCard label="Respostas" value={participation.responses} tone="success" />
-        <StatCard
-          label="Sem resposta"
+        <MetricCard
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          label="Respostas oficiais"
+          value={participation.responses}
+          tone="success"
+          hint="somente canal OFFICIAL"
+        />
+        <MetricCard
+          icon={<Clock className="h-4 w-4" />}
+          label="Pendências"
           value={participation.unansweredSchools}
+          hint="convites sem resposta"
         />
-        <StatCard
+        <MetricCard
+          icon={<BarChart3 className="h-4 w-4" />}
           label="Participação"
           value={`${participation.participationPercent}%`}
-          hint="sobre convites gerados"
+          hint="respostas / convites"
         />
       </div>
+
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <FlaskConical className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-amber-900">Respostas de teste</h3>
+            <p className="mt-0.5 text-xs leading-relaxed text-amber-800">
+              <strong className="tabular-nums">{data.responseCounts.test}</strong>{" "}
+              resposta(s) de teste. Elas ficam separadas e não entram nos indicadores
+              oficiais nem nas estatísticas.
+            </p>
+          </div>
+        </div>
+        {onOpenTestResponses && (
+          <button
+            type="button"
+            onClick={onOpenTestResponses}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+          >
+            Ver respostas de teste
+          </button>
+        )}
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -197,7 +245,7 @@ export function AdminOverview() {
               endereços compartilhados, mantendo um link exclusivo por unidade.
             </p>
           </div>
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-3 text-xs text-slate-600">
             Nenhum endereço é inventado. Escolas sem e-mail ou com endereço inválido
             ficam fora do envio.
           </p>
@@ -331,7 +379,7 @@ export function AdminOverview() {
                   <p className="font-medium text-slate-700">{failure.School.name}</p>
                   <p className="text-slate-500">{failure.recipientEmail}</p>
                   <p className="mt-0.5 text-red-600">{failure.lastError || "Erro não informado."}</p>
-                  <p className="mt-0.5 text-slate-400">{formatDateTime(failure.updatedAt)}</p>
+                  <p className="mt-0.5 text-slate-600">{formatDateTime(failure.updatedAt)}</p>
                 </li>
               ))}
             </ul>
@@ -352,7 +400,7 @@ export function AdminOverview() {
                       {entry.actorName || entry.actorUserId} ({entry.actorRole})
                     </p>
                   </div>
-                  <span className="whitespace-nowrap text-slate-400">
+                  <span className="whitespace-nowrap text-slate-600">
                     {formatDateTime(entry.createdAt)}
                   </span>
                 </li>
@@ -373,12 +421,14 @@ export function AdminOverview() {
   );
 }
 
-function StatCard({
+function MetricCard({
+  icon,
   label,
   value,
   hint,
   tone = "default",
 }: {
+  icon: React.ReactNode;
   label: string;
   value: number | string;
   hint?: string;
@@ -390,11 +440,22 @@ function StatCard({
       : tone === "danger"
         ? "text-red-600"
         : "text-[#0b2a5b]";
+  const iconTone =
+    tone === "success"
+      ? "bg-emerald-50 text-emerald-700"
+      : tone === "danger"
+        ? "bg-red-50 text-red-600"
+        : "bg-blue-50 text-[#1d4ed8]";
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-bold tabular-nums ${toneClass}`}>{value}</p>
-      {hint && <p className="mt-0.5 text-[11px] text-slate-400">{hint}</p>}
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-semibold text-slate-600">{label}</p>
+        <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-lg ${iconTone}`}>
+          {icon}
+        </span>
+      </div>
+      <p className={`mt-2 text-2xl font-bold tabular-nums ${toneClass}`}>{value}</p>
+      {hint && <p className="mt-0.5 text-[11px] text-slate-600">{hint}</p>}
     </div>
   );
 }

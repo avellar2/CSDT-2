@@ -453,7 +453,7 @@ export function AdminCampaigns() {
               {busy === "create" ? "Criando..." : "Criar rascunho"}
             </button>
           </div>
-          <p className="mt-2 text-right text-[11px] text-slate-400">
+          <p className="mt-2 text-right text-[11px] text-slate-600">
             Criar uma campanha não envia nenhum e-mail.
           </p>
         </form>
@@ -786,7 +786,7 @@ export function AdminCampaigns() {
       )}
 
       <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-        <FileText className="mt-0.5 h-4 w-4 flex-none text-slate-400" />
+        <FileText className="mt-0.5 h-4 w-4 flex-none text-slate-600" />
         <p>
           O PDF da pesquisa serve apenas como referência do formulário digital. O convite
           leva à página pública, onde a escola responde sem login. Nenhum anexo é enviado.

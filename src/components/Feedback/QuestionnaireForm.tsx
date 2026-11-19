@@ -533,7 +533,7 @@ function OpenField({
         className="w-full resize-y rounded-lg border border-slate-300 px-3 py-3 text-sm leading-relaxed outline-none focus:border-[#1d4ed8] focus:ring-2 focus:ring-blue-100"
         placeholder="Escreva sua resposta"
       />
-      <p className="mt-1 text-right text-xs text-slate-400">
+      <p className="mt-1 text-right text-xs text-slate-600">
         {value.length}/{question.maxLength}
       </p>
     </div>
@@ -585,7 +585,7 @@ function TextField({
         onChange={(event) => onChange(event.target.value)}
         className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-[#1d4ed8] focus:ring-2 focus:ring-blue-100"
       />
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-slate-600">{hint}</p>}
     </div>
   );
 }

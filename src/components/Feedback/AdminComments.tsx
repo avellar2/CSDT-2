@@ -195,7 +195,7 @@ export function AdminComments() {
             <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
               {row.textValue}
             </p>
-            <p className="mt-2 text-[11px] text-slate-400">
+            <p className="mt-2 text-[11px] text-slate-600">
               Responsável: {row.Response.respondentName}
             </p>
           </article>

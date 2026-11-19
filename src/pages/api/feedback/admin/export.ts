@@ -19,11 +19,16 @@ export default async function handler(
 
   try {
     const campaignId = Number(req.query.campaignId);
+    const channel: "OFFICIAL" | "TEST" | undefined =
+      req.query.channel === "OFFICIAL" || req.query.channel === "TEST"
+        ? req.query.channel
+        : undefined;
     const filters = {
       campaignId: Number.isInteger(campaignId) && campaignId > 0 ? campaignId : undefined,
       district: typeof req.query.district === "string" ? req.query.district : undefined,
       schoolQuery: typeof req.query.q === "string" ? req.query.q : undefined,
       includeTest: req.query.includeTest === "1",
+      channel,
     };
 
     const rows = await loadExportRows(filters);
@@ -39,7 +44,7 @@ export default async function handler(
           campaignId: filters.campaignId ?? null,
           district: filters.district ?? null,
           schoolQuery: filters.schoolQuery ?? null,
-          includeTest: filters.includeTest,
+          channel: filters.channel ?? (filters.includeTest ? "ALL" : "OFFICIAL"),
         },
       },
     });

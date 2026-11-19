@@ -2,13 +2,52 @@ import prisma from "@/utils/prisma";
 import { computeAllDistributions, type FeedbackAnswerRow } from "./stats";
 import type { ExportResponseRow } from "./csv";
 
+export type ResponseChannel = "OFFICIAL" | "TEST";
+
 export interface ResponseFilters {
   campaignId?: number;
   district?: string;
   schoolQuery?: string;
   includeTest?: boolean;
+  /** Filtro explícito de canal; tem precedência sobre includeTest. */
+  channel?: ResponseChannel;
   page?: number;
   pageSize?: number;
+}
+
+/**
+ * Filtro compartilhado entre a listagem e a exportação CSV, garantindo que
+ * ambos respeitem exatamente os mesmos critérios.
+ *
+ * Sem `channel` e sem `includeTest`, o padrão seguro é somente OFFICIAL.
+ */
+export function buildResponseWhere(filters: ResponseFilters) {
+  const channelCondition =
+    filters.channel === "OFFICIAL" || filters.channel === "TEST"
+      ? { channel: filters.channel }
+      : filters.includeTest
+        ? {}
+        : { channel: "OFFICIAL" as const };
+
+  return {
+    ...channelCondition,
+    ...(filters.campaignId ? { campaignId: filters.campaignId } : {}),
+    ...(filters.district || filters.schoolQuery
+      ? {
+          School: {
+            ...(filters.district ? { district: filters.district } : {}),
+            ...(filters.schoolQuery
+              ? {
+                  name: {
+                    contains: filters.schoolQuery,
+                    mode: "insensitive" as const,
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
+  };
 }
 
 export interface InviteFilters {
@@ -199,26 +238,7 @@ export async function listInvites(filters: InviteFilters) {
 
 export async function listResponses(filters: ResponseFilters) {
   const { page, size, skip } = clampPage(filters.page, filters.pageSize);
-
-  const where = {
-    ...(filters.campaignId ? { campaignId: filters.campaignId } : {}),
-    ...(!filters.includeTest ? { channel: "OFFICIAL" as const } : {}),
-    ...(filters.district || filters.schoolQuery
-      ? {
-          School: {
-            ...(filters.district ? { district: filters.district } : {}),
-            ...(filters.schoolQuery
-              ? {
-                  name: {
-                    contains: filters.schoolQuery,
-                    mode: "insensitive" as const,
-                  },
-                }
-              : {}),
-          },
-        }
-      : {}),
-  };
+  const where = buildResponseWhere(filters);
 
   const [total, rows] = await Promise.all([
     prisma.feedbackResponse.count({ where }),
@@ -457,25 +477,7 @@ export async function listComments(filters: CommentFilters) {
 export async function loadExportRows(
   filters: ResponseFilters,
 ): Promise<ExportResponseRow[]> {
-  const where = {
-    ...(filters.campaignId ? { campaignId: filters.campaignId } : {}),
-    ...(!filters.includeTest ? { channel: "OFFICIAL" as const } : {}),
-    ...(filters.district || filters.schoolQuery
-      ? {
-          School: {
-            ...(filters.district ? { district: filters.district } : {}),
-            ...(filters.schoolQuery
-              ? {
-                  name: {
-                    contains: filters.schoolQuery,
-                    mode: "insensitive" as const,
-                  },
-                }
-              : {}),
-          },
-        }
-      : {}),
-  };
+  const where = buildResponseWhere(filters);
 
   const responses = await prisma.feedbackResponse.findMany({
     where,
