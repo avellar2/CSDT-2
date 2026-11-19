@@ -1302,3 +1302,13 @@ model FeedbackAuditLog {
   @@index([campaignId, createdAt])
   @@index([action, createdAt])
 }
+
+/// Última vez que cada operador ADMTOTAL visualizou a lista de respostas.
+/// Controla o indicador de "respostas novas" de forma persistente e por usuário.
+model FeedbackAdminView {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

@@ -141,6 +141,7 @@ describe("Segurança do envio da pesquisa", () => {
       "prisma/migrations/20261118121000_add_feedback_token_cipher/migration.sql",
       "prisma/migrations/20261118122000_feedback_invite_reopen_history/migration.sql",
       "prisma/migrations/20261118130000_add_school_survey_eligibility/migration.sql",
+      "prisma/migrations/20261119100000_add_feedback_admin_view/migration.sql",
     ];
     for (const file of migrations) {
       const sql = readSrc(file);

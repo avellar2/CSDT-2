@@ -3,6 +3,7 @@ import prisma from "@/utils/prisma";
 import { requireFeedbackAdmin } from "@/utils/feedback/adminAuth";
 import {
   computeParticipation,
+  getFeedbackDashboardSnapshot,
   listCampaignSummaries,
 } from "@/utils/feedback/adminQueries";
 import { getRecipientPlan } from "@/utils/feedback/service";
@@ -24,36 +25,38 @@ export default async function handler(
 
   try {
     const plan = await getRecipientPlan();
-    const [participation, campaigns, recentFailures, recentAudit] = await Promise.all([
-      computeParticipation(),
-      listCampaignSummaries(),
-      prisma.feedbackInvite.findMany({
-        where: { status: "FAILED" },
-        orderBy: { updatedAt: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          schoolId: true,
-          recipientEmail: true,
-          lastError: true,
-          updatedAt: true,
-          School: { select: { name: true } },
-          Campaign: { select: { id: true, name: true } },
-        },
-      }),
-      prisma.feedbackAuditLog.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 15,
-        select: {
-          id: true,
-          action: true,
-          actorName: true,
-          actorRole: true,
-          campaignId: true,
-          createdAt: true,
-        },
-      }),
-    ]);
+    const [participation, campaigns, recentFailures, recentAudit, dashboard] =
+      await Promise.all([
+        computeParticipation(),
+        listCampaignSummaries(),
+        prisma.feedbackInvite.findMany({
+          where: { status: "FAILED" },
+          orderBy: { updatedAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            schoolId: true,
+            recipientEmail: true,
+            lastError: true,
+            updatedAt: true,
+            School: { select: { name: true } },
+            Campaign: { select: { id: true, name: true } },
+          },
+        }),
+        prisma.feedbackAuditLog.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 15,
+          select: {
+            id: true,
+            action: true,
+            actorName: true,
+            actorRole: true,
+            campaignId: true,
+            createdAt: true,
+          },
+        }),
+        getFeedbackDashboardSnapshot(actor.userId),
+      ]);
 
     const officialCampaigns = campaigns.filter(
       (campaign) => campaign.channel === "OFFICIAL",
@@ -68,6 +71,7 @@ export default async function handler(
           participation.invitationsTotal - participation.responses,
         ),
       },
+      dashboard,
       campaigns: officialCampaigns.slice(0, 20),
       recentFailures,
       recentAudit,

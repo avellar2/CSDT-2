@@ -523,3 +523,180 @@ export async function listDistricts(): Promise<string[]> {
     .map((row) => row.district)
     .filter((value): value is string => Boolean(value && value.trim()));
 }
+
+export interface CampaignLike {
+  id: number;
+  name: string;
+  status: string;
+  channel: string;
+  createdAt: Date | string;
+}
+
+/**
+ * Campanha exibida no card do Dashboard:
+ * 1) oficial em envio/pausada (a mais recente);
+ * 2) se não houver, a campanha oficial mais recente.
+ * Campanhas TEST são sempre ignoradas.
+ */
+export function selectActiveOfficialCampaign<T extends CampaignLike>(
+  campaigns: T[],
+): T | null {
+  const official = campaigns.filter((campaign) => campaign.channel === "OFFICIAL");
+  if (official.length === 0) return null;
+
+  const inProgress = official.filter((campaign) =>
+    ["SENDING", "PAUSED"].includes(campaign.status),
+  );
+  const pool = inProgress.length > 0 ? inProgress : official;
+
+  return [...pool].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )[0] ?? null;
+}
+
+export interface CampaignIndicators {
+  invitationsTotal: number;
+  invitationsSent: number;
+  invitationsFailed: number;
+  responses: number;
+  pendingResponses: number;
+  participationPercent: number;
+}
+
+/**
+ * Indicadores de uma campanha. `invitationsSent` significa "aceito pelo SMTP"
+ * (estado SENT/ANSWERED), nunca entrega confirmada na caixa de entrada.
+ */
+export function buildCampaignIndicators(input: {
+  invitesByStatus: Record<string, number>;
+  responses: number;
+}): CampaignIndicators {
+  const invitationsTotal = Object.values(input.invitesByStatus).reduce(
+    (acc, value) => acc + value,
+    0,
+  );
+  const invitationsSent =
+    (input.invitesByStatus.SENT ?? 0) + (input.invitesByStatus.ANSWERED ?? 0);
+  const invitationsFailed = input.invitesByStatus.FAILED ?? 0;
+  const responses = input.responses;
+
+  return {
+    invitationsTotal,
+    invitationsSent,
+    invitationsFailed,
+    responses,
+    pendingResponses: Math.max(0, invitationsTotal - responses),
+    participationPercent:
+      invitationsTotal > 0
+        ? Math.round((responses / invitationsTotal) * 1000) / 10
+        : 0,
+  };
+}
+
+export interface FeedbackDashboardSnapshot {
+  activeCampaign:
+    | (CampaignIndicators & {
+        id: number;
+        name: string;
+        status: string;
+        createdAt: string;
+        newResponses: number;
+      })
+    | null;
+  hasOfficialCampaigns: boolean;
+  newResponses: number;
+  lastSeenAt: string | null;
+}
+
+/**
+ * Snapshot enxuto para o card do Dashboard. Exclui campanhas TEST de todas as
+ * contagens e calcula "respostas novas" desde a última visualização do
+ * operador (controle persistente por usuário).
+ */
+export async function getFeedbackDashboardSnapshot(
+  userId: string,
+): Promise<FeedbackDashboardSnapshot> {
+  const [campaigns, adminView] = await Promise.all([
+    prisma.feedbackCampaign.findMany({
+      where: { channel: "OFFICIAL" },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        channel: true,
+        createdAt: true,
+      },
+    }),
+    prisma.feedbackAdminView.findUnique({ where: { userId } }),
+  ]);
+
+  const activeCampaign = selectActiveOfficialCampaign(campaigns);
+  const lastSeenAt = adminView?.lastSeenAt ?? null;
+
+  const newResponsesWhere = {
+    channel: "OFFICIAL" as const,
+    ...(lastSeenAt ? { submittedAt: { gt: lastSeenAt } } : {}),
+  };
+
+  const [newResponses, activeInviteGroups, activeResponses, activeNewResponses] =
+    await Promise.all([
+      prisma.feedbackResponse.count({ where: newResponsesWhere }),
+      activeCampaign
+        ? prisma.feedbackInvite.groupBy({
+            by: ["status"],
+            where: { campaignId: activeCampaign.id },
+            _count: { _all: true },
+          })
+        : Promise.resolve([]),
+      activeCampaign
+        ? prisma.feedbackResponse.count({
+            where: { campaignId: activeCampaign.id, channel: "OFFICIAL" },
+          })
+        : Promise.resolve(0),
+      activeCampaign
+        ? prisma.feedbackResponse.count({
+            where: {
+              campaignId: activeCampaign.id,
+              channel: "OFFICIAL",
+              ...(lastSeenAt ? { submittedAt: { gt: lastSeenAt } } : {}),
+            },
+          })
+        : Promise.resolve(0),
+    ]);
+
+  const indicators = buildCampaignIndicators({
+    invitesByStatus: Object.fromEntries(
+      activeInviteGroups.map((group) => [group.status, group._count._all]),
+    ),
+    responses: activeResponses,
+  });
+
+  return {
+    activeCampaign: activeCampaign
+      ? {
+          id: activeCampaign.id,
+          name: activeCampaign.name,
+          status: activeCampaign.status,
+          createdAt: new Date(activeCampaign.createdAt).toISOString(),
+          ...indicators,
+          newResponses: activeNewResponses,
+        }
+      : null,
+    hasOfficialCampaigns: campaigns.length > 0,
+    newResponses,
+    lastSeenAt: lastSeenAt ? lastSeenAt.toISOString() : null,
+  };
+}
+
+/** Marca a lista de respostas como visualizada agora, para este operador. */
+export async function markFeedbackResponsesViewed(userId: string) {
+  const now = new Date();
+  const view = await prisma.feedbackAdminView.upsert({
+    where: { userId },
+    create: { userId, lastSeenAt: now },
+    update: { lastSeenAt: now },
+    select: { lastSeenAt: true },
+  });
+  return view.lastSeenAt;
+}

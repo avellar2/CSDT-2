@@ -24,7 +24,8 @@ import {
   Phone,
   BookOpen,
   MapPin,
-  PrinterCheck
+  PrinterCheck,
+  MessageSquareText
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import useSWR from "swr";
@@ -37,6 +38,7 @@ import PrinterRequestCard from "./PrinterRequestCard";
 import PreventiveMaintenanceCard from "./PreventiveMaintenanceCard";
 import dynamic from "next/dynamic";
 import { getAuthHeadersNoContentType } from "@/utils/client-auth";
+import { FeedbackSurveyCard } from "./Feedback/FeedbackSurveyCard";
 
 const SchoolsMapModal = dynamic(() => import("./SchoolsMapModal"), { ssr: false });
 
@@ -242,7 +244,7 @@ const Dashboard: React.FC = () => {
     'Escolas e Equipamentos': ['schools', 'items', 'device-list', 'printers', 'controle-impressoras', 'locados', 'schools-map'],
     'Gestão Diária': ['daily-demands', 'scales', 'internal-demands'],
     'Documentos': ['memorandums', 'new-memorandums'],
-    'Administração': ['register-users'],
+    'Administração': ['register-users', 'feedback-survey'],
     'Chamados Técnicos': ['open-technical-ticket', 'view-deleted-tickets', 'internal-chat', 'accepted-tickets'],
     'Ajuda e Suporte': ['manual-usuario'],
     'Outros': ['chada']
@@ -539,6 +541,16 @@ const Dashboard: React.FC = () => {
       roles: ['ADMIN', 'ADMTOTAL', 'TECH'],
       category: 'Administração',
       badge: null
+    },
+    {
+      id: 'feedback-survey',
+      title: 'Pesquisa de Feedback',
+      icon: MessageSquareText,
+      color: 'bg-blue-700 hover:bg-blue-800',
+      path: '/admin/feedback',
+      roles: ['ADMTOTAL'],
+      category: 'Administração',
+      badge: null
     }
   ];
 
@@ -581,7 +593,19 @@ const Dashboard: React.FC = () => {
   const renderCard = (card: typeof allCards[0]) => {
     const IconComponent = card.icon;
     const isFavorite = favorites.includes(card.id);
-    
+
+    // Card da Pesquisa de Feedback: indicadores ao vivo, exclusivo ADMTOTAL.
+    if (card.id === 'feedback-survey') {
+      return (
+        <FeedbackSurveyCard
+          key={card.id}
+          isFavorite={isFavorite}
+          onToggleFavorite={() => toggleFavorite(card.id)}
+          onOpen={() => card.path && handleNavigate(card.path)}
+        />
+      );
+    }
+
     return (
       <div
         key={card.id}

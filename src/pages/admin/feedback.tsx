@@ -15,6 +15,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { getAuthHeaders } from "@/utils/client-auth";
 import { AdminOverview } from "@/components/Feedback/AdminOverview";
 import { AdminCampaigns } from "@/components/Feedback/AdminCampaigns";
 import { AdminRecipients } from "@/components/Feedback/AdminRecipients";
@@ -79,6 +80,16 @@ export default function AdminFeedbackPage() {
       cancelled = true;
     };
   }, [router]);
+
+  // Ao abrir a lista de respostas, marca como visualizadas para este operador.
+  // Controla o badge de "respostas novas" exibido no Dashboard.
+  useEffect(() => {
+    if (status !== "allowed" || tab !== "responses") return;
+    fetch("/api/feedback/admin/mark-viewed", {
+      method: "POST",
+      headers: getAuthHeaders(),
+    }).catch(() => undefined);
+  }, [status, tab]);
 
   if (status === "checking") {
     return (
