@@ -18,6 +18,8 @@ export interface MailAttachment {
 
 export interface MailMessage {
   to: string;
+  /** Cópia opcional. Não altera o comportamento dos módulos que não a usam. */
+  cc?: string;
   subject: string;
   html: string;
   text: string;
@@ -79,6 +81,7 @@ export async function sendMail(message: MailMessage): Promise<MailSendResult> {
     const info = await transporter.sendMail({
       from: formatFrom(message.fromName ?? "CSDT - Suporte Tecnológico"),
       to: message.to,
+      cc: message.cc,
       replyTo: message.replyTo || process.env.EMAIL_REPLY_TO || process.env.EMAIL_USER,
       subject: message.subject,
       text: message.text,

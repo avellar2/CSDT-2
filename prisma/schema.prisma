@@ -1275,6 +1275,9 @@ model FeedbackSendJob {
   messageId     String?
   smtpResponse  String?
   lastError     String?
+  /// Status do CC institucional: ACCEPTED | REJECTED | NOT_CONFIGURED.
+  ccStatus      String?
+  ccError       String?
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 

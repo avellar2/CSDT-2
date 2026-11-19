@@ -8,7 +8,13 @@ import {
 } from "@/utils/feedback/email";
 import { summarizeRecipientPlan } from "@/utils/feedback/recipients";
 import { decryptFeedbackToken } from "@/utils/feedback/tokens";
-import { feedbackSurveyPath } from "@/utils/feedback/config";
+import {
+  FEEDBACK_INSTITUTIONAL_CONTACT,
+  FEEDBACK_OFFICIAL_CC,
+  feedbackAppBaseUrl,
+  feedbackSurveyPath,
+  isOfficialBaseUrlValid,
+} from "@/utils/feedback/config";
 
 export default async function handler(
   req: NextApiRequest,
@@ -34,7 +40,13 @@ export default async function handler(
     if (!campaign) return res.status(404).json({ error: "Campanha não encontrada." });
 
     const plan = await getRecipientPlan();
-    const baseUrl = requestBaseUrl(req);
+
+    // Campanhas oficiais usam exclusivamente a URL canônica de produção
+    // (a mesma que o worker usará). TESTEs usam a URL real da requisição.
+    const isOfficial = campaign.channel === "OFFICIAL";
+    const officialBaseUrl = feedbackAppBaseUrl();
+    const officialUrlCheck = isOfficialBaseUrlValid(officialBaseUrl);
+    const baseUrl = isOfficial ? officialBaseUrl : requestBaseUrl(req);
 
     // Se a campanha já foi preparada, usa um link real (primeiro convite) para
     // que a pré-visualização seja fiel. Caso contrário, usa um token de exemplo.
@@ -97,6 +109,15 @@ export default async function handler(
       preview,
       alreadyPrepared: Boolean(firstInvite),
       previewSchool: firstInvite?.School.name ?? null,
+      delivery: {
+        to: isOfficial ? "e-mail da unidade escolar" : "destinatário de teste autorizado",
+        cc: FEEDBACK_OFFICIAL_CC,
+        replyTo: FEEDBACK_INSTITUTIONAL_CONTACT,
+        linkBaseUrl: baseUrl,
+        officialBaseUrl,
+        officialBaseUrlValid: officialUrlCheck.ok,
+        officialBaseUrlError: officialUrlCheck.reason ?? null,
+      },
     });
   } catch (error) {
     console.error("Erro ao gerar pré-visualização:", error);

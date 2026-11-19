@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/utils/prisma";
 import { requireFeedbackAdmin } from "@/utils/feedback/adminAuth";
 import { getCampaignDetail, listInvites } from "@/utils/feedback/adminQueries";
+import { feedbackQueueWorkerEnabled } from "@/utils/feedback/config";
 import { FeedbackServiceError, logFeedbackAudit } from "@/utils/feedback/service";
 
 export default async function handler(
@@ -33,7 +34,11 @@ export default async function handler(
             })
           : undefined;
 
-      return res.status(200).json({ ...detail, invites });
+      return res.status(200).json({
+        ...detail,
+        invites,
+        workerEnabled: feedbackQueueWorkerEnabled(),
+      });
     } catch (error) {
       console.error("Erro ao carregar campanha:", error);
       return res.status(500).json({ error: "Erro ao carregar campanha." });

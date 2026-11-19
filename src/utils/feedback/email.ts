@@ -1,9 +1,8 @@
 import {
   FEEDBACK_DEFAULT_INTRO,
   FEEDBACK_DEFAULT_SUBJECT,
+  FEEDBACK_INSTITUTIONAL_CONTACT,
   FEEDBACK_TEST_RECIPIENT,
-  feedbackReplyTo,
-  feedbackSenderAddress,
 } from "./config";
 
 export interface FeedbackEmailSchoolLink {
@@ -134,7 +133,8 @@ export function buildFeedbackInviteEmail(input: FeedbackInviteEmailInput): {
   const intro = (input.introText || FEEDBACK_DEFAULT_INTRO).trim();
   const deadline = input.deadlineLabel?.trim() || null;
   const year = new Date().getFullYear();
-  const contact = feedbackReplyTo() || feedbackSenderAddress();
+  // Contato institucional explícito: não depende da conta SMTP (EMAIL_USER).
+  const contact = FEEDBACK_INSTITUTIONAL_CONTACT;
   const logo = renderLogo(input.baseUrl);
 
   const deadlineRow = deadline

@@ -141,22 +141,28 @@ export async function getCampaignDetail(campaignId: number) {
   });
   if (!campaign) return null;
 
-  const [inviteGroups, jobGroups, responseCount, inviteTotal] = await Promise.all([
-    prisma.feedbackInvite.groupBy({
-      by: ["status"],
-      where: { campaignId },
-      _count: { _all: true },
-    }),
-    prisma.feedbackSendJob.groupBy({
-      by: ["status"],
-      where: { campaignId },
-      _count: { _all: true },
-    }),
-    prisma.feedbackResponse.count({
-      where: { campaignId, channel: "OFFICIAL" },
-    }),
-    prisma.feedbackInvite.count({ where: { campaignId } }),
-  ]);
+  const [inviteGroups, jobGroups, responseCount, inviteTotal, ccGroups] =
+    await Promise.all([
+      prisma.feedbackInvite.groupBy({
+        by: ["status"],
+        where: { campaignId },
+        _count: { _all: true },
+      }),
+      prisma.feedbackSendJob.groupBy({
+        by: ["status"],
+        where: { campaignId },
+        _count: { _all: true },
+      }),
+      prisma.feedbackResponse.count({
+        where: { campaignId, channel: "OFFICIAL" },
+      }),
+      prisma.feedbackInvite.count({ where: { campaignId } }),
+      prisma.feedbackSendJob.groupBy({
+        by: ["ccStatus"],
+        where: { campaignId },
+        _count: { _all: true },
+      }),
+    ]);
 
   return {
     campaign: {
@@ -185,6 +191,11 @@ export async function getCampaignDetail(campaignId: number) {
       ),
       jobsByStatus: Object.fromEntries(
         jobGroups.map((group) => [group.status, group._count._all]),
+      ),
+      jobsByCcStatus: Object.fromEntries(
+        ccGroups
+          .filter((group) => group.ccStatus != null)
+          .map((group) => [group.ccStatus as string, group._count._all]),
       ),
       responses: responseCount,
     },

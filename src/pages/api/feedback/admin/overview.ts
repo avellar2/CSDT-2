@@ -8,7 +8,13 @@ import {
 } from "@/utils/feedback/adminQueries";
 import { getRecipientPlan } from "@/utils/feedback/service";
 import { summarizeRecipientPlan } from "@/utils/feedback/recipients";
-import { feedbackQueueWorkerEnabled, feedbackSenderAddress } from "@/utils/feedback/config";
+import {
+  FEEDBACK_INSTITUTIONAL_CONTACT,
+  feedbackAppBaseUrl,
+  feedbackQueueWorkerEnabled,
+  feedbackSenderAddress,
+  isOfficialBaseUrlValid,
+} from "@/utils/feedback/config";
 
 /** Números da visão geral do painel administrativo. */
 export default async function handler(
@@ -98,6 +104,9 @@ export default async function handler(
         smtpConfigured: Boolean(feedbackSenderAddress()),
         workerEnabled: feedbackQueueWorkerEnabled(),
         testRecipient: "vandersonavellar1997@gmail.com",
+        institutionalContact: FEEDBACK_INSTITUTIONAL_CONTACT,
+        officialBaseUrl: feedbackAppBaseUrl(),
+        officialBaseUrlValid: isOfficialBaseUrlValid(feedbackAppBaseUrl()),
       },
     });
   } catch (error) {

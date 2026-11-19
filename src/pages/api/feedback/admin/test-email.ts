@@ -74,20 +74,24 @@ export default async function handler(
 
     return res.status(200).json({
       recipient: FEEDBACK_TEST_RECIPIENT,
+      cc: "csdt@smeduquedecaxias.rj.gov.br",
       campaignId: result.campaignId,
       inviteId: result.inviteId,
       url: result.url,
       accepted: result.accepted,
       rejected: result.rejected,
+      primaryAccepted: result.primaryAccepted,
+      ccStatus: result.ccStatus,
+      ccError: result.ccError,
       messageId: result.messageId,
       smtpResponse: result.response,
       subject: result.subject,
       html: result.html,
       text: result.text,
       note:
-        result.accepted.length > 0
-          ? "O servidor SMTP aceitou a mensagem. Isso não confirma entrega na caixa de entrada."
-          : "O servidor SMTP não aceitou o destinatário.",
+        result.primaryAccepted
+          ? "O servidor SMTP aceitou o destinatário principal. Isso não confirma entrega na caixa de entrada."
+          : "O servidor SMTP não aceitou o destinatário principal do teste.",
     });
   } catch (error) {
     if (error instanceof FeedbackServiceError) {

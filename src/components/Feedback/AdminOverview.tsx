@@ -65,14 +65,21 @@ interface OverviewResponse {
     smtpConfigured: boolean;
     workerEnabled: boolean;
     testRecipient: string;
+    institutionalContact?: string;
+    officialBaseUrl?: string;
+    officialBaseUrlValid?: { ok: boolean; reason?: string };
   };
 }
 
 interface TestEmailResult {
   recipient: string;
+  cc?: string;
   url: string;
   accepted: string[];
   rejected: string[];
+  primaryAccepted?: boolean;
+  ccStatus?: "ACCEPTED" | "REJECTED" | "NOT_CONFIGURED";
+  ccError?: string | null;
   messageId: string;
   smtpResponse: string;
   subject: string;
@@ -278,8 +285,31 @@ export function AdminOverview({
               }
               neutralWhenFalse
             />
+            {data.system.officialBaseUrlValid && (
+              <StatusLine
+                ok={data.system.officialBaseUrlValid.ok}
+                label={
+                  data.system.officialBaseUrlValid.ok
+                    ? `Links oficiais: ${data.system.officialBaseUrl}`
+                    : `Links oficiais bloqueados: ${data.system.officialBaseUrlValid.reason ?? "URL inválida"}`
+                }
+                neutralWhenFalse={false}
+              />
+            )}
           </div>
-          <p className="mt-3 text-xs text-slate-500">
+
+          <dl className="mt-3 space-y-1 border-t border-slate-200 pt-3 text-xs">
+            <Row
+              label="CC institucional"
+              value={data.system.institutionalContact ?? "csdt@smeduquedecaxias.rj.gov.br"}
+            />
+            <Row
+              label="Reply-To"
+              value={data.system.institutionalContact ?? "csdt@smeduquedecaxias.rj.gov.br"}
+            />
+          </dl>
+
+          <p className="mt-3 text-xs text-slate-600">
             O SMTP atual é o configurado em <code>EMAIL_USER</code>/<code>EMAIL_PASS</code>.
             Limites e entregabilidade dependem do provedor. Não há garantia de que a
             mensagem caia na caixa de entrada.
@@ -332,6 +362,17 @@ export function AdminOverview({
             </p>
             <dl className="mt-3 space-y-1.5 text-xs">
               <Row label="Destinatário" value={testResult.recipient} />
+              <Row label="CC institucional" value={testResult.cc ?? "csdt@smeduquedecaxias.rj.gov.br"} />
+              <Row
+                label="Status do CC"
+                value={
+                  testResult.ccStatus === "ACCEPTED"
+                    ? "aceito pelo SMTP"
+                    : testResult.ccStatus === "REJECTED"
+                      ? `rejeitado${testResult.ccError ? ` — ${testResult.ccError}` : ""}`
+                      : "não configurado"
+                }
+              />
               <Row label="Aceitos" value={testResult.accepted.join(", ") || "—"} />
               <Row label="Rejeitados" value={testResult.rejected.join(", ") || "—"} />
               <Row label="Message-ID" value={testResult.messageId || "—"} mono />

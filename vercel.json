@@ -27,10 +27,6 @@
     {
       "path": "/api/chada/check-emails",
       "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/feedback/admin/queue",
-      "schedule": "*/30 * * * *"
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -57,8 +57,10 @@ interface CampaignDetail {
     invitesTotal: number;
     invitesByStatus: Record<string, number>;
     jobsByStatus: Record<string, number>;
+    jobsByCcStatus: Record<string, number>;
     responses: number;
   };
+  workerEnabled?: boolean;
   invites?: {
     total: number;
     rows: Array<{
@@ -114,6 +116,15 @@ interface PreviewResponse {
   preview: EmailPreviewContent;
   alreadyPrepared: boolean;
   previewSchool: string | null;
+  delivery?: {
+    to: string;
+    cc: string;
+    replyTo: string;
+    linkBaseUrl: string;
+    officialBaseUrl: string;
+    officialBaseUrlValid: boolean;
+    officialBaseUrlError: string | null;
+  };
 }
 
 const CONFIRMATION_PHRASE = "ENVIAR PESQUISA ÀS ESCOLAS";
@@ -138,6 +149,8 @@ export function AdminCampaigns() {
 
   const [confirmText, setConfirmText] = useState("");
   const [confirmChecked, setConfirmChecked] = useState(false);
+  const [assisted, setAssisted] = useState(false);
+  const processingRef = useRef(false);
 
   const loadCampaigns = useCallback(async () => {
     setLoading(true);
@@ -175,10 +188,79 @@ export function AdminCampaigns() {
       setPreviewData(null);
       setConfirmText("");
       setConfirmChecked(false);
+      setAssisted(false);
     } else {
       setDetail(null);
     }
   }, [selectedId, loadDetail]);
+
+  // Processamento assistido: substitui o cron (incompatível com o plano Hobby).
+  // Só roda enquanto o operador mantém esta aba aberta e a campanha enviando.
+  useEffect(() => {
+    if (!assisted || detail?.campaign.status !== "SENDING") return;
+
+    let cancelled = false;
+
+    const tick = async () => {
+      if (processingRef.current || document.hidden) return;
+      processingRef.current = true;
+      try {
+        const result = await feedbackApi<{
+          processed: number;
+          sent: number;
+          failedTemporary: number;
+          failedPermanent: number;
+          skipped: number;
+        }>("/api/feedback/admin/queue?limit=5", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        if (cancelled) return;
+        setNotice(
+          `Lote assistido: ${result.processed} processado(s), ${result.sent} enviado(s), ${result.failedTemporary} falha(s) temporária(s), ${result.failedPermanent} definitiva(s).`,
+        );
+        await loadCampaigns();
+        if (detail?.campaign.id) await loadDetail(detail.campaign.id);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Erro no processamento assistido da fila.",
+          );
+          setAssisted(false);
+        }
+      } finally {
+        processingRef.current = false;
+      }
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 60_000);
+
+    const onVisibility = () => {
+      if (document.hidden) setAssisted(false);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [
+    assisted,
+    detail?.campaign.status,
+    detail?.campaign.id,
+    loadCampaigns,
+    loadDetail,
+  ]);
+
+  useEffect(() => {
+    if (assisted && detail && detail.campaign.status !== "SENDING") {
+      setAssisted(false);
+    }
+  }, [assisted, detail?.campaign.status]);
 
   const createCampaign = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -524,9 +606,14 @@ export function AdminCampaigns() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold text-slate-800">{detail.campaign.name}</h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 Questionário {detail.campaign.questionnaireVersion.version} ·{" "}
-                {detail.campaign.questionnaireVersion.questionCount} perguntas
+                {detail.campaign.questionnaireVersion.questionCount} perguntas · Worker{" "}
+                <strong>{detail.workerEnabled ? "habilitado" : "desabilitado"}</strong>
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-600">
+                CC institucional: csdt@smeduquedecaxias.rj.gov.br · Reply-To:
+                csdt@smeduquedecaxias.rj.gov.br
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -555,6 +642,25 @@ export function AdminCampaigns() {
                 <RefreshCw className={`h-3.5 w-3.5 ${busy === "queue" ? "animate-spin" : ""}`} />
                 Processar lote
               </button>
+              {detail.campaign.status === "SENDING" && (
+                <button
+                  type="button"
+                  onClick={() => setAssisted((value) => !value)}
+                  title="Processa até 5 mensagens por minuto enquanto esta aba estiver aberta"
+                  className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium ${
+                    assisted
+                      ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
+                      : "border-slate-300 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {assisted ? (
+                    <Pause className="h-3.5 w-3.5" />
+                  ) : (
+                    <Play className="h-3.5 w-3.5" />
+                  )}
+                  {assisted ? "Parar processamento" : "Processar automaticamente"}
+                </button>
+              )}
               {detail.campaign.status === "SENDING" && (
                 <button
                   type="button"
@@ -620,6 +726,14 @@ export function AdminCampaigns() {
                   ))}
                 </ul>
               )}
+              {Object.keys(detail.counts.jobsByCcStatus ?? {}).length > 0 && (
+                <p className="mt-2 border-t border-slate-200 pt-2 text-[11px] text-slate-600">
+                  CC institucional:{" "}
+                  {Object.entries(detail.counts.jobsByCcStatus)
+                    .map(([status, count]) => `${ccStatusLabel(status)} ${count}`)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
             <div className="rounded-lg bg-slate-50 p-3">
               <p className="mb-1 font-semibold text-slate-700">Convites por situação</p>
@@ -661,7 +775,23 @@ export function AdminCampaigns() {
                       <li>E-mails inválidos: {previewData.summary.invalidEmail}</li>
                       <li>Sem e-mail: {previewData.summary.missingEmail}</li>
                       <li>Endereços compartilhados: {previewData.summary.duplicateEmails}</li>
+                      <li>
+                        CC institucional:{" "}
+                        {previewData.delivery?.cc ?? "csdt@smeduquedecaxias.rj.gov.br"}
+                      </li>
+                      <li>
+                        Domínio dos links:{" "}
+                        {previewData.delivery?.officialBaseUrl ?? "não configurado"}
+                      </li>
                     </ul>
+
+                    {previewData.delivery && !previewData.delivery.officialBaseUrlValid && (
+                      <div className="mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">
+                        <strong>Envio oficial bloqueado:</strong>{" "}
+                        {previewData.delivery.officialBaseUrlError ||
+                          "URL de produção inválida."}
+                      </div>
+                    )}
 
                     <details className="mt-3 rounded-md border border-amber-200 bg-white/60 p-2">
                       <summary className="cursor-pointer text-xs font-semibold text-amber-900">
@@ -720,15 +850,18 @@ export function AdminCampaigns() {
                         busy === "send" ||
                         !confirmChecked ||
                         confirmText !== CONFIRMATION_PHRASE ||
-                        previewData.summary.totalMessages !== totalJobs
+                        previewData.summary.totalMessages !== totalJobs ||
+                        previewData.delivery?.officialBaseUrlValid === false
                       }
                       className="mt-3 inline-flex items-center gap-2 rounded-md bg-[#1d4ed8] px-4 py-2.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Send className="h-3.5 w-3.5" /> ENVIAR PESQUISA ÀS ESCOLAS
                     </button>
                     <p className="mt-2 text-[11px] text-amber-800">
-                      O envio ocorre em lotes pela fila. Se o worker estiver desabilitado,
-                      nada será enviado até habilitar <code>FEEDBACK_QUEUE_WORKER_ENABLED=true</code>.
+                      O envio ocorre em lotes de até 5 mensagens, processados manualmente
+                      ou pelo <strong>processamento assistido</strong> desta aba. Se o
+                      worker estiver desabilitado, nada será enviado até habilitar{" "}
+                      <code>FEEDBACK_QUEUE_WORKER_ENABLED=true</code>.
                     </p>
                   </>
                 )}
@@ -851,6 +984,15 @@ function statusLabel(status: string): string {
     FAILED_TEMPORARY: "Falha temporária",
     FAILED_PERMANENT: "Falha definitiva",
     CANCELLED: "Cancelado",
+  };
+  return labels[status] ?? status;
+}
+
+function ccStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    ACCEPTED: "aceito",
+    REJECTED: "rejeitado",
+    NOT_CONFIGURED: "não configurado",
   };
   return labels[status] ?? status;
 }

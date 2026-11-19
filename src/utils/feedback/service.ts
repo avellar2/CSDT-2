@@ -4,10 +4,13 @@ import prisma from "@/utils/prisma";
 import {
   FEEDBACK_DEFAULT_INTRO,
   FEEDBACK_DEFAULT_SUBJECT,
+  FEEDBACK_INSTITUTIONAL_CONTACT,
   FEEDBACK_MAX_RECIPIENTS,
+  FEEDBACK_OFFICIAL_CC,
   FEEDBACK_QUEUE_BATCH_SIZE,
   FEEDBACK_TEST_RECIPIENT,
   FEEDBACK_TOKEN_TTL_DAYS,
+  assertOfficialBaseUrl,
   feedbackAppBaseUrl,
   feedbackQueueWorkerEnabled,
   feedbackSenderAddress,
@@ -49,6 +52,61 @@ export class FeedbackServiceError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+export type CcStatus = "ACCEPTED" | "REJECTED" | "NOT_CONFIGURED";
+
+/** Normaliza um endereço aceito/rejeitado pelo SMTP (remove display name). */
+export function normalizeMailbox(value: string): string {
+  const match = value.match(/<([^>]+)>/);
+  return (match ? match[1] : value).trim().toLowerCase();
+}
+
+/**
+ * Analisa a aceitação SMTP por destinatário. Com CC institucional, não basta
+ * `accepted.length > 0`: o destinatário principal (escola) precisa constar em
+ * `accepted` para a mensagem ser considerada enviada.
+ */
+export function analyzeMailAcceptance(input: {
+  primary: string;
+  cc?: string;
+  accepted: string[];
+  rejected: string[];
+}): {
+  primaryAccepted: boolean;
+  ccAccepted: boolean;
+  ccRejected: boolean;
+  ccStatus: CcStatus;
+  ccError: string | null;
+} {
+  const accepted = new Set(input.accepted.map(normalizeMailbox));
+  const rejected = new Set(input.rejected.map(normalizeMailbox));
+  const primaryAccepted = accepted.has(normalizeMailbox(input.primary));
+
+  if (!input.cc) {
+    return {
+      primaryAccepted,
+      ccAccepted: false,
+      ccRejected: false,
+      ccStatus: "NOT_CONFIGURED",
+      ccError: null,
+    };
+  }
+
+  const ccAccepted = accepted.has(normalizeMailbox(input.cc));
+  const ccRejected = rejected.has(normalizeMailbox(input.cc));
+
+  return {
+    primaryAccepted,
+    ccAccepted,
+    ccRejected,
+    ccStatus: ccAccepted ? "ACCEPTED" : "REJECTED",
+    ccError: ccAccepted
+      ? null
+      : ccRejected
+        ? "Servidor SMTP rejeitou a cópia institucional (CC)."
+        : "Servidor SMTP não confirmou a cópia institucional (CC).",
+  };
 }
 
 export async function logFeedbackAudit(input: {
@@ -128,6 +186,22 @@ export async function createCampaign(input: {
   });
 
   return campaign;
+}
+
+/**
+ * Bloqueia campanhas oficiais quando a URL pública não é a canônica HTTPS de
+ * produção. Previews e localhost continuam permitidos apenas para testes.
+ */
+function assertOfficialUrlForCampaign(baseUrl = feedbackAppBaseUrl()) {
+  try {
+    return assertOfficialBaseUrl(baseUrl);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "URL oficial inválida.";
+    throw new FeedbackServiceError(
+      `Campanha oficial bloqueada: ${message}`,
+      409,
+    );
+  }
 }
 
 async function loadSchoolRows(): Promise<SchoolRecipientRow[]> {
@@ -415,6 +489,9 @@ export async function prepareCampaign(campaignId: number, actor: AuditActor) {
     throw new FeedbackServiceError("Campanha encerrada.");
   }
 
+  // Links de campanha oficial exigem a URL canônica HTTPS de produção.
+  assertOfficialUrlForCampaign();
+
   const existing = await prisma.feedbackInvite.count({
     where: { campaignId },
   });
@@ -530,6 +607,9 @@ export async function authorizeCampaignSend(
         : "Esta campanha não está disponível para envio.",
     );
   }
+
+  // Revalida a URL canônica imediatamente antes de liberar o disparo.
+  assertOfficialUrlForCampaign();
 
   // Revalida TODOS os convites antes de liberar o disparo: nenhum setor
   // administrativo pode receber e-mail de campanha oficial, mesmo que o
@@ -754,9 +834,9 @@ export async function processFeedbackQueue(options?: {
 
   const limit = Math.min(
     Math.max(options?.limit ?? FEEDBACK_QUEUE_BATCH_SIZE, 1),
-    25,
+    10,
   );
-  const baseUrl = options?.baseUrl ?? feedbackAppBaseUrl();
+  let baseUrl = options?.baseUrl ?? feedbackAppBaseUrl();
   const now = new Date();
 
   const dueJobs = await prisma.feedbackSendJob.findMany({
@@ -765,6 +845,11 @@ export async function processFeedbackQueue(options?: {
     take: limit,
     include: { Campaign: true },
   });
+
+  // Nenhum link oficial pode sair com localhost, HTTP ou preview temporário.
+  if (dueJobs.some((job) => job.Campaign.channel === "OFFICIAL")) {
+    baseUrl = assertOfficialUrlForCampaign(baseUrl);
+  }
 
   const result: QueueProcessResult = {
     processed: 0,
@@ -893,60 +978,120 @@ export async function processFeedbackQueue(options?: {
         introText: job.Campaign.introText ?? undefined,
       });
 
+      // Cópia institucional. Se uma tentativa anterior já foi aceita pelo
+      // CSDT, o reenvio não repete o CC (evita duplicidade).
+      const includeCc = job.ccStatus !== "ACCEPTED";
+      const cc = includeCc ? FEEDBACK_OFFICIAL_CC : undefined;
+
       const sendResult = await sendMail({
         to: invite.recipientEmail,
+        cc,
+        replyTo: FEEDBACK_INSTITUTIONAL_CONTACT,
         subject: email.subject,
         html: email.html,
         text: email.text,
       });
 
-      const accepted = sendResult.accepted.length > 0;
-
-      await prisma.$transaction([
-        prisma.feedbackSendJob.update({
-          where: { id: job.id },
-          data: {
-            status: accepted ? "SENT" : "FAILED_PERMANENT",
-            sentAt: accepted ? new Date() : null,
-            messageId: sendResult.messageId || null,
-            smtpResponse: sendResult.response || null,
-            lastError: accepted
-              ? null
-              : "Servidor SMTP não aceitou o destinatário.",
-          },
-        }),
-        prisma.feedbackInvite.updateMany({
-          where: { id: { in: groupInvites.map((entry) => entry.id) } },
-          data: {
-            status: accepted ? "SENT" : "FAILED",
-            sentAt: accepted ? new Date() : undefined,
-            sendCount: accepted ? { increment: 1 } : undefined,
-            attempts: { increment: 1 },
-            lastError: accepted ? null : "Servidor SMTP não aceitou o destinatário.",
-            // Depois de enviado o token bruto não precisa mais existir.
-            tokenCipher: accepted ? null : undefined,
-          },
-        }),
-      ]);
-
-      if (accepted) {
-        result.sent += 1;
-      } else {
-        result.failedPermanent += 1;
-      }
-
-      await logFeedbackAudit({
-        campaignId: invite.campaignId,
-        inviteId: invite.id,
-        actor: { userId: "system:queue", name: "Worker de envio", role: "SYSTEM" },
-        action: accepted ? "EMAIL_SENT" : "EMAIL_REJECTED",
-        metadata: {
-          to: invite.recipientEmail,
-          messageId: sendResult.messageId,
-          accepted: sendResult.accepted,
-          rejected: sendResult.rejected,
-        },
+      const acceptance = analyzeMailAcceptance({
+        primary: invite.recipientEmail,
+        cc,
+        accepted: sendResult.accepted,
+        rejected: sendResult.rejected,
       });
+
+      if (acceptance.primaryAccepted) {
+        await prisma.$transaction([
+          prisma.feedbackSendJob.update({
+            where: { id: job.id },
+            data: {
+              status: "SENT",
+              sentAt: new Date(),
+              messageId: sendResult.messageId || null,
+              smtpResponse: sendResult.response || null,
+              lastError: null,
+              ccStatus: acceptance.ccStatus,
+              ccError: acceptance.ccError,
+            },
+          }),
+          prisma.feedbackInvite.updateMany({
+            where: { id: { in: groupInvites.map((entry) => entry.id) } },
+            data: {
+              status: "SENT",
+              sentAt: new Date(),
+              sendCount: { increment: 1 },
+              attempts: { increment: 1 },
+              lastError: null,
+              // Depois de enviado o token bruto não precisa mais existir.
+              tokenCipher: null,
+            },
+          }),
+        ]);
+
+        result.sent += 1;
+
+        await logFeedbackAudit({
+          campaignId: invite.campaignId,
+          inviteId: invite.id,
+          actor: { userId: "system:queue", name: "Worker de envio", role: "SYSTEM" },
+          action: acceptance.ccRejected ? "EMAIL_SENT_CC_REJECTED" : "EMAIL_SENT",
+          metadata: {
+            to: invite.recipientEmail,
+            cc: cc ?? null,
+            ccStatus: acceptance.ccStatus,
+            ccError: acceptance.ccError,
+            messageId: sendResult.messageId,
+            accepted: sendResult.accepted,
+            rejected: sendResult.rejected,
+          },
+        });
+      } else {
+        // A escola não foi aceita. Se o CSDT foi aceito, o próximo retry vai
+        // sem CC para não duplicar a cópia institucional.
+        const retryable = attempts < job.maxAttempts;
+        const primaryError = "Servidor SMTP não aceitou o destinatário principal (escola).";
+
+        await prisma.$transaction([
+          prisma.feedbackSendJob.update({
+            where: { id: job.id },
+            data: {
+              status: retryable ? "PENDING" : "FAILED_TEMPORARY",
+              lastError: primaryError,
+              nextAttemptAt: retryable
+                ? new Date(Date.now() + computeBackoffDelayMs(attempts))
+                : new Date(),
+              ccStatus: acceptance.ccStatus,
+              ccError: acceptance.ccError,
+            },
+          }),
+          prisma.feedbackInvite.updateMany({
+            where: { id: { in: groupInvites.map((entry) => entry.id) } },
+            data: {
+              status: retryable ? "QUEUED" : "FAILED",
+              lastError: primaryError,
+              attempts: { increment: 1 },
+            },
+          }),
+        ]);
+
+        result.failedTemporary += 1;
+
+        await logFeedbackAudit({
+          campaignId: invite.campaignId,
+          inviteId: invite.id,
+          actor: { userId: "system:queue", name: "Worker de envio", role: "SYSTEM" },
+          action: "EMAIL_PRIMARY_REJECTED",
+          metadata: {
+            to: invite.recipientEmail,
+            cc: cc ?? null,
+            ccStatus: acceptance.ccStatus,
+            ccError: acceptance.ccError,
+            retryable,
+            retryWithoutCc: acceptance.ccAccepted,
+            accepted: sendResult.accepted,
+            rejected: sendResult.rejected,
+          },
+        });
+      }
     } catch (error) {
       const classified = classifySmtpError(error);
       const retryable = classified.kind === "TEMPORARY" && attempts < job.maxAttempts;
@@ -1048,6 +1193,9 @@ export async function sendTestEmail(input: {
   rejected: string[];
   messageId: string;
   response: string;
+  ccStatus: CcStatus;
+  ccError: string | null;
+  primaryAccepted: boolean;
   subject: string;
   html: string;
   text: string;
@@ -1133,12 +1281,21 @@ export async function sendTestEmail(input: {
   try {
     const result = await sendMail({
       to: FEEDBACK_TEST_RECIPIENT,
+      cc: FEEDBACK_OFFICIAL_CC,
+      replyTo: FEEDBACK_INSTITUTIONAL_CONTACT,
       subject: email.subject,
       html: email.html,
       text: email.text,
     });
 
-    const accepted = result.accepted.length > 0;
+    const acceptance = analyzeMailAcceptance({
+      primary: FEEDBACK_TEST_RECIPIENT,
+      cc: FEEDBACK_OFFICIAL_CC,
+      accepted: result.accepted,
+      rejected: result.rejected,
+    });
+    const accepted = acceptance.primaryAccepted;
+
     await prisma.$transaction([
       prisma.feedbackSendJob.update({
         where: { id: job.id },
@@ -1147,7 +1304,11 @@ export async function sendTestEmail(input: {
           sentAt: accepted ? new Date() : null,
           messageId: result.messageId || null,
           smtpResponse: result.response || null,
-          lastError: accepted ? null : "SMTP não aceitou o destinatário de teste.",
+          lastError: accepted
+            ? null
+            : "SMTP não aceitou o destinatário principal do teste.",
+          ccStatus: acceptance.ccStatus,
+          ccError: acceptance.ccError,
         },
       }),
       prisma.feedbackInvite.update({
@@ -1156,7 +1317,9 @@ export async function sendTestEmail(input: {
           status: accepted ? "SENT" : "FAILED",
           sentAt: accepted ? new Date() : null,
           sendCount: accepted ? 1 : 0,
-          lastError: accepted ? null : "SMTP não aceitou o destinatário de teste.",
+          lastError: accepted
+            ? null
+            : "SMTP não aceitou o destinatário principal do teste.",
         },
       }),
       prisma.feedbackCampaign.update({
@@ -1174,9 +1337,16 @@ export async function sendTestEmail(input: {
       campaignId: testCampaign.id,
       inviteId: invite.id,
       actor: input.actor,
-      action: accepted ? "TEST_EMAIL_SENT" : "TEST_EMAIL_REJECTED",
+      action: accepted
+        ? acceptance.ccRejected
+          ? "TEST_EMAIL_SENT_CC_REJECTED"
+          : "TEST_EMAIL_SENT"
+        : "TEST_EMAIL_REJECTED",
       metadata: {
         to: FEEDBACK_TEST_RECIPIENT,
+        cc: FEEDBACK_OFFICIAL_CC,
+        ccStatus: acceptance.ccStatus,
+        ccError: acceptance.ccError,
         accepted: result.accepted,
         rejected: result.rejected,
         messageId: result.messageId,
@@ -1191,6 +1361,9 @@ export async function sendTestEmail(input: {
       rejected: result.rejected,
       messageId: result.messageId,
       response: result.response,
+      ccStatus: acceptance.ccStatus,
+      ccError: acceptance.ccError,
+      primaryAccepted: acceptance.primaryAccepted,
       subject: email.subject,
       html: email.html,
       text: email.text,
