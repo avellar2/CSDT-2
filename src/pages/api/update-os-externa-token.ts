@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth } from "@/utils/api-auth";
+import { authorizeOsExterna } from "@/utils/osExternaAuthorization";
 
 const prisma = new PrismaClient();
 
@@ -16,6 +17,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { numeroOs, assinado } = req.body;
 
+    if (typeof numeroOs !== "string" || !numeroOs.trim()) {
+      return res.status(400).json({ error: "numeroOs é obrigatório." });
+    }
+
+    if (typeof assinado !== "string" || assinado.trim().length < 8) {
+      return res.status(400).json({ error: "Token de confirmação inválido." });
+    }
+
     // Buscar a OS pelo número
     const osExistente = await prisma.oSExterna.findFirst({
       where: {
@@ -27,6 +36,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'OS não encontrada' });
     }
 
+    const permission = await authorizeOsExterna(auth, osExistente);
+    if (!permission.allowed) {
+      return res.status(403).json({ error: permission.reason });
+    }
+
     // Nunca sobrescreve o token de uma OS já assinada pela escola. Isso
     // protege a assinatura caso o técnico tente retomar uma finalização
     // antiga depois da confirmação.
@@ -36,8 +50,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Token já gravado é reutilizado. Sobrescrever invalidaria um link que a
+    // escola porventura já tenha recebido.
+    if (typeof osExistente.assinado === "string" && osExistente.assinado.length > 10) {
+      return res.status(200).json({
+        success: true,
+        message: "Token de confirmação já existente",
+        token: osExistente.assinado,
+        existing: true,
+      });
+    }
+
     // Atualizar o token de confirmação
-    const updatedOs = await prisma.oSExterna.update({
+    await prisma.oSExterna.update({
       where: {
         id: osExistente.id
       },
@@ -48,7 +73,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json({
       success: true,
-      message: 'Token atualizado com sucesso'
+      message: 'Token atualizado com sucesso',
+      token: assinado,
+      existing: false,
     });
   } catch (error) {
     console.error('Erro ao atualizar token:', error);

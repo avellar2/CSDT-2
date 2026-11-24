@@ -1,8 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth } from "@/utils/api-auth";
+import { authorizeOsExterna } from "@/utils/osExternaAuthorization";
 
 const prisma = new PrismaClient();
+
+function normalizePhotoUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim() !== ""
+  );
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Autenticação antes do processamento (antes estava após o return do 405).
@@ -16,7 +24,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { numeroOs, fotosAntes, fotosDepois } = req.body;
 
-
+    if (typeof numeroOs !== "string" || !numeroOs.trim()) {
+      return res.status(400).json({ error: "numeroOs é obrigatório." });
+    }
 
     // Buscar a OS pelo número
     const osExistente = await prisma.oSExterna.findFirst({
@@ -29,14 +39,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'OS não encontrada' });
     }
 
-    // Atualizar as URLs das fotos
+    // Não basta estar autenticado: precisa poder operar esta OS.
+    const permission = await authorizeOsExterna(auth, osExistente);
+    if (!permission.allowed) {
+      return res.status(403).json({ error: permission.reason });
+    }
+
+    if (osExistente.status !== "Pendente") {
+      return res.status(409).json({
+        error: "Esta OS não está mais pendente e não pode ter as fotos alteradas.",
+      });
+    }
+
+    // Retomada nunca apaga fotos existentes com um array vazio.
+    const nextFotosAntes = normalizePhotoUrls(fotosAntes);
+    const nextFotosDepois = normalizePhotoUrls(fotosDepois);
+
     const updatedOs = await prisma.oSExterna.update({
       where: {
         id: osExistente.id
       },
       data: {
-        fotosAntes: fotosAntes || [],
-        fotosDepois: fotosDepois || [],
+        fotosAntes: nextFotosAntes.length
+          ? nextFotosAntes
+          : osExistente.fotosAntes || [],
+        fotosDepois: nextFotosDepois.length
+          ? nextFotosDepois
+          : osExistente.fotosDepois || [],
       },
     });
 

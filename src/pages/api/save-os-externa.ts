@@ -3,6 +3,13 @@ import { PrismaClient } from "@prisma/client";
 import { assessDailyDemandOsAvailability, formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
 import { getSchoolPendingDailyDemandAvailability } from "@/utils/schoolPendingDailyDemandAvailability";
 import { requireAuth } from "@/utils/api-auth";
+import { authorizeOsExterna } from "@/utils/osExternaAuthorization";
+import {
+  claimOsExternaSubmission,
+  normalizeClientRequestId,
+  osExternaClaimKey,
+  releaseOsExternaSubmission,
+} from "@/utils/osExternaIdempotency";
 import {
   getTechnicianRouteIdsByDate,
   isRouteManager,
@@ -34,6 +41,104 @@ function preservePartnerSuffix(currentValue: string | null | undefined, primaryT
   return `${primaryTechnician} / ${parts.slice(1).join(" / ")}`;
 }
 
+interface ExistingOsForRetry {
+  id: number;
+  numeroOs: string | null;
+  unidadeEscolar: string | null;
+  tecnicoResponsavel: string | null;
+  data: string;
+  status: string;
+  routeId: number | null;
+  createdAt: Date;
+  solicitacaoDaVisita: string | null;
+  relatorio: string | null;
+  solucionado: string | null;
+}
+
+/**
+ * Devolve uma OS já criada para uma retentativa autenticada. Antes disso,
+ * confere que o payload é o mesmo e que o usuário continua autorizado
+ * (dono/criador, rota, responsável/parceiro ou gestor). Não revalida a
+ * disponibilidade da demanda, que muda justamente após a primeira gravação.
+ */
+async function respondWithExistingOs(params: {
+  res: NextApiResponse;
+  auth: Awaited<ReturnType<typeof requireAuth>>;
+  existing: ExistingOsForRetry;
+  unidadeEscolar: string | null | undefined;
+  osDateKey: string;
+  payload: {
+    solicitacaoDaVisita: string | null;
+    relatorio: string | null;
+    solucionado: string | null;
+  };
+  context: any;
+  dailyDemandId: number | null;
+}): Promise<void> {
+  const { res, auth, existing, unidadeEscolar, osDateKey } = params;
+
+  if (
+    existing.unidadeEscolar !== (unidadeEscolar ?? null) ||
+    existing.data !== osDateKey ||
+    existing.solicitacaoDaVisita !== params.payload.solicitacaoDaVisita ||
+    existing.relatorio !== params.payload.relatorio ||
+    existing.solucionado !== params.payload.solucionado
+  ) {
+    res.status(409).json({
+      error:
+        "A tentativa anterior pertence a outro lançamento. Recarregue o formulário antes de continuar.",
+    });
+    return;
+  }
+
+  if (!auth) {
+    res.status(401).json({ error: "Token de autorização obrigatório" });
+    return;
+  }
+
+  if (params.context?.origin === "daily-demands" && params.dailyDemandId) {
+    const link = await validateDemandOsLink({
+      profile: auth.profile,
+      demandId: params.dailyDemandId,
+      demandDate: params.context.dailyDemandDate,
+      osDateKey,
+    });
+
+    if (!link.ok) {
+      res.status(link.status).json({ error: link.error });
+      return;
+    }
+
+    if ((existing.routeId ?? null) !== (link.demand.routeId ?? null)) {
+      res.status(403).json({
+        error: "A OS existente não corresponde à rota desta demanda.",
+      });
+      return;
+    }
+  } else {
+    const permission = await authorizeOsExterna(auth, existing);
+    if (!permission.allowed) {
+      res.status(403).json({ error: permission.reason });
+      return;
+    }
+  }
+
+  if (!existing.numeroOs) {
+    res.status(409).json({
+      error:
+        "A OS anterior foi criada, mas não recebeu número. Acione o suporte antes de tentar novamente.",
+    });
+    return;
+  }
+
+  res.status(200).json({
+    id: existing.id,
+    numeroOs: existing.numeroOs,
+    status: existing.status,
+    deduplicated: true,
+  });
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const auth = await requireAuth(req, res);
   if (!auth) return;
@@ -43,8 +148,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Metodo nao permitido" });
   }
 
+  let claimedRequestId: string | null = null;
+  let osPersisted = false;
+
   try {
     const { formData, context } = req.body;
+    const clientRequestId = normalizeClientRequestId(context?.clientRequestId);
 
     let {
       unidadeEscolar,
@@ -108,39 +217,78 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? data
         : formatBrazilDateKey(new Date());
 
-    // Idempotência: duplo clique, timeout ou reenvio após renovação de sessão
-    // não podem gerar dois números de OS para o mesmo lançamento. Precisa vir
-    // antes das validações de demanda/escola, que podem mudar de estado logo
-    // após a primeira gravação. A janela curta cobre só retentativas.
-    if (unidadeEscolar) {
-      const duplicateWindowStart = new Date(Date.now() - 5 * 60 * 1000);
-      const existingOs = await prisma.oSExterna.findFirst({
-        where: {
-          unidadeEscolar,
-          data: osDateKey,
-          solicitacaoDaVisita: solicitacaoDaVisita ?? null,
-          relatorio: relatorio ?? null,
-          solucionado: solucionado ?? null,
-          createdAt: { gte: duplicateWindowStart },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (existingOs?.numeroOs) {
-        return res.status(200).json({
-          id: existingOs.id,
-          numeroOs: existingOs.numeroOs,
-          deduplicated: true,
-        });
-      }
-    }
-
     const dailyDemandId =
       context?.origin === "daily-demands" &&
       context?.dailyDemandId &&
       Number.isInteger(Number(context.dailyDemandId))
         ? Number(context.dailyDemandId)
         : null;
+
+    // Idempotência primária: claim único por usuário autenticado + tentativa.
+    // Resolve a retomada ANTES das validações que mudam de estado após a
+    // primeira gravação, mas sempre vinculado à identidade do token.
+    if (clientRequestId) {
+      let claim = await claimOsExternaSubmission(auth.id, clientRequestId);
+
+      for (let attempt = 0; attempt < 2 && claim.kind === "existing"; attempt++) {
+        const existing = await prisma.oSExterna.findUnique({
+          where: { id: claim.osId },
+          select: {
+            id: true,
+            numeroOs: true,
+            unidadeEscolar: true,
+            tecnicoResponsavel: true,
+            data: true,
+            status: true,
+            routeId: true,
+            createdAt: true,
+            solicitacaoDaVisita: true,
+            relatorio: true,
+            solucionado: true,
+          },
+        });
+
+        if (existing) {
+          await respondWithExistingOs({
+            res,
+            auth,
+            existing,
+            unidadeEscolar,
+            osDateKey,
+            payload: {
+              solicitacaoDaVisita: solicitacaoDaVisita ?? null,
+              relatorio: relatorio ?? null,
+              solucionado: solucionado ?? null,
+            },
+            context,
+            dailyDemandId,
+          });
+          return;
+        }
+
+        // Claim órfão apontando para OS removida: libera e reserva de novo.
+        await releaseOsExternaSubmission(auth.id, clientRequestId);
+        claim = await claimOsExternaSubmission(auth.id, clientRequestId);
+      }
+
+      if (claim.kind === "in_progress") {
+        return res.status(409).json({
+          error:
+            "Este lançamento já está sendo processado. Aguarde alguns segundos e tente novamente.",
+        });
+      }
+
+      if (claim.kind === "existing") {
+        return res.status(409).json({
+          error:
+            "Não foi possível recuperar a OS desta tentativa. Tente novamente.",
+        });
+      }
+
+      if (claim.kind === "claimed") {
+        claimedRequestId = clientRequestId;
+      }
+    }
 
     let routeId: number | null = null;
     let demandRouteId: number | null = null;
@@ -242,8 +390,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? fotosDepois.map((file) => (typeof file === "string" ? file : file.url || ""))
       : [];
 
-    const osExterna = await prisma.oSExterna.create({
-      data: {
+    // Fallback para clientes antigos (sem clientRequestId) ou enquanto a
+    // migração de idempotência não estiver aplicada. Roda DEPOIS das
+    // validações e é escopado pela identidade autenticada do técnico.
+    if (!claimedRequestId && unidadeEscolar) {
+      const duplicateWindowStart = new Date(Date.now() - 5 * 60 * 1000);
+      const identityFilter =
+        auth.profile.role === "TECH"
+          ? {
+              OR: [
+                { tecnicoResponsavel: auth.profile.displayName },
+                {
+                  tecnicoResponsavel: {
+                    startsWith: `${auth.profile.displayName} / `,
+                  },
+                },
+              ],
+            }
+          : {};
+
+      const existingOs = await prisma.oSExterna.findFirst({
+        where: {
+          unidadeEscolar,
+          data: osDateKey,
+          solicitacaoDaVisita: solicitacaoDaVisita ?? null,
+          relatorio: relatorio ?? null,
+          solucionado: solucionado ?? null,
+          createdAt: { gte: duplicateWindowStart },
+          ...identityFilter,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (existingOs) {
+        await respondWithExistingOs({
+          res,
+          auth,
+          existing: existingOs,
+          unidadeEscolar,
+          osDateKey,
+          payload: {
+            solicitacaoDaVisita: solicitacaoDaVisita ?? null,
+            relatorio: relatorio ?? null,
+            solucionado: solucionado ?? null,
+          },
+          context,
+          dailyDemandId,
+        });
+        return;
+      }
+    }
+
+    const osData = {
         unidadeEscolar,
         tecnicoResponsavel,
         routeId,
@@ -294,8 +492,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         tabletsProprioOutrosLocais: parseInt(tabletsProprioOutrosLocais, 10),
         tabletsLocadoOutrosLocais: parseInt(tabletsLocadoOutrosLocais, 10),
         updatedAt: new Date(),
-      },
+    };
+
+    // Criação + vínculo do claim na mesma transação: se o vínculo falhar, a
+    // OS não é criada e a tentativa pode ser refeita sem duplicar número.
+    const osExterna = await prisma.$transaction(async (tx) => {
+      const created = await tx.oSExterna.create({ data: osData });
+
+      if (claimedRequestId) {
+        await tx.osExternaSubmission.update({
+          where: { requestId: osExternaClaimKey(auth.id, claimedRequestId) },
+          data: { osId: created.id },
+        });
+      }
+
+      return created;
     });
+
+    // A OS existe a partir daqui: mesmo que a numeração falhe, não libera o
+    // claim (evita recriar outra OS em uma retentativa).
+    osPersisted = true;
 
     const currentYear = new Date().getFullYear();
     const numeroOs = `${osExterna.id}/${currentYear}`;
@@ -322,6 +538,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Erro ao salvar dados:", error);
     return res.status(500).json({ error: "Erro ao salvar os dados" });
   } finally {
+    if (claimedRequestId && !osPersisted) {
+      try {
+        await releaseOsExternaSubmission(auth.id, claimedRequestId);
+      } catch (releaseError) {
+        console.error("Falha ao liberar claim de idempotência:", releaseError);
+      }
+    }
     await prisma.$disconnect();
   }
 }

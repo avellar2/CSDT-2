@@ -113,8 +113,11 @@ const STAGE_LABELS: Record<FinalizationStage, string> = {
   chamado: "criar o chamado de reagendamento",
 };
 
-const PENDING_FINALIZATION_KEY = "csdt:os-externa:finalizacao-pendente";
+const PENDING_FINALIZATION_PREFIX = "csdt:os-externa:finalizacao-pendente:";
+const ATTEMPT_PREFIX = "csdt:os-externa:tentativa:";
 const PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const ATTEMPT_MAX_AGE_MS = 10 * 60 * 1000;
+const MAX_PENDING_RECORDS = 5;
 
 interface PendingFinalization {
   numeroOs: string;
@@ -124,6 +127,12 @@ interface PendingFinalization {
   date: string;
   confirmToken?: string;
   form?: Record<string, unknown>;
+}
+
+interface LaunchAttempt {
+  requestId: string;
+  fingerprint: string;
+  at: number;
 }
 
 class FinalizationStageError extends Error {
@@ -156,35 +165,151 @@ function serializeFormDraft(data: FormDataType): Record<string, unknown> {
   return draft;
 }
 
-function readPendingFinalization(): PendingFinalization | null {
-  if (typeof window === "undefined") return null;
+function pendingStorageKey(userId: string): string {
+  return `${PENDING_FINALIZATION_PREFIX}${userId}`;
+}
+
+/**
+ * Rascunhos são por usuário autenticado; um técnico nunca enxerga/retoma a
+ * finalização pendente de outro. Vários registros são preservados (não
+ * apagamos um rascunho válido só porque outro lançamento começou).
+ */
+function readPendingFinalizations(userId: string): PendingFinalization[] {
+  if (typeof window === "undefined" || !userId) return [];
   try {
-    const raw = localStorage.getItem(PENDING_FINALIZATION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as PendingFinalization;
-    if (!parsed?.numeroOs || Date.now() - Number(parsed.at || 0) > PENDING_MAX_AGE_MS) {
-      localStorage.removeItem(PENDING_FINALIZATION_KEY);
-      return null;
+    const raw = localStorage.getItem(pendingStorageKey(userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    const list = Array.isArray(parsed)
+      ? (parsed as PendingFinalization[])
+      : [parsed as PendingFinalization];
+
+    const valid = list.filter(
+      (item) =>
+        !!item?.numeroOs &&
+        Date.now() - Number(item.at || 0) <= PENDING_MAX_AGE_MS
+    );
+
+    if (valid.length !== list.length) {
+      localStorage.setItem(pendingStorageKey(userId), JSON.stringify(valid));
     }
-    return parsed;
+
+    return valid.sort((a, b) => Number(b.at || 0) - Number(a.at || 0));
   } catch {
-    return null;
+    return [];
   }
 }
 
-function writePendingFinalization(pending: PendingFinalization): void {
-  if (typeof window === "undefined") return;
+function writePendingFinalization(
+  userId: string,
+  pending: PendingFinalization
+): void {
+  if (typeof window === "undefined" || !userId) return;
   try {
-    localStorage.setItem(PENDING_FINALIZATION_KEY, JSON.stringify(pending));
+    const current = readPendingFinalizations(userId).filter(
+      (item) => item.numeroOs !== pending.numeroOs
+    );
+    const next = [pending, ...current].slice(0, MAX_PENDING_RECORDS);
+    localStorage.setItem(pendingStorageKey(userId), JSON.stringify(next));
   } catch {
     // Sem localStorage não é possível retomar; o erro na tela continua claro.
   }
 }
 
-function clearPendingFinalization(): void {
-  if (typeof window === "undefined") return;
+function clearPendingFinalization(userId: string, numeroOs: string): void {
+  if (typeof window === "undefined" || !userId) return;
   try {
-    localStorage.removeItem(PENDING_FINALIZATION_KEY);
+    const next = readPendingFinalizations(userId).filter(
+      (item) => item.numeroOs !== numeroOs
+    );
+    if (next.length) {
+      localStorage.setItem(pendingStorageKey(userId), JSON.stringify(next));
+    } else {
+      localStorage.removeItem(pendingStorageKey(userId));
+    }
+  } catch {
+    // ignora
+  }
+}
+
+function generateRequestId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // fallback abaixo
+  }
+  return `req-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
+}
+
+function uniqueStrings(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  return Array.from(
+    new Set(
+      values.filter(
+        (value): value is string =>
+          typeof value === "string" && value.trim() !== ""
+      )
+    )
+  );
+}
+
+function payloadFingerprint(data: FormDataType, dateKey: string): string {
+  return JSON.stringify({
+    school: data.unidadeEscolar || "",
+    date: dateKey,
+    solicitacao: data.solicitacaoDaVisita || "",
+    relatorio: data.relatorio || "",
+    solucionado: data.solucionado || "",
+  });
+}
+
+/**
+ * Reaproveita o identificador da tentativa enquanto o mesmo usuário reenvia
+ * exatamente o mesmo conteúdo (timeout/recarga). Conteúdo diferente gera uma
+ * nova tentativa e não bloqueia lançamentos legítimos.
+ */
+function getAttemptRequestId(
+  userId: string,
+  data: FormDataType,
+  dateKey: string
+): string {
+  if (typeof window === "undefined" || !userId) return generateRequestId();
+
+  const key = `${ATTEMPT_PREFIX}${userId}`;
+  const fingerprint = payloadFingerprint(data, dateKey);
+
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw) as LaunchAttempt;
+      if (
+        parsed?.requestId &&
+        parsed.fingerprint === fingerprint &&
+        Date.now() - Number(parsed.at || 0) <= ATTEMPT_MAX_AGE_MS
+      ) {
+        return parsed.requestId;
+      }
+    }
+
+    const requestId = generateRequestId();
+    localStorage.setItem(
+      key,
+      JSON.stringify({ requestId, fingerprint, at: Date.now() })
+    );
+    return requestId;
+  } catch {
+    return generateRequestId();
+  }
+}
+
+function clearAttemptRequestId(userId: string): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.removeItem(`${ATTEMPT_PREFIX}${userId}`);
   } catch {
     // ignora
   }
@@ -251,7 +376,13 @@ export function useFillPdfForm() {
   const [schoolPendingAvailability, setSchoolPendingAvailability] = useState<SchoolPendingDailyDemandAvailability | null>(null);
   const [isCheckingSchoolPendingAvailability, setIsCheckingSchoolPendingAvailability] = useState(false);
   const [escolas, setEscolas] = useState<Escola[]>([]);
-  const [alertDialog, setAlertDialog] = useState<{ title: string; description: string; success: boolean } | null>(null);
+  const [alertDialog, setAlertDialog] = useState<{
+    title: string;
+    description: string;
+    success: boolean;
+    actionLabel?: string;
+    onAction?: () => void;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showChamadoModal, setShowChamadoModal] = useState(false);
   const [osNumero, setOsNumero] = useState<string>("");
@@ -266,9 +397,14 @@ export function useFillPdfForm() {
     school: string;
     date: string;
     confirmToken?: string;
+    fotosAntes: string[];
+    fotosDepois: string[];
+    alreadySigned: boolean;
+    emailSentToday: boolean;
   } | null>(null);
   const submittingRef = useRef(false);
   const sessionNoticeShownRef = useRef(false);
+  const [chamadoRetry, setChamadoRetry] = useState<{ osData: FormDataType } | null>(null);
 
   const {
     currentStep, totalSteps, completedSteps, goToStep, nextStep, previousStep,
@@ -313,38 +449,116 @@ export function useFillPdfForm() {
   };
 
   // Recupera uma OS que foi salva mas cuja finalização (fotos/token/PDF/e-mail)
-  // não terminou. O número existente é reutilizado — nunca se cria outro.
+  // não terminou. O rascunho é por usuário e a propriedade da OS é validada
+  // no backend antes de qualquer retomada.
   useEffect(() => {
-    const pending = readPendingFinalization();
+    if (!localUserId || !router.isReady) return;
+
+    const pending = readPendingFinalizations(localUserId)[0];
     if (!pending) return;
 
-    setPendingResume({
-      numeroOs: pending.numeroOs,
-      stage: pending.stage,
-      school: pending.school,
-      date: pending.date,
-      confirmToken: pending.confirmToken,
-    });
-    setOsNumero(pending.numeroOs);
+    let cancelled = false;
 
-    if (pending.form) {
-      setFormData((prev) => ({
-        ...prev,
-        ...pending.form,
-        // File objects não são serializáveis; fotos já enviadas voltam como URL.
-        fotosAntes: prev.fotosAntes.length ? prev.fotosAntes : ((pending.form?.fotosAntes as string[]) || []),
-        fotosDepois: prev.fotosDepois.length ? prev.fotosDepois : ((pending.form?.fotosDepois as string[]) || []),
-      }));
-    }
+    const restore = async () => {
+      try {
+        const response = await authedFetch(
+          `/api/os-externa-access?numeroOs=${encodeURIComponent(pending.numeroOs)}`
+        );
+        const data = await response.json().catch(() => ({}));
 
-    setAlertDialog({
-      title: "Finalização pendente",
-      description: `A OS ${pending.numeroOs} já foi salva, mas a etapa "${STAGE_LABELS[pending.stage] || pending.stage}" não foi concluída. Os dados foram recuperados. Ao finalizar novamente, o mesmo número de OS será reaproveitado${
-        pending.stage === "fotos" ? ". Reenvie as fotos antes de finalizar" : ""
-      }. Não altere os dados já salvos; se precisar corrigir, edite a OS pela lista.`,
-      success: false,
-    });
-  }, []);
+        if (!response.ok) {
+          if (!cancelled) {
+            setAlertDialog({
+              title: "Não foi possível retomar",
+              description: `${
+                data.error || "A OS salva não pôde ser validada."
+              } O rascunho foi preservado.`,
+              success: false,
+            });
+          }
+          return;
+        }
+
+        if (cancelled) return;
+
+        if (data.alreadySigned) {
+          clearPendingFinalization(localUserId, pending.numeroOs);
+          setAlertDialog({
+            title: "OS já assinada",
+            description: `A OS ${pending.numeroOs} já foi assinada pela escola; não há finalização pendente.`,
+            success: true,
+          });
+          return;
+        }
+
+        const storedFotosAntes = uniqueStrings(pending.form?.fotosAntes);
+        const storedFotosDepois = uniqueStrings(pending.form?.fotosDepois);
+        const existingFotosAntes = uniqueStrings(data.os?.fotosAntes);
+        const existingFotosDepois = uniqueStrings(data.os?.fotosDepois);
+
+        const fotosAntes = Array.from(
+          new Set([...existingFotosAntes, ...storedFotosAntes])
+        );
+        const fotosDepois = Array.from(
+          new Set([...existingFotosDepois, ...storedFotosDepois])
+        );
+
+        const confirmToken =
+          typeof data.confirmToken === "string" && data.confirmToken
+            ? data.confirmToken
+            : pending.confirmToken;
+
+        setPendingResume({
+          numeroOs: pending.numeroOs,
+          stage: pending.stage,
+          school: pending.school,
+          date: pending.date,
+          confirmToken,
+          fotosAntes,
+          fotosDepois,
+          alreadySigned: false,
+          emailSentToday: Boolean(data.emailSentToday),
+        });
+        setOsNumero(pending.numeroOs);
+
+        setFormData((prev) => ({
+          ...prev,
+          ...(pending.form || {}),
+          // File objects não são serializáveis; as URLs já enviadas voltam e
+          // nunca são substituídas por arrays vazios.
+          fotosAntes: fotosAntes.length ? fotosAntes : prev.fotosAntes,
+          fotosDepois: fotosDepois.length ? fotosDepois : prev.fotosDepois,
+        }));
+
+        setAlertDialog({
+          title: "Finalização pendente",
+          description: `A OS ${pending.numeroOs} já foi salva, mas a etapa "${
+            STAGE_LABELS[pending.stage] || pending.stage
+          }" não foi concluída. Os dados foram recuperados. Ao finalizar novamente, o mesmo número de OS será reaproveitado${
+            pending.stage === "fotos" ? ". Reenvie as fotos antes de finalizar" : ""
+          }. Não altere os dados já salvos; se precisar corrigir, edite a OS pela lista.`,
+          success: false,
+        });
+      } catch (error) {
+        if (!cancelled && !notifySessionProblem(error)) {
+          setAlertDialog({
+            title: "Não foi possível retomar",
+            description: `${describeRequestError(
+              error,
+              "Falha ao validar a OS salva."
+            )} O rascunho foi preservado.`,
+            success: false,
+          });
+        }
+      }
+    };
+
+    restore();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [localUserId, router.isReady]);
 
   // Pre-fill form from URL parameters
   useEffect(() => {
@@ -669,7 +883,10 @@ export function useFillPdfForm() {
     reset();
     setIsDirty(false);
     setProgress(0);
-    clearPendingFinalization();
+    if (osNumero) {
+      clearPendingFinalization(localUserId, osNumero);
+    }
+    clearAttemptRequestId(localUserId);
     setPendingResume(null);
     showToastMessage("Formulario limpo com sucesso!", "info");
   };
@@ -686,6 +903,8 @@ export function useFillPdfForm() {
       data: osDateKey,
       hora: new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Sao_Paulo" }).format(currentDate),
     };
+    const clientRequestId = getAttemptRequestId(localUserId, updatedData, osDateKey);
+
     const response = await authedFetch(
       "/api/save-os-externa",
       {
@@ -694,8 +913,8 @@ export function useFillPdfForm() {
         body: JSON.stringify({
           formData: updatedData,
           context: router.query.origin === "daily-demands"
-            ? { origin: "daily-demands", dailyDemandId: router.query.demandId, dailyDemandDate: router.query.demandDate, userId: localUserId }
-            : { userId: localUserId },
+            ? { origin: "daily-demands", dailyDemandId: router.query.demandId, dailyDemandDate: router.query.demandDate, userId: localUserId, clientRequestId }
+            : { userId: localUserId, clientRequestId },
         }),
       },
       // O endpoint autentica antes de gravar: um 401 não gerou efeito.
@@ -714,7 +933,9 @@ export function useFillPdfForm() {
     };
   };
 
-  const criarChamadoAutomatico = async (osData: any) => {
+  const criarChamadoAutomatico = async (
+    osData: FormDataType
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
     try {
       const chamadoAutomatico = {
         escola: osData.unidadeEscolar,
@@ -732,10 +953,70 @@ export function useFillPdfForm() {
         // O endpoint autentica antes de gravar e deduplica chamados automáticos.
         { retryOn401: true }
       );
-      if (!response.ok) throw new Error("Erro ao criar chamado automatico");
-    } catch {
-      showToastMessage("Aviso: Erro ao criar chamado automatico", "warning");
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getApiErrorMessage(
+            response,
+            "Erro ao criar o chamado de reagendamento."
+          ),
+        };
+      }
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: describeRequestError(
+          error,
+          "Erro ao criar o chamado de reagendamento."
+        ),
+      };
     }
+  };
+
+  const retentarChamadoAutomatico = async () => {
+    if (!chamadoRetry) return;
+    const osData = chamadoRetry.osData;
+
+    setLoading(true);
+    const result = await criarChamadoAutomatico(osData);
+    setLoading(false);
+
+    if (result.ok) {
+      setChamadoRetry(null);
+      setAlertDialog({
+        title: "Chamado criado",
+        description: `O chamado de reagendamento da OS ${osData.numeroOs} foi criado com sucesso.`,
+        success: true,
+      });
+      return;
+    }
+
+    setAlertDialog({
+      title: "Chamado ainda pendente",
+      description: `A OS ${osData.numeroOs} continua salva e enviada, mas o chamado de reagendamento não foi criado: ${result.error}`,
+      success: false,
+      actionLabel: "Tentar novamente",
+      onAction: () => {
+        void retentarChamadoAutomatico();
+      },
+    });
+  };
+
+  const oferecerRetentativaChamado = (
+    osData: FormDataType,
+    error: string
+  ) => {
+    setChamadoRetry({ osData });
+    setAlertDialog({
+      title: "OS salva, mas chamado pendente",
+      description: `A OS ${osData.numeroOs} foi salva e o e-mail foi enviado, mas o chamado de reagendamento não foi criado: ${error}`,
+      success: false,
+      actionLabel: "Tentar criar chamado novamente",
+      onAction: () => {
+        void retentarChamadoAutomatico();
+      },
+    });
   };
 
   const markPendingFinalization = (
@@ -744,7 +1025,7 @@ export function useFillPdfForm() {
     data: FormDataType,
     confirmToken?: string
   ) => {
-    writePendingFinalization({
+    writePendingFinalization(localUserId, {
       numeroOs,
       stage,
       at: Date.now(),
@@ -761,30 +1042,13 @@ export function useFillPdfForm() {
       showToastMessage("Preencha todos os campos obrigatorios antes de finalizar.", "warning");
       return;
     }
-    if (router.query.origin === "daily-demands") {
-      if (!localUserId || !dailyDemandAvailability) { showToastMessage("Aguardando validacao do tecnico para esta demanda.", "info"); return; }
-      if (isCheckingDailyDemandAvailability) { showToastMessage("Aguarde a validacao da demanda antes de finalizar.", "info"); return; }
-      if (dailyDemandAvailability && !dailyDemandAvailability.allowed) { showToastMessage(dailyDemandAvailability.reason || "Esta OS nao pode mais ser lancada.", "error"); return; }
-    } else if (schoolPendingAvailability?.applies) {
-      if (isCheckingSchoolPendingAvailability) { showToastMessage("Aguarde a validacao da escola antes de finalizar.", "info"); return; }
-      if (schoolPendingAvailability.availability && !schoolPendingAvailability.availability.allowed) {
-        showToastMessage(schoolPendingAvailability.availability.reason || "Esta escola tem uma OS pendente bloqueada.", "error");
-        return;
-      }
-    }
-
-    // Retomada só vale para a mesma escola/data da OS já salva. Se o técnico
-    // começou outro lançamento, o pendente antigo é descartado.
+    // Retomada só vale para a mesma escola/data da OS já salva. Rascunhos de
+    // outros lançamentos são preservados (não apagados).
     const currentDateKey = getOsDateKey();
     const resumeMatches =
       !!pendingResume &&
       pendingResume.school === String(formData.unidadeEscolar || "") &&
       pendingResume.date === currentDateKey;
-
-    if (pendingResume && !resumeMatches) {
-      clearPendingFinalization();
-      setPendingResume(null);
-    }
 
     submittingRef.current = true;
     sessionNoticeShownRef.current = false;
@@ -792,8 +1056,72 @@ export function useFillPdfForm() {
 
     let numeroOs: string | null = resumeMatches ? pendingResume!.numeroOs : null;
     let stage: FinalizationStage = resumeMatches ? pendingResume!.stage : "save";
+    let accessConfirmToken: string | null = null;
+    let accessFotosAntes: string[] = [];
+    let accessFotosDepois: string[] = [];
+    let accessEmailSentToday = false;
 
     try {
+      if (resumeMatches) {
+        // Revalida a propriedade da OS no backend antes de reaproveitar o
+        // número. Um rascunho de outro técnico nunca é retomado.
+        const accessResponse = await authedFetch(
+          `/api/os-externa-access?numeroOs=${encodeURIComponent(pendingResume!.numeroOs)}`
+        );
+        const accessData = await accessResponse.json().catch(() => ({}));
+
+        if (!accessResponse.ok) {
+          setAlertDialog({
+            title: "Não foi possível retomar",
+            description: `${
+              accessData.error || "A OS salva não pôde ser validada."
+            } O rascunho foi preservado.`,
+            success: false,
+          });
+          return;
+        }
+
+        if (accessData.alreadySigned) {
+          clearPendingFinalization(localUserId, pendingResume!.numeroOs);
+          setAlertDialog({
+            title: "OS já assinada",
+            description: `A OS ${pendingResume!.numeroOs} já foi assinada pela escola; não há finalização pendente.`,
+            success: true,
+          });
+          return;
+        }
+
+        accessConfirmToken =
+          typeof accessData.confirmToken === "string" && accessData.confirmToken
+            ? accessData.confirmToken
+            : null;
+        accessFotosAntes = uniqueStrings(accessData.os?.fotosAntes);
+        accessFotosDepois = uniqueStrings(accessData.os?.fotosDepois);
+        accessEmailSentToday = Boolean(accessData.emailSentToday);
+
+        if (accessEmailSentToday && pendingResume!.stage === "email") {
+          showToastMessage(
+            "O e-mail desta OS já consta como enviado hoje; a retentativa não o duplicará.",
+            "info"
+          );
+        }
+      } else {
+        // Validações normais de disponibilidade só para lançamentos novos.
+        if (router.query.origin === "daily-demands") {
+          if (!localUserId || !dailyDemandAvailability) { showToastMessage("Aguardando validacao do tecnico para esta demanda.", "info"); return; }
+          if (isCheckingDailyDemandAvailability) { showToastMessage("Aguarde a validacao da demanda antes de finalizar.", "info"); return; }
+          if (dailyDemandAvailability && !dailyDemandAvailability.allowed) { showToastMessage(dailyDemandAvailability.reason || "Esta OS nao pode mais ser lancada.", "error"); return; }
+        } else if (schoolPendingAvailability?.applies) {
+          if (isCheckingSchoolPendingAvailability) { showToastMessage("Aguarde a validacao da escola antes de finalizar.", "info"); return; }
+          if (schoolPendingAvailability.availability && !schoolPendingAvailability.availability.allowed) {
+            showToastMessage(schoolPendingAvailability.availability.reason || "Esta escola tem uma OS pendente bloqueada.", "error");
+            return;
+          }
+        }
+
+        if (pendingResume) setPendingResume(null);
+      }
+
       let finalData: FormDataType;
 
       if (numeroOs) {
@@ -831,15 +1159,29 @@ export function useFillPdfForm() {
         );
       }
 
-      // Preserva as URLs já existentes (retomada) e anexa as novas.
-      const fotosAntesUrls = [
-        ...(formData.fotosAntes as (File | string)[]).filter((item): item is string => typeof item === "string"),
-        ...fotosAntesReport.urls,
-      ];
-      const fotosDepoisUrls = [
-        ...(formData.fotosDepois as (File | string)[]).filter((item): item is string => typeof item === "string"),
-        ...fotosDepoisReport.urls,
-      ];
+      // Preserva as URLs já existentes (retomada/acesso) e anexa as novas.
+      // Nunca substitui fotos existentes por um array vazio.
+      const existingFotosAntes = uniqueStrings([
+        ...accessFotosAntes,
+        ...(pendingResume?.fotosAntes || []),
+        ...(formData.fotosAntes as (File | string)[]).filter(
+          (item): item is string => typeof item === "string"
+        ),
+      ]);
+      const existingFotosDepois = uniqueStrings([
+        ...accessFotosDepois,
+        ...(pendingResume?.fotosDepois || []),
+        ...(formData.fotosDepois as (File | string)[]).filter(
+          (item): item is string => typeof item === "string"
+        ),
+      ]);
+
+      const fotosAntesUrls = Array.from(
+        new Set([...existingFotosAntes, ...fotosAntesReport.urls])
+      );
+      const fotosDepoisUrls = Array.from(
+        new Set([...existingFotosDepois, ...fotosDepoisReport.urls])
+      );
 
       markPendingFinalization(
         numeroOs,
@@ -849,7 +1191,7 @@ export function useFillPdfForm() {
           fotosAntes: fotosAntesUrls,
           fotosDepois: fotosDepoisUrls,
         },
-        resumeMatches ? pendingResume?.confirmToken : undefined
+        resumeMatches ? (accessConfirmToken || pendingResume?.confirmToken) : undefined
       );
 
       const updateResponse = await authedFetch(
@@ -878,8 +1220,9 @@ export function useFillPdfForm() {
       // Reutiliza o token já persistido numa tentativa anterior: se o e-mail
       // chegou a sair, o link recebido pela escola continua válido.
       const confirmToken =
-        (resumeMatches && pendingResume?.confirmToken) ||
+        (resumeMatches && (accessConfirmToken || pendingResume?.confirmToken)) ||
         (await import("uuid")).v4();
+      let effectiveConfirmToken = confirmToken;
 
       markPendingFinalization(numeroOs, "token", finalDataWithPhotos, confirmToken);
 
@@ -889,7 +1232,7 @@ export function useFillPdfForm() {
       const tokenAlreadyStored =
         resumeMatches &&
         pendingResume?.stage === "email" &&
-        !!pendingResume?.confirmToken;
+        !!(accessConfirmToken || pendingResume?.confirmToken);
 
       if (!tokenAlreadyStored) {
         const tokenResponse = await authedFetch(
@@ -906,6 +1249,13 @@ export function useFillPdfForm() {
             "token",
             await getApiErrorMessage(tokenResponse, "Erro ao salvar o token de confirmacao.")
           );
+        }
+
+        const tokenData = await tokenResponse.json().catch(() => ({}));
+        if (typeof tokenData.token === "string" && tokenData.token) {
+          // O backend reutiliza um token já gravado; o link precisa usar o
+          // mesmo valor que está no banco.
+          effectiveConfirmToken = tokenData.token;
         }
       }
 
@@ -925,7 +1275,7 @@ export function useFillPdfForm() {
           ? process.env.NEXT_PUBLIC_BASE_URL
           : "https://csdt.vercel.app";
       };
-      const confirmUrl = `${getBaseUrl()}/confirmar-os-externa?numeroOs=${finalUpdatedData.numeroOs}&token=${confirmToken}`;
+      const confirmUrl = `${getBaseUrl()}/confirmar-os-externa?numeroOs=${finalUpdatedData.numeroOs}&token=${effectiveConfirmToken}`;
       const csdtEmail = process.env.CSDT_EMAIL || "csdt@smeduquedecaxias.rj.gov.br";
 
       const msg = {
@@ -941,7 +1291,7 @@ export function useFillPdfForm() {
       };
 
       stage = "email";
-      markPendingFinalization(numeroOs, "email", finalUpdatedData, confirmToken);
+      markPendingFinalization(numeroOs, "email", finalUpdatedData, effectiveConfirmToken);
 
       const emailResponse = await authedFetch(
         "/api/send-email",
@@ -960,8 +1310,17 @@ export function useFillPdfForm() {
         );
       }
 
+      const emailData = await emailResponse.json().catch(() => ({}));
+      if (emailData?.ccStatus === "failed") {
+        showToastMessage(
+          "E-mail enviado à escola, mas a cópia institucional (CC) falhou.",
+          "warning"
+        );
+      }
+
       // A OS foi entregue; não há mais o que retomar com o mesmo número.
-      clearPendingFinalization();
+      clearPendingFinalization(localUserId, numeroOs);
+      clearAttemptRequestId(localUserId);
       setPendingResume(null);
       setChamadoData((prev) => ({ ...prev, escola: finalUpdatedData.unidadeEscolar || "" }));
 
@@ -969,8 +1328,12 @@ export function useFillPdfForm() {
       clearForm();
 
       if (!problemaResolvido) {
-        await criarChamadoAutomatico(finalUpdatedData);
-        setAlertDialog({ title: "Sucesso", description: `OS Externa ${finalUpdatedData.numeroOs} enviada por e-mail para ${finalUpdatedData.unidadeEscolar}! Como o problema nao foi solucionado, um chamado foi criado automaticamente para reagendamento.`, success: true });
+        const chamadoResult = await criarChamadoAutomatico(finalUpdatedData);
+        if (chamadoResult.ok) {
+          setAlertDialog({ title: "Sucesso", description: `OS Externa ${finalUpdatedData.numeroOs} enviada por e-mail para ${finalUpdatedData.unidadeEscolar}! Como o problema nao foi solucionado, um chamado foi criado automaticamente para reagendamento.`, success: true });
+        } else {
+          oferecerRetentativaChamado(finalUpdatedData, chamadoResult.error);
+        }
       } else {
         setAlertDialog({ title: "Sucesso", description: `OS Externa ${finalUpdatedData.numeroOs} enviada por e-mail para ${finalUpdatedData.unidadeEscolar}! O responsavel recebera um e-mail para confirmacao.`, success: true });
         setTimeout(() => { setAlertDialog(null); setShowChamadoModal(true); }, 2000);
@@ -1084,6 +1447,7 @@ export function useFillPdfForm() {
   return {
     // State
     formData, setFormData, localTecnicoName, localUserId, isLoadingTecnico,
+    pendingResume,
     dailyDemandAvailability, isCheckingDailyDemandAvailability,
     schoolPendingAvailability, isCheckingSchoolPendingAvailability,
     escolas, alertDialog, setAlertDialog, loading, showChamadoModal, setShowChamadoModal,

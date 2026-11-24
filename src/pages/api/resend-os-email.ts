@@ -1,11 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/utils/prisma";
-import nodemailer from "nodemailer";
 import { PDFDocument, PDFCheckBox, PDFTextField } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { requireAuth } from "@/utils/api-auth";
+import { authorizeOsExterna } from "@/utils/osExternaAuthorization";
+import { sendMail, MailConfigurationError } from "@/utils/mailer";
+import { evaluateMailAcceptance } from "@/utils/mailRecipients";
+
+/** Reenvio manual legítimo é permitido no mesmo dia; o cooldown evita spam. */
+const RESEND_COOLDOWN_MS = 2 * 60 * 1000;
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(value.trim());
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Autenticação antes do processamento (antes estava em código inacessível).
@@ -19,64 +28,84 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { osId, unidadeEscolar, emailResponsavel, numeroOs } = req.body;
 
-    if (!osId || !unidadeEscolar || !numeroOs) {
+    if (!osId || !numeroOs) {
       return res.status(400).json({ error: "Dados obrigatorios nao fornecidos" });
     }
 
+    const parsedId = Number(osId);
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+      return res.status(400).json({ error: "osId inválido" });
+    }
+
     const osExterna = await prisma.oSExterna.findUnique({
-      where: { id: parseInt(osId) },
+      where: { id: parsedId },
     });
 
     if (!osExterna) {
       return res.status(404).json({ error: "OS nao encontrada" });
     }
 
+    if (osExterna.numeroOs !== numeroOs) {
+      return res.status(400).json({
+        error: "O numeroOs informado não corresponde à OS.",
+      });
+    }
+
     if (osExterna.status !== "Pendente") {
       return res.status(400).json({ error: "Apenas OS pendentes podem ter emails reenviados" });
     }
 
+    const permission = await authorizeOsExterna(auth, osExterna);
+    if (!permission.allowed) {
+      return res.status(403).json({ error: permission.reason });
+    }
+
     const school = await prisma.school.findUnique({
-      where: { name: unidadeEscolar },
+      where: { name: osExterna.unidadeEscolar || unidadeEscolar || "" },
       select: { email: true },
     });
 
-    const targetEmail = school?.email?.trim() || osExterna.emailResponsavel || emailResponsavel;
+    const candidateEmails = [
+      school?.email,
+      osExterna.emailResponsavel,
+      typeof emailResponsavel === "string" ? emailResponsavel : null,
+    ];
+    const targetEmail = candidateEmails
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
+      .find((value) => value && isValidEmail(value));
 
     if (!targetEmail) {
       return res.status(400).json({ error: "Nenhum email valido foi encontrado para esta escola" });
     }
 
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    const amanha = new Date(hoje);
-    amanha.setDate(amanha.getDate() + 1);
-
+    // Reenvio manual permitido no mesmo dia, com cooldown curto contra duplo
+    // clique/acidente.
     if (osExterna.lastEmailSent) {
-      const lastEmailDate = new Date(osExterna.lastEmailSent);
-      if (lastEmailDate >= hoje && lastEmailDate < amanha) {
-        return res.status(400).json({
-          error: "Ja foi enviado um email para esta OS hoje. Limite: 1 email por dia.",
-          lastSent: osExterna.lastEmailSent,
+      const elapsed = Date.now() - new Date(osExterna.lastEmailSent).getTime();
+      if (elapsed >= 0 && elapsed < RESEND_COOLDOWN_MS) {
+        return res.status(429).json({
+          error: "Aguarde alguns segundos antes de reenviar o e-mail desta OS.",
+          retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000),
         });
       }
     }
 
-    let token = osExterna.assinado && osExterna.assinado.length > 10 ? osExterna.assinado : null;
+    let token =
+      osExterna.assinado && osExterna.assinado.length > 10
+        ? osExterna.assinado
+        : null;
+
     if (!token) {
       token = uuidv4();
       await prisma.oSExterna.update({
-        where: { id: parseInt(osId) },
+        where: { id: parsedId },
         data: { assinado: token },
       });
     }
 
-    let pdfBytes;
+    let pdfBytes: Uint8Array;
     try {
-
-
       pdfBytes = await fillOSExternaPDF(osExterna);
-
     } catch (pdfError) {
       console.error("Erro ao gerar PDF:", pdfError);
       return res.status(500).json({
@@ -93,18 +122,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? process.env.NEXT_PUBLIC_BASE_URL
         : "https://csdt.vercel.app";
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
+    const unidade = osExterna.unidadeEscolar || unidadeEscolar;
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #000000;">
         <h1 style="color: #f59e0b;">ASSINATURA PENDENTE</h1>
-        <h2 style="color: #000000;">OS ${numeroOs} - ${unidadeEscolar}</h2>
+        <h2 style="color: #000000;">OS ${numeroOs} - ${unidade}</h2>
 
         <p style="color: #000000;"><strong>Prezados responsaveis,</strong></p>
 
@@ -132,44 +154,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const csdtEmail = process.env.CSDT_EMAIL || "csdt@smeduquedecaxias.rj.gov.br";
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
+    const result = await sendMail({
       to: targetEmail,
       cc: csdtEmail,
       replyTo: `${process.env.EMAIL_USER}, ${csdtEmail}`,
-      subject: `URGENTE - CSDT/SME - Assinatura Pendente da OS ${numeroOs} - ${unidadeEscolar}`,
-      text: `OS ${numeroOs} - ${unidadeEscolar} - Assinatura Pendente`,
+      subject: `URGENTE - CSDT/SME - Assinatura Pendente da OS ${numeroOs} - ${unidade}`,
+      text: `OS ${numeroOs} - ${unidade} - Assinatura Pendente`,
       html: emailHtml,
       attachments: [
         {
-          filename: `OS_${numeroOs}_${unidadeEscolar.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
+          filename: `OS_${numeroOs}_${unidade.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
           content: Buffer.from(pdfBytes),
           encoding: "base64",
           contentType: "application/pdf",
         },
       ],
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
+    const acceptance = evaluateMailAcceptance(result, targetEmail, csdtEmail);
+
+    if (!acceptance.mainAccepted) {
+      console.error(
+        "Reenvio de e-mail da OS sem aceite do destinatário principal.",
+        { acceptedCount: acceptance.acceptedCount, rejectedCount: acceptance.rejectedCount },
+      );
+      return res.status(502).json({
+        error:
+          "O destinatário principal não foi aceito pelo servidor de e-mail. O reenvio não foi confirmado.",
+        mainAccepted: false,
+      });
+    }
 
     try {
       await prisma.oSExterna.update({
-        where: { id: parseInt(osId) },
+        where: { id: parsedId },
         data: {
           lastEmailSent: new Date(),
           emailResponsavel: targetEmail,
         },
       });
     } catch (updateError) {
-
+      console.error("Falha ao registrar reenvio de e-mail:", updateError);
     }
 
     res.status(200).json({
       success: true,
-      message: `Email reenviado com sucesso para ${unidadeEscolar}`,
+      message: `Email reenviado com sucesso para ${unidade}`,
       lastSent: new Date(),
+      mainAccepted: true,
+      ccStatus: acceptance.ccStatus,
+      ccRejectedCount: acceptance.ccRejectedCount,
     });
   } catch (error) {
+    if (error instanceof MailConfigurationError) {
+      return res.status(503).json({ error: error.message });
+    }
     console.error("Erro ao reenviar email da OS:", error);
     res.status(500).json({
       error: "Erro ao enviar o email",
@@ -180,12 +219,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 function sanitizeForWinAnsi(text: string): string {
   return text
-    .replace(/[\uE000-\uF8FF]/g, "")
-    .replace(/[\u2010-\u2015]/g, "-")
-    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
-    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
-    .replace(/\u2026/g, "...")
-    .replace(/[\u00A0\u202F\u2009]/g, " ")
+    .replace(/[-]/g, "")
+    .replace(/[‐-―]/g, "-")
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[“”„‟]/g, '"')
+    .replace(/…/g, "...")
+    .replace(/[   ]/g, " ")
     .replace(/[^\x00-\xFF]/g, "");
 }
 

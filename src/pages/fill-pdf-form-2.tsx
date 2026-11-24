@@ -98,12 +98,12 @@ const FillPdfForm: React.FC = () => {
             </motion.div>
           </motion.div>
 
-          {router.query.origin === "daily-demands" && (
+          {(router.query.origin === "daily-demands" || hook.pendingResume) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className={`mb-6 rounded-2xl border px-5 py-4 ${
-                hook.dailyDemandAvailability?.allowed
+                hook.pendingResume || hook.dailyDemandAvailability?.allowed
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
                   : "border-amber-500/30 bg-amber-500/10 text-amber-100"
               }`}
@@ -111,7 +111,14 @@ const FillPdfForm: React.FC = () => {
               <div className="flex items-start gap-3">
                 <Info size={20} className="mt-0.5 flex-shrink-0" />
                 <div className="space-y-1 text-sm">
-                  {hook.isCheckingDailyDemandAvailability ? (
+                  {hook.pendingResume ? (
+                    <p>
+                      A OS {hook.pendingResume.numeroOs} já foi salva. Esta tela está
+                      retomando a finalização pendente; o número existente será
+                      reaproveitado e a disponibilidade da demanda não bloqueia a
+                      retomada.
+                    </p>
+                  ) : hook.isCheckingDailyDemandAvailability ? (
                     <p>Validando se esta OS pode ser lançada para a demanda diária...</p>
                   ) : hook.dailyDemandAvailability?.allowed ? (
                     <p>

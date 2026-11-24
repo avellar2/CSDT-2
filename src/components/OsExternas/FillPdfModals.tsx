@@ -2,10 +2,18 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, Plus, Check, X, AlertTriangle, Info } from "lucide-react";
 
+interface AlertDialogState {
+  title: string;
+  description: string;
+  success: boolean;
+  actionLabel?: string;
+  onAction?: () => void;
+}
+
 interface FillPdfModalsProps {
   showToast: { message: string; type: "success" | "error" | "warning" | "info" } | null;
-  alertDialog: { title: string; description: string; success: boolean } | null;
-  setAlertDialog: (v: null) => void;
+  alertDialog: AlertDialogState | null;
+  setAlertDialog: (v: AlertDialogState | null) => void;
   showChamadoModal: boolean;
   setShowChamadoModal: (v: boolean) => void;
   chamadoData: { escola: string; titulo: string; descricao: string; categoria: string };
@@ -99,6 +107,19 @@ const FillPdfModals: React.FC<FillPdfModalsProps> = ({
               >
                 {alertDialog.description}
               </motion.p>
+              {alertDialog.actionLabel && alertDialog.onAction && (
+                <motion.button
+                  onClick={() => alertDialog.onAction?.()}
+                  className="w-full mb-3 py-4 rounded-xl font-semibold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45 }}
+                >
+                  {alertDialog.actionLabel}
+                </motion.button>
+              )}
               <motion.button
                 onClick={() => setAlertDialog(null)}
                 className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${

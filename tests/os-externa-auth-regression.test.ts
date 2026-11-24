@@ -8,6 +8,11 @@ const mocks = vi.hoisted(() => {
   const oSExternaFindUnique = vi.fn();
   const chamadoFindFirst = vi.fn();
   const chamadoCreate = vi.fn();
+  const submissionFindFirst = vi.fn();
+  const submissionCreate = vi.fn();
+  const submissionFindUnique = vi.fn();
+  const submissionUpdate = vi.fn();
+  const submissionDeleteMany = vi.fn();
   const getUser = vi.fn();
   const getSession = vi.fn();
   const refreshSession = vi.fn();
@@ -24,8 +29,15 @@ const mocks = vi.hoisted(() => {
       update: oSExternaUpdate,
     },
     chamados_escalas: { findFirst: chamadoFindFirst, create: chamadoCreate },
+    osExternaSubmission: {
+      findFirst: submissionFindFirst,
+      findUnique: submissionFindUnique,
+      create: submissionCreate,
+      update: submissionUpdate,
+      deleteMany: submissionDeleteMany,
+    },
     schoolDemand: { findUnique: vi.fn(), update: vi.fn() },
-    dailyRoute: { count: vi.fn(), findUnique: vi.fn() },
+    dailyRoute: { count: vi.fn(), findUnique: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
     dailyRouteTechnician: { findMany: vi.fn().mockResolvedValue([]) },
     visitTechnician: { findFirst: vi.fn() },
     dailyDemandOsRelease: { findFirst: vi.fn() },
@@ -40,6 +52,11 @@ const mocks = vi.hoisted(() => {
     oSExternaFindUnique,
     chamadoFindFirst,
     chamadoCreate,
+    submissionFindFirst,
+    submissionCreate,
+    submissionFindUnique,
+    submissionUpdate,
+    submissionDeleteMany,
     getUser,
     getSession,
     refreshSession,
@@ -66,12 +83,16 @@ vi.mock("@prisma/client", () => ({
   PrismaClient: class {
     profile = mocks.prismaMock.profile;
     oSExterna = mocks.prismaMock.oSExterna;
+    osExternaSubmission = mocks.prismaMock.osExternaSubmission;
     chamados_escalas = mocks.prismaMock.chamados_escalas;
     schoolDemand = mocks.prismaMock.schoolDemand;
     dailyRoute = mocks.prismaMock.dailyRoute;
     dailyRouteTechnician = mocks.prismaMock.dailyRouteTechnician;
     visitTechnician = mocks.prismaMock.visitTechnician;
     dailyDemandOsRelease = mocks.prismaMock.dailyDemandOsRelease;
+    async $transaction(fn: any) {
+      return fn(this);
+    }
     async $disconnect() {}
   },
 }));
@@ -87,14 +108,21 @@ vi.mock("@/utils/schoolPendingDailyDemandAvailability", () => ({
   getSchoolPendingDailyDemandAvailability: vi.fn().mockResolvedValue({ applies: false }),
 }));
 
-vi.mock("@/utils/operationalOsScope", () => ({
-  resolveRouteIdForResponsible: vi.fn().mockResolvedValue(null),
-}));
+vi.mock("@/utils/operationalOsScope", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/utils/operationalOsScope")
+  >();
+  return {
+    ...actual,
+    resolveRouteIdForResponsible: vi.fn().mockResolvedValue(null),
+  };
+});
 
 import { authedFetch, AuthSessionError, getFreshAccessToken } from "@/utils/client-auth";
 import schoolsHandler from "@/pages/api/schools";
 import updateFotosHandler from "@/pages/api/update-os-externa-fotos";
 import updateTokenHandler from "@/pages/api/update-os-externa-token";
+import osExternaAccessHandler from "@/pages/api/os-externa-access";
 import saveOsExternaHandler from "@/pages/api/save-os-externa";
 import chamadosEscalasHandler from "@/pages/api/chamados-escalas";
 import sendEmailHandler from "@/pages/api/send-email";
@@ -118,24 +146,24 @@ function makeRes() {
   return res;
 }
 
-function makeReq(method: string, body?: unknown, token?: string) {
+function makeReq(method: string, body?: unknown, token?: string, query: Record<string, unknown> = {}) {
   return {
     method,
     body,
-    query: {},
+    query,
     headers: token ? { authorization: `Bearer ${token}` } : {},
   } as any;
 }
 
-function loginAs(role = "TECH") {
+function loginAs(role = "TECH", userId = "user-1", displayName = "Tecnico Teste") {
   mocks.getUser.mockResolvedValue({
-    data: { user: { id: "user-1", email: "tecnico@example.com" } },
+    data: { user: { id: userId, email: `${userId}@example.com` } },
     error: null,
   });
   mocks.profileFindUnique.mockResolvedValue({
     id: 10,
     role,
-    displayName: "Tecnico Teste",
+    displayName,
     schoolId: null,
   });
 }
@@ -269,8 +297,18 @@ describe("endpoints de OS exigem autenticação de fato", () => {
   });
 
   it("não sobrescreve token de OS já assinada", async () => {
-    loginAs();
-    mocks.oSExternaFindFirst.mockResolvedValue({ id: 1, status: "Assinado", numeroOs: "1/2026" });
+    loginAs("ADMIN");
+    mocks.oSExternaFindFirst.mockResolvedValue({
+      id: 1,
+      status: "Assinado",
+      numeroOs: "1/2026",
+      unidadeEscolar: "EM ZIRALDO",
+      tecnicoResponsavel: "Yuri",
+      data: "2026-11-24",
+      routeId: null,
+      createdAt: new Date(),
+      assinado: "Fabiana",
+    });
 
     const res = makeRes();
     await updateTokenHandler(
@@ -286,7 +324,19 @@ describe("endpoints de OS exigem autenticação de fato", () => {
 describe("idempotência do lançamento de OS", () => {
   it("retry com o mesmo conteúdo reaproveita a OS existente", async () => {
     loginAs("ADMIN");
-    mocks.oSExternaFindFirst.mockResolvedValue({ id: 77, numeroOs: "77/2026" });
+    mocks.oSExternaFindFirst.mockResolvedValue({
+      id: 77,
+      numeroOs: "77/2026",
+      unidadeEscolar: "EM ZIRALDO",
+      tecnicoResponsavel: "Yuri",
+      data: "2026-11-24",
+      status: "Pendente",
+      routeId: null,
+      createdAt: new Date(),
+      solicitacaoDaVisita: "Sem internet",
+      relatorio: "Roteador reiniciado",
+      solucionado: "Sim",
+    });
 
     const res = makeRes();
     await saveOsExternaHandler(
@@ -341,8 +391,17 @@ describe("idempotência do lançamento de OS", () => {
   });
 
   it("e-mail da OS não é reenviado no mesmo dia", async () => {
-    loginAs("TECH");
-    mocks.oSExternaFindUnique.mockResolvedValue({ id: 77, lastEmailSent: new Date() });
+    loginAs("ADMIN");
+    mocks.oSExternaFindUnique.mockResolvedValue({
+      id: 77,
+      lastEmailSent: new Date(),
+      status: "Pendente",
+      routeId: null,
+      data: "2026-11-24",
+      createdAt: new Date(),
+      tecnicoResponsavel: "Yuri",
+      unidadeEscolar: "EM ZIRALDO",
+    });
 
     const res = makeRes();
     await sendEmailHandler(
@@ -364,3 +423,339 @@ describe("idempotência do lançamento de OS", () => {
     expect(mocks.sendMail).not.toHaveBeenCalled();
   });
 });
+
+describe("idempotência vinculada à identidade autenticada", () => {
+  const requestId = "11111111-1111-4111-8111-111111111111";
+  const formData = {
+    unidadeEscolar: "EM ZIRALDO",
+    tecnicoResponsavel: "Yuri",
+    data: "2026-11-24",
+    solicitacaoDaVisita: "Sem internet",
+    relatorio: "Roteador reiniciado",
+    solucionado: "Sim",
+  };
+
+  it("reserva a tentativa com userId e cria uma única OS", async () => {
+    loginAs("ADMIN");
+    mocks.submissionCreate.mockResolvedValue({ id: 1 });
+    mocks.oSExternaCreate.mockResolvedValue({ id: 88 });
+    mocks.oSExternaUpdate.mockResolvedValue({ id: 88, numeroOs: "88/2026" });
+
+    const res = makeRes();
+    await saveOsExternaHandler(
+      makeReq(
+        "POST",
+        { formData, context: { clientRequestId: requestId } },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(mocks.submissionCreate).toHaveBeenCalledWith({
+      data: { requestId: `user-1:${requestId}`, userId: "user-1" },
+    });
+    expect(mocks.oSExternaCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.submissionUpdate).toHaveBeenCalledWith({
+      where: { requestId: `user-1:${requestId}` },
+      data: { osId: 88 },
+    });
+  });
+
+  it("requisições simultâneas devolvem a mesma OS sem criar outra", async () => {
+    loginAs("ADMIN");
+    mocks.submissionCreate.mockRejectedValue({ code: "P2002" });
+    mocks.submissionFindUnique.mockResolvedValue({
+      osId: 88,
+      userId: "user-1",
+      createdAt: new Date(),
+    });
+    mocks.oSExternaFindUnique.mockResolvedValue({
+      id: 88,
+      numeroOs: "88/2026",
+      unidadeEscolar: "EM ZIRALDO",
+      tecnicoResponsavel: "Yuri",
+      data: "2026-11-24",
+      status: "Pendente",
+      routeId: null,
+      createdAt: new Date(),
+      solicitacaoDaVisita: "Sem internet",
+      relatorio: "Roteador reiniciado",
+      solucionado: "Sim",
+    });
+
+    const res = makeRes();
+    await saveOsExternaHandler(
+      makeReq(
+        "POST",
+        { formData, context: { clientRequestId: requestId } },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      id: 88,
+      numeroOs: "88/2026",
+      deduplicated: true,
+    });
+    expect(mocks.oSExternaCreate).not.toHaveBeenCalled();
+  });
+
+  it("o mesmo requestId de outro usuário usa uma chave diferente", async () => {
+    loginAs("ADMIN", "user-2");
+    mocks.submissionCreate.mockResolvedValue({ id: 2 });
+    mocks.oSExternaCreate.mockResolvedValue({ id: 99 });
+    mocks.oSExternaUpdate.mockResolvedValue({ id: 99, numeroOs: "99/2026" });
+
+    const res = makeRes();
+    await saveOsExternaHandler(
+      makeReq(
+        "POST",
+        { formData, context: { clientRequestId: requestId } },
+        "tok-2"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(mocks.submissionCreate).toHaveBeenCalledWith({
+      data: { requestId: `user-2:${requestId}`, userId: "user-2" },
+    });
+  });
+});
+
+describe("autorização por OS específica", () => {
+  it("TECH não altera fotos de OS de outro técnico", async () => {
+    loginAs("TECH", "user-1", "Ana");
+    mocks.oSExternaFindFirst.mockResolvedValue({
+      id: 77,
+      numeroOs: "77/2026",
+      unidadeEscolar: "EM ZIRALDO",
+      tecnicoResponsavel: "Yuri",
+      data: "2026-11-01",
+      status: "Pendente",
+      routeId: null,
+      createdAt: new Date("2026-11-01T12:00:00-03:00"),
+      fotosAntes: [],
+      fotosDepois: [],
+    });
+    mocks.submissionFindFirst.mockResolvedValue(null);
+
+    const res = makeRes();
+    await updateFotosHandler(
+      makeReq("POST", { numeroOs: "77/2026", fotosAntes: [], fotosDepois: [] }, "tok"),
+      res
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(mocks.oSExternaUpdate).not.toHaveBeenCalled();
+  });
+
+  it("TECH responsável atualiza fotos sem apagar as existentes", async () => {
+    loginAs("TECH", "user-1", "Tecnico Teste");
+    mocks.oSExternaFindFirst.mockResolvedValue({
+      id: 77,
+      numeroOs: "77/2026",
+      unidadeEscolar: "EM ZIRALDO",
+      tecnicoResponsavel: "Tecnico Teste",
+      data: "2026-11-01",
+      status: "Pendente",
+      routeId: null,
+      createdAt: new Date("2026-11-01T12:00:00-03:00"),
+      fotosAntes: ["antes-1"],
+      fotosDepois: ["depois-1"],
+    });
+    mocks.submissionFindFirst.mockResolvedValue(null);
+    mocks.oSExternaUpdate.mockResolvedValue({
+      id: 77,
+      fotosAntes: ["antes-1"],
+      fotosDepois: ["depois-1"],
+    });
+
+    const res = makeRes();
+    await updateFotosHandler(
+      makeReq("POST", { numeroOs: "77/2026", fotosAntes: [], fotosDepois: [] }, "tok"),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(mocks.oSExternaUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { fotosAntes: ["antes-1"], fotosDepois: ["depois-1"] },
+      })
+    );
+  });
+});
+
+describe("GET /api/os-externa-access", () => {
+  it("autoriza o responsável e devolve fotos e token existentes", async () => {
+    loginAs("TECH", "user-1", "Tecnico Teste");
+    mocks.oSExternaFindUnique.mockResolvedValue({
+      id: 77,
+      numeroOs: "77/2026",
+      unidadeEscolar: "EM ZIRALDO",
+      tecnicoResponsavel: "Tecnico Teste",
+      data: "2026-11-24",
+      status: "Pendente",
+      routeId: null,
+      createdAt: new Date(),
+      assinado: "token-existente-123",
+      fotosAntes: ["antes-1"],
+      fotosDepois: ["depois-1"],
+      lastEmailSent: null,
+    });
+    mocks.submissionFindFirst.mockResolvedValue(null);
+
+    const res = makeRes();
+    await osExternaAccessHandler(
+      makeReq("GET", undefined, "tok", { numeroOs: "77/2026" }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      allowed: true,
+      confirmToken: "token-existente-123",
+      alreadySigned: false,
+    });
+    expect(res.body.os.fotosAntes).toEqual(["antes-1"]);
+  });
+
+  it("nega a retomada de OS de outro técnico", async () => {
+    loginAs("TECH", "user-1", "Ana");
+    mocks.oSExternaFindUnique.mockResolvedValue({
+      id: 77,
+      numeroOs: "77/2026",
+      unidadeEscolar: "EM ZIRALDO",
+      tecnicoResponsavel: "Yuri",
+      data: "2026-11-01",
+      status: "Pendente",
+      routeId: null,
+      createdAt: new Date("2026-11-01T12:00:00-03:00"),
+      assinado: "token-existente-123",
+      fotosAntes: [],
+      fotosDepois: [],
+      lastEmailSent: null,
+    });
+    mocks.submissionFindFirst.mockResolvedValue(null);
+
+    const res = makeRes();
+    await osExternaAccessHandler(
+      makeReq("GET", undefined, "tok", { numeroOs: "77/2026" }),
+      res
+    );
+
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+describe("confirmação do destinatário principal do e-mail", () => {
+  const osBase = {
+    id: 77,
+    lastEmailSent: null,
+    status: "Pendente",
+    routeId: null,
+    data: "2026-11-24",
+    createdAt: new Date(),
+    tecnicoResponsavel: "Yuri",
+    unidadeEscolar: "EM ZIRALDO",
+  };
+
+  it("não registra envio quando o destinatário principal é rejeitado", async () => {
+    loginAs("ADMIN");
+    mocks.oSExternaFindUnique.mockResolvedValue(osBase);
+    mocks.sendMail.mockResolvedValue({
+      messageId: "1",
+      accepted: ["cc@example.com"],
+      rejected: ["escola@example.com"],
+      response: "",
+    });
+
+    const res = makeRes();
+    await sendEmailHandler(
+      makeReq(
+        "POST",
+        {
+          to: "escola@example.com",
+          cc: "cc@example.com",
+          subject: "OS Externa 77/2026",
+          html: "<p>OS</p>",
+          osExternaNumero: "77/2026",
+        },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(502);
+    expect(mocks.oSExternaUpdate).not.toHaveBeenCalled();
+  });
+
+  it("sinaliza falha do CC sem impedir o envio ao destinatário principal", async () => {
+    loginAs("ADMIN");
+    mocks.oSExternaFindUnique.mockResolvedValue(osBase);
+    mocks.sendMail.mockResolvedValue({
+      messageId: "2",
+      accepted: ["escola@example.com"],
+      rejected: ["cc@example.com"],
+      response: "",
+    });
+
+    const res = makeRes();
+    await sendEmailHandler(
+      makeReq(
+        "POST",
+        {
+          to: "escola@example.com",
+          cc: "cc@example.com",
+          subject: "OS Externa 77/2026",
+          html: "<p>OS</p>",
+          osExternaNumero: "77/2026",
+        },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ mainAccepted: true, ccStatus: "failed" });
+    expect(mocks.oSExternaUpdate).toHaveBeenCalled();
+  });
+});
+
+describe("token de confirmação existente", () => {
+  it("não sobrescreve um token já gravado e o devolve", async () => {
+    loginAs("ADMIN");
+    mocks.oSExternaFindFirst.mockResolvedValue({
+      id: 1,
+      numeroOs: "1/2026",
+      status: "Pendente",
+      assinado: "token-existente-123",
+      unidadeEscolar: "EM ZIRALDO",
+      tecnicoResponsavel: "Yuri",
+      data: "2026-11-24",
+      routeId: null,
+      createdAt: new Date(),
+    });
+
+    const res = makeRes();
+    await updateTokenHandler(
+      makeReq(
+        "POST",
+        { numeroOs: "1/2026", assinado: "novo-token-1234" },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      existing: true,
+      token: "token-existente-123",
+    });
+    expect(mocks.oSExternaUpdate).not.toHaveBeenCalled();
+  });
+});
+

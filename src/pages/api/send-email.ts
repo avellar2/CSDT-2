@@ -2,6 +2,12 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { requireRole, AUTH_ROLES } from "@/utils/api-auth";
 import { sendMail, MailConfigurationError } from "@/utils/mailer";
 import prisma from "@/utils/prisma";
+import { authorizeOsExterna } from "@/utils/osExternaAuthorization";
+import { evaluateMailAcceptance } from "@/utils/mailRecipients";
+import {
+  formatBrazilDateKey,
+  getBrazilDayRange,
+} from "@/utils/dailyDemandOsRules";
 
 /**
  * Endpoint genérico de e-mail usado pelos fluxos de OS e chamados.
@@ -25,6 +31,24 @@ function isValidRecipient(value: unknown): value is string {
   return /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(trimmed);
 }
 
+function emailSentToday(lastEmailSent: Date | null): boolean {
+  if (!lastEmailSent) return false;
+  const todayKey = formatBrazilDateKey(new Date());
+  const { start, end } = getBrazilDayRange(todayKey);
+  const sentAt = new Date(lastEmailSent);
+  return sentAt >= start && sentAt <= end;
+}
+
+/**
+ * Compatibilidade com clientes antigos que não enviavam `osExternaNumero`:
+ * o assunto padrão da OS contém o número (`OS Externa 123/2026 - Escola`).
+ */
+function extractOsNumberFromSubject(subject: unknown): string | null {
+  if (typeof subject !== "string") return null;
+  const match = subject.match(/\b(\d{1,8}\/\d{4})\b/);
+  return match ? match[1] : null;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -46,11 +70,6 @@ export default async function handler(
     typeof req.body?.osExternaNumero === "string" && req.body.osExternaNumero.trim()
       ? req.body.osExternaNumero.trim()
       : null;
-
-  // Idempotência do e-mail da OS: se o envio anterior foi concluído hoje, um
-  // retry (duplo clique, timeout, renovação de sessão) não dispara outro
-  // e-mail nem duplica o histórico de envio.
-  let osExterna: { id: number; lastEmailSent: Date | null } | null = null;
 
   if (!isValidRecipient(to)) {
     return res.status(400).json({ error: "Destinatário inválido." });
@@ -96,44 +115,98 @@ export default async function handler(
     }
   }
 
-  if (osExternaNumero) {
+  // Todo e-mail deste endpoint pertence a uma OS. O número explícito é o
+  // caminho novo; o assunto é o fallback para clientes antigos em cache.
+  const resolvedOsNumber =
+    osExternaNumero || extractOsNumberFromSubject(subject);
+
+  if (!resolvedOsNumber) {
+    return res.status(403).json({
+      error:
+        "O envio de e-mail precisa estar vinculado a uma OS (informe osExternaNumero).",
+    });
+  }
+
+  // Idempotência e autorização do e-mail da OS.
+  let osExterna: {
+    id: number;
+    lastEmailSent: Date | null;
+    status: string;
+    routeId: number | null;
+    data: string;
+    createdAt: Date;
+    tecnicoResponsavel: string | null;
+    unidadeEscolar: string | null;
+  } | null = null;
+
+  if (resolvedOsNumber) {
     try {
       osExterna = await prisma.oSExterna.findUnique({
-        where: { numeroOs: osExternaNumero },
-        select: { id: true, lastEmailSent: true },
+        where: { numeroOs: resolvedOsNumber },
+        select: {
+          id: true,
+          lastEmailSent: true,
+          status: true,
+          routeId: true,
+          data: true,
+          createdAt: true,
+          tecnicoResponsavel: true,
+          unidadeEscolar: true,
+        },
       });
-
-      if (osExterna?.lastEmailSent) {
-        const lastSent = new Date(osExterna.lastEmailSent);
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-        if (lastSent >= startOfToday) {
-          return res.status(200).json({
-            message: "Email ja enviado hoje para esta OS.",
-            deduplicated: true,
-          });
-        }
-      }
     } catch (lookupError) {
-      // Não bloqueia o envio por falha na checagem de idempotência.
-      console.error("Falha ao verificar envio anterior da OS:", lookupError);
-      osExterna = null;
+      console.error("Falha ao carregar a OS do e-mail:", lookupError);
+      return res.status(500).json({ error: "Erro ao validar a OS do e-mail." });
+    }
+
+    if (!osExterna) {
+      return res.status(404).json({ error: "OS não encontrada." });
+    }
+
+    const permission = await authorizeOsExterna(auth, osExterna);
+    if (!permission.allowed) {
+      return res.status(403).json({ error: permission.reason });
+    }
+
+    if (emailSentToday(osExterna.lastEmailSent)) {
+      return res.status(200).json({
+        message: "Email ja enviado hoje para esta OS.",
+        deduplicated: true,
+      });
     }
   }
 
   try {
+    const ccString = typeof cc === "string" ? cc.trim() : "";
     const result = await sendMail({
       to: to.trim(),
+      cc: ccString || undefined,
       subject: subject.trim(),
       html: typeof html === "string" ? html : "",
       text: typeof text === "string" ? text : "",
       replyTo: typeof replyTo === "string" && replyTo.trim() ? replyTo.trim() : undefined,
-      headers:
-        typeof cc === "string" && cc.trim() ? { Cc: cc.trim() } : undefined,
       attachments: normalizedAttachments.length
         ? normalizedAttachments
         : undefined,
     });
+
+    const acceptance = evaluateMailAcceptance(result, to, ccString);
+
+    if (!acceptance.mainAccepted) {
+      console.error(
+        "Envio de e-mail da OS sem aceite do destinatário principal.",
+        {
+          acceptedCount: acceptance.acceptedCount,
+          rejectedCount: acceptance.rejectedCount,
+        },
+      );
+      return res.status(502).json({
+        error:
+          "O destinatário principal não foi aceito pelo servidor de e-mail. O envio não foi confirmado.",
+        mainAccepted: false,
+        rejectedCount: acceptance.rejectedCount,
+      });
+    }
 
     if (osExterna) {
       try {
@@ -152,6 +225,9 @@ export default async function handler(
       accepted: result.accepted,
       rejected: result.rejected,
       response: result.response,
+      mainAccepted: true,
+      ccStatus: acceptance.ccStatus,
+      ccRejectedCount: acceptance.ccRejectedCount,
     });
   } catch (error) {
     if (error instanceof MailConfigurationError) {

@@ -66,6 +66,9 @@ vi.mock("@prisma/client", () => ({
     dailyRouteTechnician = prismaMock.dailyRouteTechnician;
     visitTechnician = prismaMock.visitTechnician;
     dailyDemandOsRelease = prismaMock.dailyDemandOsRelease;
+    async $transaction(fn: any) {
+      return fn(this);
+    }
     async $disconnect() {}
   },
 }));

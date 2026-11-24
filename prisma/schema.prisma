@@ -296,6 +296,21 @@ model OSExterna {
   @@index([routeId])
 }
 
+/// Registro de idempotência de lançamentos de OS externa.
+/// A chave é `${userId}:${clientRequestId}`; o osId é preenchido somente
+/// depois que a OS foi criada. A unique constraint serializa requisições
+/// simultâneas da mesma tentativa.
+model OsExternaSubmission {
+  id        Int      @id @default(autoincrement())
+  requestId String   @unique
+  userId    String
+  osId      Int?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([osId])
+}
+
 model OffTechnician {
   id           Int      @id @default(autoincrement())
   technicianId Int
