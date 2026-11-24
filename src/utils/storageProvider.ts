@@ -6,9 +6,15 @@
  */
 
 import { supabase } from "@/lib/supabaseClient";
+import { getFreshAccessToken } from "@/utils/client-auth";
 
 // Tipo de provider de storage
 export type StorageProvider = "cloudinary" | "supabase";
+
+export interface UploadReport {
+  urls: string[];
+  errors: string[];
+}
 
 // Configuração: escolha qual storage usar
 const STORAGE_PROVIDER: StorageProvider =
@@ -21,8 +27,9 @@ async function uploadToSupabase(
   files: File[],
   folder: string,
   numeroOs: string
-): Promise<string[]> {
+): Promise<UploadReport> {
   const urls: string[] = [];
+  const errors: string[] = [];
 
   for (const file of files) {
     const originalFileName = file.name && file.name.trim() !== ""
@@ -59,10 +66,11 @@ async function uploadToSupabase(
       urls.push(publicUrlData.publicUrl);
     } catch (error) {
       console.error("[Supabase] Erro ao fazer upload da foto:", error);
+      errors.push(originalFileName);
     }
   }
 
-  return urls;
+  return { urls, errors };
 }
 
 /**
@@ -72,8 +80,9 @@ async function uploadToCloudinary(
   files: File[],
   folder: string,
   numeroOs: string
-): Promise<string[]> {
+): Promise<UploadReport> {
   const urls: string[] = [];
+  const errors: string[] = [];
 
   for (const file of files) {
     try {
@@ -84,6 +93,14 @@ async function uploadToCloudinary(
       const timestamp = new Date().getTime();
       const fileName = `${timestamp}-${originalFileName.replace(/\s+/g, '-')}`;
 
+      // O endpoint de upload exige a sessão do operador. Resolver o token
+      // pela sessão do Supabase evita enviar um token vencido depois que o
+      // celular ficou em segundo plano.
+      const token = await getFreshAccessToken();
+      if (!token) {
+        throw new Error("Sessão expirada ao enviar a foto.");
+      }
+
       // Criar FormData para enviar ao endpoint de API
       const formData = new FormData();
       formData.append('file', file);
@@ -93,11 +110,12 @@ async function uploadToCloudinary(
       // Fazer upload via API route do Next.js
       const response = await fetch('/api/upload-cloudinary', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Erro ao fazer upload');
       }
 
@@ -106,10 +124,11 @@ async function uploadToCloudinary(
       urls.push(data.url);
     } catch (error) {
       console.error("[Cloudinary] Erro ao fazer upload da foto:", error);
+      errors.push(file.name || "arquivo-sem-nome");
     }
   }
 
-  return urls;
+  return { urls, errors };
 }
 
 /**
@@ -127,12 +146,24 @@ export async function uploadFiles(
   folder: string,
   numeroOs: string
 ): Promise<string[]> {
+  const report = await uploadFilesWithReport(files, folder, numeroOs);
+  return report.urls;
+}
 
+/**
+ * Igual a `uploadFiles`, mas informa quais arquivos falharam. O fluxo de OS
+ * externa usa o relatório para não declarar sucesso quando uma foto escolhida
+ * pelo técnico não foi enviada.
+ */
+export async function uploadFilesWithReport(
+  files: File[],
+  folder: string,
+  numeroOs: string
+): Promise<UploadReport> {
   if (STORAGE_PROVIDER === "cloudinary") {
     return uploadToCloudinary(files, folder, numeroOs);
-  } else {
-    return uploadToSupabase(files, folder, numeroOs);
   }
+  return uploadToSupabase(files, folder, numeroOs);
 }
 
 /**
@@ -146,12 +177,11 @@ export async function uploadFilesWithProvider(
   numeroOs: string,
   provider: StorageProvider
 ): Promise<string[]> {
-
-  if (provider === "cloudinary") {
-    return uploadToCloudinary(files, folder, numeroOs);
-  } else {
-    return uploadToSupabase(files, folder, numeroOs);
-  }
+  const report =
+    provider === "cloudinary"
+      ? await uploadToCloudinary(files, folder, numeroOs)
+      : await uploadToSupabase(files, folder, numeroOs);
+  return report.urls;
 }
 
 /**
@@ -219,8 +249,14 @@ async function uploadChadaToCloudinary(
       formData.append('folder', 'os-images');
       formData.append('fileName', fileName);
 
+      const token = await getFreshAccessToken();
+      if (!token) {
+        throw new Error("Sessão expirada ao enviar a foto.");
+      }
+
       const response = await fetch('/api/upload-cloudinary', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 

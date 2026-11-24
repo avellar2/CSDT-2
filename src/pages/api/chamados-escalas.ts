@@ -119,6 +119,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
+      // Idempotência do chamado automático: uma OS não solucionada gera
+      // exatamente um chamado de reagendamento, mesmo que o cliente reenvie
+      // a requisição após timeout ou renovação de sessão.
+      if (automatico && osOriginal) {
+        const existingAutomatic = await prisma.chamados_escalas.findFirst({
+          where: { osOriginal, automatico: true },
+          orderBy: { dataCriacao: "desc" },
+        });
+
+        if (existingAutomatic) {
+          return res.status(200).json({
+            success: true,
+            data: existingAutomatic,
+            deduplicated: true,
+            message: "Chamado automático já existente",
+          });
+        }
+      }
+
       const chamado = await prisma.chamados_escalas.create({
         data: {
           escola,

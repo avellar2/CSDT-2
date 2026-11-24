@@ -11,6 +11,7 @@ import {
 import Image from 'next/image';
 import axios from 'axios';
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 interface OS {
   id: number;
@@ -72,6 +73,7 @@ const OSDetail: React.FC = () => {
         try {
           const response = await axios.get(`/api/os/${id}`, {
             params: { status },
+            headers: getAuthHeaders(),
           });
 
           setOs(response.data);

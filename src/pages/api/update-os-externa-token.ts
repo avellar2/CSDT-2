@@ -1,9 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { NextApiRequest, NextApiResponse } from 'next';
+import { requireAuth } from "@/utils/api-auth";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Grava o token de confirmação da OS: exige operador autenticado.
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
@@ -20,6 +25,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!osExistente) {
       return res.status(404).json({ error: 'OS não encontrada' });
+    }
+
+    // Nunca sobrescreve o token de uma OS já assinada pela escola. Isso
+    // protege a assinatura caso o técnico tente retomar uma finalização
+    // antiga depois da confirmação.
+    if (osExistente.status && osExistente.status !== 'Pendente') {
+      return res.status(409).json({
+        error: 'Esta OS já foi assinada e não pode receber um novo token de confirmação.',
+      });
     }
 
     // Atualizar o token de confirmação

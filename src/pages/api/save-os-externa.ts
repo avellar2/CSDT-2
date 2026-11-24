@@ -108,6 +108,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? data
         : formatBrazilDateKey(new Date());
 
+    // Idempotência: duplo clique, timeout ou reenvio após renovação de sessão
+    // não podem gerar dois números de OS para o mesmo lançamento. Precisa vir
+    // antes das validações de demanda/escola, que podem mudar de estado logo
+    // após a primeira gravação. A janela curta cobre só retentativas.
+    if (unidadeEscolar) {
+      const duplicateWindowStart = new Date(Date.now() - 5 * 60 * 1000);
+      const existingOs = await prisma.oSExterna.findFirst({
+        where: {
+          unidadeEscolar,
+          data: osDateKey,
+          solicitacaoDaVisita: solicitacaoDaVisita ?? null,
+          relatorio: relatorio ?? null,
+          solucionado: solucionado ?? null,
+          createdAt: { gte: duplicateWindowStart },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (existingOs?.numeroOs) {
+        return res.status(200).json({
+          id: existingOs.id,
+          numeroOs: existingOs.numeroOs,
+          deduplicated: true,
+        });
+      }
+    }
+
     const dailyDemandId =
       context?.origin === "daily-demands" &&
       context?.dailyDemandId &&

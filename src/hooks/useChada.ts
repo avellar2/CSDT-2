@@ -331,7 +331,7 @@ export function useChada() {
   // Função para carregar diagnósticos
   const fetchDiagnostics = async () => {
     try {
-      const response = await fetch("/api/chada-diagnostics");
+      const response = await fetch("/api/chada-diagnostics", { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setDiagnostics(data);
@@ -346,7 +346,7 @@ export function useChada() {
   // Função para carregar impressoras
   const fetchPrinters = async () => {
     try {
-      const response = await fetch("/api/chada-diagnostics/printers");
+      const response = await fetch("/api/chada-diagnostics/printers", { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setPrinters(data);
@@ -359,7 +359,7 @@ export function useChada() {
   // Função para carregar setores
   const fetchSectors = async () => {
     try {
-      const response = await fetch("/api/chada-diagnostics/sectors");
+      const response = await fetch("/api/chada-diagnostics/sectors", { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setSectors(data);

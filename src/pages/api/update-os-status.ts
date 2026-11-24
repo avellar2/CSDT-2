@@ -3,12 +3,12 @@ import prisma from "@/utils/prisma";
 import { requireAuth } from "@/utils/api-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "PATCH") {
-    return res.status(405).json({ message: "Método não permitido" });
-  // Requer autenticação
+  // Autenticação antes do processamento (antes estava em código inacessível).
   const auth = await requireAuth(req, res);
   if (!auth) return;
 
+  if (req.method !== "PATCH") {
+    return res.status(405).json({ message: "Método não permitido" });
   }
 
   const { osId, status } = req.body;

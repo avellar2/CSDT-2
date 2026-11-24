@@ -1,15 +1,20 @@
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useRouter } from "next/router";
 import { PDFDocument, PDFCheckBox, PDFTextField } from "pdf-lib";
-import axios from "axios";
 import { supabase } from "@/lib/supabaseClient";
 import { useHeaderContext } from "@/context/HeaderContext";
-import { uploadFiles } from "@/utils/storageProvider";
+import { uploadFilesWithReport } from "@/utils/storageProvider";
 import { useMultiStepForm } from "@/hooks/useMultiStepForm";
 import { formSteps } from "@/utils/formSteps";
 import initialFormData from "@/utils/itens";
 import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
-import { getAuthHeaders } from "@/utils/client-auth";
+import {
+  AuthSessionError,
+  authedFetch,
+  describeRequestError,
+  getApiErrorMessage,
+  getFreshAccessToken,
+} from "@/utils/client-auth";
 
 export interface Escola {
   name: string;
@@ -96,6 +101,95 @@ export interface FormDataType {
   solucionado: string;
 }
 
+/** Etapas que, depois de salvar a OS, ainda precisam ser concluídas. */
+type FinalizationStage = "save" | "fotos" | "token" | "pdf" | "email" | "chamado";
+
+const STAGE_LABELS: Record<FinalizationStage, string> = {
+  save: "salvar a OS",
+  fotos: "enviar as fotos",
+  token: "gerar o token de confirmação",
+  pdf: "gerar o PDF",
+  email: "enviar o e-mail para a escola",
+  chamado: "criar o chamado de reagendamento",
+};
+
+const PENDING_FINALIZATION_KEY = "csdt:os-externa:finalizacao-pendente";
+const PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+interface PendingFinalization {
+  numeroOs: string;
+  stage: FinalizationStage;
+  at: number;
+  school: string;
+  date: string;
+  confirmToken?: string;
+  form?: Record<string, unknown>;
+}
+
+class FinalizationStageError extends Error {
+  readonly stage: FinalizationStage;
+
+  constructor(stage: FinalizationStage, message: string) {
+    super(message);
+    this.name = "FinalizationStageError";
+    this.stage = stage;
+  }
+}
+
+function serializeFormDraft(data: FormDataType): Record<string, unknown> {
+  const draft: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (key === "fotosAntes" || key === "fotosDepois") {
+      draft[key] = Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === "string")
+        : [];
+      continue;
+    }
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      draft[key] = value;
+    }
+  }
+  return draft;
+}
+
+function readPendingFinalization(): PendingFinalization | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PENDING_FINALIZATION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PendingFinalization;
+    if (!parsed?.numeroOs || Date.now() - Number(parsed.at || 0) > PENDING_MAX_AGE_MS) {
+      localStorage.removeItem(PENDING_FINALIZATION_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingFinalization(pending: PendingFinalization): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(PENDING_FINALIZATION_KEY, JSON.stringify(pending));
+  } catch {
+    // Sem localStorage não é possível retomar; o erro na tela continua claro.
+  }
+}
+
+function clearPendingFinalization(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(PENDING_FINALIZATION_KEY);
+  } catch {
+    // ignora
+  }
+}
+
 export function useFillPdfForm() {
   const { userName } = useHeaderContext();
   const router = useRouter();
@@ -166,6 +260,15 @@ export function useFillPdfForm() {
   const [isDirty, setIsDirty] = useState(false);
   const [progress, setProgress] = useState(0);
   const [scrollY, setScrollY] = useState(0);
+  const [pendingResume, setPendingResume] = useState<{
+    numeroOs: string;
+    stage: FinalizationStage;
+    school: string;
+    date: string;
+    confirmToken?: string;
+  } | null>(null);
+  const submittingRef = useRef(false);
+  const sessionNoticeShownRef = useRef(false);
 
   const {
     currentStep, totalSteps, completedSteps, goToStep, nextStep, previousStep,
@@ -176,6 +279,72 @@ export function useFillPdfForm() {
     setShowToast({ message, type });
     setTimeout(() => setShowToast(null), 4000);
   };
+
+  /**
+   * Mostra uma única vez o aviso de sessão, sem derrubar o formulário.
+   * Preservar a tela é parte da correção: o técnico não perde o que digitou
+   * em Android/iOS quando a sessão vence.
+   */
+  const notifySessionProblem = (error: unknown): boolean => {
+    if (!(error instanceof AuthSessionError)) return false;
+    if (!sessionNoticeShownRef.current) {
+      sessionNoticeShownRef.current = true;
+      setAlertDialog({
+        title: error.reason === "missing" ? "Sessão necessária" : "Sessão expirada",
+        description: error.message,
+        success: false,
+      });
+      // Permite avisar de novo depois que o usuário fechar o diálogo.
+      setTimeout(() => {
+        sessionNoticeShownRef.current = false;
+      }, 5000);
+    }
+    return true;
+  };
+
+  const getOsDateKey = () => {
+    const demandDateQuery =
+      router.query.origin === "daily-demands" && typeof router.query.demandDate === "string"
+        ? router.query.demandDate
+        : null;
+    return demandDateQuery && /^\d{4}-\d{2}-\d{2}$/.test(demandDateQuery)
+      ? demandDateQuery
+      : formatBrazilDateKey(new Date());
+  };
+
+  // Recupera uma OS que foi salva mas cuja finalização (fotos/token/PDF/e-mail)
+  // não terminou. O número existente é reutilizado — nunca se cria outro.
+  useEffect(() => {
+    const pending = readPendingFinalization();
+    if (!pending) return;
+
+    setPendingResume({
+      numeroOs: pending.numeroOs,
+      stage: pending.stage,
+      school: pending.school,
+      date: pending.date,
+      confirmToken: pending.confirmToken,
+    });
+    setOsNumero(pending.numeroOs);
+
+    if (pending.form) {
+      setFormData((prev) => ({
+        ...prev,
+        ...pending.form,
+        // File objects não são serializáveis; fotos já enviadas voltam como URL.
+        fotosAntes: prev.fotosAntes.length ? prev.fotosAntes : ((pending.form?.fotosAntes as string[]) || []),
+        fotosDepois: prev.fotosDepois.length ? prev.fotosDepois : ((pending.form?.fotosDepois as string[]) || []),
+      }));
+    }
+
+    setAlertDialog({
+      title: "Finalização pendente",
+      description: `A OS ${pending.numeroOs} já foi salva, mas a etapa "${STAGE_LABELS[pending.stage] || pending.stage}" não foi concluída. Os dados foram recuperados. Ao finalizar novamente, o mesmo número de OS será reaproveitado${
+        pending.stage === "fotos" ? ". Reenvie as fotos antes de finalizar" : ""
+      }. Não altere os dados já salvos; se precisar corrigir, edite a OS pela lista.`,
+      success: false,
+    });
+  }, []);
 
   // Pre-fill form from URL parameters
   useEffect(() => {
@@ -207,11 +376,12 @@ export function useFillPdfForm() {
           typeof demandId === "string" && demandId
             ? `&demandId=${encodeURIComponent(demandId)}`
             : "";
-        const response = await fetch(`/api/daily-demands/os-availability?date=${encodeURIComponent(demandDate)}${demandIdParam}`);
-        const data = await response.json();
+        const response = await authedFetch(`/api/daily-demands/os-availability?date=${encodeURIComponent(demandDate)}${demandIdParam}`);
+        const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Erro ao validar disponibilidade da OS");
         setDailyDemandAvailability(data);
       } catch (availabilityError) {
+        notifySessionProblem(availabilityError);
         setDailyDemandAvailability({
           allowed: false,
           reason: availabilityError instanceof Error ? availabilityError.message : "Erro ao validar disponibilidade da OS",
@@ -269,12 +439,26 @@ export function useFillPdfForm() {
   useEffect(() => {
     const fetchEscolas = async () => {
       try {
-        const response = await fetch("/api/schools");
-        const data = await response.json();
+        const response = await authedFetch("/api/schools");
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(
+            (data && typeof data.error === "string" && data.error) ||
+              "Erro ao carregar escolas."
+          );
+        }
+        if (!Array.isArray(data)) {
+          throw new Error("Resposta inválida ao carregar escolas.");
+        }
         setEscolas(data);
         showToastMessage("Escolas carregadas com sucesso!", "success");
-      } catch {
-        showToastMessage("Erro ao carregar escolas. Tente novamente.", "error");
+      } catch (error) {
+        if (!notifySessionProblem(error)) {
+          showToastMessage(
+            describeRequestError(error, "Erro ao carregar escolas. Tente novamente."),
+            "error"
+          );
+        }
       }
     };
     fetchEscolas();
@@ -320,11 +504,13 @@ export function useFillPdfForm() {
     const selectedSchoolName = selectedOption.value as string;
     const selectedEscola = escolas.find((escola) => escola.name === selectedSchoolName);
 
-    if (router.query.origin !== "daily-demands" && localUserId) {
+    if (router.query.origin !== "daily-demands") {
       try {
         setIsCheckingSchoolPendingAvailability(true);
-        const response = await fetch(`/api/daily-demands/school-os-availability?userId=${encodeURIComponent(localUserId)}&schoolName=${encodeURIComponent(selectedSchoolName)}`);
-        const data = await response.json();
+        const response = await authedFetch(
+          `/api/daily-demands/school-os-availability?schoolName=${encodeURIComponent(selectedSchoolName)}`
+        );
+        const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Erro ao validar pendencia da escola");
         setSchoolPendingAvailability(data);
         if (data.applies && data.availability && !data.availability.allowed) {
@@ -333,7 +519,12 @@ export function useFillPdfForm() {
           return;
         }
       } catch (error) {
-        setAlertDialog({ title: "Erro ao validar escola", description: "Erro ao validar a escola selecionada.", success: false });
+        if (notifySessionProblem(error)) return;
+        setAlertDialog({
+          title: "Erro ao validar escola",
+          description: `${describeRequestError(error, "Erro ao validar a escola selecionada.")} A escola não foi selecionada; tente novamente.`,
+          success: false,
+        });
         return;
       } finally {
         setIsCheckingSchoolPendingAvailability(false);
@@ -346,25 +537,28 @@ export function useFillPdfForm() {
 
   useEffect(() => {
     const fetchSchoolPendingAvailability = async () => {
-      if (!router.isReady || router.query.origin === "daily-demands" || !localUserId || !formData.unidadeEscolar) {
+      if (!router.isReady || router.query.origin === "daily-demands" || !formData.unidadeEscolar) {
         setSchoolPendingAvailability(null);
         setIsCheckingSchoolPendingAvailability(false);
         return;
       }
       try {
         setIsCheckingSchoolPendingAvailability(true);
-        const response = await fetch(`/api/daily-demands/school-os-availability?userId=${encodeURIComponent(localUserId)}&schoolName=${encodeURIComponent(formData.unidadeEscolar)}`);
-        const data = await response.json();
+        const response = await authedFetch(
+          `/api/daily-demands/school-os-availability?schoolName=${encodeURIComponent(formData.unidadeEscolar)}`
+        );
+        const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Erro ao validar pendencia da escola");
         setSchoolPendingAvailability(data);
-      } catch {
+      } catch (error) {
+        notifySessionProblem(error);
         setSchoolPendingAvailability(null);
       } finally {
         setIsCheckingSchoolPendingAvailability(false);
       }
     };
     fetchSchoolPendingAvailability();
-  }, [router.isReady, router.query.origin, localUserId, formData.unidadeEscolar]);
+  }, [router.isReady, router.query.origin, formData.unidadeEscolar]);
 
   const handleNext = () => {
     if (canProceedToStep(currentStep + 1, formData)) {
@@ -475,6 +669,8 @@ export function useFillPdfForm() {
     reset();
     setIsDirty(false);
     setProgress(0);
+    clearPendingFinalization();
+    setPendingResume(null);
     showToastMessage("Formulario limpo com sucesso!", "info");
   };
 
@@ -482,14 +678,7 @@ export function useFillPdfForm() {
     const currentDate = new Date();
     // OS lançada a partir de uma demanda usa a data operacional dela; o
     // backend rejeita qualquer divergência entre demanda e OS.
-    const demandDateQuery =
-      router.query.origin === "daily-demands" && typeof router.query.demandDate === "string"
-        ? router.query.demandDate
-        : null;
-    const osDateKey =
-      demandDateQuery && /^\d{4}-\d{2}-\d{2}$/.test(demandDateQuery)
-        ? demandDateQuery
-        : formatBrazilDateKey(currentDate);
+    const osDateKey = getOsDateKey();
     const updatedData = {
       ...data,
       // Data operacional em America/Sao_Paulo (o ISO/UTC adiantava o dia
@@ -497,19 +686,32 @@ export function useFillPdfForm() {
       data: osDateKey,
       hora: new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Sao_Paulo" }).format(currentDate),
     };
-    const response = await fetch("/api/save-os-externa", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        formData: updatedData,
-        context: router.query.origin === "daily-demands"
-          ? { origin: "daily-demands", dailyDemandId: router.query.demandId, dailyDemandDate: router.query.demandDate, userId: localUserId }
-          : { userId: localUserId },
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok || !result.id) throw new Error(result.error || "Erro ao salvar os dados");
-    return { ...updatedData, numeroOs: `${result.id}/${currentDate.getFullYear()}` };
+    const response = await authedFetch(
+      "/api/save-os-externa",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formData: updatedData,
+          context: router.query.origin === "daily-demands"
+            ? { origin: "daily-demands", dailyDemandId: router.query.demandId, dailyDemandDate: router.query.demandDate, userId: localUserId }
+            : { userId: localUserId },
+        }),
+      },
+      // O endpoint autentica antes de gravar: um 401 não gerou efeito.
+      { retryOn401: true }
+    );
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.id) {
+      throw new Error(result.error || "Erro ao salvar a OS.");
+    }
+    return {
+      ...updatedData,
+      numeroOs:
+        typeof result.numeroOs === "string" && result.numeroOs
+          ? result.numeroOs
+          : `${result.id}/${currentDate.getFullYear()}`,
+    };
   };
 
   const criarChamadoAutomatico = async (osData: any) => {
@@ -520,14 +722,41 @@ export function useFillPdfForm() {
         descricao: `Problema nao solucionado na OS ${osData.numeroOs}. Solicitacao original: ${osData.solicitacaoDaVisita}. Relatorio: ${osData.relatorio}`,
         categoria: "Reagendamento", tecnico: osData.tecnicoResponsavel, osOriginal: osData.numeroOs, automatico: true,
       };
-      const response = await fetch("/api/chamados-escalas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(chamadoAutomatico) });
+      const response = await authedFetch(
+        "/api/chamados-escalas",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(chamadoAutomatico),
+        },
+        // O endpoint autentica antes de gravar e deduplica chamados automáticos.
+        { retryOn401: true }
+      );
       if (!response.ok) throw new Error("Erro ao criar chamado automatico");
     } catch {
       showToastMessage("Aviso: Erro ao criar chamado automatico", "warning");
     }
   };
 
+  const markPendingFinalization = (
+    numeroOs: string,
+    stage: FinalizationStage,
+    data: FormDataType,
+    confirmToken?: string
+  ) => {
+    writePendingFinalization({
+      numeroOs,
+      stage,
+      at: Date.now(),
+      school: String(data.unidadeEscolar || ""),
+      date: getOsDateKey(),
+      confirmToken,
+      form: serializeFormDraft(data),
+    });
+  };
+
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     if (!canProceedToStep(currentStep, formData)) {
       showToastMessage("Preencha todos os campos obrigatorios antes de finalizar.", "warning");
       return;
@@ -544,32 +773,147 @@ export function useFillPdfForm() {
       }
     }
 
+    // Retomada só vale para a mesma escola/data da OS já salva. Se o técnico
+    // começou outro lançamento, o pendente antigo é descartado.
+    const currentDateKey = getOsDateKey();
+    const resumeMatches =
+      !!pendingResume &&
+      pendingResume.school === String(formData.unidadeEscolar || "") &&
+      pendingResume.date === currentDateKey;
+
+    if (pendingResume && !resumeMatches) {
+      clearPendingFinalization();
+      setPendingResume(null);
+    }
+
+    submittingRef.current = true;
+    sessionNoticeShownRef.current = false;
     setLoading(true);
+
+    let numeroOs: string | null = resumeMatches ? pendingResume!.numeroOs : null;
+    let stage: FinalizationStage = resumeMatches ? pendingResume!.stage : "save";
+
     try {
-      const updatedDataFromDb = await saveDataAndGetNumeroOs(formData);
-      if (!updatedDataFromDb.numeroOs) throw new Error("Numero da OS nao foi gerado corretamente.");
+      let finalData: FormDataType;
 
-      const fotosAntesUrls = await uploadFiles(formData.fotosAntes as File[], "fotos-antes", updatedDataFromDb.numeroOs);
-      const fotosDepoisUrls = await uploadFiles(formData.fotosDepois as File[], "fotos-depois", updatedDataFromDb.numeroOs);
+      if (numeroOs) {
+        // Não chama save-os-externa de novo: o número existente é reaproveitado.
+        finalData = { ...formData, numeroOs, data: currentDateKey };
+        setOsNumero(numeroOs);
+      } else {
+        stage = "save";
+        finalData = await saveDataAndGetNumeroOs(formData);
+        if (!finalData.numeroOs) throw new Error("Numero da OS nao foi gerado corretamente.");
+        numeroOs = finalData.numeroOs;
+        // Mostra o número imediatamente: se uma etapa seguinte falhar, o
+        // técnico já sabe qual OS foi salva.
+        setOsNumero(numeroOs);
+        markPendingFinalization(numeroOs, "fotos", finalData);
+      }
 
-      const updateResponse = await fetch("/api/update-os-externa-fotos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numeroOs: updatedDataFromDb.numeroOs, fotosAntes: fotosAntesUrls, fotosDepois: fotosDepoisUrls }),
-      });
-      if (!updateResponse.ok) throw new Error("Erro ao atualizar fotos no banco de dados");
+      stage = "fotos";
+      const fotosAntesReport = await uploadFilesWithReport(
+        (formData.fotosAntes as File[]).filter((file) => typeof file !== "string"),
+        "fotos-antes",
+        numeroOs
+      );
+      const fotosDepoisReport = await uploadFilesWithReport(
+        (formData.fotosDepois as File[]).filter((file) => typeof file !== "string"),
+        "fotos-depois",
+        numeroOs
+      );
 
-      const { v4: uuidv4 } = await import("uuid");
-      const confirmToken = uuidv4();
+      if (fotosAntesReport.errors.length || fotosDepoisReport.errors.length) {
+        const failures = fotosAntesReport.errors.length + fotosDepoisReport.errors.length;
+        throw new FinalizationStageError(
+          "fotos",
+          `Não foi possível enviar ${failures} foto(s). Remova a foto com problema ou tente novamente.`
+        );
+      }
 
-      const tokenResponse = await fetch("/api/update-os-externa-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numeroOs: updatedDataFromDb.numeroOs, assinado: confirmToken }),
-      });
-      if (!tokenResponse.ok) throw new Error("Erro ao salvar token de confirmacao");
+      // Preserva as URLs já existentes (retomada) e anexa as novas.
+      const fotosAntesUrls = [
+        ...(formData.fotosAntes as (File | string)[]).filter((item): item is string => typeof item === "string"),
+        ...fotosAntesReport.urls,
+      ];
+      const fotosDepoisUrls = [
+        ...(formData.fotosDepois as (File | string)[]).filter((item): item is string => typeof item === "string"),
+        ...fotosDepoisReport.urls,
+      ];
 
-      const finalUpdatedData = { ...updatedDataFromDb, fotosAntes: fotosAntesUrls, fotosDepois: fotosDepoisUrls };
+      markPendingFinalization(
+        numeroOs,
+        "fotos",
+        {
+          ...finalData,
+          fotosAntes: fotosAntesUrls,
+          fotosDepois: fotosDepoisUrls,
+        },
+        resumeMatches ? pendingResume?.confirmToken : undefined
+      );
+
+      const updateResponse = await authedFetch(
+        "/api/update-os-externa-fotos",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ numeroOs, fotosAntes: fotosAntesUrls, fotosDepois: fotosDepoisUrls }),
+        },
+        { retryOn401: true }
+      );
+      if (!updateResponse.ok) {
+        throw new FinalizationStageError(
+          "fotos",
+          await getApiErrorMessage(updateResponse, "Erro ao gravar as fotos no banco de dados.")
+        );
+      }
+
+      stage = "token";
+      const finalDataWithPhotos = {
+        ...finalData,
+        fotosAntes: fotosAntesUrls,
+        fotosDepois: fotosDepoisUrls,
+      };
+
+      // Reutiliza o token já persistido numa tentativa anterior: se o e-mail
+      // chegou a sair, o link recebido pela escola continua válido.
+      const confirmToken =
+        (resumeMatches && pendingResume?.confirmToken) ||
+        (await import("uuid")).v4();
+
+      markPendingFinalization(numeroOs, "token", finalDataWithPhotos, confirmToken);
+
+      // Ao retomar a partir da etapa de e-mail, o token já está gravado no
+      // banco (a etapa anterior só concluiu depois do 200). Não regrava para
+      // não conflitar com uma OS que a escola já tenha assinado.
+      const tokenAlreadyStored =
+        resumeMatches &&
+        pendingResume?.stage === "email" &&
+        !!pendingResume?.confirmToken;
+
+      if (!tokenAlreadyStored) {
+        const tokenResponse = await authedFetch(
+          "/api/update-os-externa-token",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ numeroOs, assinado: confirmToken }),
+          },
+          { retryOn401: true }
+        );
+        if (!tokenResponse.ok) {
+          throw new FinalizationStageError(
+            "token",
+            await getApiErrorMessage(tokenResponse, "Erro ao salvar o token de confirmacao.")
+          );
+        }
+      }
+
+      stage = "pdf";
+      const finalUpdatedData = {
+        ...finalDataWithPhotos,
+        numeroOs,
+      };
       const pdfBase64 = await generatePdfBytes(finalUpdatedData);
 
       const getBaseUrl = () => {
@@ -592,28 +936,75 @@ export function useFillPdfForm() {
         subject: `OS Externa ${finalUpdatedData.numeroOs} - ${finalUpdatedData.unidadeEscolar}`,
         html: buildEmailHtml(finalUpdatedData, confirmUrl),
         attachments: [{ content: pdfBase64, filename: `OS-Externa-${finalUpdatedData.numeroOs}.pdf`, contentType: "application/pdf", encoding: "base64" }],
+        // Permite ao backend não duplicar o e-mail em retentativas.
+        osExternaNumero: finalUpdatedData.numeroOs,
       };
 
-      const emailResponse = await fetch("/api/send-email", { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(msg) });
-      if (!emailResponse.ok) throw new Error("Erro ao enviar e-mail");
+      stage = "email";
+      markPendingFinalization(numeroOs, "email", finalUpdatedData, confirmToken);
 
-      setOsNumero(updatedDataFromDb.numeroOs);
-      setChamadoData((prev) => ({ ...prev, escola: updatedDataFromDb.unidadeEscolar || "" }));
+      const emailResponse = await authedFetch(
+        "/api/send-email",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(msg),
+        },
+        // send-email autentica antes de enviar; um 401 não disparou e-mail.
+        { retryOn401: true }
+      );
+      if (!emailResponse.ok) {
+        throw new FinalizationStageError(
+          "email",
+          await getApiErrorMessage(emailResponse, "Erro ao enviar o e-mail para a escola.")
+        );
+      }
+
+      // A OS foi entregue; não há mais o que retomar com o mesmo número.
+      clearPendingFinalization();
+      setPendingResume(null);
+      setChamadoData((prev) => ({ ...prev, escola: finalUpdatedData.unidadeEscolar || "" }));
 
       const problemaResolvido = formData.solucionado === "Sim";
       clearForm();
 
       if (!problemaResolvido) {
-        await criarChamadoAutomatico(updatedDataFromDb);
-        setAlertDialog({ title: "Sucesso", description: `OS Externa ${updatedDataFromDb.numeroOs} enviada por e-mail para ${updatedDataFromDb.unidadeEscolar}! Como o problema nao foi solucionado, um chamado foi criado automaticamente para reagendamento.`, success: true });
+        await criarChamadoAutomatico(finalUpdatedData);
+        setAlertDialog({ title: "Sucesso", description: `OS Externa ${finalUpdatedData.numeroOs} enviada por e-mail para ${finalUpdatedData.unidadeEscolar}! Como o problema nao foi solucionado, um chamado foi criado automaticamente para reagendamento.`, success: true });
       } else {
-        setAlertDialog({ title: "Sucesso", description: `OS Externa ${updatedDataFromDb.numeroOs} enviada por e-mail para ${updatedDataFromDb.unidadeEscolar}! O responsavel recebera um e-mail para confirmacao.`, success: true });
+        setAlertDialog({ title: "Sucesso", description: `OS Externa ${finalUpdatedData.numeroOs} enviada por e-mail para ${finalUpdatedData.unidadeEscolar}! O responsavel recebera um e-mail para confirmacao.`, success: true });
         setTimeout(() => { setAlertDialog(null); setShowChamadoModal(true); }, 2000);
       }
-    } catch {
-      showToastMessage("Erro ao processar a OS. Tente novamente.", "error");
-      setAlertDialog({ title: "Erro", description: "Erro ao enviar o formulario. Por favor, tente novamente.", success: false });
+    } catch (error) {
+      const message = describeRequestError(error, "Erro ao processar a OS.");
+      const failedStage =
+        error instanceof FinalizationStageError ? error.stage : stage;
+
+      if (error instanceof AuthSessionError) {
+        setAlertDialog({
+          title: error.reason === "missing" ? "Sessão necessária" : "Sessão expirada",
+          description: `${error.message}${
+            numeroOs
+              ? ` A OS ${numeroOs} já foi salva; a etapa "${STAGE_LABELS[failedStage]}" não foi concluída e poderá ser retomada.`
+              : ""
+          }`,
+          success: false,
+        });
+      } else if (numeroOs) {
+        setAlertDialog({
+          title: "OS salva, finalização pendente",
+          description: `A OS ${numeroOs} foi salva, mas a etapa "${STAGE_LABELS[failedStage]}" não foi concluída: ${message} Os dados foram preservados nesta tela. Ao tentar novamente, o mesmo número de OS será reaproveitado.`,
+          success: false,
+        });
+      } else {
+        setAlertDialog({
+          title: "Erro ao salvar a OS",
+          description: `${message} Os dados preenchidos foram preservados nesta tela.`,
+          success: false,
+        });
+      }
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -621,22 +1012,24 @@ export function useFillPdfForm() {
   const fetchTecnicoName = async () => {
     try {
       setIsLoadingTecnico(true);
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) { setLocalTecnicoName(""); setIsLoadingTecnico(false); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (!user) { setLocalTecnicoName(""); setIsLoadingTecnico(false); return; }
       setLocalUserId(user.id);
-      const token = localStorage.getItem("token");
+
+      const fallback = user.email?.split("@")[0] || "Tecnico";
+      const token = await getFreshAccessToken();
       if (token) {
-        const response = await axios.get("/api/user-profile", { headers: { Authorization: `Bearer ${token}` } });
-        if (response.data && response.data.displayName) {
-          setLocalTecnicoName(response.data.displayName);
-          setFormData((prev) => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, response.data.displayName) }));
+        const response = await authedFetch("/api/user-profile");
+        const profile = response.ok ? await response.json().catch(() => null) : null;
+        if (profile && profile.displayName) {
+          setLocalTecnicoName(profile.displayName);
+          setFormData((prev) => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, profile.displayName) }));
         } else {
-          const fallback = user.email?.split("@")[0] || "Tecnico";
           setLocalTecnicoName(fallback);
           setFormData((prev) => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, fallback) }));
         }
       } else {
-        const fallback = user.email?.split("@")[0] || "Tecnico";
         setLocalTecnicoName(fallback);
         setFormData((prev) => ({ ...prev, tecnicoResponsavel: preservePartnerSuffix(prev.tecnicoResponsavel, fallback) }));
       }
@@ -666,7 +1059,15 @@ export function useFillPdfForm() {
         escola: chamadoData.escola, titulo: chamadoData.titulo, descricao: chamadoData.descricao,
         categoria: chamadoData.categoria, tecnico: localTecnicoName, osOriginal: osNumero, automatico: false,
       };
-      const response = await fetch("/api/chamados-escalas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(chamadoManual) });
+      const response = await authedFetch(
+        "/api/chamados-escalas",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(chamadoManual),
+        },
+        { retryOn401: true }
+      );
       if (!response.ok) throw new Error("Erro ao criar chamado");
       showToastMessage("Chamado criado com sucesso!", "success");
       setShowChamadoModal(false);

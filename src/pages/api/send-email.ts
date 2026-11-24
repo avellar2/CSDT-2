@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { requireRole, AUTH_ROLES } from "@/utils/api-auth";
 import { sendMail, MailConfigurationError } from "@/utils/mailer";
+import prisma from "@/utils/prisma";
 
 /**
  * Endpoint genérico de e-mail usado pelos fluxos de OS e chamados.
@@ -41,6 +42,15 @@ export default async function handler(
   if (!auth) return;
 
   const { to, cc, replyTo, subject, text, html, attachments } = req.body ?? {};
+  const osExternaNumero =
+    typeof req.body?.osExternaNumero === "string" && req.body.osExternaNumero.trim()
+      ? req.body.osExternaNumero.trim()
+      : null;
+
+  // Idempotência do e-mail da OS: se o envio anterior foi concluído hoje, um
+  // retry (duplo clique, timeout, renovação de sessão) não dispara outro
+  // e-mail nem duplica o histórico de envio.
+  let osExterna: { id: number; lastEmailSent: Date | null } | null = null;
 
   if (!isValidRecipient(to)) {
     return res.status(400).json({ error: "Destinatário inválido." });
@@ -86,6 +96,31 @@ export default async function handler(
     }
   }
 
+  if (osExternaNumero) {
+    try {
+      osExterna = await prisma.oSExterna.findUnique({
+        where: { numeroOs: osExternaNumero },
+        select: { id: true, lastEmailSent: true },
+      });
+
+      if (osExterna?.lastEmailSent) {
+        const lastSent = new Date(osExterna.lastEmailSent);
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        if (lastSent >= startOfToday) {
+          return res.status(200).json({
+            message: "Email ja enviado hoje para esta OS.",
+            deduplicated: true,
+          });
+        }
+      }
+    } catch (lookupError) {
+      // Não bloqueia o envio por falha na checagem de idempotência.
+      console.error("Falha ao verificar envio anterior da OS:", lookupError);
+      osExterna = null;
+    }
+  }
+
   try {
     const result = await sendMail({
       to: to.trim(),
@@ -99,6 +134,17 @@ export default async function handler(
         ? normalizedAttachments
         : undefined,
     });
+
+    if (osExterna) {
+      try {
+        await prisma.oSExterna.update({
+          where: { id: osExterna.id },
+          data: { lastEmailSent: new Date() },
+        });
+      } catch (markError) {
+        console.error("Falha ao registrar envio de e-mail da OS:", markError);
+      }
+    }
 
     res.status(200).json({
       message: "Email enviado com sucesso!",

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Phone, Building2, AlertTriangle } from 'lucide-react';
+import { getAuthHeaders } from '@/utils/client-auth';
 
 interface School {
   id: number;
@@ -45,7 +46,7 @@ const NovoChamadoModal: React.FC<NovoChamadoModalProps> = ({
 
   const fetchSchools = async () => {
     try {
-      const response = await fetch('/api/schools');
+      const response = await fetch('/api/schools', { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setSchools(data.schools || []);

@@ -21,6 +21,7 @@ import {
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 interface School {
   id: number;
@@ -154,7 +155,7 @@ const SchoolsPage: React.FC = () => {
     // Função para buscar os dados das escolas do banco de dados
     const fetchSchools = async () => {
       try {
-        const response = await axios.get('/api/schools');
+        const response = await axios.get('/api/schools', { headers: getAuthHeaders() });
         const data = await response.data;
         if (Array.isArray(data)) {
           setSchools(data);

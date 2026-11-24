@@ -1,5 +1,7 @@
 import { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
+import { useEffect } from 'react';
+import { startAuthTokenSync } from '@/utils/client-auth';
 import { HeaderProvider } from '../context/HeaderContext';
 import { PrinterNotificationProvider } from '../context/PrinterNotificationContext';
 import { Header } from '../components/Header';
@@ -17,6 +19,12 @@ function MyApp({ Component, pageProps }: AppProps) {
   const isConfirmarOsPage = pathname === '/confirmar-os-externa';
   // A pesquisa pública é acessada por link, sem login e sem o chrome do sistema.
   const isPublicSurveyPage = pathname.startsWith('/pesquisa');
+
+  // Mantém o token espelhado alinhado à sessão do Supabase, inclusive após
+  // renovações em segundo plano (essencial em Android/iOS).
+  useEffect(() => {
+    startAuthTokenSync();
+  }, []);
 
   return (
     <ThemeProvider attribute={'class'} defaultTheme='system' enableSystem disableTransitionOnChange>

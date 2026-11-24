@@ -2,6 +2,7 @@ import React from "react";
 import Select from "react-select";
 import { Printer, AlertCircle } from "lucide-react";
 import type { ChadaStatus } from "@/hooks/useChada";
+import { getAuthHeaders } from "@/utils/client-auth";
 
 interface ChadaModalsProps {
   // Add to Chada modal
@@ -153,13 +154,13 @@ const ChadaModals: React.FC<ChadaModalsProps> = ({
     try {
       const response = await fetch("/api/update-item-status", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(body),
       });
 
       if (response.ok) {
         alert('Status atualizado com sucesso!');
-        const updatedItems = await fetch("/api/chada-items?" + new Date().getTime()).then((res) => res.json());
+        const updatedItems = await fetch("/api/chada-items?" + new Date().getTime(), { headers: getAuthHeaders() }).then((res) => res.json());
         setItems(updatedItems);
         setTimeout(() => { setItems((prev: any) => [...updatedItems]); }, 100);
       } else {

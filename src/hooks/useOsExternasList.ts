@@ -353,7 +353,7 @@ export function useOsExternasList() {
       setResendingEmail(os.id);
       const response = await fetch("/api/resend-os-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ osId: os.id, unidadeEscolar: os.unidadeEscolar, emailResponsavel: os.emailResponsavel, numeroOs: os.numeroOs }),
       });
       if (response.ok) {
