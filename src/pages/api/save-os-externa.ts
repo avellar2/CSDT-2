@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { assessDailyDemandOsAvailability, formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
 import { getSchoolPendingDailyDemandAvailability } from "@/utils/schoolPendingDailyDemandAvailability";
-import { requireAuth } from "@/utils/api-auth";
+import { requireAuth, type AuthUser } from "@/utils/api-auth";
 import { authorizeOsExterna } from "@/utils/osExternaAuthorization";
 import {
   claimOsExternaSubmission,
@@ -136,6 +136,44 @@ async function respondWithExistingOs(params: {
     numeroOs: existing.numeroOs,
     status: existing.status,
     deduplicated: true,
+  });
+}
+
+async function findRecentOwnLaunch(params: {
+  auth: AuthUser;
+  unidadeEscolar: string;
+  osDateKey: string;
+  payload: {
+    solicitacaoDaVisita: string | null;
+    relatorio: string | null;
+    solucionado: string | null;
+  };
+}): Promise<ExistingOsForRetry | null> {
+  const identityFilter =
+    params.auth.profile.role === "TECH"
+      ? {
+          OR: [
+            { tecnicoResponsavel: params.auth.profile.displayName },
+            {
+              tecnicoResponsavel: {
+                startsWith: `${params.auth.profile.displayName} / `,
+              },
+            },
+          ],
+        }
+      : {};
+
+  return prisma.oSExterna.findFirst({
+    where: {
+      unidadeEscolar: params.unidadeEscolar,
+      data: params.osDateKey,
+      solicitacaoDaVisita: params.payload.solicitacaoDaVisita,
+      relatorio: params.payload.relatorio,
+      solucionado: params.payload.solucionado,
+      createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) },
+      ...identityFilter,
+    },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -290,6 +328,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Fallback para cliente antigo (sem clientRequestId) ou tabela de
+    // idempotência ainda não migrada. É escopado pela identidade autenticada
+    // e valida payload, demanda, rota e permissão antes de devolver a OS —
+    // por isso pode resolver a retomada antes da checagem de disponibilidade,
+    // que muda justamente após a primeira gravação.
+    if (!claimedRequestId && unidadeEscolar) {
+      const existingLaunch = await findRecentOwnLaunch({
+        auth,
+        unidadeEscolar: String(unidadeEscolar),
+        osDateKey,
+        payload: {
+          solicitacaoDaVisita: solicitacaoDaVisita ?? null,
+          relatorio: relatorio ?? null,
+          solucionado: solucionado ?? null,
+        },
+      });
+
+      if (existingLaunch) {
+        await respondWithExistingOs({
+          res,
+          auth,
+          existing: existingLaunch,
+          unidadeEscolar,
+          osDateKey,
+          payload: {
+            solicitacaoDaVisita: solicitacaoDaVisita ?? null,
+            relatorio: relatorio ?? null,
+            solucionado: solucionado ?? null,
+          },
+          context,
+          dailyDemandId,
+        });
+        return;
+      }
+    }
+
     let routeId: number | null = null;
     let demandRouteId: number | null = null;
     let demandDateKey: string | null = null;
@@ -390,36 +464,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? fotosDepois.map((file) => (typeof file === "string" ? file : file.url || ""))
       : [];
 
-    // Fallback para clientes antigos (sem clientRequestId) ou enquanto a
-    // migração de idempotência não estiver aplicada. Roda DEPOIS das
-    // validações e é escopado pela identidade autenticada do técnico.
+    // Segunda chance após as validações: cobre requisições concorrentes de
+    // clientes antigos que passaram pela primeira consulta ao mesmo tempo.
     if (!claimedRequestId && unidadeEscolar) {
-      const duplicateWindowStart = new Date(Date.now() - 5 * 60 * 1000);
-      const identityFilter =
-        auth.profile.role === "TECH"
-          ? {
-              OR: [
-                { tecnicoResponsavel: auth.profile.displayName },
-                {
-                  tecnicoResponsavel: {
-                    startsWith: `${auth.profile.displayName} / `,
-                  },
-                },
-              ],
-            }
-          : {};
-
-      const existingOs = await prisma.oSExterna.findFirst({
-        where: {
-          unidadeEscolar,
-          data: osDateKey,
+      const existingOs = await findRecentOwnLaunch({
+        auth,
+        unidadeEscolar: String(unidadeEscolar),
+        osDateKey,
+        payload: {
           solicitacaoDaVisita: solicitacaoDaVisita ?? null,
           relatorio: relatorio ?? null,
           solucionado: solucionado ?? null,
-          createdAt: { gte: duplicateWindowStart },
-          ...identityFilter,
         },
-        orderBy: { createdAt: "desc" },
       });
 
       if (existingOs) {
