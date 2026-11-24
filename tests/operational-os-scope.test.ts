@@ -84,8 +84,11 @@ import pendingDemandsHandler from "@/pages/api/pending-daily-demands";
 import pendingOsHandler from "@/pages/api/dashboard/pending-os";
 import dailyDemandsCountHandler from "@/pages/api/dashboard/daily-demands-count";
 import { getPendingDailyDemandItems } from "@/utils/pendingDailyDemandOs";
+import { formatBrazilDateKey } from "@/utils/dailyDemandOsRules";
 
-const TODAY = "2026-11-06";
+// O handler de contadores usa o dia corrente em America/Sao_Paulo. Fixar a
+// data no teste fazia a suíte quebrar assim que o calendário avançava.
+const TODAY = formatBrazilDateKey(new Date());
 const LEGACY_DAY = "2026-10-01";
 
 const USERS: Record<string, { id: string; profile: any }> = {
