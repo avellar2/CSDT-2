@@ -723,6 +723,32 @@ describe("confirmação do destinatário principal do e-mail", () => {
     expect(res.body).toMatchObject({ mainAccepted: true, ccStatus: "failed" });
     expect(mocks.oSExternaUpdate).toHaveBeenCalled();
   });
+
+  it("rejeita destinatário diferente do e-mail cadastrado na OS", async () => {
+    loginAs("ADMIN");
+    mocks.oSExternaFindUnique.mockResolvedValue({
+      ...osBase,
+      emailResponsavel: "cadastrado@example.com",
+    });
+
+    const res = makeRes();
+    await sendEmailHandler(
+      makeReq(
+        "POST",
+        {
+          to: "outro@example.com",
+          subject: "OS Externa 77/2026",
+          html: "<p>OS</p>",
+          osExternaNumero: "77/2026",
+        },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(403);
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
 });
 
 describe("token de confirmação existente", () => {
