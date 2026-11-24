@@ -3,7 +3,7 @@ import { requireRole, AUTH_ROLES } from "@/utils/api-auth";
 import { sendMail, MailConfigurationError } from "@/utils/mailer";
 import prisma from "@/utils/prisma";
 import { authorizeOsExterna } from "@/utils/osExternaAuthorization";
-import { evaluateMailAcceptance } from "@/utils/mailRecipients";
+import { evaluateMailAcceptance, normalizeAddress } from "@/utils/mailRecipients";
 import {
   formatBrazilDateKey,
   getBrazilDayRange,
@@ -137,6 +137,7 @@ export default async function handler(
     createdAt: Date;
     tecnicoResponsavel: string | null;
     unidadeEscolar: string | null;
+    emailResponsavel: string | null;
   } | null = null;
 
   if (resolvedOsNumber) {
@@ -152,6 +153,7 @@ export default async function handler(
           createdAt: true,
           tecnicoResponsavel: true,
           unidadeEscolar: true,
+          emailResponsavel: true,
         },
       });
     } catch (lookupError) {
@@ -166,6 +168,18 @@ export default async function handler(
     const permission = await authorizeOsExterna(auth, osExterna);
     if (!permission.allowed) {
       return res.status(403).json({ error: permission.reason });
+    }
+
+    // O e-mail da OS vai para o endereço cadastrado nela. Evita usar o SMTP
+    // institucional como relay para qualquer destinatário.
+    if (
+      osExterna.emailResponsavel &&
+      normalizeAddress(to) !== normalizeAddress(osExterna.emailResponsavel)
+    ) {
+      return res.status(403).json({
+        error:
+          "O destinatário não corresponde ao e-mail cadastrado para esta OS.",
+      });
     }
 
     if (emailSentToday(osExterna.lastEmailSent)) {
