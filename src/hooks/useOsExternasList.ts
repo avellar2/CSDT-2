@@ -67,6 +67,19 @@ export interface OsExterna {
   lastEmailSent?: string;
   updatedAt: string;
   createdAt: string;
+  /** Estado de finalização derivado no backend (fonte: banco). */
+  finalization?: {
+    stage: string;
+    label: string;
+    description: string;
+    isPendingFinalization: boolean;
+    totalFotos: number;
+    validFotos: number;
+    missingFotos: number;
+    hasToken: boolean;
+    emailSent: boolean;
+    chamadoCriado: boolean;
+  };
 }
 
 export interface PendingDailyDemand {
@@ -127,6 +140,13 @@ export function useOsExternasList() {
   const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(false);
   const statusFilter = typeof router.query.status === "string" ? router.query.status : "";
   const pendingOnly = statusFilter === "Pendente";
+  const [showFinalizationTab, setShowFinalizationTab] = useState(false);
+
+  useEffect(() => {
+    if (router.isReady && router.query.finalizacao === "pendente") {
+      setShowFinalizationTab(true);
+    }
+  }, [router.isReady, router.query.finalizacao]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -288,6 +308,14 @@ export function useOsExternasList() {
     )
   );
   const osExternasAssinadas = filterOsBySearch(osExternas.filter((os) => os.status === "Assinado"));
+  // "Finalização pendente": OS salva, mas com etapa técnica incompleta.
+  // Independe da assinatura da escola e vem do banco (funciona em outro
+  // aparelho, ao contrário de um rascunho só em localStorage).
+  const finalizationPending = filterOsBySearch(
+    osExternas.filter(
+      (os) => os.status === "Pendente" && os.finalization?.isPendingFinalization
+    )
+  );
   const filteredPendingDailyDemands = pendingDailyDemands.filter(
     (demand) =>
       demand.visitStatus !== "NOT_VISITED" &&
@@ -374,6 +402,14 @@ export function useOsExternasList() {
     }
   };
 
+  /** Retoma a OS na tela de finalização (número/data/fotos preservados). */
+  const handleResumeFinalization = (os: OsExterna) => {
+    if (!os.numeroOs) return;
+    void router.push(
+      `/fill-pdf-form-2?resume=${encodeURIComponent(os.numeroOs)}`
+    );
+  };
+
   const handleViewDetails = (os: OsExterna) => {
     setSelectedOs(os);
     setShowModal(true);
@@ -398,13 +434,14 @@ export function useOsExternasList() {
     assigningOsId, assignRoutes, assignLoading, assignError,
     showOnlyUnassigned, setShowOnlyUnassigned,
     pendingOnly, userName,
+    showFinalizationTab, setShowFinalizationTab,
     // Computed
-    osExternasPendentes, osExternasAssinadas,
+    osExternasPendentes, osExternasAssinadas, finalizationPending,
     filteredPendingDailyDemands,
     filteredNotVisitedDailyDemands,
     pendingDailyDemandsToday, pendingDailyDemandsPrevious,
     // Handlers
-    handleViewDetails, closeModal,
+    handleViewDetails, closeModal, handleResumeFinalization,
     handleResendEmail, confirmResendEmail,
     canSendEmailToday, getLastEmailText,
     fetchOsExternas, fetchPendingDailyDemands,

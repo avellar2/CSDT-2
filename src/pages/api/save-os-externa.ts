@@ -53,6 +53,7 @@ interface ExistingOsForRetry {
   solicitacaoDaVisita: string | null;
   relatorio: string | null;
   solucionado: string | null;
+  lastEmailSent: Date | null;
 }
 
 /**
@@ -77,9 +78,11 @@ async function respondWithExistingOs(params: {
 }): Promise<void> {
   const { res, auth, existing, unidadeEscolar, osDateKey } = params;
 
+  // A data operacional NÃO faz parte da identidade da tentativa: a mesma
+  // tentativa pode ser reenviada depois da meia-noite. O conteúdo e a escola
+  // continuam sendo verificados para não reaproveitar um lançamento diferente.
   if (
     existing.unidadeEscolar !== (unidadeEscolar ?? null) ||
-    existing.data !== osDateKey ||
     existing.solicitacaoDaVisita !== params.payload.solicitacaoDaVisita ||
     existing.relatorio !== params.payload.relatorio ||
     existing.solucionado !== params.payload.solucionado
@@ -96,12 +99,18 @@ async function respondWithExistingOs(params: {
     return;
   }
 
+  // Valida o vínculo com a data ORIGINAL da OS, e não com a data do relógio.
+  const effectiveDateKey =
+    typeof existing.data === "string" && isValidDateKey(existing.data)
+      ? existing.data
+      : osDateKey;
+
   if (params.context?.origin === "daily-demands" && params.dailyDemandId) {
     const link = await validateDemandOsLink({
       profile: auth.profile,
       demandId: params.dailyDemandId,
       demandDate: params.context.dailyDemandDate,
-      osDateKey,
+      osDateKey: effectiveDateKey,
     });
 
     if (!link.ok) {
@@ -135,7 +144,12 @@ async function respondWithExistingOs(params: {
     id: existing.id,
     numeroOs: existing.numeroOs,
     status: existing.status,
+    data: existing.data,
     deduplicated: true,
+    // true quando a OS foi salva em outro dia e está sendo retomada.
+    resumedAcrossDays: effectiveDateKey !== osDateKey,
+    // Retomar nunca reenvia o e-mail só porque o dia mudou.
+    emailEverSent: Boolean(existing.lastEmailSent),
   });
 }
 
@@ -163,14 +177,18 @@ async function findRecentOwnLaunch(params: {
         }
       : {};
 
+  // Janela ampliada: uma finalização pode ser retomada dias depois sem que o
+  // cliente reenvie `clientRequestId` (recarga, troca de aparelho, cache).
+  // Só OS ainda Pendente do próprio técnico são reaproveitadas; um lançamento
+  // novo explícito envia `forceNew` e ignora este fallback.
   return prisma.oSExterna.findFirst({
     where: {
       unidadeEscolar: params.unidadeEscolar,
-      data: params.osDateKey,
       solicitacaoDaVisita: params.payload.solicitacaoDaVisita,
       relatorio: params.payload.relatorio,
       solucionado: params.payload.solucionado,
-      createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) },
+      status: "Pendente",
+      createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       ...identityFilter,
     },
     orderBy: { createdAt: "desc" },
@@ -192,6 +210,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { formData, context } = req.body;
     const clientRequestId = normalizeClientRequestId(context?.clientRequestId);
+    // "Iniciar nova OS" explícito: não reaproveita OS anterior parecida. O
+    // cliente também gera um novo clientRequestId antes de enviar.
+    const forceNew = context?.forceNew === true;
 
     let {
       unidadeEscolar,
@@ -283,6 +304,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             solicitacaoDaVisita: true,
             relatorio: true,
             solucionado: true,
+            lastEmailSent: true,
           },
         });
 
@@ -333,7 +355,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // e valida payload, demanda, rota e permissão antes de devolver a OS —
     // por isso pode resolver a retomada antes da checagem de disponibilidade,
     // que muda justamente após a primeira gravação.
-    if (!claimedRequestId && unidadeEscolar) {
+    if (!forceNew && !claimedRequestId && unidadeEscolar) {
       const existingLaunch = await findRecentOwnLaunch({
         auth,
         unidadeEscolar: String(unidadeEscolar),
@@ -457,16 +479,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
     }
 
-    const fotosAntesUrls = Array.isArray(fotosAntes)
-      ? fotosAntes.map((file) => (typeof file === "string" ? file : file.url || ""))
-      : [];
-    const fotosDepoisUrls = Array.isArray(fotosDepois)
-      ? fotosDepois.map((file) => (typeof file === "string" ? file : file.url || ""))
-      : [];
+    // Só URLs reais são gravadas. Clientes antigos enviavam objetos `File`
+    // serializados como `{}`; o `file.url || ""` gravava uma referência vazia
+    // por foto (causa das 8 referências vazias da OS 651/2026).
+    const normalizePhotoUrls = (value: unknown): string[] => {
+      if (!Array.isArray(value)) return [];
+      return value
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : item && typeof item === "object" && typeof (item as { url?: unknown }).url === "string"
+            ? (item as { url: string }).url
+            : ""
+        )
+        .filter((url) => url.trim() !== "");
+    };
+
+    const fotosAntesUrls = normalizePhotoUrls(fotosAntes);
+    const fotosDepoisUrls = normalizePhotoUrls(fotosDepois);
 
     // Segunda chance após as validações: cobre requisições concorrentes de
     // clientes antigos que passaram pela primeira consulta ao mesmo tempo.
-    if (!claimedRequestId && unidadeEscolar) {
+    if (!forceNew && !claimedRequestId && unidadeEscolar) {
       const existingOs = await findRecentOwnLaunch({
         auth,
         unidadeEscolar: String(unidadeEscolar),
@@ -589,7 +623,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    return res.status(200).json({ id: updatedRecord.id, numeroOs: updatedRecord.numeroOs });
+    return res.status(200).json({
+      id: updatedRecord.id,
+      numeroOs: updatedRecord.numeroOs,
+      status: updatedRecord.status,
+      data: osDateKey,
+      emailEverSent: false,
+      resumedAcrossDays: false,
+    });
   } catch (error) {
     console.error("Erro ao salvar dados:", error);
     return res.status(500).json({ error: "Erro ao salvar os dados" });

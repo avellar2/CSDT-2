@@ -3,7 +3,36 @@ import { useRouter } from "next/router";
 import { PDFDocument, PDFCheckBox, PDFTextField } from "pdf-lib";
 import { supabase } from "@/lib/supabaseClient";
 import { useHeaderContext } from "@/context/HeaderContext";
-import { uploadFilesWithReport } from "@/utils/storageProvider";
+import { uploadSingleImage } from "@/utils/storageProvider";
+import {
+  clearLaunchAttempt,
+  clearPendingFinalization,
+  findPendingForDraft,
+  getAttemptRequestId,
+  mergePhotoUrls,
+  readPendingFinalizations,
+  recordAttemptOs,
+  serializeFormDraft,
+  startNewLaunchAttempt,
+  uniqueStrings,
+  writePendingFinalization,
+  type FinalizationStage,
+  type PendingFinalization,
+} from "@/utils/osExternaPendingDrafts";
+import {
+  FINALIZATION_STAGE_LABELS,
+  deriveOsExternaFinalization,
+} from "@/utils/osExternaFinalization";
+import {
+  clearPendingPhotos,
+  loadPendingPhotos,
+  savePendingPhotos,
+} from "@/utils/pendingPhotoStore";
+import {
+  MAX_SOURCE_BYTES,
+  isHeicFile,
+  isSupportedImageFile,
+} from "@/utils/imageCompression";
 import { useMultiStepForm } from "@/hooks/useMultiStepForm";
 import { formSteps } from "@/utils/formSteps";
 import initialFormData from "@/utils/itens";
@@ -56,8 +85,9 @@ export interface FormDataType {
   unidadeEscolar?: string;
   data?: string;
   hora?: string;
-  fotosAntes: File[] | string[];
-  fotosDepois: File[] | string[];
+  /** Mistura arquivos ainda não enviados com URLs já gravadas. */
+  fotosAntes: (File | string)[];
+  fotosDepois: (File | string)[];
   pcsProprio: NumberConstructor;
   pcsLocado: NumberConstructor;
   notebooksProprio: NumberConstructor;
@@ -101,38 +131,22 @@ export interface FormDataType {
   solucionado: string;
 }
 
-/** Etapas que, depois de salvar a OS, ainda precisam ser concluídas. */
-type FinalizationStage = "save" | "fotos" | "token" | "pdf" | "email" | "chamado";
-
-const STAGE_LABELS: Record<FinalizationStage, string> = {
-  save: "salvar a OS",
-  fotos: "enviar as fotos",
-  token: "gerar o token de confirmação",
-  pdf: "gerar o PDF",
-  email: "enviar o e-mail para a escola",
-  chamado: "criar o chamado de reagendamento",
-};
-
-const PENDING_FINALIZATION_PREFIX = "csdt:os-externa:finalizacao-pendente:";
-const ATTEMPT_PREFIX = "csdt:os-externa:tentativa:";
-const PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const ATTEMPT_MAX_AGE_MS = 10 * 60 * 1000;
-const MAX_PENDING_RECORDS = 5;
-
-interface PendingFinalization {
+/** Situação exibida na tela inicial, sem bloquear o lançamento de outra OS. */
+export interface ServerPendingFinalization {
+  id: number;
   numeroOs: string;
-  stage: FinalizationStage;
-  at: number;
-  school: string;
-  date: string;
-  confirmToken?: string;
-  form?: Record<string, unknown>;
-}
-
-interface LaunchAttempt {
-  requestId: string;
-  fingerprint: string;
-  at: number;
+  unidadeEscolar: string | null;
+  tecnicoResponsavel: string | null;
+  data: string;
+  lastEmailSent?: string | null;
+  finalization: {
+    stage: string;
+    label: string;
+    description: string;
+    isPendingFinalization: boolean;
+    totalFotos: number;
+    missingFotos: number;
+  };
 }
 
 class FinalizationStageError extends Error {
@@ -142,176 +156,6 @@ class FinalizationStageError extends Error {
     super(message);
     this.name = "FinalizationStageError";
     this.stage = stage;
-  }
-}
-
-function serializeFormDraft(data: FormDataType): Record<string, unknown> {
-  const draft: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (key === "fotosAntes" || key === "fotosDepois") {
-      draft[key] = Array.isArray(value)
-        ? value.filter((item): item is string => typeof item === "string")
-        : [];
-      continue;
-    }
-    if (
-      typeof value === "string" ||
-      typeof value === "number" ||
-      typeof value === "boolean"
-    ) {
-      draft[key] = value;
-    }
-  }
-  return draft;
-}
-
-function pendingStorageKey(userId: string): string {
-  return `${PENDING_FINALIZATION_PREFIX}${userId}`;
-}
-
-/**
- * Rascunhos são por usuário autenticado; um técnico nunca enxerga/retoma a
- * finalização pendente de outro. Vários registros são preservados (não
- * apagamos um rascunho válido só porque outro lançamento começou).
- */
-function readPendingFinalizations(userId: string): PendingFinalization[] {
-  if (typeof window === "undefined" || !userId) return [];
-  try {
-    const raw = localStorage.getItem(pendingStorageKey(userId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    const list = Array.isArray(parsed)
-      ? (parsed as PendingFinalization[])
-      : [parsed as PendingFinalization];
-
-    const valid = list.filter(
-      (item) =>
-        !!item?.numeroOs &&
-        Date.now() - Number(item.at || 0) <= PENDING_MAX_AGE_MS
-    );
-
-    if (valid.length !== list.length) {
-      localStorage.setItem(pendingStorageKey(userId), JSON.stringify(valid));
-    }
-
-    return valid.sort((a, b) => Number(b.at || 0) - Number(a.at || 0));
-  } catch {
-    return [];
-  }
-}
-
-function writePendingFinalization(
-  userId: string,
-  pending: PendingFinalization
-): void {
-  if (typeof window === "undefined" || !userId) return;
-  try {
-    const current = readPendingFinalizations(userId).filter(
-      (item) => item.numeroOs !== pending.numeroOs
-    );
-    const next = [pending, ...current].slice(0, MAX_PENDING_RECORDS);
-    localStorage.setItem(pendingStorageKey(userId), JSON.stringify(next));
-  } catch {
-    // Sem localStorage não é possível retomar; o erro na tela continua claro.
-  }
-}
-
-function clearPendingFinalization(userId: string, numeroOs: string): void {
-  if (typeof window === "undefined" || !userId) return;
-  try {
-    const next = readPendingFinalizations(userId).filter(
-      (item) => item.numeroOs !== numeroOs
-    );
-    if (next.length) {
-      localStorage.setItem(pendingStorageKey(userId), JSON.stringify(next));
-    } else {
-      localStorage.removeItem(pendingStorageKey(userId));
-    }
-  } catch {
-    // ignora
-  }
-}
-
-function generateRequestId(): string {
-  try {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID();
-    }
-  } catch {
-    // fallback abaixo
-  }
-  return `req-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
-}
-
-function uniqueStrings(values: unknown): string[] {
-  if (!Array.isArray(values)) return [];
-  return Array.from(
-    new Set(
-      values.filter(
-        (value): value is string =>
-          typeof value === "string" && value.trim() !== ""
-      )
-    )
-  );
-}
-
-function payloadFingerprint(data: FormDataType, dateKey: string): string {
-  return JSON.stringify({
-    school: data.unidadeEscolar || "",
-    date: dateKey,
-    solicitacao: data.solicitacaoDaVisita || "",
-    relatorio: data.relatorio || "",
-    solucionado: data.solucionado || "",
-  });
-}
-
-/**
- * Reaproveita o identificador da tentativa enquanto o mesmo usuário reenvia
- * exatamente o mesmo conteúdo (timeout/recarga). Conteúdo diferente gera uma
- * nova tentativa e não bloqueia lançamentos legítimos.
- */
-function getAttemptRequestId(
-  userId: string,
-  data: FormDataType,
-  dateKey: string
-): string {
-  if (typeof window === "undefined" || !userId) return generateRequestId();
-
-  const key = `${ATTEMPT_PREFIX}${userId}`;
-  const fingerprint = payloadFingerprint(data, dateKey);
-
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw) as LaunchAttempt;
-      if (
-        parsed?.requestId &&
-        parsed.fingerprint === fingerprint &&
-        Date.now() - Number(parsed.at || 0) <= ATTEMPT_MAX_AGE_MS
-      ) {
-        return parsed.requestId;
-      }
-    }
-
-    const requestId = generateRequestId();
-    localStorage.setItem(
-      key,
-      JSON.stringify({ requestId, fingerprint, at: Date.now() })
-    );
-    return requestId;
-  } catch {
-    return generateRequestId();
-  }
-}
-
-function clearAttemptRequestId(userId: string): void {
-  if (typeof window === "undefined" || !userId) return;
-  try {
-    localStorage.removeItem(`${ATTEMPT_PREFIX}${userId}`);
-  } catch {
-    // ignora
   }
 }
 
@@ -382,6 +226,10 @@ export function useFillPdfForm() {
     success: boolean;
     actionLabel?: string;
     onAction?: () => void;
+    secondaryActionLabel?: string;
+    onSecondaryAction?: () => void;
+    tertiaryActionLabel?: string;
+    onTertiaryAction?: () => void;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showChamadoModal, setShowChamadoModal] = useState(false);
@@ -401,10 +249,31 @@ export function useFillPdfForm() {
     fotosDepois: string[];
     alreadySigned: boolean;
     emailSentToday: boolean;
+    /** `lastEmailSent` existe em qualquer data: não reenviar ao retomar. */
+    emailEverSent: boolean;
   } | null>(null);
   const submittingRef = useRef(false);
   const sessionNoticeShownRef = useRef(false);
   const [chamadoRetry, setChamadoRetry] = useState<{ osData: FormDataType } | null>(null);
+  // Finalizações pendentes não bloqueiam o formulário: a lista é exibida em
+  // um aviso e o técnico escolhe retomar, iniciar outra OS ou ver todas.
+  const [pendingFinalizations, setPendingFinalizations] = useState<PendingFinalization[]>([]);
+  const [serverPendingFinalizations, setServerPendingFinalizations] = useState<ServerPendingFinalization[]>([]);
+  const [serverPendingLoaded, setServerPendingLoaded] = useState(false);
+  const [pendingPromptDismissed, setPendingPromptDismissed] = useState(false);
+  const [pendingReady, setPendingReady] = useState(false);
+  const [finalizationProgress, setFinalizationProgress] = useState<{
+    label: string;
+    current: number;
+    total: number;
+    stage: string;
+  } | null>(null);
+  const [uploadFailures, setUploadFailures] = useState<
+    { field: "fotosAntes" | "fotosDepois"; fileName: string; reason: string }[]
+  >([]);
+  const [isResuming, setIsResuming] = useState(false);
+  // "Nova OS" explícito: ignora o fallback de deduplicação por conteúdo.
+  const forceNewRef = useRef(false);
 
   const {
     currentStep, totalSteps, completedSteps, goToStep, nextStep, previousStep,
@@ -448,117 +317,212 @@ export function useFillPdfForm() {
       : formatBrazilDateKey(new Date());
   };
 
-  // Recupera uma OS que foi salva mas cuja finalização (fotos/token/PDF/e-mail)
-  // não terminou. O rascunho é por usuário e a propriedade da OS é validada
-  // no backend antes de qualquer retomada.
-  useEffect(() => {
-    if (!localUserId || !router.isReady) return;
+  /**
+   * Retoma EXPLICITAMENTE uma OS já salva. Nunca é chamada automaticamente ao
+   * abrir o formulário (exceto por `/fill-pdf-form-2?resume=<numeroOs>`, que é
+   * uma escolha explícita do técnico na lista). A autorização é revalidada no
+   * backend antes de qualquer dado ser reaproveitado.
+   */
+  const resumePendingFinalization = async (
+    numeroOs: string
+  ): Promise<boolean> => {
+    if (!numeroOs) return false;
+    setIsResuming(true);
+    try {
+      const response = await authedFetch(
+        `/api/os-externa-access?numeroOs=${encodeURIComponent(numeroOs)}`
+      );
+      const data = await response.json().catch(() => ({}));
 
-    const pending = readPendingFinalizations(localUserId)[0];
-    if (!pending) return;
-
-    let cancelled = false;
-
-    const restore = async () => {
-      try {
-        const response = await authedFetch(
-          `/api/os-externa-access?numeroOs=${encodeURIComponent(pending.numeroOs)}`
-        );
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          if (!cancelled) {
-            setAlertDialog({
-              title: "Não foi possível retomar",
-              description: `${
-                data.error || "A OS salva não pôde ser validada."
-              } O rascunho foi preservado.`,
-              success: false,
-            });
-          }
-          return;
-        }
-
-        if (cancelled) return;
-
-        if (data.alreadySigned) {
-          clearPendingFinalization(localUserId, pending.numeroOs);
-          setAlertDialog({
-            title: "OS já assinada",
-            description: `A OS ${pending.numeroOs} já foi assinada pela escola; não há finalização pendente.`,
-            success: true,
-          });
-          return;
-        }
-
-        const storedFotosAntes = uniqueStrings(pending.form?.fotosAntes);
-        const storedFotosDepois = uniqueStrings(pending.form?.fotosDepois);
-        const existingFotosAntes = uniqueStrings(data.os?.fotosAntes);
-        const existingFotosDepois = uniqueStrings(data.os?.fotosDepois);
-
-        const fotosAntes = Array.from(
-          new Set([...existingFotosAntes, ...storedFotosAntes])
-        );
-        const fotosDepois = Array.from(
-          new Set([...existingFotosDepois, ...storedFotosDepois])
-        );
-
-        const confirmToken =
-          typeof data.confirmToken === "string" && data.confirmToken
-            ? data.confirmToken
-            : pending.confirmToken;
-
-        setPendingResume({
-          numeroOs: pending.numeroOs,
-          stage: pending.stage,
-          school: pending.school,
-          date: pending.date,
-          confirmToken,
-          fotosAntes,
-          fotosDepois,
-          alreadySigned: false,
-          emailSentToday: Boolean(data.emailSentToday),
-        });
-        setOsNumero(pending.numeroOs);
-
-        setFormData((prev) => ({
-          ...prev,
-          ...(pending.form || {}),
-          // File objects não são serializáveis; as URLs já enviadas voltam e
-          // nunca são substituídas por arrays vazios.
-          fotosAntes: fotosAntes.length ? fotosAntes : prev.fotosAntes,
-          fotosDepois: fotosDepois.length ? fotosDepois : prev.fotosDepois,
-        }));
-
+      if (!response.ok) {
         setAlertDialog({
-          title: "Finalização pendente",
-          description: `A OS ${pending.numeroOs} já foi salva, mas a etapa "${
-            STAGE_LABELS[pending.stage] || pending.stage
-          }" não foi concluída. Os dados foram recuperados. Ao finalizar novamente, o mesmo número de OS será reaproveitado${
-            pending.stage === "fotos" ? ". Reenvie as fotos antes de finalizar" : ""
-          }. Não altere os dados já salvos; se precisar corrigir, edite a OS pela lista.`,
+          title: "Não foi possível retomar",
+          description: `${
+            data.error || "A OS salva não pôde ser validada."
+          } O rascunho foi preservado.`,
           success: false,
         });
-      } catch (error) {
-        if (!cancelled && !notifySessionProblem(error)) {
-          setAlertDialog({
-            title: "Não foi possível retomar",
-            description: `${describeRequestError(
-              error,
-              "Falha ao validar a OS salva."
-            )} O rascunho foi preservado.`,
-            success: false,
-          });
+        return false;
+      }
+
+      if (data.alreadySigned) {
+        clearPendingFinalization(localUserId, numeroOs);
+        setPendingFinalizations(readPendingFinalizations(localUserId));
+        setServerPendingFinalizations((current) =>
+          current.filter((item) => item.numeroOs !== numeroOs)
+        );
+        setAlertDialog({
+          title: "OS já assinada",
+          description: `A OS ${numeroOs} já foi assinada pela escola; não há finalização pendente.`,
+          success: true,
+        });
+        return false;
+      }
+
+      const local = readPendingFinalizations(localUserId).find(
+        (item) => item.numeroOs === numeroOs
+      );
+
+      if (data.finalization && data.finalization.isPendingFinalization === false) {
+        // Nada técnico pendente (ex.: aguardando assinatura). Não reabre o
+        // fluxo de finalização; apenas informa.
+        setAlertDialog({
+          title: "Sem pendência técnica",
+          description: `A OS ${numeroOs} está em "${data.finalization.label}". Não há etapa de finalização do técnico para retomar.`,
+          success: true,
+        });
+        return false;
+      }
+
+      const existingFotosAntes = uniqueStrings(data.os?.fotosAntes);
+      const existingFotosDepois = uniqueStrings(data.os?.fotosDepois);
+      const storedFotosAntes = uniqueStrings(local?.form?.fotosAntes);
+      const storedFotosDepois = uniqueStrings(local?.form?.fotosDepois);
+
+      const fotosAntes = mergePhotoUrls(existingFotosAntes, storedFotosAntes);
+      const fotosDepois = mergePhotoUrls(existingFotosDepois, storedFotosDepois);
+
+      // Fotos que falharam no upload ficam no IndexedDB do aparelho e voltam
+      // para a tela; em outro dispositivo, o backend informa o que já subiu.
+      const pendingPhotos = await loadPendingPhotos(numeroOs);
+
+      const confirmToken =
+        typeof data.confirmToken === "string" && data.confirmToken
+          ? data.confirmToken
+          : local?.confirmToken;
+
+      const stage: FinalizationStage =
+        (data.finalization?.stage as FinalizationStage) ||
+        local?.stage ||
+        "fotos";
+
+      setPendingResume({
+        numeroOs,
+        stage,
+        school:
+          data.os?.unidadeEscolar || local?.school || "",
+        // Data operacional ORIGINAL: retomar outro dia não cria nova OS.
+        date: data.os?.data || local?.date || getOsDateKey(),
+        confirmToken,
+        fotosAntes,
+        fotosDepois,
+        alreadySigned: false,
+        emailSentToday: Boolean(data.emailSentToday),
+        emailEverSent: Boolean(data.emailEverSent),
+      });
+      setOsNumero(numeroOs);
+
+      setFormData((prev) => ({
+        ...prev,
+        // Reconstrói o formulário com os dados da OS (necessário ao retomar
+        // em outro aparelho). Campos editáveis continuam editáveis.
+        ...(data.os || {}),
+        ...(local?.form || {}),
+        // URLs já gravadas nunca são substituídas por arrays vazios.
+        fotosAntes: [...fotosAntes, ...pendingPhotos.fotosAntes],
+        fotosDepois: [...fotosDepois, ...pendingPhotos.fotosDepois],
+      }));
+
+      setPendingPromptDismissed(true);
+      setUploadFailures([]);
+      // Retoma direto na última etapa, sem obrigar a percorrer o formulário.
+      for (let step = 0; step < totalSteps - 1; step++) {
+        markStepAsCompleted(step);
+      }
+      goToStep(totalSteps - 1);
+
+      const missingFiles =
+        pendingPhotos.fotosAntes.length + pendingPhotos.fotosDepois.length;
+      setAlertDialog({
+        title: "Finalização retomada",
+        description: `A OS ${numeroOs} foi carregada a partir da etapa "${
+          FINALIZATION_STAGE_LABELS[stage] || stage
+        }". O número, a data original e as fotos já enviadas serão preservados.${
+          missingFiles
+            ? ` ${missingFiles} foto(s) que falharam foram recuperadas neste aparelho; reenvie-as ao finalizar.`
+            : stage === "fotos"
+            ? " Selecione novamente as fotos que faltam e finalize."
+            : ""
+        }`,
+        success: true,
+      });
+      return true;
+    } catch (error) {
+      if (!notifySessionProblem(error)) {
+        setAlertDialog({
+          title: "Não foi possível retomar",
+          description: `${describeRequestError(
+            error,
+            "Falha ao validar a OS salva."
+          )} O rascunho foi preservado.`,
+          success: false,
+        });
+      }
+      return false;
+    } finally {
+      setIsResuming(false);
+    }
+  };
+
+  /**
+   * "Iniciar nova OS" preserva TODOS os rascunhos/pendências existentes,
+   * gera uma nova tentativa (novo clientRequestId) e não reutiliza dados,
+   * fotos, token ou número da OS anterior.
+   */
+  const startNewOs = () => {
+    forceNewRef.current = true;
+    startNewLaunchAttempt(localUserId);
+    setPendingResume(null);
+    setOsNumero("");
+    setPendingPromptDismissed(true);
+    setUploadFailures([]);
+    setFinalizationProgress(null);
+    showToastMessage(
+      "Nova OS iniciada. As finalizações pendentes foram preservadas.",
+      "info"
+    );
+  };
+
+  // Carrega a lista de pendências (local + banco) apenas para AVISAR. Nenhum
+  // rascunho é restaurado automaticamente.
+  useEffect(() => {
+    if (!localUserId || !router.isReady) return;
+    let cancelled = false;
+
+    const loadPending = async () => {
+      if (!cancelled) {
+        setPendingFinalizations(readPendingFinalizations(localUserId));
+      }
+      try {
+        const response = await authedFetch("/api/os-externas-pendentes");
+        if (!response.ok) return;
+        const data = await response.json().catch(() => null);
+        if (!cancelled && data && Array.isArray(data.data)) {
+          setServerPendingFinalizations(data.data);
+          setServerPendingLoaded(true);
         }
+      } catch (error) {
+        notifySessionProblem(error);
+      } finally {
+        if (!cancelled) setPendingReady(true);
       }
     };
 
-    restore();
+    loadPending();
 
     return () => {
       cancelled = true;
     };
   }, [localUserId, router.isReady]);
+
+  // Retomada explícita via URL (`?resume=123/2026`), usada pela lista de OS.
+  useEffect(() => {
+    if (!localUserId || !router.isReady) return;
+    const resume = router.query.resume;
+    if (typeof resume === "string" && resume.trim()) {
+      void resumePendingFinalization(resume.trim());
+    }
+  }, [localUserId, router.isReady, router.query.resume]);
 
   // Pre-fill form from URL parameters
   useEffect(() => {
@@ -692,21 +656,75 @@ export function useFillPdfForm() {
     setIsDirty(true);
   };
 
+  /**
+   * Acrescenta fotos sem apagar as que já foram enviadas (URLs) nem as que
+   * falharam. Rejeita apenas arquivos realmente inválidos, informando o
+   * motivo individual — uma foto HEIC/corrompida não derruba as demais.
+   */
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
-    if (files && files.length > 0) {
-      const fileArray = Array.from(files);
-      const oversizedFiles = fileArray.filter((file) => file.size > 10 * 1024 * 1024);
-      if (oversizedFiles.length > 0) {
-        showToastMessage(`Arquivos muito grandes: ${oversizedFiles.map((f) => f.name).join(", ")}`, "error");
-        return;
+    const field = name as "fotosAntes" | "fotosDepois";
+    if (!files || files.length === 0) return;
+
+    const incoming = Array.from(files);
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+
+    for (const file of incoming) {
+      if (isHeicFile(file)) {
+        rejected.push(`${file.name}: formato HEIC/HEIF não suportado.`);
+        continue;
       }
-      setFormData((prev) => ({ ...prev, [name]: fileArray }));
-      showToastMessage(`${fileArray.length} arquivo(s) selecionado(s) com sucesso!`, "success");
-      setIsDirty(true);
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: [] }));
+      if (!isSupportedImageFile(file)) {
+        rejected.push(`${file.name}: formato não suportado (use JPG, PNG ou WEBP).`);
+        continue;
+      }
+      if (file.size <= 0) {
+        rejected.push(`${file.name}: arquivo vazio.`);
+        continue;
+      }
+      if (file.size > MAX_SOURCE_BYTES) {
+        rejected.push(
+          `${file.name}: acima de ${Math.round(
+            MAX_SOURCE_BYTES / (1024 * 1024)
+          )} MB.`
+        );
+        continue;
+      }
+      accepted.push(file);
     }
+
+    if (accepted.length) {
+      setFormData((prev) => {
+        const current = Array.isArray(prev[field]) ? prev[field] : [];
+        return { ...prev, [field]: [...current, ...accepted] };
+      });
+      setIsDirty(true);
+      showToastMessage(
+        `${accepted.length} foto(s) adicionada(s). Elas serão comprimidas antes do envio.`,
+        "success"
+      );
+    }
+
+    if (rejected.length) {
+      showToastMessage(
+        `Foto(s) não adicionada(s): ${rejected.slice(0, 3).join(" ")}`,
+        "error"
+      );
+    }
+
+    // Permite selecionar novamente o mesmo arquivo depois de removê-lo.
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = (field: "fotosAntes" | "fotosDepois", index: number) => {
+    setFormData((prev) => {
+      const current = Array.isArray(prev[field]) ? [...prev[field]] : [];
+      if (index < 0 || index >= current.length) return prev;
+      current.splice(index, 1);
+      return { ...prev, [field]: current };
+    });
+    setIsDirty(true);
   };
 
   const handleSelectChange = async (selectedOption: any) => {
@@ -858,7 +876,7 @@ export function useFillPdfForm() {
     return Buffer.from(pdfBytesFilled).toString("base64");
   };
 
-  const clearForm = () => {
+  const resetFormData = () => {
     setFormData({
       ...initialFormData,
       tecnicoResponsavel: localTecnicoName, emailResponsavel: "",
@@ -883,15 +901,27 @@ export function useFillPdfForm() {
     reset();
     setIsDirty(false);
     setProgress(0);
-    if (osNumero) {
-      clearPendingFinalization(localUserId, osNumero);
-    }
-    clearAttemptRequestId(localUserId);
+    setFinalizationProgress(null);
+    setUploadFailures([]);
+    setOsNumero("");
+  };
+
+  const clearForm = () => {
+    resetFormData();
+    // Limpar o formulário NÃO apaga rascunhos pendentes: eles continuam
+    // disponíveis no aviso e na aba "Finalização pendente".
     setPendingResume(null);
     showToastMessage("Formulario limpo com sucesso!", "info");
   };
 
-  const saveDataAndGetNumeroOs = async (data: FormDataType): Promise<FormDataType> => {
+  const saveDataAndGetNumeroOs = async (
+    data: FormDataType
+  ): Promise<{
+    data: FormDataType;
+    numeroOs: string;
+    emailEverSent: boolean;
+    resumedAcrossDays: boolean;
+  }> => {
     const currentDate = new Date();
     // OS lançada a partir de uma demanda usa a data operacional dela; o
     // backend rejeita qualquer divergência entre demanda e OS.
@@ -903,7 +933,15 @@ export function useFillPdfForm() {
       data: osDateKey,
       hora: new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Sao_Paulo" }).format(currentDate),
     };
-    const clientRequestId = getAttemptRequestId(localUserId, updatedData, osDateKey);
+    const clientRequestId = getAttemptRequestId(localUserId, updatedData);
+
+    // NUNCA manda File/Blob no JSON: `JSON.stringify(File)` vira `{}` e o
+    // backend gravava uma URL vazia por foto (origem do bug da OS 651/2026).
+    const payloadData = {
+      ...updatedData,
+      fotosAntes: uniqueStrings(updatedData.fotosAntes),
+      fotosDepois: uniqueStrings(updatedData.fotosDepois),
+    };
 
     const response = await authedFetch(
       "/api/save-os-externa",
@@ -911,10 +949,21 @@ export function useFillPdfForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          formData: updatedData,
+          formData: payloadData,
           context: router.query.origin === "daily-demands"
-            ? { origin: "daily-demands", dailyDemandId: router.query.demandId, dailyDemandDate: router.query.demandDate, userId: localUserId, clientRequestId }
-            : { userId: localUserId, clientRequestId },
+            ? {
+                origin: "daily-demands",
+                dailyDemandId: router.query.demandId,
+                dailyDemandDate: router.query.demandDate,
+                userId: localUserId,
+                clientRequestId,
+                forceNew: forceNewRef.current,
+              }
+            : {
+                userId: localUserId,
+                clientRequestId,
+                forceNew: forceNewRef.current,
+              },
         }),
       },
       // O endpoint autentica antes de gravar: um 401 não gerou efeito.
@@ -924,12 +973,34 @@ export function useFillPdfForm() {
     if (!response.ok || !result.id) {
       throw new Error(result.error || "Erro ao salvar a OS.");
     }
+
+    const numeroOs =
+      typeof result.numeroOs === "string" && result.numeroOs
+        ? result.numeroOs
+        : `${result.id}/${currentDate.getFullYear()}`;
+
+    // A tentativa passa a apontar para o número criado. Recarregar a página
+    // ou tentar de novo não cria outra OS.
+    recordAttemptOs(localUserId, numeroOs);
+    forceNewRef.current = false;
+
+    const adoptedDate =
+      typeof result.data === "string" && result.data
+        ? result.data
+        : osDateKey;
+
     return {
-      ...updatedData,
-      numeroOs:
-        typeof result.numeroOs === "string" && result.numeroOs
-          ? result.numeroOs
-          : `${result.id}/${currentDate.getFullYear()}`,
+      // Se o backend recuperou uma tentativa de outro dia, a data original
+      // prevalece para não trocar o vínculo com a rota/demanda.
+      data: {
+        ...updatedData,
+        ...payloadData,
+        data: adoptedDate,
+        numeroOs,
+      },
+      numeroOs,
+      emailEverSent: Boolean(result.emailEverSent),
+      resumedAcrossDays: Boolean(result.resumedAcrossDays),
     };
   };
 
@@ -1023,17 +1094,44 @@ export function useFillPdfForm() {
     numeroOs: string,
     stage: FinalizationStage,
     data: FormDataType,
-    confirmToken?: string
+    confirmToken?: string,
+    operationalDate?: string
   ) => {
     writePendingFinalization(localUserId, {
       numeroOs,
       stage,
       at: Date.now(),
       school: String(data.unidadeEscolar || ""),
-      date: getOsDateKey(),
+      // Preserva a data ORIGINAL da OS (não a data do relógio).
+      date:
+        operationalDate ||
+        (typeof data.data === "string" && data.data) ||
+        getOsDateKey(),
       confirmToken,
-      form: serializeFormDraft(data),
+      form: serializeFormDraft(data as unknown as Record<string, unknown>),
     });
+    setPendingFinalizations(readPendingFinalizations(localUserId));
+  };
+
+  /** Estado auxiliar no banco; nunca interrompe a finalização. */
+  const markServerFinalizationStage = async (
+    numeroOs: string,
+    stage: "fotos" | "token" | "pdf" | "email" | "chamado" | "aguardando-assinatura",
+    lastError?: string
+  ) => {
+    try {
+      await authedFetch(
+        "/api/os-externa-finalization",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ numeroOs, stage, lastError }),
+        },
+        { retryOn401: true }
+      );
+    } catch {
+      // Tabela ainda não migrada / falha de rede: a derivação pela OS cobre.
+    }
   };
 
   const handleSubmit = async () => {
@@ -1042,27 +1140,54 @@ export function useFillPdfForm() {
       showToastMessage("Preencha todos os campos obrigatorios antes de finalizar.", "warning");
       return;
     }
-    // Retomada só vale para a mesma escola/data da OS já salva. Rascunhos de
-    // outros lançamentos são preservados (não apagados).
-    const currentDateKey = getOsDateKey();
-    const resumeMatches =
-      !!pendingResume &&
-      pendingResume.school === String(formData.unidadeEscolar || "") &&
-      pendingResume.date === currentDateKey;
+
+    const isResume = Boolean(pendingResume);
+    // Ao retomar, o número só pode ser reaproveitado para a MESMA escola.
+    if (
+      isResume &&
+      pendingResume!.school &&
+      pendingResume!.school !== String(formData.unidadeEscolar || "")
+    ) {
+      setAlertDialog({
+        title: "Escola diferente da OS retomada",
+        description:
+          "Os dados da tela não pertencem à OS retomada. Volte para a lista, retome a OS correta ou clique em \"Iniciar nova OS\" para lançar um novo atendimento.",
+        success: false,
+      });
+      return;
+    }
 
     submittingRef.current = true;
     sessionNoticeShownRef.current = false;
     setLoading(true);
+    setUploadFailures([]);
+    setFinalizationProgress({
+      label: "Preparando finalização...",
+      current: 0,
+      total: 0,
+      stage: "save",
+    });
 
-    let numeroOs: string | null = resumeMatches ? pendingResume!.numeroOs : null;
-    let stage: FinalizationStage = resumeMatches ? pendingResume!.stage : "save";
+    const failureDetails: {
+      field: "fotosAntes" | "fotosDepois";
+      fileName: string;
+      reason: string;
+    }[] = [];
+
+    // Data ORIGINAL da OS ao retomar; hoje só para lançamento novo.
+    let operationalDate = isResume ? pendingResume!.date : getOsDateKey();
+    let numeroOs: string | null = isResume ? pendingResume!.numeroOs : null;
+    let stage: FinalizationStage = isResume ? pendingResume!.stage : "save";
     let accessConfirmToken: string | null = null;
+    let accessEmailEverSent = false;
+    let accessChamadoCriado = false;
     let accessFotosAntes: string[] = [];
     let accessFotosDepois: string[] = [];
-    let accessEmailSentToday = false;
+    let persistErrorMessage: string | null = null;
+    let finalData: FormDataType | null = null;
 
     try {
-      if (resumeMatches) {
+      if (isResume) {
         // Revalida a propriedade da OS no backend antes de reaproveitar o
         // número. Um rascunho de outro técnico nunca é retomado.
         const accessResponse = await authedFetch(
@@ -1083,6 +1208,7 @@ export function useFillPdfForm() {
 
         if (accessData.alreadySigned) {
           clearPendingFinalization(localUserId, pendingResume!.numeroOs);
+          setPendingFinalizations(readPendingFinalizations(localUserId));
           setAlertDialog({
             title: "OS já assinada",
             description: `A OS ${pendingResume!.numeroOs} já foi assinada pela escola; não há finalização pendente.`,
@@ -1094,16 +1220,17 @@ export function useFillPdfForm() {
         accessConfirmToken =
           typeof accessData.confirmToken === "string" && accessData.confirmToken
             ? accessData.confirmToken
-            : null;
+            : pendingResume!.confirmToken || null;
+        accessEmailEverSent = Boolean(accessData.emailEverSent);
+        accessChamadoCriado = Boolean(accessData.finalization?.chamadoCriado);
         accessFotosAntes = uniqueStrings(accessData.os?.fotosAntes);
         accessFotosDepois = uniqueStrings(accessData.os?.fotosDepois);
-        accessEmailSentToday = Boolean(accessData.emailSentToday);
 
-        if (accessEmailSentToday && pendingResume!.stage === "email") {
-          showToastMessage(
-            "O e-mail desta OS já consta como enviado hoje; a retentativa não o duplicará.",
-            "info"
-          );
+        if (typeof accessData.os?.data === "string" && accessData.os.data) {
+          operationalDate = accessData.os.data;
+        }
+        if (accessData.finalization?.stage) {
+          stage = accessData.finalization.stage as FinalizationStage;
         }
       } else {
         // Validações normais de disponibilidade só para lançamentos novos.
@@ -1118,129 +1245,258 @@ export function useFillPdfForm() {
             return;
           }
         }
-
-        if (pendingResume) setPendingResume(null);
       }
 
-      let finalData: FormDataType;
-
       if (numeroOs) {
-        // Não chama save-os-externa de novo: o número existente é reaproveitado.
-        finalData = { ...formData, numeroOs, data: currentDateKey };
+        // Retomada: NÃO chama save-os-externa. O número, a data original e o
+        // vínculo com demanda/rota são preservados.
+        finalData = { ...formData, numeroOs, data: operationalDate };
         setOsNumero(numeroOs);
       } else {
         stage = "save";
-        finalData = await saveDataAndGetNumeroOs(formData);
+        setFinalizationProgress({
+          label: "Salvando OS...",
+          current: 0,
+          total: 0,
+          stage: "save",
+        });
+        const saved = await saveDataAndGetNumeroOs(formData);
+        numeroOs = saved.numeroOs;
+        operationalDate =
+          typeof saved.data.data === "string" && saved.data.data
+            ? saved.data.data
+            : operationalDate;
+        finalData = saved.data;
+        accessEmailEverSent = saved.emailEverSent;
         if (!finalData.numeroOs) throw new Error("Numero da OS nao foi gerado corretamente.");
-        numeroOs = finalData.numeroOs;
         // Mostra o número imediatamente: se uma etapa seguinte falhar, o
         // técnico já sabe qual OS foi salva.
         setOsNumero(numeroOs);
-        markPendingFinalization(numeroOs, "fotos", finalData);
+        markPendingFinalization(numeroOs, "fotos", finalData, undefined, operationalDate);
+        void markServerFinalizationStage(numeroOs, "fotos");
       }
 
+      const osNumeroAtual = numeroOs;
+      if (!osNumeroAtual || !finalData) {
+        throw new Error("Número da OS não foi gerado corretamente.");
+      }
+
+      // ---------------- FOTOS ----------------
       stage = "fotos";
-      const fotosAntesReport = await uploadFilesWithReport(
-        (formData.fotosAntes as File[]).filter((file) => typeof file !== "string"),
-        "fotos-antes",
-        numeroOs
-      );
-      const fotosDepoisReport = await uploadFilesWithReport(
-        (formData.fotosDepois as File[]).filter((file) => typeof file !== "string"),
-        "fotos-depois",
-        numeroOs
-      );
+      const formAntes = (formData.fotosAntes as (File | string)[]) || [];
+      const formDepois = (formData.fotosDepois as (File | string)[]) || [];
+      const beforeFiles = formAntes.filter((item): item is File => typeof item !== "string");
+      const afterFiles = formDepois.filter((item): item is File => typeof item !== "string");
 
-      if (fotosAntesReport.errors.length || fotosDepoisReport.errors.length) {
-        const failures = fotosAntesReport.errors.length + fotosDepoisReport.errors.length;
-        throw new FinalizationStageError(
-          "fotos",
-          `Não foi possível enviar ${failures} foto(s). Remova a foto com problema ou tente novamente.`
-        );
-      }
-
-      // Preserva as URLs já existentes (retomada/acesso) e anexa as novas.
-      // Nunca substitui fotos existentes por um array vazio.
-      const existingFotosAntes = uniqueStrings([
-        ...accessFotosAntes,
-        ...(pendingResume?.fotosAntes || []),
-        ...(formData.fotosAntes as (File | string)[]).filter(
-          (item): item is string => typeof item === "string"
-        ),
-      ]);
-      const existingFotosDepois = uniqueStrings([
-        ...accessFotosDepois,
-        ...(pendingResume?.fotosDepois || []),
-        ...(formData.fotosDepois as (File | string)[]).filter(
-          (item): item is string => typeof item === "string"
-        ),
-      ]);
-
-      const fotosAntesUrls = Array.from(
-        new Set([...existingFotosAntes, ...fotosAntesReport.urls])
+      let urlAntes = mergePhotoUrls(
+        accessFotosAntes,
+        pendingResume?.fotosAntes,
+        uniqueStrings(formAntes)
       );
-      const fotosDepoisUrls = Array.from(
-        new Set([...existingFotosDepois, ...fotosDepoisReport.urls])
+      let urlDepois = mergePhotoUrls(
+        accessFotosDepois,
+        pendingResume?.fotosDepois,
+        uniqueStrings(formDepois)
       );
 
-      markPendingFinalization(
-        numeroOs,
-        "fotos",
-        {
-          ...finalData,
-          fotosAntes: fotosAntesUrls,
-          fotosDepois: fotosDepoisUrls,
-        },
-        resumeMatches ? (accessConfirmToken || pendingResume?.confirmToken) : undefined
-      );
+      const failedAntes: File[] = [];
+      const failedDepois: File[] = [];
+      const totalFiles = beforeFiles.length + afterFiles.length;
 
-      const updateResponse = await authedFetch(
-        "/api/update-os-externa-fotos",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ numeroOs, fotosAntes: fotosAntesUrls, fotosDepois: fotosDepoisUrls }),
-        },
-        { retryOn401: true }
-      );
-      if (!updateResponse.ok) {
-        throw new FinalizationStageError(
-          "fotos",
-          await getApiErrorMessage(updateResponse, "Erro ao gravar as fotos no banco de dados.")
-        );
-      }
-
-      stage = "token";
-      const finalDataWithPhotos = {
-        ...finalData,
-        fotosAntes: fotosAntesUrls,
-        fotosDepois: fotosDepoisUrls,
+      // Grava IMEDIATAMENTE no banco cada foto que subiu. Falha de gravação
+      // não interrompe as demais; no fim o fluxo informa a pendência.
+      const persistPhotos = async () => {
+        persistErrorMessage = null;
+        try {
+          const response = await authedFetch(
+            "/api/update-os-externa-fotos",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                numeroOs: osNumeroAtual,
+                fotosAntes: urlAntes,
+                fotosDepois: urlDepois,
+              }),
+            },
+            { retryOn401: true }
+          );
+          if (!response.ok) {
+            persistErrorMessage = await getApiErrorMessage(
+              response,
+              "Erro ao gravar as fotos no banco de dados."
+            );
+          }
+        } catch (error) {
+          persistErrorMessage = describeRequestError(
+            error,
+            "Erro ao gravar as fotos no banco de dados."
+          );
+        }
       };
 
-      // Reutiliza o token já persistido numa tentativa anterior: se o e-mail
-      // chegou a sair, o link recebido pela escola continua válido.
-      const confirmToken =
-        (resumeMatches && (accessConfirmToken || pendingResume?.confirmToken)) ||
+      let photoIndex = 0;
+      const processPhoto = async (
+        field: "fotosAntes" | "fotosDepois",
+        file: File
+      ) => {
+        photoIndex += 1;
+        setFinalizationProgress({
+          label: `Enviando foto ${photoIndex} de ${totalFiles}`,
+          current: photoIndex,
+          total: totalFiles,
+          stage: "fotos",
+        });
+
+        const result = await uploadSingleImage(
+          file,
+          field === "fotosAntes" ? "fotos-antes" : "fotos-depois",
+          osNumeroAtual
+        );
+
+        if (result.url) {
+          if (field === "fotosAntes") {
+            urlAntes = mergePhotoUrls(urlAntes, [result.url]);
+          } else {
+            urlDepois = mergePhotoUrls(urlDepois, [result.url]);
+          }
+          await persistPhotos();
+          markPendingFinalization(
+            osNumeroAtual,
+            "fotos",
+            {
+              ...finalData!,
+              fotosAntes: urlAntes,
+              fotosDepois: urlDepois,
+            },
+            accessConfirmToken || pendingResume?.confirmToken,
+            operationalDate
+          );
+        } else {
+          const detail = {
+            field,
+            fileName: result.fileName,
+            reason: result.error || "Falha desconhecida no envio.",
+          };
+          failureDetails.push(detail);
+          setUploadFailures((current) => [...current, detail]);
+          if (field === "fotosAntes") failedAntes.push(file);
+          else failedDepois.push(file);
+        }
+      };
+
+      for (const file of beforeFiles) {
+        await processPhoto("fotosAntes", file);
+      }
+      for (const file of afterFiles) {
+        await processPhoto("fotosDepois", file);
+      }
+
+      // Sucessos viram URLs; falhas continuam como File para reenvio.
+      setFormData((prev) => ({
+        ...prev,
+        fotosAntes: [...urlAntes, ...failedAntes],
+        fotosDepois: [...urlDepois, ...failedDepois],
+      }));
+
+      const totalFotosDisponiveis = urlAntes.length + urlDepois.length;
+
+      if (failureDetails.length > 0) {
+        await persistPhotos();
+        await savePendingPhotos(osNumeroAtual, {
+          fotosAntes: failedAntes,
+          fotosDepois: failedDepois,
+        });
+        markPendingFinalization(
+          osNumeroAtual,
+          "fotos",
+          {
+            ...finalData,
+            fotosAntes: urlAntes,
+            fotosDepois: urlDepois,
+          },
+          accessConfirmToken || pendingResume?.confirmToken,
+          operationalDate
+        );
+        void markServerFinalizationStage(
+          osNumeroAtual,
+          "fotos",
+          `${failureDetails.length} foto(s) não enviada(s)`
+        );
+
+        const resumo = failureDetails
+          .slice(0, 4)
+          .map((item) => `${item.fileName}: ${item.reason}`)
+          .join(" ");
+        throw new FinalizationStageError(
+          "fotos",
+          `${failureDetails.length} foto(s) não foram enviadas. ${resumo}${
+            failureDetails.length > 4 ? " ..." : ""
+          } As fotos que subiram foram salvas; reenvie apenas as que falharam.`
+        );
+      }
+
+      if (totalFotosDisponiveis === 0) {
+        throw new FinalizationStageError(
+          "fotos",
+          "Selecione pelo menos uma foto antes de finalizar. As fotos são necessárias para comprovar o atendimento."
+        );
+      }
+
+      if (persistErrorMessage) {
+        throw new FinalizationStageError(
+          "fotos",
+          `${persistErrorMessage} As fotos foram enviadas, mas ainda não constam no banco. Tente novamente; elas não serão reenviadas.`
+        );
+      }
+
+      // Tudo subiu e foi persistido: descarta os arquivos pendentes locais.
+      await clearPendingPhotos(osNumeroAtual);
+      markPendingFinalization(
+        osNumeroAtual,
+        "token",
+        {
+          ...finalData,
+          fotosAntes: urlAntes,
+          fotosDepois: urlDepois,
+        },
+        accessConfirmToken || pendingResume?.confirmToken,
+        operationalDate
+      );
+
+      // ---------------- TOKEN ----------------
+      stage = "token";
+      setFinalizationProgress({
+        label: "Gerando documento...",
+        current: totalFiles,
+        total: totalFiles,
+        stage: "token",
+      });
+      void markServerFinalizationStage(osNumeroAtual, "token");
+
+      const finalDataWithPhotos: FormDataType = {
+        ...finalData,
+        fotosAntes: urlAntes,
+        fotosDepois: urlDepois,
+      };
+
+      let effectiveConfirmToken =
+        accessConfirmToken ||
+        pendingResume?.confirmToken ||
         (await import("uuid")).v4();
-      let effectiveConfirmToken = confirmToken;
 
-      markPendingFinalization(numeroOs, "token", finalDataWithPhotos, confirmToken);
-
-      // Ao retomar a partir da etapa de e-mail, o token já está gravado no
-      // banco (a etapa anterior só concluiu depois do 200). Não regrava para
-      // não conflitar com uma OS que a escola já tenha assinado.
-      const tokenAlreadyStored =
-        resumeMatches &&
-        pendingResume?.stage === "email" &&
-        !!(accessConfirmToken || pendingResume?.confirmToken);
-
-      if (!tokenAlreadyStored) {
+      // update-os-externa-token é idempotente: reutiliza um token já gravado
+      // e nunca sobrescreve OS assinada.
+      if (!accessConfirmToken) {
         const tokenResponse = await authedFetch(
           "/api/update-os-externa-token",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ numeroOs, assinado: confirmToken }),
+            body: JSON.stringify({
+              numeroOs: osNumeroAtual,
+              assinado: effectiveConfirmToken,
+            }),
           },
           { retryOn401: true }
         );
@@ -1250,125 +1506,263 @@ export function useFillPdfForm() {
             await getApiErrorMessage(tokenResponse, "Erro ao salvar o token de confirmacao.")
           );
         }
-
         const tokenData = await tokenResponse.json().catch(() => ({}));
         if (typeof tokenData.token === "string" && tokenData.token) {
-          // O backend reutiliza um token já gravado; o link precisa usar o
-          // mesmo valor que está no banco.
           effectiveConfirmToken = tokenData.token;
+        }
+        accessConfirmToken = effectiveConfirmToken;
+      }
+
+      // ---------------- PDF + E-MAIL ----------------
+      // Se a OS já foi enviada alguma vez, NÃO reenvia o e-mail só porque
+      // mudou o dia — vale também quando o salvamento deduplicou uma OS de
+      // outro dia (retomada sem rascunho local).
+      const deveEnviarEmail = !accessEmailEverSent;
+
+      if (deveEnviarEmail) {
+        stage = "pdf";
+        const finalUpdatedData = { ...finalDataWithPhotos, numeroOs: osNumeroAtual };
+        const pdfBase64 = await generatePdfBytes(finalUpdatedData);
+
+        const getBaseUrl = () => {
+          if (process.env.NODE_ENV === "development") return "http://localhost:3000";
+          // Em producao, nunca deixa localhost vazar para links enviados por email
+          // (a escola nao teria acesso). Se a env var estiver ausente ou apontando
+          // para localhost, cai no dominio de producao.
+          return process.env.NEXT_PUBLIC_BASE_URL && !process.env.NEXT_PUBLIC_BASE_URL.includes("localhost")
+            ? process.env.NEXT_PUBLIC_BASE_URL
+            : "https://csdt.vercel.app";
+        };
+        const confirmUrl = `${getBaseUrl()}/confirmar-os-externa?numeroOs=${finalUpdatedData.numeroOs}&token=${effectiveConfirmToken}`;
+        const csdtEmail = process.env.CSDT_EMAIL || "csdt@smeduquedecaxias.rj.gov.br";
+
+        const msg = {
+          to: finalUpdatedData.emailResponsavel,
+          from: process.env.EMAIL_USER,
+          cc: csdtEmail,
+          replyTo: `${process.env.EMAIL_USER}, ${csdtEmail}`,
+          subject: `OS Externa ${finalUpdatedData.numeroOs} - ${finalUpdatedData.unidadeEscolar}`,
+          html: buildEmailHtml(finalUpdatedData, confirmUrl),
+          attachments: [{ content: pdfBase64, filename: `OS-Externa-${finalUpdatedData.numeroOs}.pdf`, contentType: "application/pdf", encoding: "base64" }],
+          // Permite ao backend não duplicar o e-mail em retentativas.
+          osExternaNumero: finalUpdatedData.numeroOs,
+        };
+
+        stage = "email";
+        setFinalizationProgress({
+          label: "Enviando e-mail...",
+          current: totalFiles,
+          total: totalFiles,
+          stage: "email",
+        });
+        markPendingFinalization(
+          osNumeroAtual,
+          "email",
+          finalUpdatedData,
+          effectiveConfirmToken,
+          operationalDate
+        );
+        void markServerFinalizationStage(osNumeroAtual, "email");
+
+        const emailResponse = await authedFetch(
+          "/api/send-email",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(msg),
+          },
+          // send-email autentica antes de enviar; um 401 não disparou e-mail.
+          { retryOn401: true }
+        );
+        if (!emailResponse.ok) {
+          throw new FinalizationStageError(
+            "email",
+            await getApiErrorMessage(emailResponse, "Erro ao enviar o e-mail para a escola.")
+          );
+        }
+
+        const emailData = await emailResponse.json().catch(() => ({}));
+        if (emailData?.ccStatus === "failed") {
+          showToastMessage(
+            "E-mail enviado à escola, mas a cópia institucional (CC) falhou.",
+            "warning"
+          );
+        }
+      } else {
+        showToastMessage(
+          "Esta OS já havia sido enviada por e-mail; o envio não foi repetido ao retomar.",
+          "info"
+        );
+      }
+
+      // ---------------- CHAMADO DE REAGENDAMENTO ----------------
+      const problemaResolvido =
+        (finalDataWithPhotos.solucionado ?? formData.solucionado) === "Sim";
+
+      if (!problemaResolvido && !accessChamadoCriado) {
+        stage = "chamado";
+        setFinalizationProgress({
+          label: "Criando chamado de reagendamento...",
+          current: totalFiles,
+          total: totalFiles,
+          stage: "chamado",
+        });
+        void markServerFinalizationStage(osNumeroAtual, "chamado");
+
+        const chamadoResult = await criarChamadoAutomatico({
+          ...finalDataWithPhotos,
+          numeroOs: osNumeroAtual,
+        });
+        if (!chamadoResult.ok) {
+          markPendingFinalization(
+            osNumeroAtual,
+            "chamado",
+            finalDataWithPhotos,
+            effectiveConfirmToken,
+            operationalDate
+          );
+          void markServerFinalizationStage(
+            osNumeroAtual,
+            "chamado",
+            chamadoResult.error
+          );
+          oferecerRetentativaChamado(
+            { ...finalDataWithPhotos, numeroOs: osNumeroAtual },
+            chamadoResult.error
+          );
+          return;
         }
       }
 
-      stage = "pdf";
-      const finalUpdatedData = {
-        ...finalDataWithPhotos,
-        numeroOs,
-      };
-      const pdfBase64 = await generatePdfBytes(finalUpdatedData);
+      // ---------------- CONCLUÍDO ----------------
+      setFinalizationProgress({
+        label: "Finalizando atendimento...",
+        current: totalFiles,
+        total: totalFiles,
+        stage: "done",
+      });
 
-      const getBaseUrl = () => {
-        if (process.env.NODE_ENV === "development") return "http://localhost:3000";
-        // Em producao, nunca deixa localhost vazar para links enviados por email
-        // (a escola nao teria acesso). Se a env var estiver ausente ou apontando
-        // para localhost, cai no dominio de producao.
-        return process.env.NEXT_PUBLIC_BASE_URL && !process.env.NEXT_PUBLIC_BASE_URL.includes("localhost")
-          ? process.env.NEXT_PUBLIC_BASE_URL
-          : "https://csdt.vercel.app";
-      };
-      const confirmUrl = `${getBaseUrl()}/confirmar-os-externa?numeroOs=${finalUpdatedData.numeroOs}&token=${effectiveConfirmToken}`;
-      const csdtEmail = process.env.CSDT_EMAIL || "csdt@smeduquedecaxias.rj.gov.br";
-
-      const msg = {
-        to: finalUpdatedData.emailResponsavel,
-        from: process.env.EMAIL_USER,
-        cc: csdtEmail,
-        replyTo: `${process.env.EMAIL_USER}, ${csdtEmail}`,
-        subject: `OS Externa ${finalUpdatedData.numeroOs} - ${finalUpdatedData.unidadeEscolar}`,
-        html: buildEmailHtml(finalUpdatedData, confirmUrl),
-        attachments: [{ content: pdfBase64, filename: `OS-Externa-${finalUpdatedData.numeroOs}.pdf`, contentType: "application/pdf", encoding: "base64" }],
-        // Permite ao backend não duplicar o e-mail em retentativas.
-        osExternaNumero: finalUpdatedData.numeroOs,
-      };
-
-      stage = "email";
-      markPendingFinalization(numeroOs, "email", finalUpdatedData, effectiveConfirmToken);
-
-      const emailResponse = await authedFetch(
-        "/api/send-email",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(msg),
-        },
-        // send-email autentica antes de enviar; um 401 não disparou e-mail.
-        { retryOn401: true }
-      );
-      if (!emailResponse.ok) {
-        throw new FinalizationStageError(
-          "email",
-          await getApiErrorMessage(emailResponse, "Erro ao enviar o e-mail para a escola.")
-        );
-      }
-
-      const emailData = await emailResponse.json().catch(() => ({}));
-      if (emailData?.ccStatus === "failed") {
-        showToastMessage(
-          "E-mail enviado à escola, mas a cópia institucional (CC) falhou.",
-          "warning"
-        );
-      }
-
-      // A OS foi entregue; não há mais o que retomar com o mesmo número.
-      clearPendingFinalization(localUserId, numeroOs);
-      clearAttemptRequestId(localUserId);
+      clearPendingFinalization(localUserId, osNumeroAtual);
+      clearLaunchAttempt(localUserId);
+      await clearPendingPhotos(osNumeroAtual);
+      void markServerFinalizationStage(osNumeroAtual, "aguardando-assinatura");
       setPendingResume(null);
-      setChamadoData((prev) => ({ ...prev, escola: finalUpdatedData.unidadeEscolar || "" }));
+      setPendingFinalizations(readPendingFinalizations(localUserId));
+      setServerPendingFinalizations((current) =>
+        current.filter((item) => item.numeroOs !== osNumeroAtual)
+      );
+      setChamadoData((prev) => ({
+        ...prev,
+        escola: finalDataWithPhotos.unidadeEscolar || "",
+      }));
 
-      const problemaResolvido = formData.solucionado === "Sim";
       clearForm();
 
       if (!problemaResolvido) {
-        const chamadoResult = await criarChamadoAutomatico(finalUpdatedData);
-        if (chamadoResult.ok) {
-          setAlertDialog({ title: "Sucesso", description: `OS Externa ${finalUpdatedData.numeroOs} enviada por e-mail para ${finalUpdatedData.unidadeEscolar}! Como o problema nao foi solucionado, um chamado foi criado automaticamente para reagendamento.`, success: true });
-        } else {
-          oferecerRetentativaChamado(finalUpdatedData, chamadoResult.error);
-        }
+        setAlertDialog({
+          title: "Sucesso",
+          description: `OS Externa ${osNumeroAtual} enviada por e-mail para ${finalDataWithPhotos.unidadeEscolar}! Como o problema nao foi solucionado, um chamado foi criado automaticamente para reagendamento.`,
+          success: true,
+        });
       } else {
-        setAlertDialog({ title: "Sucesso", description: `OS Externa ${finalUpdatedData.numeroOs} enviada por e-mail para ${finalUpdatedData.unidadeEscolar}! O responsavel recebera um e-mail para confirmacao.`, success: true });
-        setTimeout(() => { setAlertDialog(null); setShowChamadoModal(true); }, 2000);
+        setAlertDialog({
+          title: "Sucesso",
+          description: `OS Externa ${osNumeroAtual} enviada por e-mail para ${finalDataWithPhotos.unidadeEscolar}! O responsavel recebera um e-mail para confirmacao.`,
+          success: true,
+        });
+        setTimeout(() => {
+          setAlertDialog(null);
+          setShowChamadoModal(true);
+        }, 2000);
       }
+
     } catch (error) {
       const message = describeRequestError(error, "Erro ao processar a OS.");
       const failedStage =
         error instanceof FinalizationStageError ? error.stage : stage;
+      const failedLabel =
+        FINALIZATION_STAGE_LABELS[failedStage] || String(failedStage);
+      const fotoFailure = failedStage === "fotos" && failureDetails.length > 0;
 
       if (error instanceof AuthSessionError) {
         setAlertDialog({
           title: error.reason === "missing" ? "Sessão necessária" : "Sessão expirada",
           description: `${error.message}${
             numeroOs
-              ? ` A OS ${numeroOs} já foi salva; a etapa "${STAGE_LABELS[failedStage]}" não foi concluída e poderá ser retomada.`
+              ? ` A OS ${numeroOs} já foi salva e a etapa "${failedLabel}" poderá ser retomada.`
               : ""
           }`,
           success: false,
         });
       } else if (numeroOs) {
+        if (finalData) {
+          // Preserva URLs de fotos já gravadas/recém-enviadas no rascunho.
+          const existingDraft = readPendingFinalizations(localUserId).find(
+            (item) => item.numeroOs === numeroOs
+          );
+          markPendingFinalization(
+            numeroOs,
+            failedStage,
+            {
+              ...finalData,
+              fotosAntes: mergePhotoUrls(
+                existingDraft?.form?.fotosAntes,
+                finalData.fotosAntes
+              ),
+              fotosDepois: mergePhotoUrls(
+                existingDraft?.form?.fotosDepois,
+                finalData.fotosDepois
+              ),
+            },
+            accessConfirmToken || pendingResume?.confirmToken,
+            operationalDate
+          );
+        }
         setAlertDialog({
-          title: "OS salva, finalização pendente",
-          description: `A OS ${numeroOs} foi salva, mas a etapa "${STAGE_LABELS[failedStage]}" não foi concluída: ${message} Os dados foram preservados nesta tela. Ao tentar novamente, o mesmo número de OS será reaproveitado.`,
+          title: fotoFailure
+            ? "Algumas fotos não foram enviadas"
+            : "OS salva, finalização pendente",
+          description: `A OS ${numeroOs} foi salva, mas a etapa "${failedLabel}" não foi concluída: ${message} As fotos que já subiram foram gravadas e o mesmo número de OS será reaproveitado.${
+            fotoFailure
+              ? " Ao tentar novamente, apenas as fotos com falha serão reenviadas."
+              : ""
+          }`,
           success: false,
+          actionLabel: fotoFailure
+            ? "Reenviar apenas as fotos que falharam"
+            : "Tentar novamente",
+          onAction: () => {
+            setAlertDialog(null);
+            void handleSubmit();
+          },
+          secondaryActionLabel: "Salvar pendência e iniciar nova OS",
+          onSecondaryAction: () => {
+            setAlertDialog(null);
+            startNewOs();
+            resetFormData();
+          },
+          tertiaryActionLabel: "Voltar para a lista de OS externas",
+          onTertiaryAction: () => {
+            setAlertDialog(null);
+            void router.push("/os-externas-list");
+          },
         });
       } else {
         setAlertDialog({
           title: "Erro ao salvar a OS",
-          description: `${message} Os dados preenchidos foram preservados nesta tela.`,
+          description: `${message} Os dados preenchidos foram preservados nesta tela. Nenhuma OS foi criada.`,
           success: false,
+          actionLabel: "Tentar novamente",
+          onAction: () => {
+            setAlertDialog(null);
+            void handleSubmit();
+          },
         });
       }
     } finally {
       submittingRef.current = false;
       setLoading(false);
+      setFinalizationProgress(null);
     }
   };
 
@@ -1444,6 +1838,47 @@ export function useFillPdfForm() {
   const stepProgress = calculateStepProgress();
   const canProceed = canProceedToStep(currentStep, formData);
 
+  // União local + banco, sem duplicar. O banco é a fonte para retomar em
+  // outro aparelho; o local cobre o aparelho atual mesmo se a API falhar.
+  const pendingOptionsMap = new Map<
+    string,
+    {
+      numeroOs: string;
+      school: string;
+      date: string;
+      label: string;
+      source: "server" | "local";
+    }
+  >();
+
+  for (const item of pendingFinalizations) {
+    pendingOptionsMap.set(item.numeroOs, {
+      numeroOs: item.numeroOs,
+      school: item.school,
+      date: item.date,
+      label:
+        FINALIZATION_STAGE_LABELS[item.stage] || String(item.stage),
+      source: "local",
+    });
+  }
+
+  for (const item of serverPendingFinalizations) {
+    pendingOptionsMap.set(item.numeroOs, {
+      numeroOs: item.numeroOs,
+      school: item.unidadeEscolar || "",
+      date: item.data,
+      label: item.finalization.label,
+      source: "server",
+    });
+  }
+
+  const pendingOptions = Array.from(pendingOptionsMap.values());
+  const showPendingPrompt =
+    pendingReady &&
+    !pendingPromptDismissed &&
+    !pendingResume &&
+    pendingOptions.length > 0;
+
   return {
     // State
     formData, setFormData, localTecnicoName, localUserId, isLoadingTecnico,
@@ -1452,12 +1887,18 @@ export function useFillPdfForm() {
     schoolPendingAvailability, isCheckingSchoolPendingAvailability,
     escolas, alertDialog, setAlertDialog, loading, showChamadoModal, setShowChamadoModal,
     osNumero, chamadoData, setChamadoData, showToast, setShowToast, isDirty, progress, scrollY,
+    // Finalização pendente (aviso NÃO bloqueante)
+    pendingFinalizations, pendingOptions, showPendingPrompt,
+    pendingPromptDismissed, setPendingPromptDismissed,
+    serverPendingFinalizations, serverPendingLoaded, pendingReady,
+    resumePendingFinalization, startNewOs, isResuming,
+    finalizationProgress, uploadFailures,
     // Multi-step
     currentStep, totalSteps, completedSteps, goToStep, nextStep, previousStep, currentStepData,
     // Computed
     escolaOptions, stepProgress, canProceed,
     // Handlers
-    showToastMessage, handleInputChange, handleFileChange, handleSelectChange,
+    showToastMessage, handleInputChange, handleFileChange, handleRemoveFile, handleSelectChange,
     handleNext, handlePrevious, handleStepClick, handleSubmit, criarChamadoManual,
     clearForm,
   };

@@ -8,6 +8,10 @@ interface AlertDialogState {
   success: boolean;
   actionLabel?: string;
   onAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
+  tertiaryActionLabel?: string;
+  onTertiaryAction?: () => void;
 }
 
 interface FillPdfModalsProps {
@@ -118,6 +122,26 @@ const FillPdfModals: React.FC<FillPdfModalsProps> = ({
                   transition={{ delay: 0.45 }}
                 >
                   {alertDialog.actionLabel}
+                </motion.button>
+              )}
+              {alertDialog.secondaryActionLabel && alertDialog.onSecondaryAction && (
+                <motion.button
+                  onClick={() => alertDialog.onSecondaryAction?.()}
+                  className="w-full mb-3 py-3 rounded-xl font-semibold bg-slate-700 hover:bg-slate-600 text-white"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {alertDialog.secondaryActionLabel}
+                </motion.button>
+              )}
+              {alertDialog.tertiaryActionLabel && alertDialog.onTertiaryAction && (
+                <motion.button
+                  onClick={() => alertDialog.onTertiaryAction?.()}
+                  className="w-full mb-3 py-3 rounded-xl font-medium border border-slate-500 text-slate-200 hover:bg-slate-700"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {alertDialog.tertiaryActionLabel}
                 </motion.button>
               )}
               <motion.button

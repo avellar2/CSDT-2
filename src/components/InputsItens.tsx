@@ -1,6 +1,6 @@
 import React, { ChangeEvent, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Camera, FileImage } from 'lucide-react';
+import { Upload, Camera, FileImage, Trash2 } from 'lucide-react';
 import Select, { MultiValue } from 'react-select';
 
 interface InputsItensProps {
@@ -8,6 +8,8 @@ interface InputsItensProps {
   handleInputChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   handleSelectChange: (selectedOption: any) => void;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Remove uma foto (arquivo pendente ou URL já enviada) da seleção. */
+  handleRemoveFile?: (field: "fotosAntes" | "fotosDepois", index: number) => void;
   escolaOptions: { label: string; value: string }[];
   tecnicoResponsavelLogado: string;
   currentStep?: number;
@@ -32,6 +34,7 @@ const
     handleInputChange,
     handleSelectChange,
     handleFileChange,
+    handleRemoveFile,
     escolaOptions,
     tecnicoResponsavelLogado,
     currentStep = 0,
@@ -102,7 +105,9 @@ const
     const renderFileInput = (fieldName: string, label: string, accept: string = "image/*") => {
       if (!shouldRenderField(fieldName)) return null;
 
-      const files = formData[fieldName] as File[];
+      const rawFiles = formData[fieldName];
+      const files: (File | string)[] = Array.isArray(rawFiles) ? rawFiles : [];
+      const field = fieldName as "fotosAntes" | "fotosDepois";
 
       return (
         <motion.div
@@ -136,13 +141,13 @@ const
                   Clique para selecionar fotos
                 </p>
                 <p className="text-xs text-slate-500">
-                  PNG, JPG ou JPEG (Max: 10MB cada)
+                  JPG, PNG ou WEBP. Fotos grandes são comprimidas automaticamente.
                 </p>
               </div>
             </label>
           </div>
 
-          {files && files.length > 0 && (
+          {files.length > 0 && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -152,18 +157,37 @@ const
                 <FileImage size={16} />
                 {files.length} foto(s) selecionada(s):
               </p>
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                {Array.from(files).map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 p-2 bg-slate-700/50 rounded-lg text-xs"
-                  >
-                    <FileImage size={12} className="text-blue-400 flex-shrink-0" />
-                    <span className="text-slate-300 truncate" title={file.name}>
-                      {file.name}
-                    </span>
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                {files.map((file, index) => {
+                  const isUrl = typeof file === "string";
+                  const label = isUrl
+                    ? "Foto já enviada"
+                    : (file as File).name || `foto-${index + 1}`;
+                  return (
+                    <div
+                      key={`${isUrl ? "url" : "file"}-${index}`}
+                      className="flex items-center gap-2 p-2 bg-slate-700/50 rounded-lg text-xs"
+                    >
+                      <FileImage
+                        size={12}
+                        className={isUrl ? "text-green-400 flex-shrink-0" : "text-blue-400 flex-shrink-0"}
+                      />
+                      <span className="text-slate-300 truncate flex-1" title={isUrl ? file : label}>
+                        {label}
+                      </span>
+                      {handleRemoveFile && !isUrl && (
+                        <button
+                          type="button"
+                          aria-label={`Remover ${label}`}
+                          onClick={() => handleRemoveFile(field, index)}
+                          className="p-1 text-slate-400 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           )}
