@@ -6,6 +6,11 @@ import {
   formatBrazilDateKey,
   getBrazilDayRange,
 } from "@/utils/dailyDemandOsRules";
+import { deriveOsExternaFinalization } from "@/utils/osExternaFinalization";
+import {
+  loadOsExternaFinalizationStates,
+  loadOsWithReagendamentoChamado,
+} from "@/utils/osExternaFinalizationState";
 
 /**
  * Valida, no backend, se o usuário autenticado pode retomar a finalização de
@@ -33,22 +38,10 @@ export default async function handler(
   }
 
   try {
+    // Registro completo: permite retomar em OUTRO aparelho reconstruindo o
+    // formulário (a autorização é validada logo abaixo, por OS).
     const os = await prisma.oSExterna.findUnique({
       where: { numeroOs },
-      select: {
-        id: true,
-        numeroOs: true,
-        unidadeEscolar: true,
-        tecnicoResponsavel: true,
-        data: true,
-        status: true,
-        routeId: true,
-        createdAt: true,
-        assinado: true,
-        fotosAntes: true,
-        fotosDepois: true,
-        lastEmailSent: true,
-      },
     });
 
     if (!os) {
@@ -74,25 +67,32 @@ export default async function handler(
         new Date(os.lastEmailSent) <= end
     );
 
+    const [storedStages, chamados] = await Promise.all([
+      loadOsExternaFinalizationStates([os.id]),
+      loadOsWithReagendamentoChamado(os.numeroOs ? [os.numeroOs] : []),
+    ]);
+
+    const finalization = deriveOsExternaFinalization(os, {
+      storedStage: storedStages.get(os.id) || null,
+      hasChamadoReagendamento: os.numeroOs ? chamados.has(os.numeroOs) : false,
+    });
+
     return res.status(200).json({
       allowed: true,
       reason: permission.reason,
       os: {
-        id: os.id,
-        numeroOs: os.numeroOs,
-        unidadeEscolar: os.unidadeEscolar,
-        tecnicoResponsavel: os.tecnicoResponsavel,
-        data: os.data,
-        status: os.status,
-        routeId: os.routeId,
-        createdAt: os.createdAt,
+        ...os,
         fotosAntes: os.fotosAntes || [],
         fotosDepois: os.fotosDepois || [],
-        lastEmailSent: os.lastEmailSent,
       },
       confirmToken,
       alreadySigned: !isPending,
       emailSentToday,
+      // A OS já foi enviada alguma vez (mesmo que em outro dia). Retomar a
+      // finalização não deve reenviar o e-mail só porque mudou a data.
+      emailEverSent: Boolean(os.lastEmailSent),
+      lastEmailSent: os.lastEmailSent,
+      finalization,
     });
   } catch (error) {
     console.error("Erro ao validar acesso à OS externa:", error);

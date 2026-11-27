@@ -7,6 +7,11 @@ import {
   loadOsScope,
 } from "@/utils/operationalOsScope";
 import { isValidDateKey } from "@/utils/operationalRoutes";
+import { deriveOsExternaFinalization } from "@/utils/osExternaFinalization";
+import {
+  loadOsExternaFinalizationStates,
+  loadOsWithReagendamentoChamado,
+} from "@/utils/osExternaFinalizationState";
 
 const prisma = new PrismaClient();
 
@@ -118,14 +123,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       schools.map((school) => [school.name.trim(), school.email?.trim() || null])
     );
 
+    // Estado de finalização (fonte confiável no banco). A tabela aditiva pode
+    // não existir ainda; nesse caso o estado é derivado da própria OS.
+    const [storedStages, chamados] = await Promise.all([
+      loadOsExternaFinalizationStates(osExternas.map((os) => os.id)),
+      loadOsWithReagendamentoChamado(
+        osExternas
+          .map((os) => os.numeroOs)
+          .filter((numero): numero is string => Boolean(numero))
+      ),
+    ]);
+
     const normalizedOsExternas = osExternas.map((os) => {
       const schoolEmail = os.unidadeEscolar
         ? schoolEmailByName.get(os.unidadeEscolar.trim())
         : null;
 
+      const finalization = deriveOsExternaFinalization(os, {
+        storedStage: storedStages.get(os.id) || null,
+        hasChamadoReagendamento: os.numeroOs
+          ? chamados.has(os.numeroOs)
+          : false,
+      });
+
       return {
         ...os,
         emailResponsavel: schoolEmail || os.emailResponsavel,
+        finalization,
       };
     });
 

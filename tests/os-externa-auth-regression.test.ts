@@ -390,6 +390,42 @@ describe("idempotência do lançamento de OS", () => {
     expect(mocks.chamadoCreate).not.toHaveBeenCalled();
   });
 
+  it("e-mail INICIAL não é reenviado em outro dia (idempotência no backend)", async () => {
+    loginAs("ADMIN");
+    mocks.oSExternaFindUnique.mockResolvedValue({
+      id: 77,
+      lastEmailSent: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      status: "Pendente",
+      routeId: null,
+      data: "2026-11-24",
+      createdAt: new Date(),
+      tecnicoResponsavel: "Yuri",
+      unidadeEscolar: "EM ZIRALDO",
+    });
+
+    const res = makeRes();
+    await sendEmailHandler(
+      makeReq(
+        "POST",
+        {
+          to: "escola@example.com",
+          subject: "OS Externa 77/2026",
+          html: "<p>OS</p>",
+          osExternaNumero: "77/2026",
+        },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      deduplicated: true,
+      emailPreviouslySent: true,
+    });
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
+
   it("e-mail da OS não é reenviado no mesmo dia", async () => {
     loginAs("ADMIN");
     mocks.oSExternaFindUnique.mockResolvedValue({
@@ -748,6 +784,117 @@ describe("confirmação do destinatário principal do e-mail", () => {
 
     expect(res.statusCode).toBe(403);
     expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
+});
+
+describe("idempotência entre dias e nova OS explícita", () => {
+  const requestId = "22222222-2222-4222-8222-222222222222";
+  const formData = {
+    unidadeEscolar: "EM ZIRALDO",
+    tecnicoResponsavel: "Yuri",
+    data: "2026-11-27",
+    solicitacaoDaVisita: "Sem internet",
+    relatorio: "Roteador reiniciado",
+    solucionado: "Sim",
+    fotosAntes: [{}, {}, {}],
+    fotosDepois: [],
+  };
+
+  const existing = {
+    id: 88,
+    numeroOs: "88/2026",
+    unidadeEscolar: "EM ZIRALDO",
+    tecnicoResponsavel: "Yuri",
+    // OS salva no dia anterior: a tentativa continua sendo a mesma.
+    data: "2026-11-26",
+    status: "Pendente",
+    routeId: null,
+    createdAt: new Date("2026-11-26T12:00:00-03:00"),
+    solicitacaoDaVisita: "Sem internet",
+    relatorio: "Roteador reiniciado",
+    solucionado: "Sim",
+    lastEmailSent: new Date("2026-11-26T12:05:00-03:00"),
+  };
+
+  it("retoma a OS do dia anterior com o mesmo requestId e não reenvia e-mail", async () => {
+    loginAs("ADMIN");
+    mocks.submissionCreate.mockRejectedValue({ code: "P2002" });
+    mocks.submissionFindUnique.mockResolvedValue({
+      osId: 88,
+      userId: "user-1",
+      createdAt: new Date(),
+    });
+    mocks.oSExternaFindUnique.mockResolvedValue(existing);
+
+    const res = makeRes();
+    await saveOsExternaHandler(
+      makeReq(
+        "POST",
+        { formData, context: { clientRequestId: requestId } },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      numeroOs: "88/2026",
+      deduplicated: true,
+      resumedAcrossDays: true,
+      emailEverSent: true,
+    });
+    expect(mocks.oSExternaCreate).not.toHaveBeenCalled();
+  });
+
+  it("'Iniciar nova OS' (forceNew) ignora o fallback e cria outra OS", async () => {
+    loginAs("ADMIN");
+    mocks.oSExternaCreate.mockResolvedValue({ id: 90 });
+    mocks.oSExternaUpdate.mockResolvedValue({
+      id: 90,
+      numeroOs: "90/2026",
+      status: "Pendente",
+    });
+
+    const res = makeRes();
+    await saveOsExternaHandler(
+      makeReq(
+        "POST",
+        { formData, context: { userId: "user-1", forceNew: true } },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ numeroOs: "90/2026" });
+    expect(mocks.oSExternaFindFirst).not.toHaveBeenCalled();
+    expect(mocks.oSExternaCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("não grava referências vazias para File objects (OS 651/2026)", async () => {
+    loginAs("ADMIN");
+    mocks.oSExternaCreate.mockResolvedValue({ id: 91 });
+    mocks.oSExternaUpdate.mockResolvedValue({
+      id: 91,
+      numeroOs: "91/2026",
+      status: "Pendente",
+    });
+
+    const res = makeRes();
+    await saveOsExternaHandler(
+      makeReq(
+        "POST",
+        {
+          formData: { ...formData, fotosAntes: [{}, {}, {}] },
+          context: { userId: "user-1", forceNew: true },
+        },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(mocks.oSExternaCreate.mock.calls[0][0].data.fotosAntes).toEqual([]);
   });
 });
 

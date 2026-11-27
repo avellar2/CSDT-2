@@ -311,6 +311,22 @@ model OsExternaSubmission {
   @@index([osId])
 }
 
+/// Estado da finalização técnica de uma OS externa (fotos, token, PDF,
+/// e-mail e chamado de reagendamento). Tabela separada e ADITIVA para não
+/// alterar colunas de `OSExterna` nem exigir migração destrutiva. Enquanto a
+/// migração não for aplicada, o código deriva o estado a partir da própria OS.
+model OsExternaFinalizationState {
+  id        Int      @id @default(autoincrement())
+  osId      Int      @unique
+  stage     String
+  lastError String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stage])
+}
+
 model OffTechnician {
   id           Int      @id @default(autoincrement())
   technicianId Int

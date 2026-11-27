@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Header } from "@/components/Header";
-import { Clock, CheckCircle, Eye, User, Send } from "lucide-react";
+import { Clock, CheckCircle, Eye, User, Send, RefreshCw, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/router";
 import { formatDateShort, formatDateTime } from "@/utils/date";
@@ -170,6 +170,115 @@ const OsExternasList: React.FC = () => {
           )}
         </div>
 
+        {/* Aba/opção "Finalização pendente" — fonte: banco de dados. */}
+        <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => hook.setShowFinalizationTab(false)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${
+              hook.showFinalizationTab
+                ? "bg-white text-gray-700 border border-gray-300"
+                : "bg-blue-600 text-white"
+            }`}
+          >
+            Todas as OS
+          </button>
+          <button
+            type="button"
+            onClick={() => hook.setShowFinalizationTab(true)}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
+              hook.showFinalizationTab
+                ? "bg-amber-500 text-white"
+                : "bg-white text-gray-700 border border-gray-300"
+            }`}
+          >
+            <ListChecks size={16} />
+            Finalização pendente ({hook.finalizationPending.length})
+          </button>
+        </div>
+
+        {hook.showFinalizationTab && (
+          <div className="mb-8 rounded-lg bg-white p-6 shadow-lg">
+            <div className="mb-4 flex items-center gap-2">
+              <RefreshCw size={22} className="text-amber-500" />
+              <h2 className="text-xl font-semibold text-gray-800">
+                Finalização pendente ({hook.finalizationPending.length})
+              </h2>
+            </div>
+            <p className="mb-4 text-sm text-gray-600">
+              OS salvas cuja etapa técnica (fotos, token, e-mail ou chamado)
+              ainda não terminou. O estado vem do banco: pode ser retomado em
+              outro aparelho. Aguardar assinatura da escola não entra aqui.
+            </p>
+
+            {hook.finalizationPending.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">
+                <CheckCircle size={48} className="mx-auto mb-4 text-green-300" />
+                <p>Nenhuma finalização técnica pendente.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {hook.finalizationPending.map((os) => (
+                  <div
+                    key={os.id}
+                    className="rounded-lg border border-amber-200 bg-amber-50/40 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span className="rounded bg-amber-100 px-2 py-1 text-sm font-medium text-amber-900">
+                            {os.numeroOs}
+                          </span>
+                          <span className="rounded bg-white px-2 py-1 text-xs font-medium text-amber-800 border border-amber-200">
+                            {os.finalization?.label}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {formatDateShort(os.data)}
+                          </span>
+                        </div>
+                        <h3 className="mb-1 text-lg font-bold leading-tight text-gray-900">
+                          {os.unidadeEscolar}
+                        </h3>
+                        <p className="mb-1 text-sm text-gray-600">
+                          <User size={16} className="mr-1 inline" />
+                          {os.tecnicoResponsavel}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {os.finalization?.description}
+                        </p>
+                        {os.finalization && os.finalization.totalFotos > 0 && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            Fotos já gravadas: {os.finalization.totalFotos}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-shrink-0 flex-col gap-2 sm:ml-4">
+                        <Button
+                          onClick={() => hook.handleResumeFinalization(os)}
+                          size="sm"
+                          className="bg-amber-500 text-white hover:bg-amber-600"
+                        >
+                          <RefreshCw size={16} className="mr-1" />
+                          Retomar finalização
+                        </Button>
+                        <Button
+                          onClick={() => hook.handleViewDetails(os)}
+                          size="sm"
+                          className="bg-slate-600 text-white hover:bg-slate-700"
+                        >
+                          <Eye size={16} className="mr-1" />
+                          Ver
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!hook.showFinalizationTab && (
         <div className={`grid grid-cols-1 ${hook.pendingOnly ? "" : "lg:grid-cols-2"} gap-8`}>
           {/* Coluna Esquerda - OS Pendentes */}
           <div className="bg-white rounded-lg shadow-lg p-6">
@@ -393,6 +502,7 @@ const OsExternasList: React.FC = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       <OsExternasDetailModal
