@@ -390,6 +390,42 @@ describe("idempotência do lançamento de OS", () => {
     expect(mocks.chamadoCreate).not.toHaveBeenCalled();
   });
 
+  it("e-mail INICIAL não é reenviado em outro dia (idempotência no backend)", async () => {
+    loginAs("ADMIN");
+    mocks.oSExternaFindUnique.mockResolvedValue({
+      id: 77,
+      lastEmailSent: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      status: "Pendente",
+      routeId: null,
+      data: "2026-11-24",
+      createdAt: new Date(),
+      tecnicoResponsavel: "Yuri",
+      unidadeEscolar: "EM ZIRALDO",
+    });
+
+    const res = makeRes();
+    await sendEmailHandler(
+      makeReq(
+        "POST",
+        {
+          to: "escola@example.com",
+          subject: "OS Externa 77/2026",
+          html: "<p>OS</p>",
+          osExternaNumero: "77/2026",
+        },
+        "tok"
+      ),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({
+      deduplicated: true,
+      emailPreviouslySent: true,
+    });
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
+
   it("e-mail da OS não é reenviado no mesmo dia", async () => {
     loginAs("ADMIN");
     mocks.oSExternaFindUnique.mockResolvedValue({

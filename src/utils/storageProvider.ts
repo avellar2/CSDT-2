@@ -63,7 +63,16 @@ interface CloudinarySignature {
   signature: string;
   folder: string;
   publicId: string;
+  scope: "os-externa" | "chada";
 }
+
+type SignatureRequest =
+  | {
+      scope: "os-externa";
+      numeroOs: string;
+      field: "fotos-antes" | "fotos-depois";
+    }
+  | { scope: "chada"; itemId: string };
 
 function getFetch(): typeof fetch {
   if (typeof fetch === "undefined") {
@@ -143,9 +152,13 @@ async function readErrorMessage(response: Response): Promise<string | null> {
 /* Cloudinary                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * A assinatura é vinculada à OS/CHADA AUTORIZADA no servidor. O cliente não
+ * escolhe pasta nem `public_id`: isso impede sobrescrever arquivos de outra
+ * OS e mantém o `api_secret` fora do navegador.
+ */
 async function requestCloudinarySignature(
-  folder: string,
-  publicId: string
+  request: SignatureRequest
 ): Promise<CloudinarySignature | null> {
   try {
     const response = await authedFetch(
@@ -153,7 +166,7 @@ async function requestCloudinarySignature(
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder, publicId }),
+        body: JSON.stringify(request),
       },
       { retryOn401: true }
     );
@@ -171,7 +184,8 @@ async function requestCloudinarySignature(
       typeof data.signature !== "string" ||
       typeof data.timestamp !== "number" ||
       typeof data.folder !== "string" ||
-      typeof data.publicId !== "string"
+      typeof data.publicId !== "string" ||
+      data.scope !== request.scope
     ) {
       return null;
     }
@@ -260,11 +274,13 @@ async function uploadPreparedToCloudinary(
   folder: string,
   numeroOs: string
 ): Promise<string> {
-  const publicId = `${Date.now()}-${sanitizeFileName(image.fileName).replace(/\.jpg$/i, "")}`;
-  const signature = await requestCloudinarySignature(
-    `os-externa-img/${folder}/${numeroOs}`,
-    publicId
-  );
+  const field =
+    folder === "fotos-antes" ? "fotos-antes" : "fotos-depois";
+  const signature = await requestCloudinarySignature({
+    scope: "os-externa",
+    numeroOs,
+    field,
+  });
 
   let lastError: unknown = null;
 
@@ -532,11 +548,10 @@ async function uploadChadaToCloudinary(
       console.error("[Cloudinary/CHADA] Foto ignorada:", prepared.error);
       continue;
     }
-    const fileName = `${itemId}-${Date.now()}-${sanitizeFileName(
-      prepared.image.fileName
-    )}`;
-    const publicId = fileName.replace(/\.jpg$/i, "");
-    const signature = await requestCloudinarySignature("os-images", publicId);
+    const signature = await requestCloudinarySignature({
+      scope: "chada",
+      itemId,
+    });
     try {
       const url = signature
         ? await uploadDirectToCloudinary(prepared.image, signature)

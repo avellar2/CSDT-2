@@ -1436,10 +1436,21 @@ export function useFillPdfForm() {
         );
       }
 
-      if (totalFotosDisponiveis === 0) {
+      // Fotos são opcionais na regra de negócio — uma OS legitimamente sem
+      // fotos pode ser finalizada. Exceção: se a RETOMADA parou na etapa de
+      // fotos (ex.: 651/2026, upload falhou), exigir ao menos uma para não
+      // concluir o atendimento sem comprovação.
+      const resumedAtPhotos = isResume && stage === "fotos";
+      if (totalFotosDisponiveis === 0 && resumedAtPhotos) {
         throw new FinalizationStageError(
           "fotos",
-          "Selecione pelo menos uma foto antes de finalizar. As fotos são necessárias para comprovar o atendimento."
+          "Esta OS parou na etapa de fotos. Selecione pelo menos uma foto para comprovar o atendimento antes de finalizar."
+        );
+      }
+      if (totalFotosDisponiveis === 0) {
+        showToastMessage(
+          "Nenhuma foto selecionada; a OS será finalizada sem fotos.",
+          "warning"
         );
       }
 
@@ -1521,6 +1532,9 @@ export function useFillPdfForm() {
 
       if (deveEnviarEmail) {
         stage = "pdf";
+        // Registra a etapa "pdf" para que uma falha na geração do documento
+        // apareça corretamente na lista de finalizações pendentes.
+        void markServerFinalizationStage(osNumeroAtual, "pdf");
         const finalUpdatedData = { ...finalDataWithPhotos, numeroOs: osNumeroAtual };
         const pdfBase64 = await generatePdfBytes(finalUpdatedData);
 

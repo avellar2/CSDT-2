@@ -72,6 +72,22 @@ describe("deriveOsExternaFinalization", () => {
     expect(derived.isPendingFinalization).toBe(false);
   });
 
+  it("reconhece a etapa 'pdf' registrada no banco como pendência técnica", () => {
+    const derived = deriveOsExternaFinalization(
+      {
+        status: "Pendente",
+        fotosAntes: ["https://res.cloudinary.com/a.jpg"],
+        assinado: "token-existente-123456",
+        lastEmailSent: null,
+      },
+      { storedStage: "pdf" }
+    );
+
+    expect(derived.stage).toBe("pdf");
+    expect(derived.label).toContain("PDF");
+    expect(derived.isPendingFinalization).toBe(true);
+  });
+
   it("etapa registrada no banco tem prioridade (fotos legitimamente ausentes)", () => {
     const derived = deriveOsExternaFinalization(
       {

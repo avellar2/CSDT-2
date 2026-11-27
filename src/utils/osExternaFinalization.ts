@@ -14,6 +14,7 @@
 export type OsExternaFinalizationStage =
   | "fotos"
   | "token"
+  | "pdf"
   | "email"
   | "chamado"
   | "aguardando-assinatura"
@@ -48,6 +49,7 @@ export interface OsExternaFinalizationDerived {
 const STAGE_LABELS: Record<OsExternaFinalizationStage, string> = {
   fotos: "Fotos pendentes",
   token: "Token de confirmação pendente",
+  pdf: "Documento (PDF) pendente",
   email: "E-mail pendente",
   chamado: "Chamado de reagendamento pendente",
   "aguardando-assinatura": "Aguardando assinatura da escola",
@@ -58,6 +60,7 @@ const STAGE_LABELS: Record<OsExternaFinalizationStage, string> = {
 const STAGE_DESCRIPTIONS: Record<OsExternaFinalizationStage, string> = {
   fotos: "A OS foi salva, mas as fotos ainda não foram enviadas.",
   token: "As fotos estão salvas; falta gerar o token de confirmação.",
+  pdf: "O token está pronto; falta gerar o PDF da OS.",
   email: "A OS e o token estão prontos; falta enviar o e-mail para a escola.",
   chamado: "A OS foi enviada; falta criar o chamado de reagendamento.",
   "aguardando-assinatura": "Finalização técnica concluída. A escola ainda não assinou.",
@@ -131,7 +134,11 @@ export function deriveOsExternaFinalization(
     label: STAGE_LABELS[stage],
     description: STAGE_DESCRIPTIONS[stage],
     isPendingFinalization:
-      stage === "fotos" || stage === "token" || stage === "email" || stage === "chamado",
+      stage === "fotos" ||
+      stage === "token" ||
+      stage === "pdf" ||
+      stage === "email" ||
+      stage === "chamado",
     totalFotos,
     validFotos: totalFotos,
     missingFotos: totalFotos === 0 ? 1 : 0,

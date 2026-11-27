@@ -83,11 +83,34 @@ Branch: `fix/os-externa-upload-finalizacao` (base: `main` @ `fccc658`)
 - Conteúdo diferente após uma OS salva gera **novo** `requestId` (atendimento
   legítimo), sem apagar a OS pendente anterior.
 
-### Banco (aditivo, não aplicado)
+### Segurança
+- `cloudinary-signature` passou a validar a **autorização sobre a OS
+  específica** (`numeroOs`), não apenas a autenticação. A pasta é derivada no
+  servidor e o `public_id` é gerado com UUID no servidor — o cliente não
+  escolhe caminho nem nome, impedindo sobrescrever arquivos de outra OS.
+- Uploads do **CHADA** continuam funcionando, restritos a TECH/ADMIN/ADMTOTAL,
+  com `public_id` gerado no servidor.
+- `/api/send-email` (envio **inicial**) agora é idempotente para sempre: se a
+  OS já tem `lastEmailSent`, não reenvia em outro dia. O reenvio manual
+  autorizado em `/api/resend-os-email` foi preservado (cooldown próprio).
+- `/api/os-externa-finalization` valida no servidor que o estado
+  "aguardando-assinatura" só é gravado com token, e-mail e chamado (quando
+  aplicável). O cliente não consegue marcar conclusão sem as etapas.
+- A etapa `pdf` foi incluída na classificação de finalizações pendentes.
+
+### Banco (aditivo, aplicado e verificado)
 `prisma/migrations/20261127120000_add_os_externa_finalization_state/migration.sql`
-cria somente a tabela `OsExternaFinalizationState`. **Nenhuma coluna existente
-foi alterada.** Sem a migração, o sistema deriva o estado da própria OS; com
-ela, a etapa exata fica registrada.
+cria somente a tabela `OsExternaFinalizationState` + índices + RLS sem policies
++ revogação de anon/authenticated (tabela e sequence). **Nenhuma coluna
+existente foi alterada.**
+
+Aplicado manualmente em 27/11/2026 no Supabase de produção
+(`psjscaacxpwcmepjrxhf`, pooler sa-east-1) via `prisma db execute` e registrado
+com `prisma migrate resolve --applied` (sem `migrate deploy/reset/db push`).
+Verificado: tabela/colunas/índices, RLS habilitado, zero policies, grants
+apenas para `postgres`, sequence sem USAGE para anon/authenticated, leitura e
+escrita via Prisma (teste com rollback, sem resíduo) e linha em
+`_prisma_migrations`.
 
 ## Auditoria somente leitura (desde 24/11/2026)
 
@@ -105,19 +128,33 @@ Nenhuma escrita, exclusão, mesclagem ou reenvio foi executado.
 
 ## Testes
 - `npm run typecheck` ✅
-- `npm run test:run` ✅ **471 testes** (37 arquivos; 1 skip pré-existente)
-- `npm run lint` ✅ (configuração ESLint do projeto é vazia)
+- `npm run test:run` ✅ **492 testes aprovados**, 1 ignorado (41 arquivos)
+- `npm run lint` ✅ configuração efetiva (`next/core-web-vitals`), 0 erros
+  (apenas avisos pré-existentes de dívida antiga)
 - `npm run build` ✅
+- Cloudinary: upload direto assinado validado com asset descartável; assinatura
+  adulterada rejeitada (HTTP 401) e asset removido.
 - Novos testes: `os-externa-finalization`, `image-compression`,
-  `os-externa-pending-drafts` e casos de idempotência entre dias/`forceNew` em
-  `os-externa-auth-regression`.
+  `os-externa-pending-drafts`, `os-externa-finalization-state`,
+  `os-externa-finalization-endpoint`, `cloudinary-signature` e idempotência de
+  e-mail entre dias/`forceNew`.
 
 ## Limitações
 - HEIC não é convertido no navegador; exibe instrução para usar JPG.
 - O IndexedDB é por aparelho/navegador; outro dispositivo exige selecionar as
   fotos novamente.
-- A distinção exata de etapa sem a migração é derivada dos dados existentes;
-  uma OS legitimamente sem fotos aparece como "fotos pendentes" até a tabela
-  aditiva ser aplicada.
+- O teste E2E autenticado com perfil TECH em Android/iPhone não foi executado
+  por ausência de conta de teste autorizada e de dispositivo físico nesta
+  sessão. Foram executados testes unitários/de integração, build e validação
+  do upload assinado no Cloudinary.
 - Sem `lastEmailSent` não há como provar que um e-mail saiu; nesse caso a
-  retomada reenvia (o backend ainda deduplica no mesmo dia).
+  retomada reenvia (o backend deduplica o envio inicial para sempre).
+
+## Rollback
+1. **Código**: `git revert -m 1 <merge_sha>` e push normal (sem force).
+2. **Vercel**: promover o deployment de produção anterior pelo dashboard/CLI
+   (`vercel promote <url>`); o alias `csdt.vercel.app` volta à versão antiga.
+3. **Banco**: a migração é aditiva. O código novo tolera a ausência da tabela;
+   se necessário, `DROP TABLE IF EXISTS "OsExternaFinalizationState";`
+   (perde apenas o estado de finalização, nunca dados de OS).
+4. **Dados**: nenhuma OS existente foi alterada; não há rollback de dados.

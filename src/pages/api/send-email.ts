@@ -4,10 +4,6 @@ import { sendMail, MailConfigurationError } from "@/utils/mailer";
 import prisma from "@/utils/prisma";
 import { authorizeOsExterna } from "@/utils/osExternaAuthorization";
 import { evaluateMailAcceptance, normalizeAddress } from "@/utils/mailRecipients";
-import {
-  formatBrazilDateKey,
-  getBrazilDayRange,
-} from "@/utils/dailyDemandOsRules";
 
 /**
  * Endpoint genérico de e-mail usado pelos fluxos de OS e chamados.
@@ -31,12 +27,14 @@ function isValidRecipient(value: unknown): value is string {
   return /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(trimmed);
 }
 
-function emailSentToday(lastEmailSent: Date | null): boolean {
-  if (!lastEmailSent) return false;
-  const todayKey = formatBrazilDateKey(new Date());
-  const { start, end } = getBrazilDayRange(todayKey);
-  const sentAt = new Date(lastEmailSent);
-  return sentAt >= start && sentAt <= end;
+/**
+ * E-mail INICIAL da OS é idempotente para sempre: se a OS já tem
+ * `lastEmailSent`, não envia de novo, independentemente do dia. O reenvio
+ * manual autorizado usa `/api/resend-os-email`, que tem o seu próprio
+ * cooldown e continua funcionando.
+ */
+function emailAlreadySent(lastEmailSent: Date | null): boolean {
+  return Boolean(lastEmailSent);
 }
 
 /**
@@ -182,10 +180,12 @@ export default async function handler(
       });
     }
 
-    if (emailSentToday(osExterna.lastEmailSent)) {
+    if (emailAlreadySent(osExterna.lastEmailSent)) {
       return res.status(200).json({
-        message: "Email ja enviado hoje para esta OS.",
+        message: "Email ja enviado para esta OS.",
         deduplicated: true,
+        emailPreviouslySent: true,
+        lastEmailSent: osExterna.lastEmailSent,
       });
     }
   }
